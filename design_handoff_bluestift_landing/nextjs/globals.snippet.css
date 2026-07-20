@@ -1,0 +1,62 @@
+/* Add to your global stylesheet (e.g. app/globals.css). Fonts can also be
+   loaded via next/font instead of this @import — either works, just keep
+   the family names below in sync with what you use in components. */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Inter+Tight:wght@700;800;900&family=Caveat:wght@600;700&family=Instrument+Serif:ital@1&display=swap');
+
+body {
+  margin: 0;
+}
+
+/* Plain-CSS versions of every keyframe used across the 4 pages, for anyone
+   not routing them through tailwind.config (see tailwind.config.snippet.ts
+   for the Tailwind-native version of the same keyframes). */
+
+@keyframes cloudZoom {
+  0% { transform: scale(2.2) translateY(6%); }
+  100% { transform: scale(1) translateY(0); }
+}
+@keyframes hazeFade {
+  0% { opacity: 0.96; }
+  60% { opacity: 0.5; }
+  100% { opacity: 0; }
+}
+@keyframes writeReveal {
+  from { clip-path: inset(0 101% 0 0); }
+  to { clip-path: inset(0 -1% 0 0); }
+}
+@keyframes birdFly {
+  0% { left: -4%; top: 62%; opacity: 0; transform: translateY(0) rotate(-6deg) scale(0.9); }
+  6% { opacity: 1; }
+  22% { top: 38%; transform: translateY(-12px) rotate(6deg) scale(1); }
+  45% { top: 58%; transform: translateY(6px) rotate(-5deg) scale(0.95); }
+  68% { top: 32%; transform: translateY(-10px) rotate(5deg) scale(1); }
+  92% { opacity: 1; top: 42%; }
+  100% { left: 102%; top: 46%; opacity: 0; transform: translateY(-4px) rotate(2deg) scale(0.9); }
+}
+@keyframes birdFly2 {
+  0% { left: -6%; top: 78%; opacity: 0; transform: translateY(0) rotate(-4deg) scale(0.75); }
+  8% { opacity: 1; }
+  30% { top: 66%; transform: translateY(-8px) rotate(5deg) scale(0.8); }
+  50% { top: 80%; transform: translateY(5px) rotate(-4deg) scale(0.75); }
+  74% { top: 60%; transform: translateY(-9px) rotate(4deg) scale(0.8); }
+  93% { opacity: 1; top: 68%; }
+  100% { left: 98%; top: 70%; opacity: 0; transform: translateY(-3px) rotate(2deg) scale(0.75); }
+}
+@keyframes wingFlap {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.5); }
+}
+@keyframes floatSm {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes shine {
+  0% { background-position: -120% 0; }
+  100% { background-position: 120% 0; }
+}
+@keyframes morphBlob {
+  0% { border-radius: 42% 58% 65% 35% / 45% 45% 55% 55%; transform: translate(-8%,-6%) scale(1); }
+  50% { border-radius: 58% 42% 38% 62% / 60% 55% 45% 40%; transform: translate(10%,8%) scale(1.18); }
+  100% { border-radius: 42% 58% 65% 35% / 45% 45% 55% 55%; transform: translate(-8%,-6%) scale(1); }
+}

@@ -1,0 +1,630 @@
+/* Public marketing site fonts (BlueStift landing handoff). Loaded by literal
+   family name so the inline style={{ fontFamily: "'Inter Tight'..." }} used by
+   components/site/* resolves. Harmless to the connected app, which sets its own
+   font stacks explicitly. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Inter+Tight:wght@700;800;900&family=Caveat:wght@600;700&family=Instrument+Serif:ital@1&display=swap');
+
+/* Tailwind — used ONLY by the public marketing site (components/site/*). Preflight
+   is disabled in tailwind.config.ts so these directives add no global reset; the
+   signed-in app stays entirely inline-styled and untouched. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #0b0f1a;
+  --foreground: #e6ebf5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  max-width: 100vw;
+  padding: 0;
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ---- Public site helpers (responsive grids for inline-styled pages) ---- */
+.pub-grid-2,
+.pub-grid-3,
+.pub-grid-4 {
+  display: grid;
+  gap: 12px;
+}
+.pub-grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+.pub-grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+.pub-grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+}
+.pub-footer-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 32px;
+}
+@media (max-width: 900px) {
+  .pub-grid-3,
+  .pub-grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .pub-grid-4 {
+    gap: 12px;
+  }
+  .pub-footer-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+}
+@media (max-width: 600px) {
+  .pub-grid-2,
+  .pub-grid-3,
+  .pub-grid-4 {
+    grid-template-columns: 1fr;
+  }
+  .pub-hide-sm {
+    display: none !important;
+  }
+}
+@media (max-width: 760px) {
+  .dash-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Full-screen onboarding / auth split — brand pane collapses on narrow screens. */
+@media (max-width: 860px) {
+  .onb-brand {
+    display: none !important;
+  }
+  .onb-panel {
+    flex: 1 1 100% !important;
+  }
+}
+
+/* ============================================================
+   App shell (connected app) — RAYA + Schools + Onboarding.
+   Keyframes and utility classes ported verbatim from the design
+   handoff references. Colors live in components/ui/tokens.ts.
+   ============================================================ */
+@keyframes shine {
+  0% {
+    background-position: -120% 0;
+  }
+  100% {
+    background-position: 120% 0;
+  }
+}
+@keyframes writeReveal {
+  from {
+    clip-path: inset(0 101% 0 0);
+  }
+  to {
+    clip-path: inset(0 -1% 0 0);
+  }
+}
+@keyframes floatSm {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+/* Welcome flock: cross the screen while undulating. Only `left` + `transform`
+   move (vertical bob via translateY) — the vertical LANE is set per-bird via
+   `top`, so birds stay separated and don't stack on one path. */
+@keyframes crossFly {
+  0% {
+    left: -14%;
+    opacity: 0;
+    transform: translateY(0) rotate(-4deg);
+  }
+  8% {
+    opacity: 1;
+  }
+  27% {
+    transform: translateY(-9px) rotate(4deg);
+  }
+  52% {
+    transform: translateY(3px) rotate(-3deg);
+  }
+  76% {
+    transform: translateY(-6px) rotate(3deg);
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    left: 112%;
+    opacity: 0;
+    transform: translateY(0) rotate(-2deg);
+  }
+}
+@keyframes birdFly {
+  0% {
+    left: -4%;
+    top: 62%;
+    opacity: 0;
+    transform: translateY(0) rotate(-6deg) scale(0.9);
+  }
+  6% {
+    opacity: 1;
+  }
+  22% {
+    top: 38%;
+    transform: translateY(-12px) rotate(6deg) scale(1);
+  }
+  45% {
+    top: 58%;
+    transform: translateY(6px) rotate(-5deg) scale(0.95);
+  }
+  68% {
+    top: 32%;
+    transform: translateY(-10px) rotate(5deg) scale(1);
+  }
+  92% {
+    opacity: 1;
+    top: 42%;
+  }
+  100% {
+    left: 102%;
+    top: 46%;
+    opacity: 0;
+    transform: translateY(-4px) rotate(2deg) scale(0.9);
+  }
+}
+@keyframes birdFly2 {
+  0% {
+    left: -6%;
+    top: 78%;
+    opacity: 0;
+    transform: translateY(0) rotate(-4deg) scale(0.75);
+  }
+  8% {
+    opacity: 1;
+  }
+  30% {
+    top: 66%;
+    transform: translateY(-8px) rotate(5deg) scale(0.8);
+  }
+  50% {
+    top: 80%;
+    transform: translateY(5px) rotate(-4deg) scale(0.75);
+  }
+  74% {
+    top: 60%;
+    transform: translateY(-9px) rotate(4deg) scale(0.8);
+  }
+  93% {
+    opacity: 1;
+    top: 68%;
+  }
+  100% {
+    left: 98%;
+    top: 70%;
+    opacity: 0;
+    transform: translateY(-3px) rotate(2deg) scale(0.75);
+  }
+}
+@keyframes wingFlap {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0.5);
+  }
+}
+@keyframes pulseDot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+/* Cloud/sky background system (BlueStift landing handoff) */
+@keyframes cloudZoom {
+  0% {
+    transform: scale(2.7) translateY(10%);
+  }
+  100% {
+    transform: scale(1) translateY(0);
+  }
+}
+@keyframes hazeFade {
+  0% {
+    opacity: 0.96;
+  }
+  60% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes morphBlob {
+  0% {
+    border-radius: 42% 58% 65% 35% / 45% 45% 55% 55%;
+    transform: translate(-8%, -6%) scale(1);
+  }
+  50% {
+    border-radius: 58% 42% 38% 62% / 60% 55% 45% 40%;
+    transform: translate(10%, 8%) scale(1.18);
+  }
+  100% {
+    border-radius: 42% 58% 65% 35% / 45% 45% 55% 55%;
+    transform: translate(-8%, -6%) scale(1);
+  }
+}
+
+.shine {
+  position: relative;
+  overflow: hidden;
+}
+.shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.4) 20%,
+    rgba(255, 255, 255, 0) 40%
+  );
+  background-size: 250% 100%;
+  animation: shine 6s linear infinite;
+}
+.navitem {
+  padding: 10px 13px;
+  font-size: 12.5px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+.segtab {
+  padding: 8px 16px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+.kpi {
+  border-radius: 16px;
+  padding: 16px;
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease;
+}
+.kpi .val {
+  font-size: 22px;
+  font-weight: 700;
+  margin-top: 3px;
+}
+.online-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  flex: none;
+  animation: pulseDot 1.6s ease-in-out infinite;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.25);
+}
+.offline-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  flex: none;
+}
+
+/* ============================================================
+   Public marketing site (components/site/*) — BlueStift template.
+   Design tokens + day/night theme + custom classes, scoped so they
+   never touch the signed-in app. Fonts map to the next/font vars set
+   in app/layout.tsx. Day/Night is driven by data-theme on <html>
+   (NavbarControls), independent of the app's `bluestift-dark`.
+   ============================================================ */
+:root {
+  --font-site-display: var(--font-inter-tight), "Inter Tight", "Helvetica Neue", -apple-system, sans-serif;
+  --font-site-body: var(--font-inter), "Inter", "Helvetica Neue", -apple-system, sans-serif;
+  --font-site-hand: var(--font-caveat), "Caveat", cursive;
+  --font-site-accent: var(--font-instrument-serif), "Instrument Serif", Georgia, serif;
+
+  --text-solid: #0b1220;
+  --text-primary: #0b1220;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+
+  --page-bg: linear-gradient(180deg, #f5f9fc 0%, #e8f1f8 26%, #dde9f2 100%);
+
+  --nav-bg: rgba(255, 255, 255, 0.72);
+  --nav-border: rgba(255, 255, 255, 0.6);
+  --nav-pill-bg: #f3f3f2;
+  --nav-link-color: #94a3b8;
+
+  --pill-bg: rgba(255, 255, 255, 0.5);
+  --pill-border: rgba(255, 255, 255, 0.6);
+
+  --features-bg: #f4f8fb;
+  --inbox-bg: linear-gradient(180deg, #f4f8fb 0%, #eef4f9 42%, #e4edf4 100%);
+  --pricing-bg: linear-gradient(180deg, #e4edf4 0%, #dfeaf2 35%, #d7e4ee 100%);
+  --footer-bg: #eef4f9;
+  --footer-border: rgba(148, 163, 184, 0.18);
+
+  --blur-strong: blur(20px);
+  --blur-soft: blur(6px);
+}
+
+html[data-theme="night"] {
+  --text-solid: #ffffff;
+  --text-primary: #eaf1f9;
+  --text-secondary: #9db2c6;
+  --text-muted: #8397ab;
+
+  --page-bg: linear-gradient(180deg, #070d18 0%, #09111f 40%, #0b1526 100%);
+
+  --nav-bg: rgba(10, 18, 35, 0.82);
+  --nav-border: rgba(255, 255, 255, 0.08);
+  --nav-pill-bg: rgba(255, 255, 255, 0.06);
+  --nav-link-color: #8397ab;
+
+  --pill-bg: rgba(255, 255, 255, 0.07);
+  --pill-border: rgba(255, 255, 255, 0.15);
+
+  --features-bg: #07111f;
+  --inbox-bg: linear-gradient(180deg, #07111f 0%, #091523 50%, #0a1828 100%);
+  --pricing-bg: linear-gradient(180deg, #0a1828 0%, #08122a 38%, #09152e 100%);
+  --footer-bg: #0d1728;
+  --footer-border: rgba(255, 255, 255, 0.06);
+
+  --blur-strong: blur(8px);
+  --blur-soft: blur(2px);
+}
+
+/* Site wrapper — provides the page canvas + body font/color WITHOUT touching the
+   global <body> (so the connected app is unaffected). */
+.site-root {
+  font-family: var(--font-site-body);
+  color: var(--text-primary);
+  background: var(--page-bg);
+  min-height: 100vh;
+  transition: background 500ms ease;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.site-root a {
+  color: #4f46e5;
+  text-decoration: none;
+}
+.site-root a:hover {
+  color: #0b1220;
+}
+html[data-theme="night"] .site-root a:hover {
+  color: #ffffff;
+}
+.font-display {
+  font-family: var(--font-site-display);
+}
+.font-accent {
+  font-family: var(--font-site-accent);
+}
+.font-hand {
+  font-family: var(--font-site-hand);
+}
+
+/* Text tiers */
+.text-solid {
+  color: var(--text-solid);
+}
+.site-root .text-primary {
+  color: var(--text-primary);
+}
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+/* Nav */
+.bluestift-nav {
+  background: var(--nav-bg);
+  border-color: var(--nav-border);
+  backdrop-filter: var(--blur-strong);
+  transition: background 400ms ease, border-color 400ms ease;
+}
+.bluestift-nav-pill {
+  background: var(--nav-pill-bg);
+  transition: background 400ms ease;
+}
+.bluestift-nav-link {
+  color: var(--nav-link-color);
+}
+.bluestift-nav-link:hover {
+  color: #0b1220;
+}
+
+/* Hero pills */
+.bluestift-pill {
+  background: var(--pill-bg);
+  border-color: var(--pill-border);
+  backdrop-filter: var(--blur-soft);
+  transition: background 400ms ease, color 400ms ease;
+}
+
+/* Section backgrounds */
+.bluestift-features {
+  background: var(--features-bg);
+  transition: background 500ms ease;
+}
+.bluestift-inbox {
+  background: var(--inbox-bg);
+  transition: background 500ms ease;
+}
+.bluestift-pricing {
+  background: var(--pricing-bg);
+  transition: background 500ms ease;
+}
+.bluestift-footer {
+  background: var(--footer-bg);
+  border-top: 1px solid var(--footer-border);
+  transition: background 500ms ease, border-color 500ms ease;
+}
+
+/* Hero cloud photo + day/night crossfade */
+.bluestift-hero-day,
+.bluestift-hero-night {
+  position: absolute;
+  inset: 0;
+  background-image: url("/hero-clouds-wide.png");
+  background-size: cover;
+  background-position: center 30%;
+  background-repeat: no-repeat;
+  transition: opacity 700ms ease;
+}
+.bluestift-hero-night {
+  filter: brightness(0.6) saturate(0.7) contrast(1.02);
+  opacity: 0;
+}
+html[data-theme="night"] .bluestift-hero-day {
+  opacity: 0;
+}
+html[data-theme="night"] .bluestift-hero-night {
+  opacity: 1;
+}
+/* Day-only soft top fade over the hero cloud photo. */
+html[data-theme="night"] .site-hero-topfade {
+  opacity: 0;
+}
+
+/* Handwriting hook */
+.bluestift-write {
+  font-family: var(--font-site-hand);
+  font-weight: 700;
+  animation: write 2.6s cubic-bezier(0.65, 0, 0.35, 1) 0.3s 1 both;
+}
+.bluestift-pen {
+  position: absolute;
+  bottom: 6%;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: #f97316;
+  box-shadow: 0 0 10px rgba(249, 115, 22, 0.7);
+  animation: pen 2.6s cubic-bezier(0.65, 0, 0.35, 1) 0.3s 1 both;
+}
+
+/* Live-card shine sweep */
+.bluestift-shine {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.5) 20%, rgba(255, 255, 255, 0) 40%);
+  background-size: 250% 100%;
+  animation: shine 6s linear infinite;
+}
+
+/* Pricing morph blob */
+.bluestift-morph-blob {
+  position: absolute;
+  right: -15%;
+  bottom: -15%;
+  width: 75%;
+  height: 75%;
+  filter: blur(30px);
+  animation: morph 9s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Site keyframes (shine reused from the app block above) */
+@keyframes write {
+  from {
+    clip-path: inset(0 101% 0 0);
+  }
+  to {
+    clip-path: inset(0 -1% 0 0);
+  }
+}
+@keyframes pen {
+  0% {
+    left: 0%;
+    opacity: 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    left: 100%;
+    opacity: 0;
+  }
+}
+@keyframes morph {
+  0% {
+    border-radius: 42% 58% 65% 35% / 45% 45% 55% 55%;
+    transform: translate(-8%, -6%) scale(1);
+  }
+  50% {
+    border-radius: 58% 42% 38% 62% / 60% 55% 45% 40%;
+    transform: translate(10%, 8%) scale(1.18);
+  }
+  100% {
+    border-radius: 42% 58% 65% 35% / 45% 45% 55% 55%;
+    transform: translate(-8%, -6%) scale(1);
+  }
+}
+@keyframes float-sm {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+@keyframes float-soft {
+  0%,
+  100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-10px) scale(1.01);
+  }
+}
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
