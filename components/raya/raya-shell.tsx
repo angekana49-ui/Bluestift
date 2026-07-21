@@ -9,6 +9,8 @@ import {
   SidebarProfile,
   NavItem,
   MainCard,
+  MobileHeader,
+  Scrim,
 } from "@/components/ui/shell";
 import {
   IconChat,
@@ -43,40 +45,74 @@ export function RayaShell({
   active,
   profileName,
   profileInitials,
+  profileSubtitle,
   profileAvatarBg = "#6366f1",
   profileAvatarUrl,
   chatHistory,
   rightPanel,
-  mainMinWidth = 380,
+  onToggleRight,
   children,
 }: {
   theme: AppTheme;
   active: RayaNav;
   profileName: string;
   profileInitials: string;
+  /** Optional second line under the name (e.g. the plan/forfait). */
+  profileSubtitle?: string;
   profileAvatarBg?: string;
   profileAvatarUrl?: string | null;
   chatHistory?: ReactNode;
   rightPanel?: ReactNode;
+  /** Lets the small-screen header toggle the caller's right panel. Without it
+   *  the header shows no right-hand button. */
+  onToggleRight?: () => void;
+  /** @deprecated the content zone no longer takes a width floor. */
   mainMinWidth?: number;
   children: ReactNode;
 }) {
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [chatHistOpen, setChatHistOpen] = useState(true);
+  /** Small-screen only: the sidebar is an overlay drawer. */
+  const [navOpen, setNavOpen] = useState(false);
+
+  // While the drawer is open the sidebar is always full width, so the collapsed
+  // icon-rail must not apply — otherwise labels vanish inside a wide drawer.
+  const effectiveCollapsed = navOpen ? false : collapsed;
 
   const showChatList =
-    active === "chat" && !collapsed && chatHistOpen && chatHistory != null;
+    active === "chat" && !effectiveCollapsed && chatHistOpen && chatHistory != null;
+
+  const go = (href: string) => {
+    setNavOpen(false);
+    router.push(href);
+  };
 
   return (
     <AppShell theme={t}>
+      <Scrim open={navOpen} onClick={() => setNavOpen(false)} />
+
       <Sidebar
         theme={t}
-        collapsed={collapsed}
+        collapsed={effectiveCollapsed}
         expandedWidth={212}
-        onBackgroundClick={() => setCollapsed((c) => !c)}
+        open={navOpen}
+        // Clicking the sidebar background toggles the icon rail, but only when
+        // it's a real sidebar — inside an open drawer that gesture is a no-op.
+        onBackgroundClick={() => {
+          if (!navOpen) setCollapsed((c) => !c);
+        }}
       >
-        <SidebarBrand theme={t} collapsed={collapsed} logoSrc="/raya-mark.png" logoSrcDark="/raya-mark-violet.png" logoRadius={0} logoSize={52} name="RAYA" />
+        <SidebarBrand
+          theme={t}
+          collapsed={effectiveCollapsed}
+          logoSrc="/raya-mark.png"
+          logoSrcDark="/raya-mark-violet.png"
+          logoRadius={0}
+          logoSize={52}
+          name="RAYA"
+          onToggle={() => setCollapsed((c) => !c)}
+        />
 
         {NAV.map(({ key, label, href, Icon }) => {
           const isChat = key === "chat";
@@ -85,12 +121,12 @@ export function RayaShell({
               <NavItem
                 theme={t}
                 active={active === key}
-                collapsed={collapsed}
+                collapsed={effectiveCollapsed}
                 icon={<Icon />}
                 label={label}
-                onClick={() => router.push(href)}
+                onClick={() => go(href)}
                 trailing={
-                  isChat && chatHistory != null && !collapsed ? (
+                  isChat && chatHistory != null && !effectiveCollapsed ? (
                     <span
                       role="button"
                       onClick={(e) => {
@@ -114,7 +150,7 @@ export function RayaShell({
                 }
               />
               {isChat && showChatList && (
-                <div style={{ padding: "6px 6px 8px 30px", display: "flex", flexDirection: "column", gap: 2 }}>
+                <div className="app-rail-hide" style={{ padding: "6px 6px 8px 30px", display: "flex", flexDirection: "column", gap: 2 }}>
                   {chatHistory}
                 </div>
               )}
@@ -125,20 +161,36 @@ export function RayaShell({
         <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 12 }}>
           <SidebarProfile
             theme={t}
-            collapsed={collapsed}
+            collapsed={effectiveCollapsed}
             initials={profileInitials}
             name={profileName}
+            subtitle={profileSubtitle}
             avatarBg={profileAvatarBg}
             avatarUrl={profileAvatarUrl}
-            onClick={() => router.push("/account")}
+            onClick={() => go("/account")}
           />
         </div>
       </Sidebar>
 
-      <MainCard theme={t} minWidth={mainMinWidth}>
-        {children}
+      <MainCard theme={t} column>
+        <MobileHeader
+          theme={t}
+          title={NAV.find((n) => n.key === active)?.label ?? "RAYA"}
+          onOpenLeft={() => setNavOpen(true)}
+          onOpenRight={onToggleRight}
+        />
+        <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+          {children}
+        </div>
       </MainCard>
 
+      {/* Dimmer behind the right panel when it's an overlay (< 900px). The
+          panel is unmounted when closed, so "present" means "open". Harmless
+          above 900px, where the scrim CSS is display:none and the panel is
+          inline. */}
+      {rightPanel != null && onToggleRight && (
+        <Scrim open onClick={onToggleRight} />
+      )}
       {rightPanel}
     </AppShell>
   );

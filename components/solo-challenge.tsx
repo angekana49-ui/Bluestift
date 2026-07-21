@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { downloadText, downloadPdf } from "@/lib/export";
+import { downloadBrandedPdf, downloadBrandedText, type BrandedDoc } from "@/lib/document";
 import { useAppTheme } from "@/components/ui/theme";
 import { type AppTheme } from "@/components/ui/tokens";
 
@@ -70,7 +70,7 @@ const chip = (t: AppTheme, on: boolean): React.CSSProperties => ({
 const TOPIC_SUGGESTIONS = ["Maths", "Physics", "Chemistry", "Biology", "History", "Languages"];
 const DEFAULT_GOAL = "Review the key ideas and check I really understand them.";
 
-export function SoloChallenge({ myUserId }: { myUserId: string }) {
+export function SoloChallenge({ myUserId, studentName }: { myUserId: string; studentName?: string }) {
   const { theme: t } = useAppTheme();
   const [supabase] = useState(() => createClient());
   const [view, setView] = useState<"list" | "take" | "result">("list");
@@ -215,15 +215,21 @@ export function SoloChallenge({ myUserId }: { myUserId: string }) {
     }
   }
 
-  function resultText() {
-    if (!active || !result) return "";
-    return [
-      `Challenge: ${active.title ?? "Self-test"}`,
-      active.description ? `Goal: ${active.description}` : "",
-      `Score: ${result.correct}/${result.total} (${Math.round(result.score * 100)}%)`,
+  function resultDoc(): BrandedDoc {
+    const body = [
+      active?.description ? `${active.description}\n` : "",
+      `## Score`,
+      `${result?.correct ?? 0}/${result?.total ?? 0} · ${Math.round((result?.score ?? 0) * 100)}%`,
     ]
       .filter(Boolean)
       .join("\n");
+    return {
+      brand: "raya",
+      title: active?.title ? `${active.title} — result` : "Self-test result",
+      meta: new Date().toLocaleDateString(),
+      audience: studentName || undefined,
+      body,
+    };
   }
 
   if (view === "take" && active) {
@@ -271,8 +277,8 @@ export function SoloChallenge({ myUserId }: { myUserId: string }) {
       <div style={panel(t)}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <h3 style={{ margin: 0, flex: 1, fontSize: 14, fontWeight: 700, color: t.text }}>Result</h3>
-          <button style={ghost(t)} onClick={() => downloadText(`${active.title}-result`, resultText())}>TXT</button>
-          <button style={ghost(t)} onClick={() => downloadPdf(`${active.title}-result`, "Self-test result", resultText())}>PDF</button>
+          <button style={ghost(t)} onClick={() => downloadBrandedText(resultDoc())}>TXT</button>
+          <button style={ghost(t)} onClick={() => downloadBrandedPdf(resultDoc())}>PDF</button>
         </div>
         <p style={{ fontSize: 22, fontWeight: 700, color: t.text }}>
           {result.correct}/{result.total} · {Math.round(result.score * 100)}%

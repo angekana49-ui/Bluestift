@@ -189,11 +189,19 @@ Next.js app  ──HTTP──▶  Kernel (FastAPI, Railway)
   hasn't studied) surfaces the root gap holding back everything below it.
   `getStudentDetail` builds `graph {nodes, edges}` (verified against live kernel
   data: 280 prerequisite edges available); `LearningGraphView` renders it.
-- **RAYA for Schools**: admin chat grounded in a real data snapshot (school totals,
-  per-class summaries, at-risk students, weakest concepts). LLM answers only from
-  the snapshot (verified: cites figures, refuses out-of-scope questions, no
-  hallucination). `POST /api/school/raya`, `buildSchoolContext`,
-  `components/school-raya.tsx`. Stateless (history passed per request).
+- **RAYA for Schools**: now the **same chat as the Raya student chat** — one shared
+  core (`components/chat/*`, a `ChatConfig`-driven engine + surface) powers both, so
+  they can't drift. `components/school/school-raya-chat.tsx` (`SchoolRayaChat`) fills
+  the RAYA tab (contentFlush → single header) in **both** the admin and prof faces,
+  with streaming replies, **voice input** (reuses `/api/raya/transcribe`), **document
+  upload**, persisted **history** (in-tab popover), and a right panel = **directives**
+  + a derived **notifications** feed. Grounded in `buildSchoolContext`/`buildProfContext`
+  + active `school_directives` + attached docs; answers only from the snapshot.
+  Backend mirrors the Raya routes: `POST /api/school/raya/chat` (streamed, persists to
+  `learning.conversations` with `context_type='school_analytics'` + `school_id`),
+  `GET/DELETE /api/school/raya/conversations`, `POST/DELETE /api/school/raya/files`,
+  `GET /api/school/notifications`. No migration (the schema already allowed it).
+  Replaced the old thin `components/school-raya.tsx` (deleted).
 - **Reports**: generate a grounded Markdown performance report by **subject /
   class / school** (LLM, same grounding; verified 4-section structure, real
   figures, no hallucination), downloadable TXT/PDF, with a persisted past-reports

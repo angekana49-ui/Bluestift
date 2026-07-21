@@ -24,6 +24,9 @@ export type AppTheme = {
   sidebarMuted: string;
   sidebarActiveBg: string;
   sidebarDivider: string;
+  /** Right notifications panel — its own tone, less blue than the sidebar. */
+  rightBg: string;
+  rightBorder: string;
   cardBg: string;
   cardBg2: string;
   cardBorder: string;
@@ -45,22 +48,27 @@ export type AppTheme = {
   switchKnobBg: string;
 };
 
+/* Flat two-surface language (no cloud backdrop): panels are OPAQUE and told
+   apart by one 1px border, exactly like the sign-in split. `sidebarBg` is the
+   tinted panel, `cardBg` the plain one — never translucent, nothing floats. */
 const light: AppTheme = {
   dark: false,
-  pageBase: "#eef3f9",
-  cloudOpacity: 0.85,
+  pageBase: "#ffffff",
+  cloudOpacity: 0,
   cloudFilter: "none",
-  hazeOverlay: "rgba(238,243,249,0.68)",
-  sidebarBg: "rgba(255,255,255,0.82)",
-  sidebarBorder: "rgba(15,23,42,0.08)",
+  hazeOverlay: "transparent",
+  sidebarBg: "#eef3f9",
+  sidebarBorder: "rgba(15,23,42,0.10)",
   sidebarText: "#0b1220",
   sidebarMuted: "#64748b",
   sidebarActiveBg: "rgba(15,23,42,0.07)",
-  sidebarDivider: "rgba(15,23,42,0.08)",
-  cardBg: "rgba(255,255,255,0.82)",
+  sidebarDivider: "rgba(15,23,42,0.10)",
+  rightBg: "#f6f7f9",
+  rightBorder: "rgba(15,23,42,0.09)",
+  cardBg: "#ffffff",
   cardBg2: "#f3f6fa",
-  cardBorder: "rgba(15,23,42,0.08)",
-  cardShadow: "0 30px 80px rgba(15,23,42,0.18)",
+  cardBorder: "rgba(15,23,42,0.10)",
+  cardShadow: "none",
   text: "#0b1220",
   muted: "#64748b",
   mutedLight: "#8a97a8",
@@ -80,20 +88,22 @@ const light: AppTheme = {
 
 const dark: AppTheme = {
   dark: true,
-  pageBase: "#0a0f1e",
-  cloudOpacity: 0.8,
-  cloudFilter: "brightness(0.55) saturate(1.3) contrast(1.1)",
-  hazeOverlay: "rgba(8,12,24,0.42)",
-  sidebarBg: "#05070d",
-  sidebarBorder: "rgba(255,255,255,0.06)",
+  pageBase: "#0b111f",
+  cloudOpacity: 0,
+  cloudFilter: "none",
+  hazeOverlay: "transparent",
+  sidebarBg: "#070c17",
+  sidebarBorder: "rgba(255,255,255,0.09)",
   sidebarText: "#ffffff",
   sidebarMuted: "#94a3b8",
   sidebarActiveBg: "rgba(255,255,255,0.1)",
-  sidebarDivider: "rgba(255,255,255,0.08)",
-  cardBg: "rgba(17,26,46,0.82)",
+  sidebarDivider: "rgba(255,255,255,0.09)",
+  rightBg: "#10141c",
+  rightBorder: "rgba(255,255,255,0.08)",
+  cardBg: "#0b111f",
   cardBg2: "#16203a",
-  cardBorder: "rgba(255,255,255,0.08)",
-  cardShadow: "0 30px 80px rgba(0,0,0,0.5)",
+  cardBorder: "rgba(255,255,255,0.09)",
+  cardShadow: "none",
   text: "#eef2f8",
   muted: "#9aa7bd",
   mutedLight: "#7c8aa3",

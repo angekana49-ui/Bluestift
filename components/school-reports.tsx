@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { downloadText, downloadPdf } from "@/lib/export";
+import { downloadBrandedPdf, downloadBrandedText } from "@/lib/document";
 import { useAppTheme } from "@/components/ui/theme";
+import { DocumentView } from "@/components/ui/document";
 import { panelCard, textInput, ctaButton, ghostButton } from "@/components/ui/forms";
 
 type ReportItem = { id: string | null; title: string; scope: string | null; content: string; createdAt: string };
@@ -10,7 +11,9 @@ type ClassOpt = { id: string; name: string };
 type SubjectOpt = { id: string; name: string; code: string | null };
 type Scope = "subject" | "class" | "school";
 
-export function SchoolReports({ classes }: { classes: ClassOpt[] }) {
+const SCOPE_LABEL: Record<string, string> = { school: "Whole school", class: "Class report", subject: "Subject report" };
+
+export function SchoolReports({ classes, schoolName }: { classes: ClassOpt[]; schoolName?: string }) {
   const { theme: t } = useAppTheme();
   const box = panelCard(t);
   const btn = ctaButton(t);
@@ -78,7 +81,16 @@ export function SchoolReports({ classes }: { classes: ClassOpt[] }) {
     }
   }
 
-  const baseName = (current?.title ?? "report").replace(/[^\w]+/g, "-").slice(0, 40);
+  // Every generated report renders — and downloads — through the shared branded
+  // document châssis (Bluestift logo + title + footer attribution). The report
+  // body is Markdown, so DocumentView typesets it instead of dumping raw `#`.
+  const docFor = (r: ReportItem) => ({
+    brand: "bluestift" as const,
+    title: r.title,
+    meta: [SCOPE_LABEL[r.scope ?? "school"] ?? r.scope, new Date(r.createdAt).toLocaleDateString()].filter(Boolean).join(" · "),
+    audience: schoolName,
+    body: r.content,
+  });
 
   return (
     <div>
@@ -118,20 +130,13 @@ export function SchoolReports({ classes }: { classes: ClassOpt[] }) {
       </div>
 
       {current && (
-        <div style={box}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <h3 style={{ margin: 0, flex: 1 }}>{current.title}</h3>
-            <button style={ghost} onClick={() => downloadText(baseName, current.content)}>
-              TXT
-            </button>
-            <button style={ghost} onClick={() => downloadPdf(baseName, current.title, current.content)}>
-              PDF
-            </button>
-            <button style={ghost} title="Close" onClick={() => setCurrent(null)}>
-              ✕
-            </button>
-          </div>
-          <p style={{ whiteSpace: "pre-wrap", lineHeight: 1.55, marginBottom: 0 }}>{current.content}</p>
+        <div style={{ marginTop: "1rem" }}>
+          <DocumentView
+            {...docFor(current)}
+            onTxt={() => downloadBrandedText(docFor(current))}
+            onPdf={() => downloadBrandedPdf(docFor(current))}
+            onClose={() => setCurrent(null)}
+          />
         </div>
       )}
 

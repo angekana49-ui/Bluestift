@@ -99,6 +99,179 @@ a {
 }
 
 /* ============================================================
+   App shell layout — flat, responsive, three tiers.
+
+   The chat/content zone is the primary surface; the two side panels
+   are secondary and progressively become overlay drawers as the
+   viewport narrows. Layout lives here (media queries can't be done
+   with the inline styles the app uses); colors stay in tokens.ts and
+   are passed inline. Panel widths come in as the custom properties
+   --app-sidebar-w / --app-right-w so CSS can override them per tier.
+
+     >= 900px    sidebar | content | right panel   (all inline, panel pushes)
+     700-899px   icon rail | content               (right = drawer overlay)
+     < 700px     content only + mobile header      (both = drawer overlays)
+
+   The right panel stays inline — pushing the content — on every large screen;
+   it only overlays on small ones (< 900px), never covering a roomy layout.
+   The tablet tier narrows the sidebar to the icon rail instead of hiding it —
+   at ~820px (iPad portrait) there is room for it, and dropping to a drawer
+   there would waste the space rather than save it.
+   ============================================================ */
+
+.app-shell {
+  display: flex;
+  height: 100dvh;
+  width: 100%;
+  overflow: hidden;
+}
+
+.app-sidebar {
+  box-sizing: border-box;
+  flex: none;
+  width: var(--app-sidebar-w, 216px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* The primary zone. min-width:0 is what lets it actually shrink
+   instead of pushing the panels off-screen. */
+.app-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* overflow:hidden — the panel's body scrolls, not the panel, so its header
+   row stays pinned and aligned with the content header. */
+.app-right {
+  box-sizing: border-box;
+  flex: none;
+  width: var(--app-right-w, 270px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Shown only in the smallest tier — carries a drawer toggle on each side. */
+.app-mobile-header {
+  display: none;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.app-scrim {
+  display: none;
+}
+
+/* -- Tier 2 (tablet & phone): the right panel folds into a drawer --- */
+@media (max-width: 899px) {
+  .app-right {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    width: min(var(--app-right-w, 270px), 86vw);
+    transform: translateX(100%);
+    transition: transform 0.22s ease;
+  }
+  .app-right.is-open {
+    transform: translateX(0);
+  }
+}
+
+/* Tablet (700–899px): the sidebar stays inline and React-controlled — its width
+   follows the collapse toggle (full width ⇄ 68px rail) exactly like the desktop
+   tiers. It is NOT hard-pinned to the rail here: that pin made the collapse
+   toggle a no-op in this band (the "stall" when resizing through it). The right
+   panel is already a drawer below 900px (see Tier 2 above), so an inline sidebar
+   + content fits. */
+
+/* -- Tier 4 (phone): the sidebar folds into a burger drawer -------- */
+@media (max-width: 699px) {
+  .app-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 40;
+    width: min(var(--app-sidebar-w-open, 240px), 82vw);
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+  }
+  .app-sidebar.is-open {
+    transform: translateX(0);
+  }
+  .app-mobile-header {
+    display: flex;
+  }
+  /* The burger in the mobile header is the sidebar control here; the in-rail
+     collapse chevron would be redundant (and inert inside an open drawer). */
+  .app-collapse-toggle {
+    display: none;
+  }
+}
+
+/* Drawer dimmer — active whenever a panel is an overlay (< 900px, covering
+   both the tablet right-drawer and the phone sidebar+right drawers). Above
+   900px it stays display:none, so an always-mounted scrim is harmless. */
+@media (max-width: 899px) {
+  .app-scrim.is-open {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background: rgba(8, 12, 24, 0.44);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-sidebar,
+  .app-right {
+    transition: none;
+  }
+}
+
+/* Pale-blue animated backdrop for the empty (new-conversation) welcome screen
+   only — a soft drifting wash, not the old full-app cloud layer. Two blurred
+   radial tints slowly breathe across the panel. */
+.chat-welcome-bg {
+  background-color: #eef4fb;
+  background-image:
+    radial-gradient(60% 55% at 22% 30%, rgba(148, 190, 240, 0.55), transparent 70%),
+    radial-gradient(55% 50% at 82% 72%, rgba(180, 210, 245, 0.5), transparent 70%);
+  background-repeat: no-repeat;
+  animation: welcomeDrift 18s ease-in-out infinite alternate;
+}
+.chat-welcome-bg.is-dark {
+  background-color: #0b111f;
+  background-image:
+    radial-gradient(60% 55% at 22% 30%, rgba(56, 96, 158, 0.4), transparent 70%),
+    radial-gradient(55% 50% at 82% 72%, rgba(40, 72, 128, 0.38), transparent 70%);
+}
+
+@keyframes welcomeDrift {
+  0% {
+    background-position: 0% 0%, 100% 100%;
+  }
+  100% {
+    background-position: 14% 10%, 86% 90%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-welcome-bg {
+    animation: none;
+  }
+}
+
+/* ============================================================
    App shell (connected app) — RAYA + Schools + Onboarding.
    Keyframes and utility classes ported verbatim from the design
    handoff references. Colors live in components/ui/tokens.ts.

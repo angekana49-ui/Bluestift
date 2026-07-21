@@ -15,12 +15,12 @@ import {
   type Attachment,
   type AttachmentScope,
 } from "@/components/attachment";
-import { downloadText, downloadPdf } from "@/lib/export";
+import { downloadBrandedPdf, downloadBrandedText, type BrandedDoc } from "@/lib/document";
 import { useDarkMode } from "@/components/ui/theme";
 import { RayaShell } from "@/components/raya/raya-shell";
 import { status, type AppTheme } from "@/components/ui/tokens";
 
-function reportToText(r: {
+function reportToMd(r: {
   summary: string | null;
   key_learnings: string | null;
   highlights: unknown;
@@ -29,14 +29,25 @@ function reportToText(r: {
 }): string {
   const highlights = Array.isArray(r.highlights) ? (r.highlights as string[]) : [];
   return [
-    r.squad_score != null ? `Squad score: ${r.squad_score}/100` : "",
-    `Summary: ${r.summary ?? "-"}`,
-    `Key learnings: ${r.key_learnings ?? "-"}`,
-    highlights.length ? `Highlights:\n${highlights.map((h) => `- ${h}`).join("\n")}` : "",
-    `Recommendations: ${r.recommendations ?? "-"}`,
+    r.squad_score != null ? `## Squad score\n${r.squad_score}/100` : "",
+    `## Summary\n${r.summary ?? "—"}`,
+    `## Key learnings\n${r.key_learnings ?? "—"}`,
+    highlights.length ? `## Highlights\n${highlights.map((h) => `- ${h}`).join("\n")}` : "",
+    `## Recommendations\n${r.recommendations ?? "—"}`,
   ]
     .filter(Boolean)
     .join("\n\n");
+}
+
+/** Branded session-report document (Raya logo, footer attribution). */
+function reportDoc(roomName: string, r: Parameters<typeof reportToMd>[0]): BrandedDoc {
+  return {
+    brand: "raya",
+    title: `${roomName} — session report`,
+    meta: new Date().toLocaleDateString(),
+    audience: roomName,
+    body: reportToMd(r),
+  };
 }
 
 type Msg = {
@@ -952,10 +963,10 @@ export function RoomView({
                 <h3 style={{ margin: 0, flex: 1, fontSize: 14, fontWeight: 700, color: t.text }}>Session report</h3>
                 {report && (
                   <>
-                    <button style={{ ...ghost, padding: "5px 12px", fontSize: 11 }} onClick={() => downloadText(`${roomName}-report`, reportToText(report))}>
+                    <button style={{ ...ghost, padding: "5px 12px", fontSize: 11 }} onClick={() => downloadBrandedText(reportDoc(roomName, report))}>
                       TXT
                     </button>
-                    <button style={{ ...ghost, padding: "5px 12px", fontSize: 11 }} onClick={() => downloadPdf(`${roomName}-report`, `${roomName} — session report`, reportToText(report))}>
+                    <button style={{ ...ghost, padding: "5px 12px", fontSize: 11 }} onClick={() => downloadBrandedPdf(reportDoc(roomName, report))}>
                       PDF
                     </button>
                     <button style={{ ...ghost, padding: "5px 12px", fontSize: 11 }} title="Close" onClick={() => setReport(null)}>

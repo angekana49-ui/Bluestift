@@ -4,12 +4,13 @@ import { createContext, useContext, useEffect, useState, useTransition } from "r
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { setActiveSchool } from "@/app/school/actions";
-import { SchoolRaya } from "@/components/school-raya";
+import { SchoolRayaChat } from "@/components/school/school-raya-chat";
 import { SchoolReports } from "@/components/school-reports";
 import { SchoolTeam } from "@/components/school-team";
 import { SchoolInsights } from "@/components/school-insights";
 import { SchoolLms } from "@/components/school-lms";
 import { SchoolBilling } from "@/components/school-billing";
+import { downloadBrandedPdf, type BrandedDoc } from "@/lib/document";
 import { COUNTRIES, SCHOOL_TYPES } from "@/lib/school-constants";
 import { useDarkMode, useAppTheme, AppThemeProvider } from "@/components/ui/theme";
 import { SchoolsShell, type SchoolNavItem } from "@/components/school/schools-shell";
@@ -151,6 +152,8 @@ export function SchoolAdmin({
   dashboard,
   profClasses,
   teacherName = "Teacher",
+  userName = "",
+  planLabel = null,
   profSubjects = [],
   profSchoolName = null,
   userAvatarUrl = null,
@@ -164,6 +167,10 @@ export function SchoolAdmin({
   profClasses: AdminClass[];
   /** Signed-in teacher's identity + teaching subjects, for the prof dashboard. */
   teacherName?: string;
+  /** Signed-in user's display name for the sidebar profile chip (name + photo). */
+  userName?: string;
+  /** Active school's plan/forfait, shown under the name in the profile chip. */
+  planLabel?: string | null;
   profSubjects?: string[];
   profSchoolName?: string | null;
   userAvatarUrl?: string | null;
@@ -183,9 +190,9 @@ export function SchoolAdmin({
       {showNoMembership ? (
         <NoMembership initialJoinCode={initialJoinCode} />
       ) : role === "prof" ? (
-        <ProfView classes={profClasses} teacherName={teacherName} subjects={profSubjects} schoolName={profSchoolName} />
+        <ProfView classes={profClasses} teacherName={teacherName} planLabel={planLabel} subjects={profSubjects} schoolName={profSchoolName} />
       ) : (
-        <Dashboard dash={dash as SchoolDashboard} setDash={setDash} initialTab={initialTab} />
+        <Dashboard dash={dash as SchoolDashboard} setDash={setDash} adminName={userName} planLabel={planLabel} initialTab={initialTab} />
       )}
      </SchoolUserContext.Provider>
     </AppThemeProvider>
@@ -210,7 +217,6 @@ function SchoolChrome({
   profileSubtitle,
   headerTitle,
   headerSubtitle,
-  searchPlaceholder,
   rightPanel,
   contentFlush,
   children,
@@ -224,7 +230,6 @@ function SchoolChrome({
   profileSubtitle?: string;
   headerTitle?: string;
   headerSubtitle?: string;
-  searchPlaceholder?: string;
   rightPanel?: React.ReactNode;
   contentFlush?: boolean;
   children: React.ReactNode;
@@ -247,7 +252,6 @@ function SchoolChrome({
       onProfile={() => router.push("/account")}
       headerTitle={headerTitle}
       headerSubtitle={headerSubtitle}
-      searchPlaceholder={searchPlaceholder}
       rightPanel={rightPanel}
       contentFlush={contentFlush}
     >
@@ -488,11 +492,13 @@ type ProfTab = "classes" | "insights" | "raya";
 function ProfView({
   classes,
   teacherName,
+  planLabel = null,
   subjects,
   schoolName,
 }: {
   classes: AdminClass[];
   teacherName: string;
+  planLabel?: string | null;
   subjects: string[];
   schoolName: string | null;
 }) {
@@ -557,6 +563,8 @@ function ProfView({
     memberships[0]?.schoolName ||
     "your school";
   const roleLabel = teacherRoleLabel(subjects);
+  // Profile chip (like RAYA): name + photo, with "Teacher · <forfait>" under it.
+  const profileForfait = planLabel ? `Teacher · ${planLabel}` : "Teacher";
 
   const navItems: SchoolNavItem[] = [
     { key: "classes", label: "Classes", icon: <IconClasses /> },
@@ -589,9 +597,9 @@ function ProfView({
       />
     );
   } else if (tab === "raya") {
-    body = <SchoolRaya fill teacher={{ name: teacherName, subjects, schoolName: resolvedSchool }} />;
+    body = <SchoolRayaChat role="prof" staffName={teacherName} />;
   } else if (tab === "insights") {
-    body = <ProfInsightsView onStudent={(classId, userId) => openStudent(classId, userId, () => setTab("insights"))} />;
+    body = <ProfInsightsView schoolName={resolvedSchool} onStudent={(classId, userId) => openStudent(classId, userId, () => setTab("insights"))} />;
   } else {
     body = (
       <>
@@ -640,10 +648,9 @@ function ProfView({
       onNav={goTab}
       schoolName={resolvedSchool}
       profileName={teacherName}
-      profileSubtitle={roleLabel}
+      profileSubtitle={profileForfait}
       headerTitle={rayaFullScreen ? "RAYA for Schools" : "Teacher dashboard"}
       headerSubtitle={`${resolvedSchool} · ${roleLabel}`}
-      searchPlaceholder={rayaFullScreen ? undefined : "Search students, classes..."}
       contentFlush={rayaFullScreen}
     >
       {body}
@@ -714,7 +721,30 @@ function TeacherBanner({
 }
 
 /** Read-only insights + at-risk feed for a teacher's assigned classes. */
-function ProfInsightsView({ onStudent }: { onStudent: (classId: string, userId: string) => void }) {
+/** Compose a teacher's at-risk list + class insights into a branded Markdown document. */
+function profInsightsToDoc(data: ProfInsights, schoolName?: string): BrandedDoc {
+  const lines: string[] = ["# At-risk students"];
+  if (data.alerts.length === 0) lines.push("No students need attention right now.");
+  for (const a of data.alerts) {
+    lines.push(`- **${a.name}** · ${a.className} · ${a.statusLabel ?? "at risk"} · ${pctOrDash(a.avgMastery)}`);
+  }
+  lines.push("# Class insights");
+  if (data.insights.length === 0) lines.push("No certified insights yet.");
+  for (const ins of data.insights) {
+    lines.push(`## ${ins.className} · ${ins.subjectName} — ${pctOrDash(ins.avgMastery)}`);
+    if (ins.topGaps.length > 0) lines.push(`- Top gaps: ${ins.topGaps.join(", ")}`);
+    if (ins.topRecommendation) lines.push(`- Recommendation: ${ins.topRecommendation}`);
+  }
+  return {
+    brand: "bluestift",
+    title: "Class insights",
+    meta: new Date().toLocaleDateString(),
+    audience: schoolName,
+    body: lines.join("\n"),
+  };
+}
+
+function ProfInsightsView({ onStudent, schoolName }: { onStudent: (classId: string, userId: string) => void; schoolName?: string }) {
   const { box, ghost } = useSchoolStyles();
   const [data, setData] = useState<ProfInsights | null>(null);
   const [loading, setLoading] = useState(true);
@@ -742,7 +772,14 @@ function ProfInsightsView({ onStudent }: { onStudent: (classId: string, userId: 
   return (
     <div>
       <div style={box}>
-        <h3 style={{ marginTop: 0 }}>At-risk students</h3>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <h3 style={{ margin: 0, flex: 1 }}>At-risk students</h3>
+          {(data.alerts.length > 0 || data.insights.length > 0) && (
+            <button style={ghost} onClick={() => downloadBrandedPdf(profInsightsToDoc(data, schoolName))}>
+              Download PDF
+            </button>
+          )}
+        </div>
         {data.alerts.length === 0 ? (
           <p style={{ opacity: 0.55, fontSize: "0.85rem", margin: 0 }}>No students need attention right now.</p>
         ) : (
@@ -797,116 +834,6 @@ function ProfInsightsView({ onStudent }: { onStudent: (classId: string, userId: 
   );
 }
 
-type Directive = { id: string; content: string; audience: string; isActive: boolean };
-const AUDIENCE_LABEL: Record<string, string> = {
-  students: "Students",
-  teachers: "Teachers",
-  both: "Everyone",
-};
-
-/** Admin authoring of school-wide directives broadcast through RAYA. */
-function SchoolDirectives() {
-  const { box, input, btn, ghost } = useSchoolStyles();
-  const [items, setItems] = useState<Directive[]>([]);
-  const [content, setContent] = useState("");
-  const [audience, setAudience] = useState("both");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const r = await fetch("/api/school/directives");
-        const d = await r.json();
-        if (r.ok) setItems(d.directives ?? []);
-      } catch {
-        // ignore
-      }
-    })();
-  }, []);
-
-  async function add(e: React.FormEvent) {
-    e.preventDefault();
-    if (!content.trim() || busy) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const d = (await postJson("/api/school/directives", { content, audience })) as Directive;
-      setItems((v) => [d, ...v]);
-      setContent("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not add the directive.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function toggle(it: Directive) {
-    setError(null);
-    try {
-      await postJson("/api/school/directives", { id: it.id, isActive: !it.isActive }, "PATCH");
-      setItems((v) => v.map((x) => (x.id === it.id ? { ...x, isActive: !x.isActive } : x)));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not update.");
-    }
-  }
-
-  async function remove(id: string) {
-    setError(null);
-    try {
-      const res = await fetch(`/api/school/directives?id=${encodeURIComponent(id)}`, { method: "DELETE" });
-      if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? "Could not delete.");
-      setItems((v) => v.filter((x) => x.id !== id));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not delete.");
-    }
-  }
-
-  return (
-    <div style={box}>
-      <h3 style={{ marginTop: 0 }}>School directives</h3>
-      <p style={{ opacity: 0.6, fontSize: "0.82rem", marginTop: 0 }}>
-        School-wide guidance RAYA passes on to your students (as a soft recommendation) and shows
-        to your teachers. It never overrides RAYA&apos;s rules.
-      </p>
-      {error && <p style={{ color: "#f87171", fontSize: "0.85rem" }}>{error}</p>}
-      {items.length === 0 && <p style={{ opacity: 0.55, fontSize: "0.85rem" }}>No directives yet.</p>}
-      {items.map((it) => (
-        <div key={it.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.35rem 0" }}>
-          <span style={{ flex: 1, opacity: it.isActive ? 1 : 0.45 }}>
-            {it.content}
-            <span style={{ opacity: 0.5, fontSize: "0.78rem" }}>
-              {" "}· {AUDIENCE_LABEL[it.audience] ?? it.audience}
-            </span>
-          </span>
-          <button style={ghost} onClick={() => toggle(it)}>{it.isActive ? "Disable" : "Enable"}</button>
-          <button
-            onClick={() => remove(it.id)}
-            title="Delete"
-            style={{ background: "transparent", color: "#6b7794", border: "none", cursor: "pointer" }}
-          >
-            ✕
-          </button>
-        </div>
-      ))}
-      <form onSubmit={add} style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem", flexWrap: "wrap" }}>
-        <input
-          style={{ ...input, flex: 1, minWidth: 200 }}
-          placeholder="e.g. Exam-revision week — prioritise past-paper practice"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          maxLength={500}
-        />
-        <select style={input} value={audience} onChange={(e) => setAudience(e.target.value)}>
-          <option value="both">Everyone</option>
-          <option value="students">Students</option>
-          <option value="teachers">Teachers</option>
-        </select>
-        <button type="submit" style={btn} disabled={busy || !content.trim()}>Add</button>
-      </form>
-    </div>
-  );
-}
 
 function SchoolSettings({
   school,
@@ -1080,10 +1007,16 @@ const DASH_TABS: DashTab[] = ["overview", "manage", "team", "insights", "lms", "
 function Dashboard({
   dash,
   setDash,
+  adminName = "",
+  planLabel = null,
   initialTab = null,
 }: {
   dash: SchoolDashboard;
   setDash: (d: SchoolDashboard) => void;
+  /** Signed-in admin's display name for the sidebar profile chip. */
+  adminName?: string;
+  /** Active school's plan/forfait, shown under the name in the profile chip. */
+  planLabel?: string | null;
   initialTab?: string | null;
 }) {
   const { t, box, input, btn, ghost } = useSchoolStyles();
@@ -1263,20 +1196,17 @@ function Dashboard({
 
   const tabContent =
     tab === "raya" ? (
-      <>
-        <SchoolDirectives />
-        <SchoolRaya />
-      </>
+      <SchoolRayaChat role="admin_master" staffName={dash.school.name} />
     ) : tab === "settings" ? (
       <SchoolSettings school={dash.school} onUpdated={(school) => setDash({ ...dash, school })} />
     ) : tab === "team" ? (
       <SchoolTeam classes={dash.classes.map((c) => ({ id: c.id, name: c.name }))} />
     ) : tab === "insights" ? (
-      <SchoolInsights />
+      <SchoolInsights schoolName={dash.school.name} />
     ) : tab === "lms" ? (
       <SchoolLms classes={dash.classes.map((c) => ({ id: c.id, name: c.name }))} />
     ) : tab === "reports" ? (
-      <SchoolReports classes={dash.classes.map((c) => ({ id: c.id, name: c.name }))} />
+      <SchoolReports classes={dash.classes.map((c) => ({ id: c.id, name: c.name }))} schoolName={dash.school.name} />
     ) : tab === "billing" ? (
       <SchoolBilling />
     ) : tab === "overview" ? (
@@ -1319,6 +1249,10 @@ function Dashboard({
       </>
     );
 
+  // The RAYA tab is a full-height chat that owns the whole card (its own header,
+  // its own right panel) — like the prof dashboard's RAYA tab.
+  const rayaFlush = nav.mode === "list" && tab === "raya";
+
   let body: React.ReactNode;
   if (nav.mode === "student") {
     body = <StudentDetailView detail={nav.detail} onBack={() => setNav({ mode: "class", roster: nav.roster })} />;
@@ -1332,6 +1266,8 @@ function Dashboard({
         onStudent={(userId) => openStudent(nav.roster, userId)}
       />
     );
+  } else if (rayaFlush) {
+    body = tabContent;
   } else {
     body = (
       <>
@@ -1347,8 +1283,10 @@ function Dashboard({
       activeKey={nav.mode === "list" ? tab : ""}
       onNav={goTab}
       schoolName={dash.school.name}
+      profileName={adminName || dash.school.name}
+      profileSubtitle={planLabel ? `Admin · ${planLabel}` : "Admin"}
       headerTitle="School"
-      searchPlaceholder="Search students, classes..."
+      contentFlush={rayaFlush}
       rightPanel={nav.mode === "list" && tab === "overview" && overview ? <OverviewRightPanel overview={overview} /> : undefined}
     >
       {body}
@@ -1444,7 +1382,7 @@ function OverviewRightPanel({ overview }: { overview: SchoolOverview }) {
   const title: React.CSSProperties = { fontSize: 14, fontWeight: 700, marginBottom: 10, color: t.text };
   const insight: React.CSSProperties = { background: t.rowActiveBg, borderRadius: 12, padding: 12, marginBottom: 8 };
   return (
-    <RightPanel theme={t} width={300}>
+    <RightPanel theme={t} width={300} title="Live snapshot">
       <div style={card}>
         <div style={title}>Kernel — overall mastery</div>
         <MasteryGauge

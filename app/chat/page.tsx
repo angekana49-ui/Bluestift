@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getStudentRecommendations } from "@/lib/school-admin";
+import { getPlanLabel } from "@/lib/billing";
 import { Chat, type ConversationFile } from "@/components/chat";
 
 export default async function ChatPage() {
@@ -55,7 +56,11 @@ export default async function ChatPage() {
   }
 
   // Soft, visible teacher recommendations for this student's class (if linked).
-  const recommendations = await getStudentRecommendations(user.id);
+  // The plan label ("forfait") sits under the name in the sidebar profile chip.
+  const [recommendations, planLabel] = await Promise.all([
+    getStudentRecommendations(user.id),
+    getPlanLabel({ userId: user.id }),
+  ]);
 
   return (
     <Chat
@@ -66,6 +71,7 @@ export default async function ChatPage() {
       recommendations={recommendations}
       studentName={studentName}
       studentAvatarUrl={profile.profile_picture_url}
+      studentPlan={planLabel}
     />
   );
 }

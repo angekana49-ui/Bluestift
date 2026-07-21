@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { downloadText, downloadPdf } from "@/lib/export";
+import { downloadBrandedPdf, downloadBrandedText, type BrandedDoc } from "@/lib/document";
 import { useAppTheme } from "@/components/ui/theme";
 import { display, status as statusColors, type AppTheme } from "@/components/ui/tokens";
 import { IconQuiz, IconFlashcards, IconSummary } from "@/components/ui/icons";
@@ -74,40 +74,38 @@ const sectionLabel = (t: AppTheme): React.CSSProperties => ({
   letterSpacing: "0.06em",
 });
 
-function quizToText(qs: QuizQuestion[]) {
+// Markdown composers → the branded document body (typeset by the exporter).
+function quizToMd(qs: QuizQuestion[]) {
   return qs
     .map((q, i) => {
       const opts = q.options
-        .map(
-          (o, oi) =>
-            `   ${String.fromCharCode(65 + oi)}. ${o}${oi === q.correct_index ? "  (correct)" : ""}`,
-        )
+        .map((o, oi) => `- ${String.fromCharCode(65 + oi)}. ${o}${oi === q.correct_index ? " ✓" : ""}`)
         .join("\n");
-      const ex = q.explanation ? `\n   Explanation: ${q.explanation}` : "";
-      return `${i + 1}. ${q.question}\n${opts}${ex}`;
+      const ex = q.explanation ? `\nExplanation: ${q.explanation}` : "";
+      return `## Question ${i + 1}\n${q.question}\n${opts}${ex}`;
     })
     .join("\n\n");
 }
 
-function flashcardsToText(cards: Flashcard[]) {
-  return cards.map((c, i) => `${i + 1}. ${c.front}\n   → ${c.back}`).join("\n\n");
+function flashcardsToMd(cards: Flashcard[]) {
+  return cards.map((c, i) => `## Card ${i + 1}\n**${c.front}**\n- ${c.back}`).join("\n\n");
 }
 
-function mindMapToText(m: MindMap) {
-  const branches = m.branches
-    .map((b) => `• ${b.label}\n${b.children.map((c) => `   - ${c}`).join("\n")}`)
-    .join("\n\n");
-  return `${m.title}\n\n${branches}`;
+function mindMapToMd(m: MindMap) {
+  const branches = m.branches.map((b) => `## ${b.label}\n${b.children.map((c) => `- ${c}`).join("\n")}`).join("\n\n");
+  return `# ${m.title}\n\n${branches}`;
 }
 
 export function Tools({
   uploads,
   outputs,
   selfTests,
+  studentName,
 }: {
   uploads: Upload[];
   outputs: Output[];
   selfTests: SelfTest[];
+  studentName?: string;
 }) {
   const { theme: t } = useAppTheme();
   const [fileName, setFileName] = useState<string | null>(null);
@@ -124,6 +122,16 @@ export function Tools({
   const resultRef = useRef<HTMLDivElement>(null);
 
   const baseName = (fileName ?? "raya").replace(/\.[^.]+$/, "");
+
+  // Every tool export goes through the shared branded document (Raya logo, title,
+  // footer attribution + thebluestift.com link).
+  const doc = (title: string, body: string): BrandedDoc => ({
+    brand: "raya",
+    title,
+    meta: new Date().toLocaleDateString(),
+    audience: studentName || undefined,
+    body,
+  });
 
   function clearResults() {
     setQuiz(null);
@@ -328,8 +336,8 @@ export function Tools({
           <ResultHeader
             theme={t}
             title="Summary"
-            onTxt={() => downloadText(`${baseName}-summary`, summary)}
-            onPdf={() => downloadPdf(`${baseName}-summary`, `Summary — ${baseName}`, summary)}
+            onTxt={() => downloadBrandedText(doc(`Summary — ${baseName}`, summary))}
+            onPdf={() => downloadBrandedPdf(doc(`Summary — ${baseName}`, summary))}
             onClose={() => setSummary(null)}
           />
           <p style={{ whiteSpace: "pre-wrap", lineHeight: 1.6, margin: 0, color: t.text, fontSize: 13 }}>{summary}</p>
@@ -341,8 +349,8 @@ export function Tools({
           <ResultHeader
             theme={t}
             title="Quiz"
-            onTxt={() => downloadText(`${baseName}-quiz`, quizToText(quiz))}
-            onPdf={() => downloadPdf(`${baseName}-quiz`, `Quiz — ${baseName}`, quizToText(quiz))}
+            onTxt={() => downloadBrandedText(doc(`Quiz — ${baseName}`, quizToMd(quiz)))}
+            onPdf={() => downloadBrandedPdf(doc(`Quiz — ${baseName}`, quizToMd(quiz)))}
             onClose={() => setQuiz(null)}
           />
           {quiz.map((q, i) => (
@@ -356,8 +364,8 @@ export function Tools({
           <ResultHeader
             theme={t}
             title="Flashcards"
-            onTxt={() => downloadText(`${baseName}-flashcards`, flashcardsToText(cards))}
-            onPdf={() => downloadPdf(`${baseName}-flashcards`, `Flashcards — ${baseName}`, flashcardsToText(cards))}
+            onTxt={() => downloadBrandedText(doc(`Flashcards — ${baseName}`, flashcardsToMd(cards)))}
+            onPdf={() => downloadBrandedPdf(doc(`Flashcards — ${baseName}`, flashcardsToMd(cards)))}
             onClose={() => setCards(null)}
           />
           <p style={{ color: t.mutedLight, fontSize: 11.5, margin: "0 0 12px" }}>Click a card to flip it.</p>
@@ -374,8 +382,8 @@ export function Tools({
           <ResultHeader
             theme={t}
             title="Mind map"
-            onTxt={() => downloadText(`${baseName}-mindmap`, mindMapToText(mindMap))}
-            onPdf={() => downloadPdf(`${baseName}-mindmap`, `Mind map — ${baseName}`, mindMapToText(mindMap))}
+            onTxt={() => downloadBrandedText(doc(`Mind map — ${baseName}`, mindMapToMd(mindMap)))}
+            onPdf={() => downloadBrandedPdf(doc(`Mind map — ${baseName}`, mindMapToMd(mindMap)))}
             onClose={() => setMindMap(null)}
           />
           {mindMap.title && (

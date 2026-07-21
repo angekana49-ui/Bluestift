@@ -3,17 +3,50 @@
 import { useEffect, useState } from "react";
 import type { ClassInsight, SchoolSubject, Simulation } from "@/lib/school-admin";
 import { useAppTheme } from "@/components/ui/theme";
-import { panelCard, textInput, ctaButton } from "@/components/ui/forms";
+import { panelCard, textInput, ctaButton, ghostButton } from "@/components/ui/forms";
+import { downloadBrandedPdf, type BrandedDoc } from "@/lib/document";
 
 const pct = (v: number | null) => (v == null ? "—" : `${Math.round(v * 100)}%`);
 
 type SchoolClass = { id: string; name: string };
 
-export function SchoolInsights() {
+/** Compose the certified insights + simulations into a branded Markdown document. */
+function insightsToDoc(insights: ClassInsight[], sims: Simulation[], schoolName?: string): BrandedDoc {
+  const lines: string[] = ["# Kernel insights"];
+  if (insights.length === 0) lines.push("No certified insights yet.");
+  for (const i of insights) {
+    lines.push(`## ${i.className} · ${i.subjectName}`);
+    lines.push(`- Average mastery: ${pct(i.avgMastery)}`);
+    if (i.masteryTrend != null) lines.push(`- Trend: ${i.masteryTrend >= 0 ? "+" : ""}${Math.round(i.masteryTrend * 100)}%`);
+    if (i.topGaps.length > 0) lines.push(`- Top gaps: ${i.topGaps.slice(0, 6).join(", ")}`);
+    if (i.topRecommendation) lines.push(`- Recommendation: ${i.topRecommendation}`);
+  }
+  if (sims.length > 0) {
+    lines.push("# What-if simulations");
+    for (const s of sims) {
+      const p = (s.parameters ?? {}) as { subjectName?: string; className?: string | null; addHours?: number; focus?: string | null };
+      const r = (s.result ?? {}) as { projected_mastery_pct?: number | null; summary?: string };
+      const head = `+${p.addHours ?? 0}h/week · ${p.subjectName ?? "subject"}${p.className ? ` · ${p.className}` : ""}${p.focus ? ` · ${p.focus}` : ""}`;
+      lines.push(`## ${head}`);
+      if (r.projected_mastery_pct != null) lines.push(`- Projected mastery: ${r.projected_mastery_pct}%`);
+      if (r.summary) lines.push(`- ${r.summary}`);
+    }
+  }
+  return {
+    brand: "bluestift",
+    title: "Kernel insights",
+    meta: new Date().toLocaleDateString(),
+    audience: schoolName,
+    body: lines.join("\n"),
+  };
+}
+
+export function SchoolInsights({ schoolName }: { schoolName?: string }) {
   const { theme: t } = useAppTheme();
   const box = panelCard(t);
   const input = textInput(t);
   const btn = ctaButton(t);
+  const ghost = ghostButton(t);
   const [insights, setInsights] = useState<ClassInsight[]>([]);
   const [subjects, setSubjects] = useState<SchoolSubject[]>([]);
   const [classes, setClasses] = useState<SchoolClass[]>([]);
@@ -77,8 +110,15 @@ export function SchoolInsights() {
 
       {/* Kernel insights */}
       <div style={box}>
-        <h3 style={{ marginTop: 0 }}>Kernel insights</h3>
-        <p style={{ opacity: 0.55, fontSize: "0.8rem", margin: "0 0 0.75rem" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <h3 style={{ margin: 0, flex: 1 }}>Kernel insights</h3>
+          {(insights.length > 0 || sims.length > 0) && (
+            <button style={ghost} onClick={() => downloadBrandedPdf(insightsToDoc(insights, sims, schoolName))}>
+              Download PDF
+            </button>
+          )}
+        </div>
+        <p style={{ opacity: 0.55, fontSize: "0.8rem", margin: "0.5rem 0 0.75rem" }}>
           Certified by the Cognitive Kernel · read-only.
         </p>
         {insights.length === 0 ? (

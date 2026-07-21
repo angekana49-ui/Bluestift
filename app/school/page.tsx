@@ -9,6 +9,7 @@ import {
   getSchoolDashboard,
 } from "@/lib/school-admin";
 import { getActiveSchoolId } from "@/lib/school-active";
+import { getPlanLabel } from "@/lib/billing";
 import type { AdminClass, ProfContext, SchoolDashboard } from "@/lib/school-admin";
 import { SchoolAdmin } from "@/components/school-admin";
 
@@ -56,10 +57,17 @@ export default async function SchoolPage({
     ]);
   }
 
-  // The teacher's own identity for the prof dashboard (profile chip + framing):
-  // the dashboard is an extension of RAYA for a user who also teaches, so we show
-  // *them*, not "My classes".
-  const teacherName = profile.display_name || profile.username || "Teacher";
+  // The signed-in user's own identity for the sidebar profile chip (name + photo,
+  // like RAYA) — the dashboard is an extension of RAYA for staff, so we show
+  // *them*, not the school name / "My classes".
+  const userName = profile.display_name || profile.username || "";
+  const teacherName = userName || "Teacher";
+
+  // The plan/forfait line under the name in the profile chip: the active school's
+  // subscription (same for admin and teacher — they share the school's plan).
+  const planLabel = resolvedActiveSchoolId
+    ? await getPlanLabel({ schoolId: resolvedActiveSchoolId })
+    : null;
 
   return (
     <SchoolAdmin
@@ -67,6 +75,8 @@ export default async function SchoolPage({
       dashboard={dashboard}
       profClasses={profClasses}
       teacherName={teacherName}
+      userName={userName}
+      planLabel={planLabel}
       profSubjects={profContext?.subjects ?? []}
       profSchoolName={profContext?.schoolName ?? null}
       userAvatarUrl={profile.profile_picture_url}

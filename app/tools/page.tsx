@@ -61,9 +61,9 @@ export default async function ToolsPage() {
   return (
     <RayaScaffold active="tools" studentName={studentName} studentInitials={initialsOf(studentName)} studentAvatarUrl={profile.profile_picture_url}>
       <div style={{ flex: 1, overflow: "auto", padding: "32px 40px", minWidth: 0 }}>
-        <Tools uploads={uploads ?? []} outputs={outputs ?? []} selfTests={selfTests} />
+        <Tools uploads={uploads ?? []} outputs={outputs ?? []} selfTests={selfTests} studentName={studentName} />
         <div id="self-test" style={{ marginTop: 8 }}>
-          <SoloChallenge myUserId={user.id} />
+          <SoloChallenge myUserId={user.id} studentName={studentName} />
         </div>
       </div>
     </RayaScaffold>

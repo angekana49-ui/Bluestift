@@ -215,6 +215,60 @@ export async function resolveSeatGate(schoolId: string): Promise<SeatGate> {
   return { limited: true, seats, used, reason: "plan" };
 }
 
+// ---- Plan label (sidebar profile chip) -------------------------------------
+
+/**
+ * A short "forfait" label for the sidebar profile chip. Resolves the active
+ * subscription's plan name for a school (b2b) or a user (b2c), falling back to
+ * "Pilot" (a school still in its pilot window) or "Free" (no paid plan). Never
+ * throws — degrades to "Free" on any read failure so the chip always renders.
+ */
+export async function getPlanLabel(
+  target: { schoolId: string } | { userId: string },
+): Promise<string> {
+  try {
+    const schools = createSchoolsAdminClient();
+    const today = new Date().toISOString().slice(0, 10);
+
+    let filtered = schools
+      .from("subscriptions")
+      .select("plan_id")
+      .in("status", ["active", "trial"]);
+    filtered =
+      "schoolId" in target
+        ? filtered.eq("school_id", target.schoolId)
+        : filtered.eq("user_id", target.userId).is("school_id", null);
+    const { data: sub } = await filtered
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const planId = (sub as { plan_id: string | null } | null)?.plan_id ?? null;
+
+    if (planId) {
+      const { data: p } = await schools
+        .from("subscription_plans")
+        .select("name")
+        .eq("id", planId)
+        .maybeSingle();
+      const name = (p as { name: string | null } | null)?.name;
+      if (name) return name;
+    }
+
+    if ("schoolId" in target) {
+      const { data: sc } = await schools
+        .from("schools")
+        .select("pilot_until")
+        .eq("id", target.schoolId)
+        .maybeSingle();
+      const pilotUntil = (sc as { pilot_until: string | null } | null)?.pilot_until ?? null;
+      if (pilotUntil && pilotUntil >= today) return "Pilot";
+    }
+    return "Free";
+  } catch {
+    return "Free";
+  }
+}
+
 // ---- Admin billing dashboard -----------------------------------------------
 
 export type BillingHistoryItem = {
