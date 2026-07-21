@@ -1,7 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { downloadBrandedPdf, downloadBrandedText, type BrandedDoc } from "@/lib/document";
+import { parseDoc } from "@/lib/doc-format";
+import { QuizPlayer, FlashcardsPlayer, ReaderView, MindMapView } from "@/components/study/focus-player";
 import { useAppTheme } from "@/components/ui/theme";
 import { display, status as statusColors, type AppTheme } from "@/components/ui/tokens";
 import { IconQuiz, IconFlashcards, IconSummary } from "@/components/ui/icons";
@@ -30,6 +32,13 @@ type Output = {
   created_at: string;
 };
 type SelfTest = { id: string; title: string | null; score: number | null };
+
+/** What the full-screen focus player is currently showing. */
+type ActivePlayer =
+  | { kind: "summary"; title: string; text: string }
+  | { kind: "quiz"; title: string; questions: QuizQuestion[] }
+  | { kind: "flashcards"; title: string; cards: Flashcard[] }
+  | { kind: "mind_map"; title: string; mindMap: MindMap };
 
 const TOOLS = [
   { id: "summary", label: "Summary", ready: true },
@@ -60,11 +69,12 @@ const cta = (t: AppTheme): React.CSSProperties => ({
 });
 const ghost = (t: AppTheme): React.CSSProperties => ({
   background: t.cardBg2,
-  color: t.mutedLight,
-  border: `1px solid ${t.cardBorder}`,
+  color: t.text,
+  border: `1.5px solid ${t.dark ? "rgba(255,255,255,0.22)" : "rgba(15,23,42,0.20)"}`,
   borderRadius: 99,
-  padding: "5px 12px",
-  fontSize: 11,
+  padding: "6px 13px",
+  fontSize: 11.5,
+  fontWeight: 600,
   cursor: "pointer",
 });
 const sectionLabel = (t: AppTheme): React.CSSProperties => ({
@@ -115,11 +125,7 @@ export function Tools({
   const [busy, setBusy] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [quiz, setQuiz] = useState<QuizQuestion[] | null>(null);
-  const [summary, setSummary] = useState<string | null>(null);
-  const [cards, setCards] = useState<Flashcard[] | null>(null);
-  const [mindMap, setMindMap] = useState<MindMap | null>(null);
-  const resultRef = useRef<HTMLDivElement>(null);
+  const [player, setPlayer] = useState<ActivePlayer | null>(null);
 
   const baseName = (fileName ?? "raya").replace(/\.[^.]+$/, "");
 
@@ -132,17 +138,15 @@ export function Tools({
     audience: studentName || undefined,
     body,
   });
-
-  function clearResults() {
-    setQuiz(null);
-    setSummary(null);
-    setCards(null);
-    setMindMap(null);
-  }
+  const downloadActions = (d: BrandedDoc) => (
+    <>
+      <button style={ghost(t)} onClick={() => downloadBrandedText(d)}>TXT</button>
+      <button style={ghost(t)} onClick={() => downloadBrandedPdf(d)}>PDF</button>
+    </>
+  );
 
   async function onPick(f: File | null) {
     setError(null);
-    clearResults();
     setSourceText("");
     setMediaId(null);
     setFileName(f?.name ?? null);
@@ -179,7 +183,6 @@ export function Tools({
     if (!sourceText || busy) return;
     setBusy(true);
     setError(null);
-    clearResults();
     setStatusMsg("Generating…");
     try {
       const res = await fetch("/api/tools/generate", {
@@ -197,14 +200,15 @@ export function Tools({
         setError(data?.error ?? `Request failed (${res.status}).`);
         return;
       }
+      // On success, drop straight into the focused player for this artifact.
       if (data.tool_type === "summary") {
-        setSummary((data.output_content?.text as string) ?? "");
+        setPlayer({ kind: "summary", title: `Summary — ${baseName}`, text: (data.output_content?.text as string) ?? "" });
       } else if (data.tool_type === "flashcards") {
-        setCards((data.output_content?.cards as Flashcard[]) ?? []);
+        setPlayer({ kind: "flashcards", title: `Flashcards — ${baseName}`, cards: (data.output_content?.cards as Flashcard[]) ?? [] });
       } else if (data.tool_type === "mind_map") {
-        setMindMap((data.output_content as MindMap) ?? null);
+        setPlayer({ kind: "mind_map", title: `Mind map — ${baseName}`, mindMap: (data.output_content as MindMap) ?? { title: baseName, branches: [] } });
       } else {
-        setQuiz((data.output_content?.questions as QuizQuestion[]) ?? []);
+        setPlayer({ kind: "quiz", title: `Quiz — ${baseName}`, questions: (data.output_content?.questions as QuizQuestion[]) ?? [] });
       }
       setStatusMsg("Done ✓");
     } catch {
@@ -225,21 +229,18 @@ export function Tools({
     if (data.url) window.open(data.url, "_blank");
   }
 
+  // Re-open a saved generation into its focused player.
   function openOutput(o: Output) {
-    clearResults();
+    const c = o.output_content as Record<string, unknown> | null;
     if (o.tool_type === "summary") {
-      setSummary((o.output_content as { text?: string })?.text ?? "");
+      setPlayer({ kind: "summary", title: "Summary", text: (c?.text as string) ?? "" });
     } else if (o.tool_type === "quiz") {
-      setQuiz((o.output_content as { questions?: QuizQuestion[] })?.questions ?? []);
+      setPlayer({ kind: "quiz", title: "Quiz", questions: (c?.questions as QuizQuestion[]) ?? [] });
     } else if (o.tool_type === "flashcards") {
-      setCards((o.output_content as { cards?: Flashcard[] })?.cards ?? []);
+      setPlayer({ kind: "flashcards", title: "Flashcards", cards: (c?.cards as Flashcard[]) ?? [] });
     } else if (o.tool_type === "mind_map") {
-      setMindMap((o.output_content as MindMap) ?? null);
+      setPlayer({ kind: "mind_map", title: "Mind map", mindMap: (o.output_content as MindMap) ?? { title: "Mind map", branches: [] } });
     }
-    // The result renders above the library — bring it into view.
-    requestAnimationFrame(() =>
-      resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
-    );
   }
 
   function openSelfTest(id: string) {
@@ -254,13 +255,15 @@ export function Tools({
     flashcards: <IconFlashcards size={18} />,
   };
 
+  const closePlayer = () => setPlayer(null);
+
   return (
     <div>
       <div style={{ fontSize: 20, fontWeight: 800, fontFamily: display, marginBottom: 4, color: t.text }}>
         Tools Studio
       </div>
       <div style={{ fontSize: 12.5, color: t.muted, marginBottom: 24 }}>
-        Generate quizzes, summaries and flashcards from any lesson.
+        Generate quizzes, summaries and flashcards from any lesson — then study them one at a time.
       </div>
 
       {/* tool picker */}
@@ -329,83 +332,6 @@ export function Tools({
       </div>
       {error && <p style={{ color: "#f87171", marginTop: 12, fontSize: 12.5 }}>{error}</p>}
 
-      <div ref={resultRef} />
-
-      {summary && (
-        <div style={{ ...panel(t), maxWidth: 900 }}>
-          <ResultHeader
-            theme={t}
-            title="Summary"
-            onTxt={() => downloadBrandedText(doc(`Summary — ${baseName}`, summary))}
-            onPdf={() => downloadBrandedPdf(doc(`Summary — ${baseName}`, summary))}
-            onClose={() => setSummary(null)}
-          />
-          <p style={{ whiteSpace: "pre-wrap", lineHeight: 1.6, margin: 0, color: t.text, fontSize: 13 }}>{summary}</p>
-        </div>
-      )}
-
-      {quiz && quiz.length > 0 && (
-        <div style={{ ...panel(t), maxWidth: 900 }}>
-          <ResultHeader
-            theme={t}
-            title="Quiz"
-            onTxt={() => downloadBrandedText(doc(`Quiz — ${baseName}`, quizToMd(quiz)))}
-            onPdf={() => downloadBrandedPdf(doc(`Quiz — ${baseName}`, quizToMd(quiz)))}
-            onClose={() => setQuiz(null)}
-          />
-          {quiz.map((q, i) => (
-            <QuizItem key={i} index={i} q={q} theme={t} />
-          ))}
-        </div>
-      )}
-
-      {cards && cards.length > 0 && (
-        <div style={{ ...panel(t), maxWidth: 900 }}>
-          <ResultHeader
-            theme={t}
-            title="Flashcards"
-            onTxt={() => downloadBrandedText(doc(`Flashcards — ${baseName}`, flashcardsToMd(cards)))}
-            onPdf={() => downloadBrandedPdf(doc(`Flashcards — ${baseName}`, flashcardsToMd(cards)))}
-            onClose={() => setCards(null)}
-          />
-          <p style={{ color: t.mutedLight, fontSize: 11.5, margin: "0 0 12px" }}>Click a card to flip it.</p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 10 }}>
-            {cards.map((c, i) => (
-              <FlashcardItem key={i} card={c} theme={t} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {mindMap && mindMap.branches.length > 0 && (
-        <div style={{ ...panel(t), maxWidth: 900 }}>
-          <ResultHeader
-            theme={t}
-            title="Mind map"
-            onTxt={() => downloadBrandedText(doc(`Mind map — ${baseName}`, mindMapToMd(mindMap)))}
-            onPdf={() => downloadBrandedPdf(doc(`Mind map — ${baseName}`, mindMapToMd(mindMap)))}
-            onClose={() => setMindMap(null)}
-          />
-          {mindMap.title && (
-            <div style={{ display: "inline-block", background: t.ctaBg, color: t.ctaText, borderRadius: 999, padding: "6px 14px", fontWeight: 600, marginBottom: 14, fontSize: 12 }}>
-              {mindMap.title}
-            </div>
-          )}
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {mindMap.branches.map((b, i) => (
-              <div key={i} style={{ borderLeft: `3px solid ${statusColors.aiIndigo}`, paddingLeft: 12 }}>
-                <p style={{ fontWeight: 600, margin: "0 0 6px", color: t.text, fontSize: 13 }}>{b.label}</p>
-                <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                  {b.children.map((child, ci) => (
-                    <span key={ci} style={{ color: t.muted, fontSize: 12.5 }}>– {child}</span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {(uploads.length > 0 || outputs.length > 0 || selfTests.length > 0) && (
         <div style={{ ...panel(t), maxWidth: 900 }}>
           <h3 style={{ marginTop: 0, marginBottom: 12, fontSize: 14, fontWeight: 700, color: t.text }}>Your library</h3>
@@ -426,7 +352,7 @@ export function Tools({
                   theme={t}
                   label={o.tool_type}
                   meta={o.status}
-                  action="View"
+                  action="Study"
                   disabled={o.status !== "done"}
                   onAction={() => openOutput(o)}
                 />
@@ -442,7 +368,7 @@ export function Tools({
                   theme={t}
                   label={s.title ?? "Self-test"}
                   meta={s.score != null ? `${Math.round(s.score * 100)}%` : undefined}
-                  action="View"
+                  action="Study"
                   onAction={() => openSelfTest(s.id)}
                 />
               ))}
@@ -450,29 +376,47 @@ export function Tools({
           )}
         </div>
       )}
-    </div>
-  );
-}
 
-function ResultHeader({
-  theme: t,
-  title,
-  onTxt,
-  onPdf,
-  onClose,
-}: {
-  theme: AppTheme;
-  title: string;
-  onTxt: () => void;
-  onPdf: () => void;
-  onClose: () => void;
-}) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-      <h3 style={{ margin: 0, flex: 1, fontSize: 14, fontWeight: 700, color: t.text }}>{title}</h3>
-      <button style={ghost(t)} onClick={onTxt}>TXT</button>
-      <button style={ghost(t)} onClick={onPdf}>PDF</button>
-      <button style={ghost(t)} title="Close" onClick={onClose}>✕</button>
+      {/* ── Focused, one-at-a-time study players ── */}
+      {player?.kind === "quiz" && (
+        <QuizPlayer
+          title={player.title}
+          mode="reveal"
+          questions={player.questions.map((q) => ({
+            question: q.question,
+            options: q.options,
+            correctIndex: q.correct_index,
+            explanation: q.explanation,
+          }))}
+          onExit={closePlayer}
+          actions={downloadActions(doc(player.title, quizToMd(player.questions)))}
+        />
+      )}
+      {player?.kind === "flashcards" && (
+        <FlashcardsPlayer
+          title={player.title}
+          cards={player.cards}
+          onExit={closePlayer}
+          actions={downloadActions(doc(player.title, flashcardsToMd(player.cards)))}
+        />
+      )}
+      {player?.kind === "summary" && (
+        <ReaderView
+          title={player.title}
+          subtitle="Summary"
+          blocks={parseDoc(player.text)}
+          onExit={closePlayer}
+          actions={downloadActions(doc(player.title, player.text))}
+        />
+      )}
+      {player?.kind === "mind_map" && (
+        <MindMapView
+          title={player.title}
+          mindMap={player.mindMap}
+          onExit={closePlayer}
+          actions={downloadActions(doc(player.title, mindMapToMd(player.mindMap)))}
+        />
+      )}
     </div>
   );
 }
@@ -499,82 +443,6 @@ function LibraryRow({
       <button style={{ ...ghost(t), opacity: disabled ? 0.4 : 1 }} onClick={onAction} disabled={disabled}>
         {action}
       </button>
-    </div>
-  );
-}
-
-function FlashcardItem({ card, theme: t }: { card: Flashcard; theme: AppTheme }) {
-  const [flipped, setFlipped] = useState(false);
-  return (
-    <button
-      onClick={() => setFlipped((f) => !f)}
-      style={{
-        minHeight: 110,
-        textAlign: "left",
-        background: flipped ? (t.dark ? "#14532d" : "#dcfce7") : t.cardBg,
-        color: t.text,
-        border: `1px solid ${t.cardBorder}`,
-        borderRadius: 12,
-        padding: "12px 14px",
-        cursor: "pointer",
-        display: "flex",
-        flexDirection: "column",
-        gap: 5,
-      }}
-    >
-      <span style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.06em", color: t.mutedLight }}>
-        {flipped ? "Answer" : "Question"}
-      </span>
-      <span style={{ fontSize: 12.5, lineHeight: 1.4 }}>{flipped ? card.back : card.front}</span>
-    </button>
-  );
-}
-
-function QuizItem({ index, q, theme: t }: { index: number; q: QuizQuestion; theme: AppTheme }) {
-  const [picked, setPicked] = useState<number | null>(null);
-  return (
-    <div style={{ marginBottom: 16 }}>
-      <p style={{ fontWeight: 600, marginBottom: 8, color: t.text, fontSize: 13 }}>
-        {index + 1}. {q.question}
-      </p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {q.options.map((opt, oi) => {
-          const revealed = picked !== null;
-          const correct = oi === q.correct_index;
-          const bg = !revealed
-            ? t.cardBg
-            : correct
-              ? t.dark
-                ? "#14532d"
-                : "#dcfce7"
-              : oi === picked
-                ? t.dark
-                  ? "#5b1a1a"
-                  : "#fee2e2"
-                : t.cardBg;
-          return (
-            <button
-              key={oi}
-              onClick={() => picked === null && setPicked(oi)}
-              style={{
-                textAlign: "left",
-                background: bg,
-                color: t.text,
-                border: `1px solid ${t.cardBorder}`,
-                borderRadius: 10,
-                padding: "9px 12px",
-                cursor: picked === null ? "pointer" : "default",
-                fontSize: 12.5,
-              }}
-            >
-              {opt}
-            </button>
-          );
-        })}
-      </div>
-      {picked !== null && q.explanation && (
-        <p style={{ color: t.muted, fontSize: 12, marginTop: 8 }}>{q.explanation}</p>
-      )}
     </div>
   );
 }

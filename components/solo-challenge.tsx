@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { downloadBrandedPdf, downloadBrandedText, type BrandedDoc } from "@/lib/document";
+import { QuizPlayer } from "@/components/study/focus-player";
 import { useAppTheme } from "@/components/ui/theme";
 import { type AppTheme } from "@/components/ui/tokens";
 
@@ -34,11 +35,12 @@ const cta = (t: AppTheme): React.CSSProperties => ({
 });
 const ghost = (t: AppTheme): React.CSSProperties => ({
   background: t.cardBg2,
-  color: t.mutedLight,
-  border: `1px solid ${t.cardBorder}`,
+  color: t.text,
+  border: `1.5px solid ${t.dark ? "rgba(255,255,255,0.22)" : "rgba(15,23,42,0.20)"}`,
   borderRadius: 99,
-  padding: "5px 12px",
-  fontSize: 11,
+  padding: "6px 13px",
+  fontSize: 11.5,
+  fontWeight: 600,
   cursor: "pointer",
 });
 const field = (t: AppTheme): React.CSSProperties => ({
@@ -84,7 +86,6 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
 
   const [active, setActive] = useState<SoloItem | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [answers, setAnswers] = useState<Record<string, number>>({});
   const [result, setResult] = useState<{ score: number; correct: number; total: number } | null>(
     null,
   );
@@ -176,7 +177,6 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
           options: (q.options as string[]) ?? [],
         })),
       );
-      setAnswers({});
       setResult(null);
       setView("take");
     } finally {
@@ -184,35 +184,24 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
     }
   }
 
-  async function submit() {
-    if (!active || busy) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/challenges/submit", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          challengeId: active.id,
-          answers: Object.entries(answers).map(([questionId, choiceIndex]) => ({
-            questionId,
-            choiceIndex,
-          })),
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data?.error ?? "Impossible d'envoyer.");
-        return;
-      }
-      setResult(data);
-      setView("result");
-      await load();
-    } catch {
-      setError("Impossible d'envoyer.");
-    } finally {
-      setBusy(false);
-    }
+  // Called by the focused player once every question has been answered. Maps the
+  // ordered picks back to question ids, submits for server scoring, and returns
+  // the score so the player can show its result screen.
+  async function submitAnswers(picks: number[]): Promise<{ correct: number; total: number }> {
+    if (!active) throw new Error("no active self-test");
+    const answers = questions
+      .map((q, i) => ({ questionId: q.id, choiceIndex: picks[i] }))
+      .filter((a) => a.choiceIndex >= 0);
+    const res = await fetch("/api/challenges/submit", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ challengeId: active.id, answers }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error ?? "Could not submit.");
+    setResult(data);
+    await load();
+    return { correct: data.correct, total: data.total };
   }
 
   function resultDoc(): BrandedDoc {
@@ -232,61 +221,25 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
     };
   }
 
+  // Focused, one-question-at-a-time player (server-scored → collect mode).
   if (view === "take" && active) {
-    const answered = Object.keys(answers).length;
     return (
-      <div style={panel(t)}>
-        <h3 style={{ marginTop: 0, fontSize: 14, fontWeight: 700, color: t.text }}>{active.title ?? "Self-test"}</h3>
-        {questions.map((q, i) => (
-          <div key={q.id} style={{ marginBottom: 16 }}>
-            <p style={{ fontWeight: 600, marginBottom: 8, color: t.text, fontSize: 13 }}>
-              {i + 1}. {q.content}
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {q.options.map((opt, oi) => (
-                <button
-                  key={oi}
-                  onClick={() => setAnswers((a) => ({ ...a, [q.id]: oi }))}
-                  style={{
-                    textAlign: "left",
-                    background: answers[q.id] === oi ? t.ctaBg : t.cardBg,
-                    color: answers[q.id] === oi ? t.ctaText : t.text,
-                    border: `1px solid ${t.cardBorder}`,
-                    borderRadius: 10,
-                    padding: "9px 12px",
-                    cursor: "pointer",
-                    fontSize: 12.5,
-                  }}
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
-          </div>
-        ))}
-        <button style={{ ...cta(t), opacity: busy || answered < questions.length ? 0.5 : 1 }} onClick={submit} disabled={busy || answered < questions.length}>
-          Submit ({answered}/{questions.length})
-        </button>
-        {error && <p style={{ color: "#f87171", fontSize: 12.5 }}>{error}</p>}
-      </div>
-    );
-  }
-
-  if (view === "result" && result && active) {
-    return (
-      <div style={panel(t)}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <h3 style={{ margin: 0, flex: 1, fontSize: 14, fontWeight: 700, color: t.text }}>Result</h3>
-          <button style={ghost(t)} onClick={() => downloadBrandedText(resultDoc())}>TXT</button>
-          <button style={ghost(t)} onClick={() => downloadBrandedPdf(resultDoc())}>PDF</button>
-        </div>
-        <p style={{ fontSize: 22, fontWeight: 700, color: t.text }}>
-          {result.correct}/{result.total} · {Math.round(result.score * 100)}%
-        </p>
-        <button style={{ ...cta(t), background: t.cardBg2, color: t.text, border: `1px solid ${t.cardBorder}` }} onClick={() => setView("list")}>
-          Back
-        </button>
-      </div>
+      <QuizPlayer
+        title={active.title ?? "Self-test"}
+        mode="collect"
+        questions={questions.map((q) => ({ question: q.content ?? "", options: q.options }))}
+        onSubmit={submitAnswers}
+        onExit={() => {
+          setResult(null);
+          setView("list");
+        }}
+        resultActions={
+          <>
+            <button style={ghost(t)} onClick={() => downloadBrandedText(resultDoc())}>TXT</button>
+            <button style={ghost(t)} onClick={() => downloadBrandedPdf(resultDoc())}>PDF</button>
+          </>
+        }
+      />
     );
   }
 
