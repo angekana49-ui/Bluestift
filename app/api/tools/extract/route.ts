@@ -51,33 +51,10 @@ export async function POST(request: Request) {
     );
   }
 
-  // Store the file + record it (best-effort; extraction can proceed regardless).
-  let mediaId: string | null = null;
+  // Extract text first, so the stored media row carries it (making the doc
+  // reusable for other tools straight from the library — no re-transcription).
+  let text = "";
   try {
-    const path = `${user.id}/${Date.now()}-${storageSafeName(file.name)}`;
-    const up = await supabase.storage.from("user-media").upload(path, file);
-    if (!up.error) {
-      const { data } = await supabase
-        .schema("rag")
-        .from("user_media")
-        .insert({
-          user_id: user.id,
-          url: path,
-          type: kind === "audio" ? "audio" : kind === "pdf" ? "pdf" : "other",
-          title: file.name,
-          size_bytes: file.size,
-        })
-        .select("id")
-        .single();
-      mediaId = data?.id ?? null;
-    }
-  } catch {
-    // non-fatal
-  }
-
-  // Extract text.
-  try {
-    let text = "";
     if (kind === "text" || kind === "csv") {
       text = await file.text();
     } else if (kind === "audio") {
@@ -109,17 +86,43 @@ export async function POST(request: Request) {
       ).join("\n\n");
     }
     text = text.trim();
-    if (!text) {
-      return NextResponse.json(
-        { error: "No text could be extracted from this file." },
-        { status: 422 },
-      );
-    }
-    return NextResponse.json({ text, media_id: mediaId, kind });
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "extraction failed" },
       { status: 502 },
     );
   }
+  if (!text) {
+    return NextResponse.json(
+      { error: "No text could be extracted from this file." },
+      { status: 422 },
+    );
+  }
+
+  // Store the file + record it with its extracted text (best-effort).
+  let mediaId: string | null = null;
+  try {
+    const path = `${user.id}/${Date.now()}-${storageSafeName(file.name)}`;
+    const up = await supabase.storage.from("user-media").upload(path, file);
+    if (!up.error) {
+      const { data } = await supabase
+        .schema("rag")
+        .from("user_media")
+        .insert({
+          user_id: user.id,
+          url: path,
+          type: kind === "audio" ? "audio" : kind === "pdf" ? "pdf" : "other",
+          title: file.name,
+          size_bytes: file.size,
+          extracted_text: text.slice(0, 200000),
+        })
+        .select("id")
+        .single();
+      mediaId = data?.id ?? null;
+    }
+  } catch {
+    // non-fatal — the extracted text is still returned to the client
+  }
+
+  return NextResponse.json({ text, media_id: mediaId, kind });
 }

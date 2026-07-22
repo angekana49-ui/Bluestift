@@ -389,6 +389,215 @@ export function QuizPlayer({
   );
 }
 
+// ── Test / exam (mixed MCQ + open, AI-graded) ─────────────────────────────
+
+export type TestQuestion = { id: string; type: "mcq" | "open"; question: string; options?: string[] };
+export type TestAnswer = { questionId: string; choiceIndex?: number; text?: string };
+export type TestQResult = { questionId: string; type: string; isCorrect: boolean; score: number | null; feedback: string; correctIndex: number | null };
+export type TestResult = { score: number; correct: number; total: number; results: TestQResult[] };
+
+/**
+ * Focused exam player: one question at a time, MCQ (options) or open (textarea).
+ * Server-graded on finish (MCQ auto + open by the LLM), then a result screen with
+ * the score, a per-question breakdown (right/wrong + feedback) and an on-demand
+ * deeper analysis.
+ */
+export function TestPlayer({
+  title,
+  questions,
+  onSubmit,
+  onExit,
+  onAnalyze,
+  analyzing,
+  resultActions,
+}: {
+  title: string;
+  questions: TestQuestion[];
+  onSubmit: (answers: TestAnswer[]) => Promise<TestResult>;
+  onExit: () => void;
+  /** Deeper narrative analysis (opens the branded reader in the host). */
+  onAnalyze?: () => void;
+  analyzing?: boolean;
+  resultActions?: ReactNode;
+}) {
+  const { theme: t } = useAppTheme();
+  const [index, setIndex] = useState(0);
+  const [mcq, setMcq] = useState<Record<string, number>>({});
+  const [open, setOpen] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<TestResult | null>(null);
+
+  const total = questions.length;
+  const q = questions[index];
+  const byId = useMemo(() => new Map(questions.map((x) => [x.id, x])), [questions]);
+
+  const answered = (qq: TestQuestion) => (qq.type === "mcq" ? mcq[qq.id] != null : (open[qq.id] ?? "").trim().length > 0);
+
+  async function finish() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const answers: TestAnswer[] = questions.map((qq) =>
+        qq.type === "mcq" ? { questionId: qq.id, choiceIndex: mcq[qq.id] } : { questionId: qq.id, text: open[qq.id] ?? "" },
+      );
+      setResult(await onSubmit(answers));
+    } catch {
+      setResult(null);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (result) {
+    const pct = Math.round((result.score ?? 0) * 100);
+    return (
+      <FocusOverlay theme={t} title={title} subtitle="Result" onClose={onExit} actions={resultActions}>
+        <div style={{ textAlign: "center", paddingTop: 20, paddingBottom: 8 }}>
+          <div style={{ fontSize: 12.5, color: t.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Your score</div>
+          <div style={{ fontSize: 50, fontWeight: 800, fontFamily: display, color: t.text, margin: "6px 0" }}>{pct}%</div>
+          <div style={{ fontSize: 14, color: t.muted }}>{result.correct} / {result.total} correct</div>
+          <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 20, flexWrap: "wrap" }}>
+            {onAnalyze && (
+              <button style={{ ...primaryBtn(t), opacity: analyzing ? 0.6 : 1 }} disabled={analyzing} onClick={onAnalyze}>
+                {analyzing ? "Analysing…" : "✨ Analyse my answers"}
+              </button>
+            )}
+            <button style={ghostBtn(t)} onClick={() => { setResult(null); setIndex(0); }}>
+              Review
+            </button>
+            <button style={ghostBtn(t)} onClick={onExit}>Done</button>
+          </div>
+        </div>
+
+        {/* per-question breakdown */}
+        <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: 10 }}>
+          {result.results.map((r, i) => {
+            const qq = byId.get(r.questionId);
+            const tint = r.isCorrect ? greenTint(t) : redTint(t);
+            return (
+              <div key={i} style={{ background: tint.bg, border: `1.5px solid ${tint.border}`, borderRadius: 12, padding: "12px 14px" }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
+                  <span style={{ color: tint.fg, fontWeight: 800, flex: "none" }}>{r.isCorrect ? "✓" : "✗"}</span>
+                  <span style={{ flex: 1, fontSize: 13.5, fontWeight: 600, color: t.text }}>{i + 1}. {qq?.question}</span>
+                  {r.score != null && r.type === "open" && (
+                    <span style={{ fontSize: 11.5, color: tint.fg, fontWeight: 700, flex: "none" }}>{Math.round(r.score * 100)}%</span>
+                  )}
+                </div>
+                {r.type === "mcq" && !r.isCorrect && r.correctIndex != null && qq?.options && (
+                  <div style={{ fontSize: 12.5, color: t.muted, marginTop: 6 }}>
+                    Correct: <span style={{ color: greenTint(t).fg, fontWeight: 600 }}>{qq.options[r.correctIndex]}</span>
+                  </div>
+                )}
+                {r.feedback && <div style={{ fontSize: 12.5, color: t.muted, marginTop: 6, lineHeight: 1.5 }}>{r.feedback}</div>}
+              </div>
+            );
+          })}
+        </div>
+      </FocusOverlay>
+    );
+  }
+
+  const isLast = index === total - 1;
+  return (
+    <FocusOverlay
+      theme={t}
+      title={title}
+      onClose={onExit}
+      progress={<ProgressDots t={t} total={total} index={index} />}
+      footer={
+        <>
+          <button style={{ ...ghostBtn(t), opacity: index === 0 ? 0.4 : 1 }} disabled={index === 0} onClick={() => setIndex((i) => Math.max(0, i - 1))}>
+            ‹ Prev
+          </button>
+          <span style={{ flex: 1 }} />
+          {isLast ? (
+            <button style={{ ...primaryBtn(t), opacity: busy ? 0.6 : 1 }} disabled={busy} onClick={finish}>
+              {busy ? "Grading…" : "Finish"}
+            </button>
+          ) : (
+            <button style={{ ...primaryBtn(t), opacity: answered(q) ? 1 : 0.5 }} disabled={!answered(q)} onClick={() => setIndex((i) => Math.min(total - 1, i + 1))}>
+              Next ›
+            </button>
+          )}
+        </>
+      }
+    >
+      <div style={{ fontSize: 12, color: t.mutedLight, marginBottom: 8 }}>
+        Question {index + 1} · {q.type === "open" ? "Open answer" : "Multiple choice"}
+      </div>
+      <div style={{ fontSize: 20, fontWeight: 700, color: t.text, lineHeight: 1.4, marginBottom: 22 }}>{q.question}</div>
+
+      {q.type === "open" ? (
+        <textarea
+          value={open[q.id] ?? ""}
+          onChange={(e) => setOpen((o) => ({ ...o, [q.id]: e.target.value }))}
+          placeholder="Write your answer…"
+          rows={7}
+          style={{
+            width: "100%",
+            boxSizing: "border-box",
+            background: t.cardBg,
+            color: t.text,
+            border: `1.5px solid ${t.cardBorder}`,
+            borderRadius: 14,
+            padding: "14px 16px",
+            fontSize: 14,
+            lineHeight: 1.6,
+            resize: "vertical",
+            outline: "none",
+            fontFamily: "inherit",
+          }}
+        />
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {(q.options ?? []).map((opt, oi) => {
+            const picked = mcq[q.id] === oi;
+            return (
+              <button
+                key={oi}
+                onClick={() => setMcq((m) => ({ ...m, [q.id]: oi }))}
+                style={{
+                  textAlign: "left",
+                  background: picked ? t.sidebarActiveBg : t.cardBg,
+                  color: t.text,
+                  border: `1.5px solid ${picked ? statusColors.aiIndigo : t.cardBorder}`,
+                  borderRadius: 14,
+                  padding: "14px 16px",
+                  cursor: "pointer",
+                  fontSize: 14,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                }}
+              >
+                <span
+                  style={{
+                    width: 24,
+                    height: 24,
+                    flex: "none",
+                    borderRadius: 7,
+                    background: t.cardBg2,
+                    border: `1px solid ${t.cardBorder}`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    color: t.muted,
+                  }}
+                >
+                  {String.fromCharCode(65 + oi)}
+                </span>
+                <span style={{ flex: 1 }}>{opt}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </FocusOverlay>
+  );
+}
+
 // ── Flashcards ────────────────────────────────────────────────────────────
 
 export function FlashcardsPlayer({ title, cards, onExit, actions }: { title: string; cards: PlayerCard[]; onExit: () => void; actions?: ReactNode }) {

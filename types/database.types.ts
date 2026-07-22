@@ -377,6 +377,42 @@ export type Database = {
   }
   learning: {
     Tables: {
+      shares: {
+        Row: {
+          id: string
+          token: string
+          user_id: string
+          kind: string
+          title: string | null
+          body: string | null
+          brand: string
+          created_at: string
+          revoked_at: string | null
+        }
+        Insert: {
+          id?: string
+          token: string
+          user_id: string
+          kind?: string
+          title?: string | null
+          body?: string | null
+          brand?: string
+          created_at?: string
+          revoked_at?: string | null
+        }
+        Update: {
+          id?: string
+          token?: string
+          user_id?: string
+          kind?: string
+          title?: string | null
+          body?: string | null
+          brand?: string
+          created_at?: string
+          revoked_at?: string | null
+        }
+        Relationships: []
+      }
       student_simulations: {
         Row: {
           id: string
@@ -1001,6 +1037,7 @@ export type Database = {
           title: string | null
           size_bytes: number | null
           embedding_status: string
+          extracted_text: string | null
           created_at: string
         }
         Insert: {
@@ -1013,6 +1050,7 @@ export type Database = {
           title?: string | null
           size_bytes?: number | null
           embedding_status?: string
+          extracted_text?: string | null
           created_at?: string
         }
         Update: {
@@ -1025,6 +1063,7 @@ export type Database = {
           title?: string | null
           size_bytes?: number | null
           embedding_status?: string
+          extracted_text?: string | null
           created_at?: string
         }
         Relationships: []

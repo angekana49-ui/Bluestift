@@ -24,6 +24,8 @@ export async function POST(request: Request) {
     source_text?: string;
     title?: string;
     source_media_id?: string | null;
+    /** One or more previously-uploaded docs to build the source from (reuse). */
+    source_media_ids?: string[];
   };
   try {
     body = await request.json();
@@ -38,10 +40,32 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  const source = (body.source_text ?? "").trim().slice(0, MAX_SOURCE_CHARS);
+
+  // Source = the stored extracted_text of the picked docs (so an already-uploaded
+  // file can feed any tool without re-uploading) COMBINED with any inline text
+  // passed for docs that weren't persisted. Multi-source is concatenated.
+  const mediaIds = (body.source_media_ids ?? []).filter((s): s is string => typeof s === "string" && s.length > 0);
+  const parts: string[] = [];
+  if (mediaIds.length > 0) {
+    const { data: media } = await supabase
+      .schema("rag")
+      .from("user_media")
+      .select("id, title, extracted_text")
+      .eq("user_id", user.id)
+      .in("id", mediaIds);
+    const byId = new Map((media ?? []).map((m) => [m.id, m]));
+    for (const id of mediaIds) {
+      const m = byId.get(id);
+      if (m?.extracted_text) parts.push(`## ${m.title ?? "Document"}\n${m.extracted_text}`);
+    }
+  }
+  const inline = (body.source_text ?? "").trim();
+  if (inline) parts.push(inline);
+  const source = parts.join("\n\n").trim().slice(0, MAX_SOURCE_CHARS);
   if (!source) {
     return NextResponse.json({ error: "empty source text" }, { status: 400 });
   }
+  const primaryMediaId = body.source_media_id ?? mediaIds[0] ?? null;
 
   // Create the tool_output (generating).
   const { data: created, error: insErr } = await supabase
@@ -49,7 +73,7 @@ export async function POST(request: Request) {
     .from("tool_outputs")
     .insert({
       user_id: user.id,
-      source_media_id: body.source_media_id ?? null,
+      source_media_id: primaryMediaId,
       tool_type: toolType,
       status: "generating",
       output_content: {},

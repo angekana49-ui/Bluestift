@@ -4,6 +4,7 @@ import { useState } from "react";
 import { downloadBrandedPdf, downloadBrandedText, type BrandedDoc } from "@/lib/document";
 import { parseDoc } from "@/lib/doc-format";
 import { QuizPlayer, FlashcardsPlayer, ReaderView, MindMapView } from "@/components/study/focus-player";
+import { ShareLinkButton } from "@/components/study/share-button";
 import { useAppTheme } from "@/components/ui/theme";
 import { display, status as statusColors, type AppTheme } from "@/components/ui/tokens";
 import { IconQuiz, IconFlashcards, IconSummary } from "@/components/ui/icons";
@@ -32,6 +33,12 @@ type Output = {
   created_at: string;
 };
 type SelfTest = { id: string; title: string | null; score: number | null };
+
+/** A picked source doc: a fresh upload or a reused library doc. */
+type Source = { mediaId: string | null; name: string; kind?: string; bytes?: number; text?: string };
+
+/** Max total size of an upload packet (all files picked at once + already added). */
+const MAX_PACKET_BYTES = 20 * 1024 * 1024;
 
 /** What the full-screen focus player is currently showing. */
 type ActivePlayer =
@@ -77,13 +84,6 @@ const ghost = (t: AppTheme): React.CSSProperties => ({
   fontWeight: 600,
   cursor: "pointer",
 });
-const sectionLabel = (t: AppTheme): React.CSSProperties => ({
-  fontSize: 10.5,
-  color: t.mutedLight,
-  textTransform: "uppercase",
-  letterSpacing: "0.06em",
-});
-
 // Markdown composers → the branded document body (typeset by the exporter).
 function quizToMd(qs: QuizQuestion[]) {
   return qs
@@ -118,16 +118,17 @@ export function Tools({
   studentName?: string;
 }) {
   const { theme: t } = useAppTheme();
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [sourceText, setSourceText] = useState("");
-  const [mediaId, setMediaId] = useState<string | null>(null);
+  // A source is a picked doc — a fresh upload (has `bytes`, maybe inline `text`
+  // if it couldn't be stored) or an existing library doc reused (mediaId only).
+  const [sources, setSources] = useState<Source[]>([]);
   const [tool, setTool] = useState("summary");
   const [busy, setBusy] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [player, setPlayer] = useState<ActivePlayer | null>(null);
 
-  const baseName = (fileName ?? "raya").replace(/\.[^.]+$/, "");
+  const baseName = (sources[0]?.name ?? "raya").replace(/\.[^.]+$/, "");
+  const packetBytes = sources.reduce((s, x) => s + (x.bytes ?? 0), 0);
 
   // Every tool export goes through the shared branded document (Raya logo, title,
   // footer attribution + thebluestift.com link).
@@ -142,57 +143,72 @@ export function Tools({
     <>
       <button style={ghost(t)} onClick={() => downloadBrandedText(d)}>TXT</button>
       <button style={ghost(t)} onClick={() => downloadBrandedPdf(d)}>PDF</button>
+      <ShareLinkButton theme={t} doc={d} />
     </>
   );
 
-  async function onPick(f: File | null) {
+  // Add one library doc as a reusable source (no re-upload).
+  function reuseFromLibrary(u: Upload) {
     setError(null);
-    setSourceText("");
-    setMediaId(null);
-    setFileName(f?.name ?? null);
-    if (!f) return;
+    setSources((s) => (s.some((x) => x.mediaId === u.id) ? s : [...s, { mediaId: u.id, name: u.title ?? "file" }]));
+  }
+  function removeSource(i: number) {
+    setSources((s) => s.filter((_, k) => k !== i));
+  }
 
+  // Multi-file upload: extract each into the packet (capped total size).
+  async function onPick(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setError(null);
+    const arr = Array.from(files);
+    const addBytes = arr.reduce((s, f) => s + f.size, 0);
+    if (packetBytes + addBytes > MAX_PACKET_BYTES) {
+      setError(`That packet is too large — keep the total under ${Math.round(MAX_PACKET_BYTES / 1024 / 1024)} MB.`);
+      return;
+    }
     setBusy(true);
-    setStatusMsg("Reading the file… (audio is transcribed, this can take a moment)");
     try {
-      const fd = new FormData();
-      fd.append("file", f);
-      const res = await fetch("/api/tools/extract", { method: "POST", body: fd });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data?.error ?? `Extraction failed (${res.status}).`);
-        return;
+      for (const f of arr) {
+        setStatusMsg(`Reading ${f.name}… (audio is transcribed, this can take a moment)`);
+        try {
+          const fd = new FormData();
+          fd.append("file", f);
+          const res = await fetch("/api/tools/extract", { method: "POST", body: fd });
+          const data = await res.json();
+          if (!res.ok) {
+            setError(data?.error ?? `Couldn't read ${f.name}.`);
+            continue;
+          }
+          setSources((s) => [
+            ...s,
+            { mediaId: data.media_id ?? null, name: f.name, kind: data.kind, bytes: f.size, text: data.media_id ? undefined : (data.text ?? "") },
+          ]);
+        } catch {
+          setError(`Couldn't process ${f.name}.`);
+        }
       }
-      setSourceText(data.text ?? "");
-      setMediaId(data.media_id ?? null);
-      setStatusMsg(
-        data.kind === "audio"
-          ? "Audio transcribed ✓"
-          : data.kind === "pdf"
-            ? "PDF text extracted ✓"
-            : "Text loaded ✓",
-      );
-    } catch {
-      setError("Couldn't process the file.");
+      setStatusMsg("Ready ✓");
     } finally {
       setBusy(false);
     }
   }
 
   async function generate() {
-    if (!sourceText || busy) return;
+    if (sources.length === 0 || busy) return;
     setBusy(true);
     setError(null);
     setStatusMsg("Generating…");
     try {
+      const sourceMediaIds = sources.map((s) => s.mediaId).filter((id): id is string => !!id);
+      const inline = sources.filter((s) => !s.mediaId && s.text).map((s) => s.text as string).join("\n\n");
       const res = await fetch("/api/tools/generate", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           tool_type: tool,
-          source_text: sourceText,
-          title: fileName,
-          source_media_id: mediaId,
+          source_media_ids: sourceMediaIds,
+          source_text: inline || undefined,
+          title: baseName,
         }),
       });
       const data = await res.json();
@@ -294,7 +310,7 @@ export function Tools({
         })}
       </div>
 
-      {/* dropzone */}
+      {/* dropzone — multi-file */}
       <label
         style={{
           display: "block",
@@ -310,22 +326,56 @@ export function Tools({
           background: t.cardBg2,
         }}
       >
-        {fileName ? (
-          <span style={{ color: t.text, fontWeight: 600 }}>{fileName}</span>
-        ) : (
-          "Drop a PDF, a photo of your notes or a document (text, Word, Excel, audio) to generate a tool"
-        )}
+        Drop one or more files (PDF, notes, Word, Excel, audio) — they combine into one packet
+        <div style={{ fontSize: 10.5, color: t.mutedLight, marginTop: 4 }}>
+          Up to {Math.round(MAX_PACKET_BYTES / 1024 / 1024)} MB total{packetBytes > 0 ? ` · ${(packetBytes / 1024 / 1024).toFixed(1)} MB used` : ""}
+        </div>
         <input
           type="file"
+          multiple
           accept=".txt,.md,.markdown,.csv,.pdf,.docx,.xlsx,.mp3,.m4a,.wav,.webm,.ogg,.flac,audio/*,application/pdf,text/plain"
-          onChange={(e) => onPick(e.target.files?.[0] ?? null)}
+          onChange={(e) => onPick(e.target.files)}
           disabled={busy}
           style={{ display: "none" }}
         />
       </label>
 
+      {/* picked sources */}
+      {sources.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12, maxWidth: 900 }}>
+          {sources.map((s, i) => (
+            <span
+              key={i}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                background: t.cardBg,
+                border: `1px solid ${t.cardBorder}`,
+                borderRadius: 99,
+                padding: "5px 6px 5px 12px",
+                fontSize: 12,
+                color: t.text,
+              }}
+            >
+              <span style={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {s.mediaId && s.bytes == null ? "↻ " : ""}
+                {s.name}
+              </span>
+              <button
+                onClick={() => removeSource(i)}
+                title="Remove"
+                style={{ background: t.cardBg2, border: `1px solid ${t.cardBorder}`, color: t.mutedLight, borderRadius: "50%", width: 20, height: 20, cursor: "pointer", lineHeight: 1, fontSize: 12 }}
+              >
+                ✕
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 16, maxWidth: 900 }}>
-        <button style={{ ...cta(t), opacity: busy || !sourceText ? 0.5 : 1 }} onClick={generate} disabled={busy || !sourceText}>
+        <button style={{ ...cta(t), opacity: busy || sources.length === 0 ? 0.5 : 1 }} onClick={generate} disabled={busy || sources.length === 0}>
           Generate
         </button>
         {statusMsg && <span style={{ fontSize: 12, color: t.muted }}>{statusMsg}</span>}
@@ -333,35 +383,47 @@ export function Tools({
       {error && <p style={{ color: "#f87171", marginTop: 12, fontSize: 12.5 }}>{error}</p>}
 
       {(uploads.length > 0 || outputs.length > 0 || selfTests.length > 0) && (
-        <div style={{ ...panel(t), maxWidth: 900 }}>
-          <h3 style={{ marginTop: 0, marginBottom: 12, fontSize: 14, fontWeight: 700, color: t.text }}>Your library</h3>
+        <div style={{ marginTop: 20, maxWidth: 900, display: "flex", flexDirection: "column", gap: 14 }}>
           {uploads.length > 0 && (
-            <>
-              <div style={sectionLabel(t)}>Files</div>
-              {uploads.map((u) => (
-                <LibraryRow key={u.id} theme={t} label={u.title ?? "file"} meta={u.type ?? undefined} action="Open" onAction={() => downloadUpload(u.url)} />
-              ))}
-            </>
+            <div style={panel(t)}>
+              <LibraryHeader theme={t} title="Your files" count={uploads.length} hint="Reuse any of these as a source — no re-upload." />
+              {uploads.map((u) => {
+                const inUse = sources.some((s) => s.mediaId === u.id);
+                return (
+                  <LibraryRow
+                    key={u.id}
+                    theme={t}
+                    label={u.title ?? "file"}
+                    meta={u.type ?? undefined}
+                    action={inUse ? "Added" : "Use"}
+                    disabled={inUse}
+                    onAction={() => reuseFromLibrary(u)}
+                    action2="Open"
+                    onAction2={() => downloadUpload(u.url)}
+                  />
+                );
+              })}
+            </div>
           )}
           {outputs.length > 0 && (
-            <>
-              <div style={{ ...sectionLabel(t), marginTop: 12 }}>Generated</div>
+            <div style={panel(t)}>
+              <LibraryHeader theme={t} title="Generated" count={outputs.length} hint="Quizzes, summaries, flashcards and mind maps you've made." />
               {outputs.map((o) => (
                 <LibraryRow
                   key={o.id}
                   theme={t}
-                  label={o.tool_type}
-                  meta={o.status}
+                  label={prettyTool(o.tool_type)}
+                  meta={o.status === "done" ? new Date(o.created_at).toLocaleDateString() : o.status}
                   action="Study"
                   disabled={o.status !== "done"}
                   onAction={() => openOutput(o)}
                 />
               ))}
-            </>
+            </div>
           )}
           {selfTests.length > 0 && (
-            <>
-              <div style={{ ...sectionLabel(t), marginTop: 12 }}>Self-tests</div>
+            <div style={panel(t)}>
+              <LibraryHeader theme={t} title="Self-tests" count={selfTests.length} hint="Your tests and their scores." />
               {selfTests.map((s) => (
                 <LibraryRow
                   key={s.id}
@@ -372,7 +434,7 @@ export function Tools({
                   onAction={() => openSelfTest(s.id)}
                 />
               ))}
-            </>
+            </div>
           )}
         </div>
       )}
@@ -421,6 +483,26 @@ export function Tools({
   );
 }
 
+const PRETTY_TOOL: Record<string, string> = {
+  summary: "Summary",
+  quiz: "Quiz",
+  flashcards: "Flashcards",
+  mind_map: "Mind map",
+};
+const prettyTool = (id: string) => PRETTY_TOOL[id] ?? id;
+
+function LibraryHeader({ theme: t, title, count, hint }: { theme: AppTheme; title: string; count: number; hint: string }) {
+  return (
+    <div style={{ marginBottom: 8 }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+        <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: t.text }}>{title}</h3>
+        <span style={{ fontSize: 11, fontWeight: 600, color: t.mutedLight }}>{count}</span>
+      </div>
+      <div style={{ fontSize: 11, color: t.mutedLight, marginTop: 2 }}>{hint}</div>
+    </div>
+  );
+}
+
 function LibraryRow({
   theme: t,
   label,
@@ -428,6 +510,8 @@ function LibraryRow({
   action,
   disabled,
   onAction,
+  action2,
+  onAction2,
 }: {
   theme: AppTheme;
   label: string;
@@ -435,11 +519,18 @@ function LibraryRow({
   action: string;
   disabled?: boolean;
   onAction: () => void;
+  action2?: string;
+  onAction2?: () => void;
 }) {
   return (
     <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "8px 0", borderTop: `1px solid ${t.cardBorder}` }}>
-      <span style={{ flex: 1, fontSize: 12.5, color: t.text }}>{label}</span>
-      {meta && <span style={{ color: t.mutedLight, fontSize: 11 }}>{meta}</span>}
+      <span style={{ flex: 1, fontSize: 12.5, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+      {meta && <span style={{ color: t.mutedLight, fontSize: 11, flex: "none" }}>{meta}</span>}
+      {action2 && onAction2 && (
+        <button style={ghost(t)} onClick={onAction2}>
+          {action2}
+        </button>
+      )}
       <button style={{ ...ghost(t), opacity: disabled ? 0.4 : 1 }} onClick={onAction} disabled={disabled}>
         {action}
       </button>

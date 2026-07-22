@@ -3,11 +3,20 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { downloadBrandedPdf, downloadBrandedText, type BrandedDoc } from "@/lib/document";
-import { QuizPlayer } from "@/components/study/focus-player";
+import { TestPlayer, ReaderView, type TestAnswer, type TestQuestion, type TestResult } from "@/components/study/focus-player";
+import { ShareLinkButton } from "@/components/study/share-button";
+import { parseDoc } from "@/lib/doc-format";
 import { useAppTheme } from "@/components/ui/theme";
 import { type AppTheme } from "@/components/ui/tokens";
 
-type Question = { id: string; content: string | null; options: string[] };
+type Question = { id: string; type: "mcq" | "open"; content: string | null; options: string[] };
+
+// Test kinds — a quick MCQ quiz, a full mixed exam, or open competency questions.
+const TEST_KINDS = [
+  { id: "quiz", label: "Quiz", hint: "Quick multiple-choice" },
+  { id: "exam", label: "Exam", hint: "Mixed MCQ + open" },
+  { id: "skills", label: "Skills", hint: "Open competency" },
+];
 type SoloItem = {
   id: string;
   title: string | null;
@@ -75,20 +84,21 @@ const DEFAULT_GOAL = "Review the key ideas and check I really understand them.";
 export function SoloChallenge({ myUserId, studentName }: { myUserId: string; studentName?: string }) {
   const { theme: t } = useAppTheme();
   const [supabase] = useState(() => createClient());
-  const [view, setView] = useState<"list" | "take" | "result">("list");
+  const [view, setView] = useState<"list" | "take" | "analysis">("list");
   const [items, setItems] = useState<SoloItem[]>([]);
   const [name, setName] = useState("");
   const [topic, setTopic] = useState("");
   const [goal, setGoal] = useState(DEFAULT_GOAL);
+  const [kind, setKind] = useState("quiz");
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [active, setActive] = useState<SoloItem | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [result, setResult] = useState<{ score: number; correct: number; total: number } | null>(
-    null,
-  );
+  const [result, setResult] = useState<{ score: number; correct: number; total: number } | null>(null);
+  const [analysis, setAnalysis] = useState<{ title: string; body: string } | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
 
   async function load() {
     const [{ data: challenges }, { data: attempts }] = await Promise.all([
@@ -140,6 +150,7 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
       fd.append("name", name);
       fd.append("topic", topic);
       fd.append("goal", goal);
+      fd.append("kind", kind);
       if (file) fd.append("file", file);
       const res = await fetch("/api/challenges/create", { method: "POST", body: fd });
       const data = await res.json();
@@ -166,32 +177,33 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
       const { data } = await supabase
         .schema("learning")
         .from("challenge_questions")
-        .select("id, content, options, order")
+        .select("id, content, type, options, order")
         .eq("challenge_id", it.id)
         .order("order", { ascending: true });
+      const qs: Question[] = (data ?? []).map((q) => ({
+        id: q.id,
+        type: q.type === "open" ? "open" : "mcq",
+        content: q.content,
+        options: (q.options as string[]) ?? [],
+      }));
+      if (qs.length === 0) {
+        setError("This test has no questions yet.");
+        return;
+      }
       setActive(it);
-      setQuestions(
-        (data ?? []).map((q) => ({
-          id: q.id,
-          content: q.content,
-          options: (q.options as string[]) ?? [],
-        })),
-      );
+      setQuestions(qs);
       setResult(null);
+      setAnalysis(null);
       setView("take");
     } finally {
       setBusy(false);
     }
   }
 
-  // Called by the focused player once every question has been answered. Maps the
-  // ordered picks back to question ids, submits for server scoring, and returns
-  // the score so the player can show its result screen.
-  async function submitAnswers(picks: number[]): Promise<{ correct: number; total: number }> {
+  // Submit the test for server grading (MCQ auto + open via the LLM); returns the
+  // full breakdown so the player can show its result screen.
+  async function submitAnswers(answers: TestAnswer[]): Promise<TestResult> {
     if (!active) throw new Error("no active self-test");
-    const answers = questions
-      .map((q, i) => ({ questionId: q.id, choiceIndex: picks[i] }))
-      .filter((a) => a.choiceIndex >= 0);
     const res = await fetch("/api/challenges/submit", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -199,9 +211,41 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data?.error ?? "Could not submit.");
-    setResult(data);
+    setResult({ score: data.score, correct: data.correct, total: data.total });
     await load();
-    return { correct: data.correct, total: data.total };
+    return data as TestResult;
+  }
+
+  // Deeper narrative analysis of the latest attempt → the branded reader.
+  async function analyze() {
+    if (!active || analyzing) return;
+    setAnalyzing(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/challenges/analyze", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ challengeId: active.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error ?? "Could not analyse.");
+      setAnalysis({ title: data.title, body: data.analysis });
+      setView("analysis");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not analyse.");
+    } finally {
+      setAnalyzing(false);
+    }
+  }
+
+  function analysisDoc(): BrandedDoc {
+    return {
+      brand: "raya",
+      title: analysis?.title ?? "Analysis",
+      meta: new Date().toLocaleDateString(),
+      audience: studentName || undefined,
+      body: analysis?.body ?? "",
+    };
   }
 
   function resultDoc(): BrandedDoc {
@@ -221,22 +265,68 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
     };
   }
 
-  // Focused, one-question-at-a-time player (server-scored → collect mode).
+  // A shareable summary of the learner's tests + scores.
+  function progressionDoc(): BrandedDoc {
+    const done = items.filter((i) => i.score != null);
+    const avg = done.length ? Math.round((done.reduce((a, i) => a + (i.score ?? 0), 0) / done.length) * 100) : null;
+    const body = [
+      "# My progress",
+      avg != null ? `Average score: ${avg}% across ${done.length} completed test${done.length > 1 ? "s" : ""}.` : "No completed tests yet.",
+      "## Tests",
+      ...(items.length ? items.map((i) => `- ${i.title ?? "Self-test"} — ${i.score != null ? Math.round(i.score * 100) + "%" : "not taken"}`) : ["No tests yet."]),
+    ].join("\n");
+    return {
+      brand: "raya",
+      title: studentName ? `${studentName} — progress` : "My progress",
+      meta: new Date().toLocaleDateString(),
+      audience: studentName || undefined,
+      body,
+    };
+  }
+
+  // Focused, one-question-at-a-time exam player (server-graded, MCQ + open).
   if (view === "take" && active) {
+    const testQuestions: TestQuestion[] = questions.map((q) => ({
+      id: q.id,
+      type: q.type,
+      question: q.content ?? "",
+      options: q.options,
+    }));
     return (
-      <QuizPlayer
+      <TestPlayer
         title={active.title ?? "Self-test"}
-        mode="collect"
-        questions={questions.map((q) => ({ question: q.content ?? "", options: q.options }))}
+        questions={testQuestions}
         onSubmit={submitAnswers}
         onExit={() => {
           setResult(null);
           setView("list");
         }}
+        onAnalyze={analyze}
+        analyzing={analyzing}
         resultActions={
           <>
             <button style={ghost(t)} onClick={() => downloadBrandedText(resultDoc())}>TXT</button>
             <button style={ghost(t)} onClick={() => downloadBrandedPdf(resultDoc())}>PDF</button>
+            <ShareLinkButton theme={t} doc={resultDoc()} />
+          </>
+        }
+      />
+    );
+  }
+
+  // Narrative analysis of the attempt, in the branded reader.
+  if (view === "analysis" && analysis) {
+    return (
+      <ReaderView
+        title={analysis.title}
+        subtitle="Analysis"
+        blocks={parseDoc(analysis.body)}
+        onExit={() => setView("list")}
+        actions={
+          <>
+            <button style={ghost(t)} onClick={() => downloadBrandedText(analysisDoc())}>TXT</button>
+            <button style={ghost(t)} onClick={() => downloadBrandedPdf(analysisDoc())}>PDF</button>
+            <ShareLinkButton theme={t} doc={analysisDoc()} />
           </>
         }
       />
@@ -264,6 +354,16 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
           value={goal}
           onChange={(e) => setGoal(e.target.value)}
         />
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ fontSize: 11, color: t.mutedLight, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Type of test</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {TEST_KINDS.map((k) => (
+              <button key={k.id} type="button" style={chip(t, kind === k.id)} onClick={() => setKind(k.id)} title={k.hint}>
+                {k.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <div style={{ marginBottom: 8 }}>
           <label style={{ fontSize: 11.5, color: t.muted, marginRight: 8 }}>Source file (optional):</label>
           <input
@@ -280,7 +380,15 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
       </div>
 
       <div style={{ marginTop: 16 }}>
-        <div style={{ fontSize: 10.5, color: t.mutedLight, textTransform: "uppercase", letterSpacing: "0.06em" }}>Your progress</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ flex: 1, fontSize: 10.5, color: t.mutedLight, textTransform: "uppercase", letterSpacing: "0.06em" }}>Your progress</div>
+          {items.length > 0 && (
+            <>
+              <button style={ghost(t)} onClick={() => downloadBrandedPdf(progressionDoc())} title="Download your progress">PDF</button>
+              <ShareLinkButton theme={t} doc={progressionDoc()} />
+            </>
+          )}
+        </div>
         {items.length === 0 && <p style={{ color: t.muted, marginTop: 8, fontSize: 12.5 }}>No self-tests yet.</p>}
         {items.map((it) => (
           <div
