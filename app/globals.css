@@ -216,6 +216,11 @@ a {
   .app-collapse-toggle {
     display: none;
   }
+  /* On phone the mobile header already carries a right-panel toggle, so an
+     in-content one (e.g. the room's) would double up right under it. */
+  .app-hide-phone {
+    display: none !important;
+  }
 }
 
 /* Drawer dimmer — active whenever a panel is an overlay (< 900px, covering
@@ -299,6 +304,24 @@ a {
   }
   50% {
     transform: translateY(-6px);
+  }
+}
+/* Feedback "Praise" burst: hearts rise from the bottom, drift sideways
+   (per-heart via the --drift custom prop) and fade out. One-shot, `forwards`. */
+@keyframes heartRise {
+  0% {
+    transform: translate(0, 0) scale(0.3) rotate(0deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--drift, 0), -92vh) scale(1) rotate(var(--spin, 12deg));
+    opacity: 0;
   }
 }
 /* Welcome flock: cross the screen while undulating. Only `left` + `transform`

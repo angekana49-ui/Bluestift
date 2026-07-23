@@ -1,11 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import type { ComponentType } from "react";
 import { useRef, useState } from "react";
 import SitePage from "@/components/site/SitePage";
 import type { Theme } from "@/components/site/theme";
 import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
 import type { WallPost } from "@/lib/content";
+import { IconTeacher, IconStudent, IconUser, IconHeart, IconFlame, IconPencil, IconCheck } from "@/components/site/icons";
+
+type IconEl = ComponentType<{ size?: number; filled?: boolean }>;
 
 type Question = {
   id: string;
@@ -115,8 +119,9 @@ function SurveyFlow({ t, profile, onDone }: { t: Theme; profile: "teacher" | "st
           <span style={{ fontSize: 10, color: t.mutedLight }}>{step + 1} / {total}</span>
         </div>
 
-        <div style={{ fontSize: 11, fontWeight: 600, color: t.orange, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 12 }}>
-          {profile === "teacher" ? "👩‍🏫 Teacher" : "🎓 Student"}
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 600, color: t.orange, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 12 }}>
+          {profile === "teacher" ? <IconTeacher size={14} /> : <IconStudent size={14} />}
+          {profile === "teacher" ? "Teacher" : "Student"}
         </div>
         <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: t.text }}>{q.question}</div>
 
@@ -139,9 +144,10 @@ function SurveyFlow({ t, profile, onDone }: { t: Theme; profile: "teacher" | "st
             <button
               onClick={() => answer(text.trim() ? { question_id: q.id, answer_text: text.trim() } : null)}
               disabled={submitting}
-              style={{ marginTop: 12, background: t.orange, color: "white", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 12, fontWeight: 700, cursor: submitting ? "default" : "pointer" }}
+              style={{ marginTop: 12, display: "inline-flex", alignItems: "center", gap: 6, background: t.orange, color: "white", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 12, fontWeight: 700, cursor: submitting ? "default" : "pointer" }}
             >
-              {submitting ? "Sending…" : isLast ? "Finish ✓" : "Continue →"}
+              {submitting ? "Sending…" : isLast ? "Finish" : "Continue →"}
+              {!submitting && isLast && <IconCheck size={14} />}
             </button>
           </div>
         )}
@@ -179,7 +185,9 @@ function DoneScreen({ t, responseId, onFreeWall }: { t: Theme; responseId: strin
 
   return (
     <div style={{ maxWidth: 440, margin: "0 auto", padding: "64px 24px", textAlign: "center" }}>
-      <div style={{ fontSize: 48, marginBottom: 20 }}>🙏</div>
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 20, color: t.orange }}>
+        <IconHeart size={44} filled />
+      </div>
       <h2 style={{ fontFamily: "'Inter Tight',sans-serif", fontWeight: 900, fontSize: "1.9rem", letterSpacing: "-0.02em", margin: "0 0 12px", color: t.text }}>Thank you.</h2>
       <p style={{ fontSize: 13, lineHeight: 1.7, color: t.text, marginBottom: 24 }}>
         Your answers feed straight into RAYA&apos;s development. Leave your email if you want early access when the beta is ready.
@@ -194,11 +202,16 @@ function DoneScreen({ t, responseId, onFreeWall }: { t: Theme; responseId: strin
           </button>
         </div>
       )}
-      {saved && <p style={{ marginBottom: 24, fontSize: 12, fontWeight: 600, color: t.greenText }}>✓ Noted — see you soon!</p>}
+      {saved && (
+        <p style={{ display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 24, fontSize: 12, fontWeight: 600, color: t.greenText }}>
+          <IconCheck size={13} /> Noted — see you soon!
+        </p>
+      )}
 
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-        <button onClick={onFreeWall} style={{ background: t.orange, color: "white", border: "none", borderRadius: 8, padding: "12px 28px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-          Share freely ✍️
+        <button onClick={onFreeWall} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: t.orange, color: "white", border: "none", borderRadius: 8, padding: "12px 28px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+          <IconPencil size={15} />
+          Share freely
         </button>
         <Link href="/" style={{ border: `1px solid ${t.cardBorder}`, borderRadius: 8, padding: "10px 28px", fontSize: 13, color: t.muted, textDecoration: "none" }}>
           Back home
@@ -210,7 +223,7 @@ function DoneScreen({ t, responseId, onFreeWall }: { t: Theme; responseId: strin
 
 // ─── Free wall ───────────────────────────────────────────────
 const PROFILE_LABEL: Record<string, string> = { teacher: "Teacher", student: "Student", anonymous: "Anonymous" };
-const PROFILE_EMOJI: Record<string, string> = { teacher: "👩‍🏫", student: "🎓", anonymous: "👤" };
+const PROFILE_ICON: Record<string, IconEl> = { teacher: IconTeacher, student: IconStudent, anonymous: IconUser };
 
 function FreeWall({ t, initialPosts }: { t: Theme; initialPosts: WallPost[] }) {
   const [posts, setPosts] = useState<Array<WallPost & { isNew?: boolean }>>(initialPosts);
@@ -268,13 +281,14 @@ function FreeWall({ t, initialPosts }: { t: Theme; initialPosts: WallPost[] }) {
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
           {(["student", "teacher", "anonymous"] as const).map((k) => {
             const on = profile === k;
+            const Icon = PROFILE_ICON[k];
             return (
               <button
                 key={k}
                 onClick={() => setProfile(k)}
-                style={{ borderRadius: 999, border: `1px solid ${on ? t.orange : t.cardBorder}`, background: on ? t.orangeBg : "transparent", color: on ? t.orangeText : t.muted, padding: "6px 12px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, borderRadius: 999, border: `1px solid ${on ? t.orange : t.cardBorder}`, background: on ? t.orangeBg : "transparent", color: on ? t.orangeText : t.muted, padding: "6px 12px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}
               >
-                {PROFILE_EMOJI[k]} {PROFILE_LABEL[k]}
+                <Icon size={13} /> {PROFILE_LABEL[k]}
               </button>
             );
           })}
@@ -296,10 +310,11 @@ function FreeWall({ t, initialPosts }: { t: Theme; initialPosts: WallPost[] }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {posts.map((post) => {
           const p = post.profile ?? "anonymous";
+          const Icon = PROFILE_ICON[p] ?? IconUser;
           return (
             <div key={post.id} style={{ borderRadius: 18, border: `1px solid ${post.isNew ? t.orangeBorder : t.cardBorder}`, background: post.isNew ? t.orangeBg : t.cardBg, padding: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                <span>{PROFILE_EMOJI[p] ?? "👤"}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, color: t.muted }}>
+                <Icon size={15} />
                 <span style={{ fontSize: 11, fontWeight: 600, color: t.muted }}>{PROFILE_LABEL[p] ?? "Anonymous"}</span>
               </div>
               <p style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", fontSize: 13, lineHeight: 1.6, color: t.text, margin: "0 0 14px" }}>&ldquo;{post.content}&rdquo;</p>
@@ -312,7 +327,15 @@ function FreeWall({ t, initialPosts }: { t: Theme; initialPosts: WallPost[] }) {
                       onClick={() => react(post.id, kind)}
                       style={{ display: "flex", alignItems: "center", gap: 6, borderRadius: 999, border: `1px solid ${on ? t.orange : t.cardBorder}`, background: "transparent", color: on ? t.orangeText : t.muted, padding: "6px 12px", fontSize: 11, cursor: "pointer" }}
                     >
-                      {kind === "resonates" ? `💛 Resonates — ${post.resonates}` : `🔥 Important — ${post.important}`}
+                      {kind === "resonates" ? (
+                        <>
+                          <IconHeart size={13} filled={on} /> Resonates — {post.resonates}
+                        </>
+                      ) : (
+                        <>
+                          <IconFlame size={13} filled={on} /> Important — {post.important}
+                        </>
+                      )}
                     </button>
                   );
                 })}
@@ -373,11 +396,11 @@ export function SurveyView({ signedIn, initialPosts, stats }: Props) {
               </p>
 
               <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginBottom: 20 }}>
-                <button onClick={() => setView("survey-teacher")} style={{ background: t.ctaBg, color: t.ctaText, border: "none", borderRadius: 12, padding: "14px 26px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                  👩‍🏫 I&apos;m a teacher
+                <button onClick={() => setView("survey-teacher")} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: t.ctaBg, color: t.ctaText, border: "none", borderRadius: 12, padding: "14px 26px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                  <IconTeacher size={16} /> I&apos;m a teacher
                 </button>
-                <button onClick={() => setView("survey-student")} style={{ background: t.orange, color: "white", border: "none", borderRadius: 12, padding: "14px 26px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                  🎓 I&apos;m a student
+                <button onClick={() => setView("survey-student")} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: t.orange, color: "white", border: "none", borderRadius: 12, padding: "14px 26px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                  <IconStudent size={16} /> I&apos;m a student
                 </button>
               </div>
 

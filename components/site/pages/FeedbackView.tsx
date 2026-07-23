@@ -1,16 +1,52 @@
 "use client";
 
-import { useRef, useState } from "react";
+import type { ComponentType, CSSProperties } from "react";
+import { useEffect, useRef, useState } from "react";
 import SitePage from "@/components/site/SitePage";
 import type { Theme } from "@/components/site/theme";
 import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
+import { IconLightbulb, IconBug, IconSparkle, IconHeart, IconChatBubble, IconStar } from "@/components/site/icons";
 
-const TYPES: [string, string][] = [
-  ["suggestion", "💡 Suggestion"],
-  ["bug", "🐛 Bug"],
-  ["feature", "✨ Feature"],
-  ["praise", "💚 Praise"],
-  ["other", "💬 Other"],
+type IconEl = ComponentType<{ size?: number; filled?: boolean }>;
+
+const PRAISE_RED = "#e0245e";
+
+type FloatHeart = { id: number; left: number; size: number; delay: number; duration: number; drift: number; spin: number; color: string };
+
+/** Full-screen one-shot burst of hearts rising and fading — the "Praise" like. */
+function HeartBurst({ hearts }: { hearts: FloatHeart[] }) {
+  if (hearts.length === 0) return null;
+  return (
+    <div aria-hidden style={{ position: "fixed", inset: 0, pointerEvents: "none", overflow: "hidden", zIndex: 9999 }}>
+      {hearts.map((h) => (
+        <span
+          key={h.id}
+          style={
+            {
+              position: "absolute",
+              left: `${h.left}vw`,
+              bottom: -48,
+              color: h.color,
+              filter: "drop-shadow(0 2px 6px rgba(224,36,94,0.35))",
+              animation: `heartRise ${h.duration}s cubic-bezier(0.34,0.2,0.4,1) ${h.delay}s forwards`,
+              "--drift": `${h.drift}px`,
+              "--spin": `${h.spin}deg`,
+            } as CSSProperties
+          }
+        >
+          <IconHeart size={h.size} filled />
+        </span>
+      ))}
+    </div>
+  );
+}
+
+const TYPES: [string, string, IconEl][] = [
+  ["suggestion", "Suggestion", IconLightbulb],
+  ["bug", "Bug", IconBug],
+  ["feature", "Feature", IconSparkle],
+  ["praise", "Praise", IconHeart],
+  ["other", "Other", IconChatBubble],
 ];
 
 export function FeedbackView({ signedIn }: { signedIn: boolean }) {
@@ -20,7 +56,30 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "busy" | "done" | "error">("idle");
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [hearts, setHearts] = useState<FloatHeart[]>([]);
   const turnstileRef = useRef<TurnstileHandle>(null);
+  const burstTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear any pending burst timeout if the view unmounts mid-celebration.
+  useEffect(() => () => { if (burstTimer.current) clearTimeout(burstTimer.current); }, []);
+
+  function celebratePraise() {
+    const base = Date.now();
+    const batch: FloatHeart[] = Array.from({ length: 22 }, (_, i) => ({
+      id: base + i,
+      left: 4 + Math.random() * 92, // vw
+      size: 16 + Math.random() * 26,
+      delay: Math.random() * 1.1, // s — staggered so they keep popping
+      duration: 2.6 + Math.random() * 1.6, // s — rise time
+      drift: (Math.random() - 0.5) * 160, // px sideways sway
+      spin: (Math.random() - 0.5) * 60, // deg
+      color: i % 3 === 0 ? "#ff5c8a" : PRAISE_RED, // a couple of pink shades
+    }));
+    setHearts(batch);
+    if (burstTimer.current) clearTimeout(burstTimer.current);
+    // Longest heart finishes by ~1.1s delay + ~4.2s rise; clear a hair after.
+    burstTimer.current = setTimeout(() => setHearts([]), 5000);
+  }
 
   const canSend = message.trim().length > 0 || rating > 0;
 
@@ -60,6 +119,8 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
   return (
     <SitePage active="Product" section="Feedback" signedIn={signedIn}>
       {(t) => (
+        <>
+        <HeartBurst hearts={hearts} />
         <section style={{ position: "relative", zIndex: 1, overflow: "hidden", padding: "150px 24px 0" }}>
           <div style={{ maxWidth: 560, margin: "0 auto", width: "100%", boxSizing: "border-box", paddingBottom: 96 }}>
             <h1 style={{ fontFamily: "'Inter Tight',sans-serif", fontWeight: 900, fontSize: "clamp(1.6rem,4vw,2.4rem)", letterSpacing: "-0.02em", margin: "0 0 10px", color: t.text }}>
@@ -71,30 +132,43 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
 
             {state === "done" ? (
               <div style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: 20, padding: 28, textAlign: "center", boxShadow: t.cardShadow }}>
-                <div style={{ fontSize: 34, marginBottom: 8 }}>🙏</div>
+                <div style={{ display: "flex", justifyContent: "center", marginBottom: 10, color: t.wordmarkB }}>
+                  <IconHeart size={34} filled />
+                </div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: t.wordmarkB, marginBottom: 6 }}>Thank you!</div>
                 <p style={{ fontSize: 12, color: t.muted, margin: 0 }}>Your feedback has been sent to the team.</p>
               </div>
             ) : (
               <div style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: 20, padding: 24, display: "flex", flexDirection: "column", gap: 14, boxShadow: t.cardShadow }}>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {TYPES.map(([k, l]) => {
+                  {TYPES.map(([k, l, Icon]) => {
                     const on = type === k;
+                    const praiseOn = k === "praise" && on;
                     return (
                       <button
                         key={k}
-                        onClick={() => setType(k)}
+                        onClick={() => {
+                          setType(k);
+                          if (k === "praise") celebratePraise();
+                        }}
                         style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
                           borderRadius: 999,
-                          border: `1px solid ${on ? t.wordmarkB : t.cardBorder}`,
-                          background: on ? "rgba(47,127,224,0.1)" : "transparent",
-                          color: on ? t.wordmarkB : t.muted,
+                          border: `1px solid ${praiseOn ? PRAISE_RED : on ? t.wordmarkB : t.cardBorder}`,
+                          background: praiseOn ? "rgba(224,36,94,0.1)" : on ? "rgba(47,127,224,0.1)" : "transparent",
+                          color: praiseOn ? PRAISE_RED : on ? t.wordmarkB : t.muted,
                           padding: "6px 14px",
                           fontSize: 11,
                           fontWeight: 600,
                           cursor: "pointer",
+                          transition: "color 0.2s, border-color 0.2s, background 0.2s",
                         }}
                       >
+                        <span style={{ display: "inline-flex", color: praiseOn ? PRAISE_RED : undefined, transform: praiseOn ? "scale(1.15)" : "none", transition: "transform 0.2s ease" }}>
+                          <Icon size={14} filled={praiseOn} />
+                        </span>
                         {l}
                       </button>
                     );
@@ -108,9 +182,9 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
                       key={n}
                       onClick={() => setRating(n === rating ? 0 : n)}
                       aria-label={`${n} star${n > 1 ? "s" : ""}`}
-                      style={{ background: "none", border: "none", cursor: "pointer", padding: 2, fontSize: 20, filter: n <= rating ? "none" : "grayscale(1) opacity(0.4)" }}
+                      style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "inline-flex", color: n <= rating ? "#f5a623" : t.mutedLight }}
                     >
-                      ⭐
+                      <IconStar size={20} filled={n <= rating} />
                     </button>
                   ))}
                 </div>
@@ -146,6 +220,7 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
             )}
           </div>
         </section>
+        </>
       )}
     </SitePage>
   );
