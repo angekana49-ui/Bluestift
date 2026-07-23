@@ -7,18 +7,20 @@ import { joinRoom, postRoomMessage } from "@/app/rooms/actions";
 import { useVoiceRecorder } from "@/lib/use-voice-recorder";
 import { RoomChallenges } from "@/components/room-challenges";
 import { RoomFiles } from "@/components/room-files";
-import {
-  AttachmentCard,
-  AttachmentChip,
-  FilePreview,
-  splitByMessage,
-  type Attachment,
-  type AttachmentScope,
-} from "@/components/attachment";
+import { FilePreview, type Attachment } from "@/components/attachment";
 import { downloadBrandedPdf, downloadBrandedText, type BrandedDoc } from "@/lib/document";
+import { ShareLinkButton } from "@/components/study/share-button";
 import { useDarkMode } from "@/components/ui/theme";
 import { RayaShell } from "@/components/raya/raya-shell";
+import { RightPanel, IconButton } from "@/components/ui/shell";
+import { IconPanel, IconFile } from "@/components/ui/icons";
 import { status, type AppTheme } from "@/components/ui/tokens";
+import { avatarInitials } from "@/lib/name";
+import { useChatEngine } from "@/components/chat/use-chat-engine";
+import { ChatSurface } from "@/components/chat/chat-surface";
+import { ChatAvatar } from "@/components/chat/chat-avatar";
+import { RoomGroupChat, type GroupMsg } from "@/components/rooms/room-group-chat";
+import type { ChatConfig, Msg as ChatMsg, ConversationFile } from "@/components/chat/types";
 
 function reportToMd(r: {
   summary: string | null;
@@ -39,25 +41,17 @@ function reportToMd(r: {
     .join("\n\n");
 }
 
-/** Branded session-report document (Raya logo, footer attribution). */
+/** Branded session-report document (Raya logo, "…for <room> room" footer). */
 function reportDoc(roomName: string, r: Parameters<typeof reportToMd>[0]): BrandedDoc {
   return {
     brand: "raya",
     title: `${roomName} — session report`,
     meta: new Date().toLocaleDateString(),
-    audience: roomName,
+    audience: `${roomName} room`,
     body: reportToMd(r),
   };
 }
 
-type Msg = {
-  id: string;
-  user_id: string | null;
-  role: string;
-  content: string | null;
-  has_media?: boolean;
-};
-type PrivMsg = { id: string; role: string; content: string | null };
 /** A learning.room_files row, already tied to the message that shared it. */
 export type RoomFileRow = Attachment & { message_id: string | null };
 /** A learning.conversation_files row from the private RAYA channel. */
@@ -93,27 +87,6 @@ const mkGhost = (t: AppTheme): React.CSSProperties => ({
   fontWeight: 600,
   cursor: "pointer",
 });
-const mkInput = (t: AppTheme): React.CSSProperties => ({
-  flex: 1,
-  background: t.inputBg,
-  color: t.text,
-  border: `1px solid ${t.inputBorder}`,
-  borderRadius: 99,
-  padding: "11px 16px",
-  fontSize: 12.5,
-  outline: "none",
-});
-const mkBubble = (t: AppTheme) => (kind: "me" | "raya" | "other"): React.CSSProperties => ({
-  alignSelf: kind === "me" ? "flex-end" : "flex-start",
-  background: kind === "me" ? t.ctaBg : kind === "raya" ? t.bubbleBg : t.bubbleAccentBg,
-  color: kind === "me" ? t.ctaText : t.text,
-  padding: "11px 14px",
-  borderRadius: kind === "me" ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
-  maxWidth: "72%",
-  whiteSpace: "pre-wrap",
-  fontSize: 13,
-  lineHeight: 1.6,
-});
 const mkListBox = (t: AppTheme): React.CSSProperties => ({
   display: "flex",
   flexDirection: "column",
@@ -140,6 +113,7 @@ export function RoomView({
   studentName,
   studentInitials,
   studentAvatarUrl,
+  studentPlan,
   initialMessages,
   initialRoomFiles,
   privateConvId,
@@ -158,10 +132,11 @@ export function RoomView({
   studentName: string;
   studentInitials: string;
   studentAvatarUrl?: string | null;
-  initialMessages: Msg[];
+  studentPlan?: string;
+  initialMessages: GroupMsg[];
   initialRoomFiles: RoomFileRow[];
   privateConvId: string | null;
-  privateMessages: PrivMsg[];
+  privateMessages: ChatMsg[];
   privateFiles: PrivateFileRow[];
   initialReport: RoomReport;
 }) {
@@ -169,12 +144,14 @@ export function RoomView({
   const { theme: t } = useDarkMode();
   const btn = mkBtn(t);
   const ghost = mkGhost(t);
-  const inputStyle = mkInput(t);
-  const bubble = mkBubble(t);
   const listBox = mkListBox(t);
   const [supabase] = useState(() => createClient());
   const [joined, setJoined] = useState(isMember);
   const [copied, setCopied] = useState(false);
+  const [rightOpen, setRightOpen] = useState(true);
+  const [docsOpen, setDocsOpen] = useState(false);
+  const greetingName = studentName.trim().split(/\s+/)[0] || "";
+  const myInitials = avatarInitials(studentName);
 
   // Session timer: a live countdown to `timerEndsAt`. `remainingMs` ticks every
   // second; once it hits 0 the room is read-only (server enforces it too). An
@@ -241,7 +218,7 @@ export function RoomView({
   }
 
   // Group channel state
-  const [messages, setMessages] = useState<Msg[]>(initialMessages);
+  const [messages, setMessages] = useState<GroupMsg[]>(initialMessages);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -254,9 +231,7 @@ export function RoomView({
     return map;
   });
   const [groupUploading, setGroupUploading] = useState(false);
-  const [preview, setPreview] = useState<{ file: Attachment; scope: AttachmentScope } | null>(
-    null,
-  );
+  const [preview, setPreview] = useState<Attachment | null>(null);
 
   // Roster (names) + live presence (who's online)
   type RosterEntry = {
@@ -275,27 +250,51 @@ export function RoomView({
     return r?.display_name || (r?.username ? `@${r.username}` : "Member");
   }
 
-  // Private channel state
-  const privInitial = splitByMessage(privateFiles);
-  const [privConvId, setPrivConvId] = useState(privateConvId);
-  const [privMsgs, setPrivMsgs] = useState<PrivMsg[]>(privateMessages);
-  const [privInput, setPrivInput] = useState("");
-  const [privBusy, setPrivBusy] = useState(false);
-  const [privPending, setPrivPending] = useState<Attachment[]>(privInitial.staged);
-  const [privFiles, setPrivFiles] = useState<Record<string, Attachment[]>>(privInitial.byMessage);
-  const [privUploading, setPrivUploading] = useState(false);
-  const privEndRef = useRef<HTMLDivElement>(null);
+  /** A member's avatar seed (initials + optional photo) for the chat + panel. */
+  function avatarOf(userId: string | null): { initials: string; avatarUrl: string | null } {
+    const r = userId ? roster[userId] : null;
+    return { initials: avatarInitials(nameOf(userId)), avatarUrl: r?.profile_picture_url ?? null };
+  }
 
-  // Voice input for each RAYA channel (record → transcribe → send).
+  // Private student<->RAYA channel — the very same surface as the solo /chat,
+  // driven by the shared chat engine. `roomId` rides along in every request so
+  // the streaming endpoint scopes the conversation to this room and grounds
+  // RAYA on the room's shared documents.
+  const privateConfig: ChatConfig = {
+    endpoints: {
+      chat: "/api/raya/chat",
+      conversations: "/api/raya/conversations",
+      files: "/api/raya/files",
+    },
+    capabilities: { voice: true, files: true },
+    greeting: (name) => (name ? `This stays between us, ${name}` : "Private line to RAYA"),
+    emptyHint: "Private to you and RAYA. Ask anything about the room's topic — RAYA can read the shared documents.",
+    suggestions: ["Explain the key idea", "Quiz me on this", "Break down the shared docs"],
+    placeholder: "Write privately to RAYA…",
+    extraBody: { roomId },
+    // Hybrid: no LLM needed — when the room has a subject we template the chips
+    // from it (works offline); otherwise the static set above stays.
+    personalizedHooks: async () => {
+      const s = subject?.trim();
+      if (!s) return null;
+      return { suggestions: [`Explain the key idea of ${s}`, `Quiz me on ${s}`, "Break down the shared docs"] };
+    },
+  };
+  const privateEngine = useChatEngine({
+    config: privateConfig,
+    initialId: privateConvId,
+    initialMessages: privateMessages,
+    initialFiles: privateFiles as ConversationFile[],
+    initialConversations: [],
+  });
+
+  // Voice input for the group RAYA channel (record → transcribe → send). The
+  // private channel gets its own voice from the shared engine.
   const groupVoice = useVoiceRecorder((text) => send(text));
-  const privVoice = useVoiceRecorder((text) => sendPrivate(text));
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-  useEffect(() => {
-    privEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [privMsgs]);
 
   // Load member names (safe SECURITY DEFINER RPC — names only, members only).
   useEffect(() => {
@@ -322,7 +321,7 @@ export function RoomView({
           filter: `room_id=eq.${roomId}`,
         },
         (payload) => {
-          const m = payload.new as Msg;
+          const m = payload.new as GroupMsg;
           setMessages((prev) =>
             prev.some((x) => x.id === m.id) ? prev : [...prev, m],
           );
@@ -383,7 +382,7 @@ export function RoomView({
 
   async function send(textArg?: string) {
     const text = (textArg ?? input).trim();
-    if (!text || busy || expired) return;
+    if (!text || expired) return;
     if (textArg === undefined) setInput("");
     try {
       await postRoomMessage(roomId, text);
@@ -437,116 +436,23 @@ export function RoomView({
     }
   }
 
-  /**
-   * Attach a document to the private RAYA channel. It lands on this
-   * conversation, never on room_files, so the group never sees it — but
-   * /api/raya/chat merges both sources, so RAYA still reads it.
-   */
-  async function uploadPrivateDoc(file: File | null) {
-    if (!file || privUploading || expired) return;
-    setPrivUploading(true);
-    setError(null);
-    try {
-      const fd = new FormData();
-      fd.append("roomId", roomId);
-      if (privConvId) fd.append("conversationId", privConvId);
-      fd.append("file", file);
-      const res = await fetch("/api/raya/files", { method: "POST", body: fd });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        setError(data?.error ? `Upload: ${data.error}` : "Upload failed.");
-        return;
-      }
-      if (data.conversationId) setPrivConvId(data.conversationId);
-      if (data.file) setPrivPending((a) => [...a, data.file as Attachment]);
-    } catch {
-      setError("Upload failed.");
-    } finally {
-      setPrivUploading(false);
-    }
-  }
+  const tabBtn = (on: boolean): React.CSSProperties =>
+    on ? { ...btn, fontSize: 12 } : { ...ghost, fontSize: 12 };
 
-  async function removePrivatePending(id: string) {
-    setPrivPending((a) => a.filter((f) => f.id !== id));
-    try {
-      await fetch(`/api/raya/files?id=${encodeURIComponent(id)}`, { method: "DELETE" });
-    } catch {
-      // The chip is already gone; a stale row costs nothing but storage.
-    }
-  }
+  // The room's shared documents, for the header docs popover + the panel list.
+  const sharedDocs = Object.values(roomFiles);
 
-  // Private student<->RAYA channel (reuses the streaming chat endpoint).
-  async function sendPrivate(textArg?: string) {
-    const text = (textArg ?? privInput).trim();
-    if (!text || privBusy || privUploading || expired) return;
-    const sentFiles = privPending;
-    const tmpId = `tmp-${Date.now()}`;
-    setPrivBusy(true);
-    setError(null);
-    setPrivMsgs((m) => [...m, { id: tmpId, role: "user", content: text }]);
-    if (sentFiles.length) {
-      setPrivFiles((map) => ({ ...map, [tmpId]: sentFiles }));
-      setPrivPending([]);
-    }
-    if (textArg === undefined) setPrivInput("");
-    try {
-      const res = await fetch("/api/raya/chat", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          conversationId: privConvId,
-          content: text,
-          roomId,
-          fileIds: sentFiles.map((f) => f.id),
-        }),
-      });
-      if (!res.ok || !res.body) {
-        const data = await res.json().catch(() => null);
-        setError(data?.error ? `RAYA: ${data.error}` : `Request failed (${res.status}).`);
-        // Hand the files back to the composer — the turn never happened.
-        if (sentFiles.length) {
-          setPrivFiles((map) => {
-            const next = { ...map };
-            delete next[tmpId];
-            return next;
-          });
-          setPrivPending(sentFiles);
-        }
-        setPrivMsgs((m) => m.filter((x) => x.id !== tmpId));
-        return;
-      }
-      const cid = res.headers.get("x-conversation-id");
-      if (cid) setPrivConvId(cid);
-      const msgId = res.headers.get("x-message-id");
-      if (msgId) {
-        setPrivMsgs((m) => m.map((x) => (x.id === tmpId ? { ...x, id: msgId } : x)));
-        if (sentFiles.length) {
-          setPrivFiles(({ [tmpId]: moved, ...rest }) =>
-            moved ? { ...rest, [msgId]: moved } : rest,
-          );
-        }
-      }
-      const rayaId = `raya-${Date.now()}`;
-      setPrivMsgs((m) => [...m, { id: rayaId, role: "assistant", content: "" }]);
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        setPrivMsgs((m) =>
-          m.map((x) => (x.id === rayaId ? { ...x, content: (x.content ?? "") + chunk } : x)),
-        );
-      }
-    } catch {
-      setError("Could not reach RAYA.");
-    } finally {
-      setPrivBusy(false);
-    }
-  }
-
-  const body = (
-    <div style={{ flex: 1, overflow: "auto", padding: "28px 32px", minWidth: 0 }}>
+  // The room chrome (title, timer, members, tabs) — a solid strip pinned above
+  // the chat, exactly where /chat keeps its session header.
+  const chrome = (
+    <div
+      style={{
+        flex: "none",
+        background: t.cardBg,
+        borderBottom: `1px solid ${t.cardBorder}`,
+        padding: "16px 24px 12px",
+      }}
+    >
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
         <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0, color: t.text, fontFamily: "var(--font-inter-tight),'Inter Tight',sans-serif" }}>{roomName}</h1>
         <span style={{ color: t.muted, fontSize: 12.5 }}>
@@ -577,108 +483,73 @@ export function RoomView({
             ⏱ {expired ? "Ended" : `${fmtRemaining(remainingMs)} left`}
           </span>
         )}
-      </div>
-
-      {!joined ? (
-        <div
-          style={{
-            background: t.cardBg2,
-            border: `1px solid ${t.cardBorder}`,
-            borderRadius: 18,
-            padding: 24,
-            marginTop: 16,
-            textAlign: "center",
-          }}
-        >
-          <p style={{ color: t.muted, fontSize: 13 }}>Join this room to see the conversation.</p>
-          <button style={btn} onClick={join} disabled={busy}>
-            Join the room
-          </button>
-          {error && <p style={{ color: "#f87171", fontSize: 12.5 }}>{error}</p>}
-        </div>
-      ) : (
-        <>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 12 }}>
-            {[
-              { id: "raya", label: "RAYA", on: true, avatar: null as string | null },
-              ...Object.values(roster).map((r) => ({
-                id: r.user_id,
-                label: r.user_id === myUserId ? "You" : nameOf(r.user_id),
-                on: online.has(r.user_id),
-                avatar: r.profile_picture_url,
-              })),
-            ].map((m) => (
-              <span
-                key={m.id}
+        {joined && (
+          <span style={{ marginLeft: "auto", alignSelf: "center", position: "relative", display: "flex", alignItems: "center", gap: 6 }}>
+            {/* Documents — a quick popover right in the header, like the chat
+                header's files button. Keeps doc access out of the nav. */}
+            <IconButton
+              theme={t}
+              onClick={() => setDocsOpen((o) => !o)}
+              title="Room documents"
+              bg={docsOpen ? t.sidebarActiveBg : t.cardBg2}
+            >
+              <IconFile size={14} />
+            </IconButton>
+            {/* Panel toggle: only when the panel is retracted (it has its own
+                collapse), and hidden on phone where the mobile header owns it. */}
+            {!rightOpen && (
+              <span className="app-hide-phone" style={{ display: "inline-flex" }}>
+                <IconButton theme={t} onClick={() => setRightOpen(true)} title="Show panel">
+                  <IconPanel size={14} />
+                </IconButton>
+              </span>
+            )}
+            {docsOpen && (
+              <div
                 style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  fontSize: 11.5,
-                  color: t.text,
+                  position: "absolute",
+                  top: "calc(100% + 8px)",
+                  right: 0,
+                  zIndex: 6,
+                  width: 244,
+                  maxHeight: 320,
+                  overflow: "auto",
                   background: t.cardBg2,
                   border: `1px solid ${t.cardBorder}`,
-                  borderRadius: 99,
-                  padding: "3px 10px 3px 4px",
+                  borderRadius: 14,
+                  boxShadow: t.cardShadow,
+                  padding: 12,
                 }}
               >
-                <span
-                  style={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: "50%",
-                    overflow: "hidden",
-                    background: m.id === "raya" ? status.aiIndigo : "#c7d2fe",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: m.id === "raya" ? "#fff" : "#0b1220",
-                    flexShrink: 0,
-                  }}
-                >
-                  {m.avatar ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={m.avatar}
-                      alt=""
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                    />
-                  ) : m.id === "raya" ? (
-                    "R"
-                  ) : (
-                    m.label.charAt(0).toUpperCase()
-                  )}
-                </span>
-                {m.label}
-                <span className={m.on ? "online-dot" : "offline-dot"} />
-              </span>
-            ))}
-          </div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: t.text, marginBottom: 8 }}>Room documents</div>
+                {sharedDocs.length === 0 ? (
+                  <div style={{ fontSize: 10.5, color: t.muted }}>No documents yet.</div>
+                ) : (
+                  sharedDocs.map((f) => (
+                    <div
+                      key={f.id}
+                      onClick={() => {
+                        setPreview(f);
+                        setDocsOpen(false);
+                      }}
+                      title={f.file_name ?? undefined}
+                      style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 8px", borderRadius: 9, cursor: "pointer" }}
+                    >
+                      <span style={{ fontSize: 13, flex: "none" }}>📄</span>
+                      <span style={{ minWidth: 0, flex: 1, fontSize: 10.5, fontWeight: 600, color: t.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {f.file_name}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </span>
+        )}
+      </div>
 
-          {visibility === "private" && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                marginTop: 12,
-                fontSize: 12,
-                color: t.muted,
-                background: t.cardBg2,
-                border: `1px solid ${t.cardBorder}`,
-                borderRadius: 12,
-                padding: "8px 12px",
-              }}
-            >
-              <span>🔒 Private room — share the invite link:</span>
-              <button style={{ ...ghost, padding: "5px 12px", fontSize: 11 }} onClick={copyInvite}>
-                {copied ? "Copied ✓" : "Copy the link"}
-              </button>
-            </div>
-          )}
-
+      {joined && (
+        <>
           {expired && (
             <div
               style={{
@@ -702,13 +573,9 @@ export function RoomView({
             </div>
           )}
 
-          <div style={{ display: "flex", gap: 6, marginTop: 16, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 6, marginTop: 14, flexWrap: "wrap" }}>
             {(["group", "private", "challenge", "files", "report"] as const).map((c) => (
-              <button
-                key={c}
-                onClick={() => setChannel(c)}
-                style={channel === c ? { ...btn, fontSize: 12 } : { ...ghost, fontSize: 12 }}
-              >
+              <button key={c} onClick={() => setChannel(c)} style={tabBtn(channel === c)}>
                 {c === "group"
                   ? "Group chat"
                   : c === "private"
@@ -721,311 +588,270 @@ export function RoomView({
               </button>
             ))}
           </div>
-
-          {channel === "group" ? (
-            <>
-              <div style={listBox}>
-                {messages.length === 0 && (
-                  <p style={{ color: t.muted, fontSize: 12.5 }}>No messages yet. Say hi 👋</p>
-                )}
-                {messages.map((m) => {
-                  // Document-shared event (livestreamed on upload).
-                  if (m.has_media) {
-                    const who = m.user_id === myUserId ? "You" : nameOf(m.user_id);
-                    const file = roomFiles[m.id];
-                    // Notices posted before attachments existed have no file row —
-                    // fall back to the plain name they carry in `content`.
-                    if (!file) {
-                      return (
-                        <div
-                          key={m.id}
-                          style={{
-                            alignSelf: "center",
-                            fontSize: 11,
-                            color: t.muted,
-                            background: t.cardBg2,
-                            border: `1px solid ${t.cardBorder}`,
-                            borderRadius: 99,
-                            padding: "5px 12px",
-                          }}
-                        >
-                          📄 {who} shared a document: <strong>{m.content}</strong>
-                        </div>
-                      );
-                    }
-                    const mine = m.user_id === myUserId;
-                    return (
-                      <div
-                        key={m.id}
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: mine ? "flex-end" : "flex-start",
-                        }}
-                      >
-                        <span style={{ fontSize: 10, color: t.mutedLight }}>
-                          {who} shared a document
-                        </span>
-                        <div style={{ ...bubble(mine ? "me" : "other"), minWidth: 220 }}>
-                          <AttachmentCard
-                            file={file}
-                            onOpen={(f) => setPreview({ file: f, scope: "room" })}
-                          />
-                        </div>
-                      </div>
-                    );
-                  }
-                  const kind =
-                    m.role === "assistant"
-                      ? "raya"
-                      : m.user_id === myUserId
-                        ? "me"
-                        : "other";
-                  return (
-                    <div key={m.id} style={{ display: "flex", flexDirection: "column" }}>
-                      <span
-                        style={{
-                          fontSize: 10,
-                          color: t.mutedLight,
-                          alignSelf: kind === "me" ? "flex-end" : "flex-start",
-                        }}
-                      >
-                        {kind === "raya" ? "RAYA" : kind === "me" ? "You" : nameOf(m.user_id)}
-                      </span>
-                      <div style={bubble(kind)}>{m.content}</div>
-                    </div>
-                  );
-                })}
-                <div ref={endRef} />
-              </div>
-
-              {groupUploading && (
-                <p style={{ fontSize: 11, color: t.mutedLight, margin: "0 0 8px" }}>
-                  Uploading and reading the document…
-                </p>
-              )}
-              <div style={{ display: "flex", gap: 8, alignItems: "center", opacity: expired ? 0.5 : 1 }}>
-                <label style={{ ...ghost, display: "inline-flex", alignItems: "center", pointerEvents: expired ? "none" : undefined }} title="Share a document with the room">
-                  📎
-                  <input
-                    type="file"
-                    accept=".txt,.md,.markdown,.csv,.pdf,.docx,.xlsx,.mp3,.m4a,.wav,.webm,.ogg,.flac,audio/*,application/pdf,text/plain"
-                    style={{ display: "none" }}
-                    onChange={(e) => {
-                      uploadRoomDoc(e.target.files?.[0] ?? null);
-                      e.target.value = "";
-                    }}
-                    disabled={groupUploading || expired}
-                  />
-                </label>
-                <button
-                  style={{ ...ghost, background: groupVoice.recording ? "#e0245e" : t.cardBg2, color: groupVoice.recording ? "#fff" : t.text }}
-                  onClick={groupVoice.toggle}
-                  disabled={expired || (groupVoice.busy && !groupVoice.recording)}
-                  title="Voice message"
-                >
-                  {groupVoice.recording ? "■" : groupVoice.busy ? "…" : "🎤"}
-                </button>
-                <input
-                  style={inputStyle}
-                  placeholder={expired ? "Session ended — read-only" : "Message the group…"}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && send()}
-                  disabled={expired}
-                />
-                <button style={{ ...btn, opacity: expired || !input.trim() ? 0.5 : 1 }} onClick={() => send()} disabled={expired || !input.trim()}>
-                  Send
-                </button>
-                <button style={ghost} onClick={askRaya} disabled={busy || expired}>
-                  Ask RAYA
-                </button>
-              </div>
-              {groupVoice.error && (
-                <p style={{ color: "#f87171", fontSize: "0.8rem", margin: "0.4rem 0 0" }}>
-                  {groupVoice.error}
-                </p>
-              )}
-            </>
-          ) : channel === "private" ? (
-            <>
-              <p style={{ color: t.mutedLight, fontSize: 11.5, marginTop: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-                🔒 Private — only you and RAYA can see this conversation.
-              </p>
-              <div style={listBox}>
-                {privMsgs.length === 0 && (
-                  <p style={{ color: t.muted, fontSize: 12.5 }}>Ask RAYA any question about the room&apos;s topic.</p>
-                )}
-                {privMsgs.map((m) => {
-                  const files = privFiles[m.id] ?? [];
-                  return (
-                    <div key={m.id} style={bubble(m.role === "assistant" ? "raya" : "me")}>
-                      {files.length > 0 && (
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: "0.3rem",
-                            marginBottom: m.content ? "0.4rem" : 0,
-                          }}
-                        >
-                          {files.map((f) => (
-                            <AttachmentCard
-                              key={f.id}
-                              file={f}
-                              onOpen={(file) => setPreview({ file, scope: "conversation" })}
-                            />
-                          ))}
-                        </div>
-                      )}
-                      {m.content}
-                    </div>
-                  );
-                })}
-                <div ref={privEndRef} />
-              </div>
-
-              {(privPending.length > 0 || privUploading) && (
-                <div
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    alignItems: "center",
-                    gap: "0.4rem",
-                    marginBottom: "0.5rem",
-                  }}
-                >
-                  {privPending.map((a) => (
-                    <AttachmentChip
-                      key={a.id}
-                      file={a}
-                      onRemove={() => removePrivatePending(a.id)}
-                      busy={privBusy}
-                    />
-                  ))}
-                  {privUploading && (
-                    <span style={{ fontSize: 11, color: t.mutedLight }}>Reading the document…</span>
-                  )}
-                </div>
-              )}
-
-              <div style={{ display: "flex", gap: 8, alignItems: "center", opacity: expired ? 0.5 : 1 }}>
-                <label style={{ ...ghost, display: "inline-flex", alignItems: "center", pointerEvents: expired ? "none" : undefined }} title="Attach a document — private between you and RAYA">
-                  📎
-                  <input
-                    type="file"
-                    accept=".txt,.md,.markdown,.csv,.pdf,.docx,.xlsx,.mp3,.m4a,.wav,.webm,.ogg,.flac,audio/*,application/pdf,text/plain"
-                    style={{ display: "none" }}
-                    onChange={(e) => {
-                      uploadPrivateDoc(e.target.files?.[0] ?? null);
-                      e.target.value = "";
-                    }}
-                    disabled={privBusy || privUploading || expired}
-                  />
-                </label>
-                <button
-                  style={{ ...ghost, background: privVoice.recording ? "#e0245e" : t.cardBg2, color: privVoice.recording ? "#fff" : t.text }}
-                  onClick={privVoice.toggle}
-                  disabled={privBusy || expired || (privVoice.busy && !privVoice.recording)}
-                  title="Voice message"
-                >
-                  {privVoice.recording ? "■" : privVoice.busy ? "…" : "🎤"}
-                </button>
-                <input
-                  style={inputStyle}
-                  placeholder={expired ? "Session ended — read-only" : "Write privately to RAYA…"}
-                  value={privInput}
-                  onChange={(e) => setPrivInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && sendPrivate()}
-                  disabled={privBusy || expired}
-                />
-                <button
-                  style={{ ...btn, opacity: privBusy || privUploading || expired || !privInput.trim() ? 0.5 : 1 }}
-                  onClick={() => sendPrivate()}
-                  disabled={privBusy || privUploading || expired || !privInput.trim()}
-                >
-                  Send
-                </button>
-              </div>
-              {privVoice.error && (
-                <p style={{ color: "#f87171", fontSize: "0.8rem", margin: "0.4rem 0 0" }}>
-                  {privVoice.error}
-                </p>
-              )}
-            </>
-          ) : channel === "challenge" ? (
-            <RoomChallenges roomId={roomId} subject={subject} myUserId={myUserId} readOnly={expired} />
-          ) : channel === "files" ? (
-            <RoomFiles roomId={roomId} readOnly={expired} />
-          ) : (
-            <div style={listBox}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                <h3 style={{ margin: 0, flex: 1, fontSize: 14, fontWeight: 700, color: t.text }}>Session report</h3>
-                {report && (
-                  <>
-                    <button style={{ ...ghost, padding: "5px 12px", fontSize: 11 }} onClick={() => downloadBrandedText(reportDoc(roomName, report))}>
-                      TXT
-                    </button>
-                    <button style={{ ...ghost, padding: "5px 12px", fontSize: 11 }} onClick={() => downloadBrandedPdf(reportDoc(roomName, report))}>
-                      PDF
-                    </button>
-                    <button style={{ ...ghost, padding: "5px 12px", fontSize: 11 }} title="Close" onClick={() => setReport(null)}>
-                      ✕
-                    </button>
-                  </>
-                )}
-                <button style={{ ...btn, opacity: repBusy ? 0.6 : 1 }} onClick={generateReport} disabled={repBusy}>
-                  {repBusy ? "Generating…" : report ? "Regenerate" : "Generate the report"}
-                </button>
-              </div>
-              {!report ? (
-                <p style={{ color: t.muted, fontSize: 12.5 }}>
-                  No report yet — generate one from the room conversation.
-                </p>
-              ) : (
-                <div style={{ lineHeight: 1.6, color: t.text, fontSize: 13 }}>
-                  {report.squad_score != null && (
-                    <p>
-                      <strong>Squad score:</strong> {report.squad_score}/100
-                    </p>
-                  )}
-                  <p>
-                    <strong>Summary:</strong> {report.summary ?? "—"}
-                  </p>
-                  <p>
-                    <strong>Key learnings:</strong> {report.key_learnings ?? "—"}
-                  </p>
-                  {Array.isArray(report.highlights) &&
-                    (report.highlights as string[]).length > 0 && (
-                      <>
-                        <strong>Highlights:</strong>
-                        <ul style={{ marginTop: 4 }}>
-                          {(report.highlights as string[]).map((h, i) => (
-                            <li key={i}>{h}</li>
-                          ))}
-                        </ul>
-                      </>
-                    )}
-                  <p>
-                    <strong>Recommendations:</strong> {report.recommendations ?? "—"}
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-          {error && <p style={{ color: "#f87171", marginTop: 8, fontSize: 12.5 }}>{error}</p>}
         </>
-      )}
-
-      {preview && (
-        <FilePreview
-          file={preview.file}
-          scope={preview.scope}
-          onClose={() => setPreview(null)}
-        />
       )}
     </div>
   );
+
+  // The active channel fills the space under the chrome. The two chat channels
+  // render on the shared chat surface; the rest scroll inside a padded pane.
+  let channelBody: React.ReactNode;
+  if (!joined) {
+    channelBody = (
+      <div style={{ flex: 1, overflow: "auto", padding: "28px 32px" }}>
+        <div
+          style={{
+            background: t.cardBg2,
+            border: `1px solid ${t.cardBorder}`,
+            borderRadius: 18,
+            padding: 24,
+            textAlign: "center",
+          }}
+        >
+          <p style={{ color: t.muted, fontSize: 13 }}>Join this room to see the conversation.</p>
+          <button style={btn} onClick={join} disabled={busy}>
+            Join the room
+          </button>
+          {error && <p style={{ color: "#f87171", fontSize: 12.5 }}>{error}</p>}
+        </div>
+      </div>
+    );
+  } else if (channel === "group") {
+    channelBody = (
+      <RoomGroupChat
+        theme={t}
+        myUserId={myUserId}
+        messages={messages}
+        nameOf={nameOf}
+        avatarOf={avatarOf}
+        myInitials={myInitials}
+        myAvatarUrl={studentAvatarUrl}
+        roomFiles={roomFiles}
+        onPreview={setPreview}
+        greetingName={greetingName}
+        input={input}
+        onInput={setInput}
+        onSend={send}
+        onUpload={uploadRoomDoc}
+        uploading={groupUploading}
+        voice={groupVoice}
+        onAskRaya={askRaya}
+        busy={busy}
+        expired={expired}
+        error={error}
+        endRef={endRef}
+        subject={subject}
+      />
+    );
+  } else if (channel === "private") {
+    channelBody = (
+      <ChatSurface
+        theme={t}
+        engine={privateEngine}
+        config={privateConfig}
+        greetingName={greetingName}
+        hideHeader
+        userInitials={myInitials}
+        userAvatarUrl={studentAvatarUrl}
+      />
+    );
+  } else {
+    channelBody = (
+      <div style={{ flex: 1, overflow: "auto", padding: "28px 32px" }}>
+        {channel === "challenge" ? (
+          <RoomChallenges roomId={roomId} roomName={roomName} subject={subject} myUserId={myUserId} readOnly={expired} />
+        ) : channel === "files" ? (
+          <RoomFiles roomId={roomId} readOnly={expired} />
+        ) : (
+          <div style={listBox}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <h3 style={{ margin: 0, flex: 1, fontSize: 14, fontWeight: 700, color: t.text }}>Session report</h3>
+              {report && (
+                <>
+                  <button style={{ ...ghost, padding: "5px 12px", fontSize: 11 }} onClick={() => downloadBrandedText(reportDoc(roomName, report))}>
+                    TXT
+                  </button>
+                  <button style={{ ...ghost, padding: "5px 12px", fontSize: 11 }} onClick={() => downloadBrandedPdf(reportDoc(roomName, report))}>
+                    PDF
+                  </button>
+                  <ShareLinkButton theme={t} doc={reportDoc(roomName, report)} />
+                  <button style={{ ...ghost, padding: "5px 12px", fontSize: 11 }} title="Close" onClick={() => setReport(null)}>
+                    ✕
+                  </button>
+                </>
+              )}
+              <button style={{ ...btn, opacity: repBusy ? 0.6 : 1 }} onClick={generateReport} disabled={repBusy}>
+                {repBusy ? "Generating…" : report ? "Regenerate" : "Generate the report"}
+              </button>
+            </div>
+            {!report ? (
+              <p style={{ color: t.muted, fontSize: 12.5 }}>
+                No report yet — generate one from the room conversation.
+              </p>
+            ) : (
+              <div style={{ lineHeight: 1.6, color: t.text, fontSize: 13 }}>
+                {report.squad_score != null && (
+                  <p>
+                    <strong>Squad score:</strong> {report.squad_score}/100
+                  </p>
+                )}
+                <p>
+                  <strong>Summary:</strong> {report.summary ?? "—"}
+                </p>
+                <p>
+                  <strong>Key learnings:</strong> {report.key_learnings ?? "—"}
+                </p>
+                {Array.isArray(report.highlights) &&
+                  (report.highlights as string[]).length > 0 && (
+                    <>
+                      <strong>Highlights:</strong>
+                      <ul style={{ marginTop: 4 }}>
+                        {(report.highlights as string[]).map((h, i) => (
+                          <li key={i}>{h}</li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                <p>
+                  <strong>Recommendations:</strong> {report.recommendations ?? "—"}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+        {error && <p style={{ color: "#f87171", marginTop: 8, fontSize: 12.5 }}>{error}</p>}
+      </div>
+    );
+  }
+
+  const onlineCount = Object.values(roster).filter((r) => online.has(r.user_id)).length;
+
+  // A light, derived notifications feed — no table, just the room's live signals.
+  const notifications: { id: string; tone: "risk" | "warn" | "info"; title: string; detail: string }[] = [];
+  if (expired) {
+    notifications.push({ id: "ended", tone: "risk", title: "Session ended", detail: "The room is now read-only." });
+  } else if (remainingMs != null && remainingMs <= 120_000) {
+    notifications.push({ id: "soon", tone: "warn", title: "Ending soon", detail: `${fmtRemaining(remainingMs)} left in this session.` });
+  } else if (remainingMs != null) {
+    notifications.push({ id: "running", tone: "info", title: "Session in progress", detail: `${fmtRemaining(remainingMs)} left.` });
+  }
+  notifications.push({ id: "presence", tone: "info", title: `${onlineCount} member${onlineCount === 1 ? "" : "s"} online`, detail: `${memberCount} in this room.` });
+  if (sharedDocs.length > 0) {
+    notifications.push({ id: "docs", tone: "info", title: `${sharedDocs.length} document${sharedDocs.length === 1 ? "" : "s"} shared`, detail: "Open the Documents section to review them." });
+  }
+
+  const panelSectionTitle: React.CSSProperties = {
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
+    color: t.mutedLight,
+    margin: "0 0 8px",
+  };
+
+  const roomPanel = joined ? (
+    <RightPanel theme={t} width={288} title={roomName} onCollapse={() => setRightOpen(false)}>
+      {/* Notifications */}
+      <div>
+        <div style={panelSectionTitle}>Notifications</div>
+        {notifications.map((n) => (
+          <div key={n.id} style={{ background: t.rowActiveBg, borderRadius: 10, padding: "9px 11px", marginBottom: 6 }}>
+            <div style={{ fontSize: 11.5, fontWeight: 600, color: t.text, display: "flex", alignItems: "center", gap: 6 }}>
+              <span
+                style={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: "50%",
+                  flex: "none",
+                  background: n.tone === "risk" ? "#ef4444" : n.tone === "warn" ? "#f59e0b" : status.aiIndigo,
+                }}
+              />
+              {n.title}
+            </div>
+            <div style={{ fontSize: 10.5, color: t.muted, marginTop: 2 }}>{n.detail}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Documents */}
+      <div>
+        <div style={panelSectionTitle}>Documents</div>
+        {sharedDocs.length === 0 ? (
+          <div style={{ fontSize: 11, color: t.muted }}>No documents shared yet.</div>
+        ) : (
+          sharedDocs.map((f) => (
+            <div
+              key={f.id}
+              onClick={() => setPreview(f)}
+              title={f.file_name ?? undefined}
+              style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 8px", borderRadius: 9, cursor: "pointer" }}
+            >
+              <span style={{ fontSize: 14, flex: "none" }}>📄</span>
+              <span
+                style={{
+                  minWidth: 0,
+                  flex: 1,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: t.text,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {f.file_name}
+              </span>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Members */}
+      <div>
+        <div style={panelSectionTitle}>Members</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 2px" }}>
+          <ChatAvatar theme={t} size={26} isRaya />
+          <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 600, color: t.text }}>RAYA</span>
+          <span className="online-dot" />
+        </div>
+        {Object.values(roster).map((r) => {
+          const mine = r.user_id === myUserId;
+          const label = mine ? "You" : nameOf(r.user_id);
+          return (
+            <div key={r.user_id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 2px" }}>
+              <ChatAvatar theme={t} size={26} initials={avatarInitials(label === "You" ? studentName : label)} avatarUrl={r.profile_picture_url} />
+              <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: t.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {label}
+              </span>
+              <span className={online.has(r.user_id) ? "online-dot" : "offline-dot"} />
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Settings */}
+      <div>
+        <div style={panelSectionTitle}>Room settings</div>
+        <div style={{ fontSize: 11.5, color: t.text, display: "flex", flexDirection: "column", gap: 6 }}>
+          <div>
+            <span style={{ color: t.muted }}>Subject · </span>
+            {subject ?? "—"}
+          </div>
+          <div>
+            <span style={{ color: t.muted }}>Visibility · </span>
+            {visibility === "private" ? "Private" : "Public"}
+          </div>
+          <div>
+            <span style={{ color: t.muted }}>Session · </span>
+            {remainingMs == null ? "No time limit" : expired ? "Ended" : `${fmtRemaining(remainingMs)} left`}
+          </div>
+          <button style={{ ...ghost, marginTop: 4, alignSelf: "flex-start" }} onClick={copyInvite}>
+            {copied ? "Invite link copied ✓" : "Copy invite link"}
+          </button>
+        </div>
+      </div>
+    </RightPanel>
+  ) : null;
 
   return (
     <RayaShell
@@ -1033,10 +859,16 @@ export function RoomView({
       theme={t}
       profileName={studentName || "My account"}
       profileInitials={studentInitials}
+      profileSubtitle={studentPlan}
       profileAvatarUrl={studentAvatarUrl}
-      mainMinWidth={340}
+      rightPanel={rightOpen ? roomPanel : undefined}
+      onToggleRight={joined ? () => setRightOpen((o) => !o) : undefined}
     >
-      {body}
+      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+        {chrome}
+        {channelBody}
+      </div>
+      {preview && <FilePreview file={preview} scope="room" onClose={() => setPreview(null)} />}
     </RayaShell>
   );
 }

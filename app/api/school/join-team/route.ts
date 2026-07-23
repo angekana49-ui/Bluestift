@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { setActiveSchoolCookie } from "@/lib/school-active";
+import { hasRealEmail } from "@/lib/auth";
 
 // Local shapes for the untyped `schools` schema.
 type CodeRow = { id: string; school_id: string; auto_approve: boolean };
@@ -20,6 +21,19 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  // Staff gate: joining a school as a teacher requires a verified email —
+  // anonymous accounts are for basic learners only. (Students join their CLASS
+  // by code anonymously through /api/school/join, which stays open.)
+  if (!hasRealEmail(user.email)) {
+    return NextResponse.json(
+      {
+        error: "Add a verified email before joining a school as a teacher. You can link it in Settings.",
+        code: "email_required",
+      },
+      { status: 403 },
+    );
+  }
 
   let body: { code?: string };
   try {

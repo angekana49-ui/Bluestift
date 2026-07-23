@@ -437,11 +437,15 @@ export async function getProfClasses(userId: string): Promise<AdminClass[]> {
  * <subjects>" framing — the prof dashboard is an extension of RAYA for a user who
  * also teaches, so we surface their teaching hat explicitly.
  */
-export type ProfContext = { schoolName: string; subjects: string[] };
+export type ProfContext = { schoolName: string; schoolLogoUrl: string | null; subjects: string[] };
 export async function getProfContext(userId: string): Promise<ProfContext> {
   const m = await getAdminMembership(userId);
-  if (!m) return { schoolName: "School", subjects: [] };
+  if (!m) return { schoolName: "School", schoolLogoUrl: null, subjects: [] };
   const schools = createSchoolsAdminClient();
+  // The school's logo, so the teacher dashboard header can brand the school
+  // (name + logo) rather than a generic "Teacher dashboard" title.
+  const { data: sLogo } = await schools.from("schools").select("logo_url").eq("id", m.schoolId).maybeSingle();
+  const schoolLogoUrl = (sLogo as { logo_url: string | null } | null)?.logo_url ?? null;
   const { data: asgData } = await schools
     .from("assignments")
     .select("subject_id")
@@ -449,10 +453,10 @@ export async function getProfContext(userId: string): Promise<ProfContext> {
   const subjectIds = [
     ...new Set(((asgData as { subject_id: string | null }[] | null) ?? []).map((a) => a.subject_id).filter(Boolean) as string[]),
   ];
-  if (subjectIds.length === 0) return { schoolName: m.schoolName, subjects: [] };
+  if (subjectIds.length === 0) return { schoolName: m.schoolName, schoolLogoUrl, subjects: [] };
   const { data: subs } = await schools.from("subjects").select("name").in("id", subjectIds);
   const subjects = [...new Set(((subs as { name: string }[] | null) ?? []).map((s) => s.name))];
-  return { schoolName: m.schoolName, subjects };
+  return { schoolName: m.schoolName, schoolLogoUrl, subjects };
 }
 
 // ---- LMS connections + class mappings (admin_master) ------------------------
@@ -1601,4 +1605,195 @@ export async function getStudentDetail(
   }
 
   return detail;
+}
+
+// ---- Teacher dashboard: follow-ups, resources, preferences, overview --------
+
+export type Followup = {
+  id: string;
+  content: string;
+  authorAdminId: string | null;
+  authorName: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/**
+ * Personalized follow-up notes on one student, shared across the class team
+ * (assigned prof + admin). Access is gated by assertClassAccess; author names are
+ * resolved from public.users. Returns null when the caller can't see the class.
+ */
+export async function getStudentFollowups(
+  userId: string,
+  classId: string,
+  studentUserId: string,
+): Promise<Followup[] | null> {
+  if (!(await assertClassAccess(userId, classId))) return null;
+
+  const schools = createSchoolsAdminClient();
+  const { data } = await schools
+    .from("student_followups")
+    .select("id, content, author_admin_id, created_at, updated_at")
+    .eq("class_id", classId)
+    .eq("student_user_id", studentUserId)
+    .order("created_at", { ascending: false });
+  const rows =
+    (data as {
+      id: string;
+      content: string;
+      author_admin_id: string | null;
+      created_at: string;
+      updated_at: string;
+    }[] | null) ?? [];
+
+  // Resolve author names: school_admins.id -> user_id -> users.display_name.
+  const nameByAdmin = new Map<string, string>();
+  const adminIds = [...new Set(rows.map((r) => r.author_admin_id).filter(Boolean) as string[])];
+  if (adminIds.length) {
+    const { data: adminData } = await schools
+      .from("school_admins")
+      .select("id, user_id")
+      .in("id", adminIds);
+    const admins = (adminData as { id: string; user_id: string }[] | null) ?? [];
+    if (admins.length) {
+      const admin = createAdminClient();
+      const { data: us } = await admin
+        .from("users")
+        .select("id, display_name, username")
+        .in("id", admins.map((a) => a.user_id));
+      const nameByUser = new Map(
+        ((us ?? []) as { id: string; display_name: string | null; username: string | null }[]).map((u) => [
+          u.id,
+          u.display_name || u.username || "Staff",
+        ]),
+      );
+      for (const a of admins) nameByAdmin.set(a.id, nameByUser.get(a.user_id) ?? "Staff");
+    }
+  }
+
+  return rows.map((r) => ({
+    id: r.id,
+    content: r.content,
+    authorAdminId: r.author_admin_id,
+    authorName: r.author_admin_id ? nameByAdmin.get(r.author_admin_id) ?? "Staff" : "Staff",
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  }));
+}
+
+export type TeacherResource = {
+  id: string;
+  kind: string;
+  title: string;
+  content: string;
+  questions: unknown[];
+  classId: string | null;
+  className: string | null;
+  subjectId: string | null;
+  createdAt: string;
+};
+
+/**
+ * The exam/exercise library for the caller. An admin_master sees the whole
+ * school's resources; a prof sees resources on their assigned classes plus the
+ * ones they authored. Returns null if the user is not school staff.
+ */
+export async function getTeacherResources(userId: string): Promise<TeacherResource[] | null> {
+  const m = await getAdminMembership(userId);
+  if (!m) return null;
+
+  const schools = createSchoolsAdminClient();
+  const [{ data }, { data: classData }] = await Promise.all([
+    schools
+      .from("teacher_resources")
+      .select("id, kind, title, content, questions, class_id, subject_id, created_by, created_at")
+      .eq("school_id", m.schoolId)
+      .order("created_at", { ascending: false })
+      .limit(60),
+    schools.from("classes").select("id, name").eq("school_id", m.schoolId),
+  ]);
+  let rows =
+    (data as {
+      id: string;
+      kind: string;
+      title: string;
+      content: string;
+      questions: unknown;
+      class_id: string | null;
+      subject_id: string | null;
+      created_by: string | null;
+      created_at: string;
+    }[] | null) ?? [];
+
+  if (m.role !== "admin_master") {
+    const myClassIds = new Set((await getProfClasses(userId)).map((c) => c.id));
+    rows = rows.filter((r) => (r.class_id && myClassIds.has(r.class_id)) || r.created_by === m.adminId);
+  }
+
+  const classById = new Map(((classData as { id: string; name: string }[] | null) ?? []).map((c) => [c.id, c.name]));
+  return rows.map((r) => ({
+    id: r.id,
+    kind: r.kind,
+    title: r.title,
+    content: r.content,
+    questions: Array.isArray(r.questions) ? (r.questions as unknown[]) : [],
+    classId: r.class_id,
+    className: r.class_id ? classById.get(r.class_id) ?? null : null,
+    subjectId: r.subject_id,
+    createdAt: r.created_at,
+  }));
+}
+
+export type ProfOverview = {
+  classCount: number;
+  studentCount: number;
+  alertCount: number;
+  classes: { id: string; name: string; studentCount: number }[];
+  alerts: ProfAlert[];
+};
+
+/** Aggregate home view for a teacher: their classes + at-risk feed (reuses existing reads). */
+export async function getProfOverview(userId: string): Promise<ProfOverview | null> {
+  const m = await getAdminMembership(userId);
+  if (!m) return null;
+  const [classes, insights] = await Promise.all([getProfClasses(userId), getProfInsights(userId)]);
+  const alerts = insights?.alerts ?? [];
+  return {
+    classCount: classes.length,
+    studentCount: classes.reduce((a, c) => a + c.studentCount, 0),
+    alertCount: alerts.length,
+    classes: classes.map((c) => ({ id: c.id, name: c.name, studentCount: c.studentCount })),
+    alerts,
+  };
+}
+
+export type StaffPreferences = {
+  defaultClassId: string | null;
+  defaultSubjectId: string | null;
+  reportTone: string | null;
+  examFocusWeakConcepts: boolean;
+};
+export const DEFAULT_STAFF_PREFERENCES: StaffPreferences = {
+  defaultClassId: null,
+  defaultSubjectId: null,
+  reportTone: null,
+  examFocusWeakConcepts: true,
+};
+
+/** The caller's teaching preferences (keyed by their active school_admins row). */
+export async function getStaffPreferences(userId: string): Promise<StaffPreferences> {
+  const m = await getAdminMembership(userId);
+  if (!m) return DEFAULT_STAFF_PREFERENCES;
+  try {
+    const schools = createSchoolsAdminClient();
+    const { data } = await schools
+      .from("staff_preferences")
+      .select("prefs")
+      .eq("admin_id", m.adminId)
+      .maybeSingle();
+    const stored = ((data as { prefs: Record<string, unknown> } | null)?.prefs ?? {}) as Partial<StaffPreferences>;
+    return { ...DEFAULT_STAFF_PREFERENCES, ...stored };
+  } catch {
+    return DEFAULT_STAFF_PREFERENCES;
+  }
 }

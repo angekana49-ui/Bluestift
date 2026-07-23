@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { extractFileText, storageSafeName } from "@/lib/extract";
+import { contentLengthExceeds, tooLarge, MAX_DOC_BYTES } from "@/lib/upload-limits";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -24,6 +25,9 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
+  const oversized = contentLengthExceeds(request, MAX_DOC_BYTES);
+  if (oversized) return oversized;
+
   let form: FormData;
   try {
     form = await request.formData();
@@ -37,6 +41,8 @@ export async function POST(request: Request) {
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "file required" }, { status: 400 });
   }
+  const big = tooLarge(file, MAX_DOC_BYTES);
+  if (big) return big;
 
   // Resolve the conversation: verify ownership, or create one. A roomId means
   // the private-room channel, so mirror how /api/raya/chat seeds it.

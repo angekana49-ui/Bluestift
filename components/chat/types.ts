@@ -28,8 +28,46 @@ export type ChatConfig = {
   suggestions: string[];
   /** Composer input placeholder. */
   placeholder: string;
+  /**
+   * Extra fields merged into every chat/upload request — e.g. the room's
+   * `roomId` for the private-room channel. Absent for the plain solo chat.
+   */
+  extraBody?: Record<string, string>;
+  /**
+   * HYBRID new-conversation hooks. Resolved client-side once, only when the
+   * thread is empty. When it returns personalized greeting/suggestions (the
+   * metadata is present AND reachable), the welcome screen shows them; on
+   * null / empty / throw (no data, or offline), the static `greeting`/
+   * `suggestions` above are used. That's the hybrid contract: AI/data-driven
+   * when it can, static otherwise — it must NEVER block or break the screen.
+   */
+  personalizedHooks?: () => Promise<{ greeting?: string; suggestions?: string[] } | null>;
 };
 
 export function titleFrom(text: string): string {
   return text.length > 60 ? `${text.slice(0, 57)}…` : text;
+}
+
+/**
+ * Builds a `personalizedHooks` resolver that GETs `url` and returns its
+ * `{greeting?, suggestions?}` — or `null` when the request fails (offline / no
+ * connection), the response isn't ok, or it carries no hooks. That null is the
+ * hybrid signal for the surface to keep its static hooks.
+ */
+export function fetchHooks(url: string): () => Promise<{ greeting?: string; suggestions?: string[] } | null> {
+  return async () => {
+    try {
+      const r = await fetch(url);
+      if (!r.ok) return null;
+      const d = (await r.json()) as { greeting?: unknown; suggestions?: unknown };
+      const greeting = typeof d?.greeting === "string" ? d.greeting : undefined;
+      const suggestions = Array.isArray(d?.suggestions)
+        ? d.suggestions.filter((s): s is string => typeof s === "string")
+        : undefined;
+      if (!greeting && (!suggestions || suggestions.length === 0)) return null;
+      return { greeting, suggestions };
+    } catch {
+      return null;
+    }
+  };
 }

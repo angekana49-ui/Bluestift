@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import { AttachmentCard, AttachmentChip, FilePreview } from "@/components/attachment";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { AttachmentCard, FilePreview } from "@/components/attachment";
 import {
   IconButton,
   RETRACT_HEADER_PAD,
@@ -9,8 +9,10 @@ import {
   THREAD_MAX_W,
 } from "@/components/ui/shell";
 import { Bird } from "@/components/ui/widgets";
-import { IconFile, IconImage, IconPanel, IconMic, IconAttach, IconAiMode } from "@/components/ui/icons";
+import { IconFile, IconImage, IconPanel } from "@/components/ui/icons";
 import { status, hand, type AppTheme } from "@/components/ui/tokens";
+import { ChatComposer } from "./chat-composer";
+import { ChatAvatar } from "./chat-avatar";
 import type { ChatConfig } from "./types";
 import type { ChatEngine } from "./use-chat-engine";
 
@@ -43,6 +45,10 @@ export function ChatSurface({
   headerActions,
   onToggleRight,
   rightOpen,
+  hideHeader = false,
+  extraComposerAction,
+  userInitials = "ME",
+  userAvatarUrl,
 }: {
   theme: AppTheme;
   engine: ChatEngine;
@@ -51,6 +57,14 @@ export function ChatSurface({
   headerActions?: ReactNode;
   onToggleRight?: () => void;
   rightOpen?: boolean;
+  /** Embedded surfaces (e.g. the private-room channel) hide the session header
+   *  because their host already provides one. */
+  hideHeader?: boolean;
+  /** Surface-specific composer control slotted before the send button. */
+  extraComposerAction?: ReactNode;
+  /** Avatar shown on the current user's bubbles (RAYA's own is always its logo). */
+  userInitials?: string;
+  userAvatarUrl?: string | null;
 }) {
   const {
     messages,
@@ -74,119 +88,50 @@ export function ChatSurface({
   const [filesOpen, setFilesOpen] = useState(false);
   const { voice: voiceEnabled, files: filesEnabled } = config.capabilities;
 
+  // Hybrid new-conversation hooks: try the config's personalized resolver once
+  // (only while the thread is empty). If it yields data we swap it in; on
+  // null/empty/throw we stay on the static greeting + suggestions below.
+  const [dynamicHooks, setDynamicHooks] = useState<{ greeting?: string; suggestions?: string[] } | null>(null);
+  const hooksTried = useRef(false);
+  useEffect(() => {
+    if (hooksTried.current || !config.personalizedHooks || messages.length > 0) return;
+    hooksTried.current = true;
+    let active = true;
+    config.personalizedHooks()
+      .then((h) => {
+        if (active && h && (h.greeting || (h.suggestions?.length ?? 0) > 0)) setDynamicHooks(h);
+      })
+      .catch(() => {
+        /* offline / no data → keep static */
+      });
+    return () => {
+      active = false;
+    };
+  }, [config, messages.length]);
+
+  const greetingText = dynamicHooks?.greeting ?? config.greeting(greetingName);
+  const suggestions =
+    dynamicHooks?.suggestions && dynamicHooks.suggestions.length > 0
+      ? dynamicHooks.suggestions
+      : config.suggestions;
+
   const composerBlock = (centered: boolean) => (
-    <div
-      style={
-        centered
-          ? { width: "100%", maxWidth: THREAD_MAX_W, margin: "0 auto" }
-          : { borderTop: `1px solid ${t.cardBorder}` }
-      }
-      data-centered={centered || undefined}
-    >
-      <div style={{ maxWidth: THREAD_MAX_W, margin: "0 auto", paddingTop: centered ? 0 : 12 }}>
-        {/* pending attachments */}
-        {(pending.length > 0 || uploading) && (
-          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.4rem", padding: "0 24px 8px" }}>
-            {pending.map((a) => (
-              <AttachmentChip key={a.id} file={a} onRemove={() => removePending(a.id)} busy={busy} />
-            ))}
-            {uploading && <span style={{ fontSize: 11, color: t.mutedLight }}>Reading the document…</span>}
-          </div>
-        )}
-
-        {/* error */}
-        {(error || voice.error) && (
-          <div style={{ padding: "0 24px 8px", fontSize: 12, color: "#f87171" }}>{error || voice.error}</div>
-        )}
-
-        {/* composer */}
-        <div style={{ padding: "16px 24px", display: "flex", gap: 8, alignItems: "center" }}>
-          {voiceEnabled && (
-            <IconButton
-              theme={t}
-              size={38}
-              radius={999}
-              onClick={voice.toggle}
-              title="Voice message"
-              bg={voice.recording ? "#e0245e" : t.cardBg2}
-              color={voice.recording ? "#fff" : t.mutedLight}
-            >
-              {voice.recording ? <span style={{ fontSize: 12 }}>■</span> : <IconMic size={16} />}
-            </IconButton>
-          )}
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && onSend()}
-            disabled={busy}
-            placeholder={config.placeholder}
-            style={{
-              flex: 1,
-              minWidth: 100,
-              background: t.inputBg,
-              border: `1px solid ${t.inputBorder}`,
-              borderRadius: 99,
-              padding: "12px 18px",
-              fontSize: 12.5,
-              color: t.text,
-              outline: "none",
-            }}
-          />
-          {filesEnabled && (
-            <label
-              title="Attach a file"
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: "50%",
-                background: t.cardBg2,
-                color: t.mutedLight,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: busy || uploading ? "default" : "pointer",
-                flex: "none",
-              }}
-            >
-              <IconAttach size={16} />
-              <input
-                type="file"
-                accept=".txt,.md,.markdown,.csv,.pdf,.docx,.xlsx,.mp3,.m4a,.wav,.webm,.ogg,.flac,audio/*,application/pdf,text/plain"
-                style={{ display: "none" }}
-                onChange={(e) => {
-                  uploadDoc(e.target.files?.[0] ?? null);
-                  e.target.value = "";
-                }}
-                disabled={busy || uploading}
-              />
-            </label>
-          )}
-          <IconButton theme={t} size={38} radius={999} title="AI mode — Encouraging" color={t.text}>
-            <IconAiMode size={16} />
-          </IconButton>
-          <span
-            role="button"
-            onClick={() => onSend()}
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: "50%",
-              background: t.ctaBg,
-              color: t.ctaText,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 14,
-              flex: "none",
-              cursor: busy || uploading || !input.trim() ? "default" : "pointer",
-              opacity: busy || uploading || !input.trim() ? 0.5 : 1,
-            }}
-          >
-            ↑
-          </span>
-        </div>
-      </div>
-    </div>
+    <ChatComposer
+      theme={t}
+      centered={centered}
+      input={input}
+      onInput={setInput}
+      onSend={onSend}
+      busy={busy}
+      uploading={uploading}
+      placeholder={config.placeholder}
+      voice={voiceEnabled ? voice : null}
+      onUpload={filesEnabled ? uploadDoc : undefined}
+      pending={pending}
+      onRemovePending={removePending}
+      error={error}
+      extraAction={extraComposerAction}
+    />
   );
 
   return (
@@ -198,6 +143,7 @@ export function ChatSurface({
         style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}
       >
         {/* header */}
+        {!hideHeader && (
         <div
           style={{
             position: "relative",
@@ -273,6 +219,7 @@ export function ChatSurface({
             </div>
           )}
         </div>
+        )}
 
         {/* thread */}
         {messages.length === 0 ? (
@@ -289,7 +236,7 @@ export function ChatSurface({
                   animation: "writeReveal 2.2s cubic-bezier(0.65,0,0.35,1) 0.15s 1 both",
                 }}
               >
-                {config.greeting(greetingName)}
+                {greetingText}
               </h1>
               <Bird variant={1} fill={status.aiIndigo} />
               <Bird variant={2} fill={t.mutedLight} />
@@ -301,7 +248,7 @@ export function ChatSurface({
             {composerBlock(true)}
 
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center", maxWidth: 460, marginTop: 26 }}>
-              {config.suggestions.map((label, i) => (
+              {suggestions.map((label, i) => (
                 <span
                   key={label}
                   className="shine"
@@ -336,25 +283,36 @@ export function ChatSurface({
                   <div
                     key={m.id}
                     style={{
-                      maxWidth: "80%",
+                      display: "flex",
+                      gap: 8,
+                      alignItems: "flex-end",
                       alignSelf: mine ? "flex-end" : "flex-start",
-                      background: mine ? t.ctaBg : t.bubbleBg,
-                      color: mine ? t.ctaText : t.text,
-                      borderRadius: mine ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
-                      padding: "13px 16px",
-                      fontSize: 13.5,
-                      lineHeight: 1.65,
-                      whiteSpace: "pre-wrap",
+                      flexDirection: mine ? "row-reverse" : "row",
+                      maxWidth: "85%",
                     }}
                   >
-                    {files.length > 0 && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem", marginBottom: m.content ? "0.4rem" : 0 }}>
-                        {files.map((f) => (
-                          <AttachmentCard key={f.id} file={f} onOpen={setPreview} />
-                        ))}
-                      </div>
-                    )}
-                    {m.content}
+                    <ChatAvatar theme={t} isRaya={!mine} initials={userInitials} avatarUrl={mine ? userAvatarUrl : undefined} />
+                    <div
+                      style={{
+                        minWidth: 0,
+                        background: mine ? t.ctaBg : t.bubbleBg,
+                        color: mine ? t.ctaText : t.text,
+                        borderRadius: mine ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
+                        padding: "13px 16px",
+                        fontSize: 13.5,
+                        lineHeight: 1.65,
+                        whiteSpace: "pre-wrap",
+                      }}
+                    >
+                      {files.length > 0 && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem", marginBottom: m.content ? "0.4rem" : 0 }}>
+                          {files.map((f) => (
+                            <AttachmentCard key={f.id} file={f} onOpen={setPreview} />
+                          ))}
+                        </div>
+                      )}
+                      {m.content}
+                    </div>
                   </div>
                 );
               })}

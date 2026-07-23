@@ -39,6 +39,20 @@ export async function POST(request: Request) {
   // pre-existing anonymous account that never got a synthetic email/password).
   await ensureRecoverable(found.id);
 
+  // Reactivate a dormant account: the lifecycle cron bans + marks 'dormant' after
+  // 60d of inactivity, but the owner just came back with a valid key — un-ban so
+  // the sign-in below can succeed, and lift the state out of 'dormant'. Idempotent.
+  try {
+    await admin.auth.admin.updateUserById(found.id, { ban_duration: "none" });
+    await admin
+      .from("users")
+      .update({ account_state: "active_unverified" })
+      .eq("id", found.id)
+      .eq("account_state", "dormant");
+  } catch {
+    // best-effort — never block recovery on this
+  }
+
   const { data: authData } = await admin.auth.admin.getUserById(found.id);
   const email = authData?.user?.email ?? null;
   if (!email) return NextResponse.json({ status: "invalid" });

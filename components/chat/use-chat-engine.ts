@@ -67,6 +67,7 @@ export function useChatEngine({
     try {
       const fd = new FormData();
       if (conversationId) fd.append("conversationId", conversationId);
+      for (const [k, v] of Object.entries(config.extraBody ?? {})) fd.append(k, v);
       fd.append("file", file);
       const res = await fetch(config.endpoints.files, { method: "POST", body: fd });
       const data = await res.json().catch(() => null);
@@ -166,6 +167,7 @@ export function useChatEngine({
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
+          ...config.extraBody,
           conversationId,
           content: text,
           responseTimeMs,

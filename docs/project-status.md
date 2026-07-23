@@ -1,6 +1,13 @@
 # Bluestift — project status
 
-_Last updated: 2026-07-20. Living summary of what's built, how it works, and what's next._
+_Last updated: 2026-07-23. Living summary of what's built, how it works, and what's next._
+
+> **This is Version 2 (V2) of RAYA and RAYA for Schools — a clean-slate rebuild.**
+> It is the ONLY version we show, demo, or sell. **V1 is dead product.** The V1 of RAYA
+> and Schools is still live today at **thebluestift.com** but never took off: **0 users,
+> 0 sales, rejected twice from Y Combinator.** We do not surface, pitch, or sell V1 — no
+> repeating Oracle's "sell the old thing" mistake. Everything in this repo is V2; if a
+> surface, link, or claim points at the V1 app, it's wrong and should be removed.
 
 Bluestift is an AI tutoring platform. **RAYA** is the Socratic tutor; the
 **Cognitive Kernel** (separate Python/FastAPI service) does cognitive tracing.
@@ -202,6 +209,31 @@ Next.js app  ──HTTP──▶  Kernel (FastAPI, Railway)
   `GET/DELETE /api/school/raya/conversations`, `POST/DELETE /api/school/raya/files`,
   `GET /api/school/notifications`. No migration (the schema already allowed it).
   Replaced the old thin `components/school-raya.tsx` (deleted).
+- **Teacher (prof) dashboard — composed as a real workspace** (migration
+  `prof_dashboard_tables`): `ProfView` is now **Overview · Classes · Focus · Prepare ·
+  Insights · Reports · RAYA · Settings**. **Overview** = class KPIs + at-risk feed
+  (→ Focus) + per-class **Instructions→RAYA** card + quick links. **Focus** = pick a
+  student → cognitive detail/graph + **team-shared follow-up notes** (`schools.student_followups`,
+  gated by `assertClassAccess`) — serves both "suivi personnalisé" and "focus mode".
+  **Prepare** = RAYA+Kernel generate exam/exercise/worksheet/quiz **grounded in the class's
+  real weak concepts** (`buildClassContext`/`buildSubjectContext`); one JSON generation yields
+  structured `questions[]`, the markdown doc is composed **deterministically** from them (doc
+  and the assignable jsonb can't diverge) → branded PDF + persisted library
+  (`schools.teacher_resources`, `kind` CHECK). **Assign-to-class is built** (migration
+  `assignment_challenges`): a resource materializes into a `learning.challenges` (scope
+  `assignment`) + questions, reusing the existing challenge/grading engine; students take it in a
+  new **Homework** tab (`/homework`, `AssignmentsView` reuses `TestPlayer`) — one attempt, optional
+  deadline, class-gated submit (`/api/assignments/*`); results roll back up in Prepare
+  (`/api/school/prepare/{assign,assignments,results}`, `schools.resource_assignments`).
+  **Reports** reuses `SchoolReports` with `allowedScopes={["class"]}`; the reports route
+  now lets a prof generate `scope=class` on an assigned class. **Settings** = account cards +
+  **teaching preferences** (`schools.staff_preferences`, per membership). Shared pieces moved to
+  `components/school/{class-instructions,prof-followups,prof-overview,prof-prepare}.tsx` (no
+  circular import back into `school-admin.tsx`). New routes: `followups`, `prepare`, `preferences`,
+  `prof-overview`, `subjects` GET; data layer: `getStudentFollowups`/`getTeacherResources`/
+  `getProfOverview`/`getStaffPreferences` in `lib/school-admin.ts`. Everything degrades gracefully
+  when the Kernel/LLM is down; propagation to students stays app-prompt-side (kernel contract
+  unchanged). See `docs/prof-interactions.md`.
 - **Reports**: generate a grounded Markdown performance report by **subject /
   class / school** (LLM, same grounding; verified 4-section structure, real
   figures, no hallucination), downloadable TXT/PDF, with a persisted past-reports

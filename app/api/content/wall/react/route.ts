@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createContentAdminClient } from "@/lib/supabase/admin";
+import { clientIp } from "@/lib/request-ip";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const TYPES = new Set(["resonates", "important"]);
 
@@ -15,6 +17,12 @@ export async function POST(req: Request) {
   const postId = (body.post_id ?? "").trim();
   if (!/^[0-9a-f-]{36}$/i.test(postId) || !TYPES.has(body.type ?? "")) {
     return NextResponse.json({ error: "invalid" }, { status: 400 });
+  }
+
+  // No captcha here (rejected as bad UX for a one-tap reaction), so a per-IP
+  // rate limit is the spam gate. Generous — reactions are cheap and legitimate.
+  if (!(await checkRateLimit("wall_react", clientIp(req), 120))) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }
 
   const admin = createContentAdminClient();

@@ -70,10 +70,11 @@ export async function POST(request: Request) {
   const topic = ((form.get("topic") as string | null) ?? "").trim().slice(0, 500);
   const goal = ((form.get("goal") as string | null) ?? "").trim().slice(0, 1000);
   const file = form.get("file");
-  // Test kind. Rooms stay MCQ (battle scoring assumes it); solo tests can be
-  // full exams (mixed MCQ + open) or open competency tests.
+  // Test kind — chosen at creation in both rooms and solo: a quick MCQ quiz, a
+  // full mixed exam (MCQ + open), or an open competency test. The leaderboard
+  // scores on the attempt's fraction, so open-graded kinds rank fine too.
   const kindRaw = ((form.get("kind") as string | null) ?? "quiz").trim();
-  const kind = roomId ? "quiz" : ["quiz", "exam", "skills"].includes(kindRaw) ? kindRaw : "quiz";
+  const kind = ["quiz", "exam", "skills"].includes(kindRaw) ? kindRaw : "quiz";
   const defaultCount = kind === "exam" ? 10 : kind === "skills" ? 5 : 6;
   const count = Math.min(Math.max(Number(form.get("count")) || defaultCount, 3), 14);
 

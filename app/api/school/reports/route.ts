@@ -2,11 +2,13 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import {
+  assertClassAccess,
   buildClassContext,
   buildSchoolContext,
   buildSubjectContext,
   getAdminMembership,
   getSchoolSubjects,
+  getStaffPreferences,
 } from "@/lib/school-admin";
 import { rayaComplete, type ChatMsg } from "@/lib/raya/llm";
 
@@ -30,16 +32,19 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const membership = await getAdminMembership(user.id);
-  if (!membership || membership.role !== "admin_master") {
-    return NextResponse.json({ error: "Admin only." }, { status: 403 });
+  if (!membership) {
+    return NextResponse.json({ error: "School staff only." }, { status: 403 });
   }
 
   try {
     const schools = createSchoolsAdminClient();
-    const { data } = await schools
+    let listQuery = schools
       .from("reports")
       .select("id, scope, parameters, created_at")
-      .eq("school_id", membership.schoolId)
+      .eq("school_id", membership.schoolId);
+    // A prof only lists the reports they authored (class-scoped); an admin sees all.
+    if (membership.role !== "admin_master") listQuery = listQuery.eq("created_by", membership.adminId);
+    const { data } = await listQuery
       .order("created_at", { ascending: false })
       .limit(50);
     const rows = (data as ReportRow[] | null) ?? [];
@@ -63,8 +68,8 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const membership = await getAdminMembership(user.id);
-  if (!membership || membership.role !== "admin_master") {
-    return NextResponse.json({ error: "Admin only." }, { status: 403 });
+  if (!membership) {
+    return NextResponse.json({ error: "School staff only." }, { status: 403 });
   }
 
   let body: { scope?: string; classId?: string; subjectId?: string };
@@ -75,10 +80,19 @@ export async function POST(request: Request) {
   }
   const scope = body.scope === "class" || body.scope === "subject" ? body.scope : "school";
 
+  // Whole-school and subject-wide reports stay admin-only; a prof may report on a
+  // class they're assigned to (gated below by assertClassAccess).
+  if (scope !== "class" && membership.role !== "admin_master") {
+    return NextResponse.json({ error: "Admin only for this scope." }, { status: 403 });
+  }
+
   let context: string;
   let title: string;
   if (scope === "class") {
     if (!body.classId) return NextResponse.json({ error: "classId is required." }, { status: 400 });
+    if (!(await assertClassAccess(user.id, body.classId))) {
+      return NextResponse.json({ error: "Not your class." }, { status: 403 });
+    }
     const cc = await buildClassContext(user.id, body.classId);
     if (!cc) return NextResponse.json({ error: "Class not found or not yours." }, { status: 404 });
     context = cc.context;
@@ -96,10 +110,17 @@ export async function POST(request: Request) {
     title = `${membership.schoolName} — performance report`;
   }
 
+  // Optional tone from the author's teaching preferences (whitelisted set).
+  const prefs = await getStaffPreferences(user.id);
+  const toneLine =
+    prefs.reportTone && ["neutral", "encouraging", "formal", "concise"].includes(prefs.reportTone)
+      ? `\nWrite in a ${prefs.reportTone} tone.`
+      : "";
+
   let content: string;
   try {
     const messages: ChatMsg[] = [
-      { role: "system", content: `${SYSTEM}\n\n=== DATA ===\n${context}` },
+      { role: "system", content: `${SYSTEM}${toneLine}\n\n=== DATA ===\n${context}` },
       { role: "user", content: `Write the ${scope} report titled "${title}".` },
     ];
     const out = await rayaComplete(messages);

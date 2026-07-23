@@ -18,13 +18,13 @@ type Plan = {
   features: string[];
 };
 
-type Audience = "students" | "schools";
+type Audience = "solo" | "schools";
 
 function money(n: number): string {
   return Number.isInteger(n) ? `$${n}` : `$${n.toFixed(2)}`;
 }
 
-/** Seeded names are "École — Standard" / "Élève — Plus"; the audience toggle
+/** Seeded names are "École — Standard" / "User — Plus"; the audience toggle
  * already conveys who it's for, so show just the tier on this English page. */
 function tierName(name: string): string {
   const parts = name.split("—");
@@ -161,7 +161,7 @@ export function PricingView({
   signedIn,
   b2c,
   b2b,
-  initialAudience = "students",
+  initialAudience = "solo",
 }: {
   signedIn: boolean;
   b2c: Plan[];
@@ -173,7 +173,7 @@ export function PricingView({
   return (
     <SitePage active="Pricing" section="Pricing" signedIn={signedIn}>
       {(t) => {
-        const plans = audience === "students" ? b2c : b2b;
+        const plans = audience === "solo" ? b2c : b2b;
         // In a 3-tier ladder (sorted by price asc), the middle tier is the hero.
         const recIndex = plans.length === 3 ? 1 : -1;
 
@@ -221,7 +221,7 @@ export function PricingView({
                   </em>
                 </h1>
                 <p style={{ fontSize: 13.5, color: t.text, lineHeight: 1.7, maxWidth: 520, margin: "0 auto" }}>
-                  Students start free and stay free. Schools pay per enrolled student — their effectif, not per active
+                  Solo starts free and stays free. Schools pay per enrolled student — their effectif, not per active
                   user.
                 </p>
               </div>
@@ -229,8 +229,8 @@ export function PricingView({
               {/* Audience toggle */}
               <div style={{ display: "flex", justifyContent: "center", marginBottom: 44 }}>
                 <div style={{ display: "inline-flex", gap: 4, background: t.pillTrackBg, borderRadius: 999, padding: 4 }}>
-                  {segBtn("students", "For students")}
-                  {segBtn("schools", "For schools")}
+                  {segBtn("solo", "Solo")}
+                  {segBtn("schools", "Schools")}
                 </div>
               </div>
 

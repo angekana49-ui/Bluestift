@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAdminMembership } from "@/lib/school-admin";
 import { extractFileText, storageSafeName } from "@/lib/extract";
+import { contentLengthExceeds, tooLarge, MAX_DOC_BYTES } from "@/lib/upload-limits";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -25,6 +26,9 @@ export async function POST(request: Request) {
   const membership = await getAdminMembership(user.id);
   if (!membership) return NextResponse.json({ error: "School staff only." }, { status: 403 });
 
+  const oversized = contentLengthExceeds(request, MAX_DOC_BYTES);
+  if (oversized) return oversized;
+
   let form: FormData;
   try {
     form = await request.formData();
@@ -36,6 +40,8 @@ export async function POST(request: Request) {
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "file required" }, { status: 400 });
   }
+  const big = tooLarge(file, MAX_DOC_BYTES);
+  if (big) return big;
 
   // Resolve the conversation: verify ownership, or create one.
   if (typeof conversationId === "string" && conversationId) {

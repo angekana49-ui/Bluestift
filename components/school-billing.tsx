@@ -181,9 +181,9 @@ export function SchoolBilling() {
           students can join.
         </div>
         <p style={{ fontSize: 11.5, color: t.muted, margin: "0 0 14px" }}>
-          Record a payment received out-of-band (transfer, invoice) to activate — or pay online
-          instantly by card, mobile money, or PayPal. Prices below are the USD reference; online
-          checkout is billed in your local currency by region.
+          Record a payment received out-of-band (transfer, invoice) to activate your plan. Prices
+          below are the USD reference. Online self-serve checkout is temporarily unavailable while
+          we finalize our payment integration.
         </p>
         <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
           {billing.plans.map((p) => (
@@ -402,14 +402,10 @@ function PlanCard({
               Cancel
             </button>
           </div>
-          {(!isPerSeat || seatCount >= (floorSeats || 1)) && (
-            <a
-              href={`/checkout?plan=${plan.id}&audience=b2b&months=${monthCount}${isPerSeat ? `&seats=${seatCount}` : ""}`}
-              style={{ fontSize: 11, color: "#6f9bff", textAlign: "center", textDecoration: "none", marginTop: 2 }}
-            >
-              or pay online now (card · mobile money · PayPal) →
-            </a>
-          )}
+          <div style={{ fontSize: 10.5, color: t.muted, textAlign: "center", marginTop: 2, lineHeight: 1.4 }}>
+            Online checkout (card · mobile money · PayPal) is temporarily unavailable while we
+            finalize our payment integration — record your payment above and we&apos;ll activate it.
+          </div>
         </div>
       )}
     </div>

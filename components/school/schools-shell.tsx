@@ -11,9 +11,11 @@ import {
   IconButton,
   MobileHeader,
   Scrim,
+  type ProfileMenuItem,
 } from "@/components/ui/shell";
 import { IconPanel } from "@/components/ui/icons";
 import { display, type AppTheme } from "@/components/ui/tokens";
+import { initialsOf } from "@/lib/name";
 
 export type SchoolNavItem = {
   key: string;
@@ -43,8 +45,10 @@ export function SchoolsShell({
   profileSubtitle,
   profileAvatarUrl,
   onProfile,
+  profileMenu,
   headerTitle,
   headerSubtitle,
+  headerLogoUrl,
   headerRight,
   rightPanel,
   contentFlush = false,
@@ -64,8 +68,14 @@ export function SchoolsShell({
   profileSubtitle?: string;
   profileAvatarUrl?: string | null;
   onProfile?: () => void;
+  /** When provided, the profile chip opens this popover menu instead of firing
+   *  `onProfile` directly. */
+  profileMenu?: ProfileMenuItem[];
   headerTitle?: string;
   headerSubtitle?: string;
+  /** School logo shown as a small avatar before the header title, so the header
+   *  brands the school (logo + name) instead of a generic dashboard label. */
+  headerLogoUrl?: string | null;
   headerRight?: ReactNode;
   rightPanel?: ReactNode;
   /** Drop the content padding/scroll so a child (e.g. a full-height chat) owns
@@ -134,6 +144,7 @@ export function SchoolsShell({
             avatarBg="#2f7fe0"
             avatarUrl={profileAvatarUrl}
             onClick={() => onProfile?.()}
+            menu={profileMenu}
           />
         </div>
       </Sidebar>
@@ -150,12 +161,40 @@ export function SchoolsShell({
             child renders its own header — the shell one would double it up. */}
         {!contentFlush && (
         <div style={{ padding: "16px 26px", display: "flex", alignItems: "center", gap: 12, borderBottom: `1px solid ${t.cardBorder}` }}>
+          {headerLogoUrl !== undefined && (
+            <span
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 9,
+                overflow: "hidden",
+                flex: "none",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: headerLogoUrl ? "transparent" : "#2f7fe0",
+                color: "#fff",
+                fontWeight: 700,
+                fontSize: 13,
+              }}
+            >
+              {headerLogoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={headerLogoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              ) : (
+                // The header brands the SCHOOL, so its fallback initials come from
+                // the school name (headerTitle) — NOT `schoolInitials`, which is the
+                // signed-in person's initials for the sidebar profile chip.
+                initialsOf(headerTitle ?? schoolName)
+              )}
+            </span>
+          )}
           <span style={{ display: "flex", flexDirection: "column", minWidth: 0, lineHeight: 1.25 }}>
-            <span style={{ fontSize: 16, fontWeight: 800, fontFamily: display, color: t.text }}>
+            <span style={{ fontSize: 16, fontWeight: 800, fontFamily: display, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {headerTitle ?? brandName}
             </span>
             {headerSubtitle && (
-              <span style={{ fontSize: 11.5, color: t.muted, fontWeight: 500 }}>{headerSubtitle}</span>
+              <span style={{ fontSize: 11.5, color: t.muted, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{headerSubtitle}</span>
             )}
           </span>
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>

@@ -5,7 +5,7 @@ import { PricingView } from "@/components/site/pages/PricingView";
 export const metadata = {
   title: "BlueStift · Pricing",
   description:
-    "Simple plans for students and schools. Students start free; schools pay per enrolled student — their effectif, not per active user.",
+    "Simple plans for solo learners and schools. Solo starts free; schools pay per enrolled student — their effectif, not per active user.",
 };
 
 export default async function PricingPage({
@@ -28,7 +28,7 @@ export default async function PricingPage({
     searchParams,
   ]);
 
-  const initialAudience = forParam === "schools" ? "schools" : "students";
+  const initialAudience = forParam === "schools" ? "schools" : "solo";
 
   return <PricingView signedIn={!!user} b2c={b2c} b2b={b2b} initialAudience={initialAudience} />;
 }

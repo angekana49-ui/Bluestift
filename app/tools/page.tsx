@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Tools } from "@/components/tools";
 import { SoloChallenge } from "@/components/solo-challenge";
 import { RayaScaffold } from "@/components/raya/raya-scaffold";
+import { getPlanLabel } from "@/lib/billing";
 import { initialsOf } from "@/lib/name";
 
 export default async function ToolsPage() {
@@ -21,6 +22,7 @@ export default async function ToolsPage() {
     redirect("/onboarding");
   }
   const studentName = profile.display_name || profile.username || "";
+  const studentPlan = await getPlanLabel({ userId: user.id });
 
   const [{ data: uploads }, { data: outputs }, { data: myChallenges }, { data: myAttempts }] =
     await Promise.all([
@@ -59,7 +61,7 @@ export default async function ToolsPage() {
   }));
 
   return (
-    <RayaScaffold active="tools" studentName={studentName} studentInitials={initialsOf(studentName)} studentAvatarUrl={profile.profile_picture_url}>
+    <RayaScaffold active="tools" studentName={studentName} studentInitials={initialsOf(studentName)} studentAvatarUrl={profile.profile_picture_url} studentPlan={studentPlan}>
       <div style={{ flex: 1, overflow: "auto", padding: "32px 40px", minWidth: 0 }}>
         <Tools uploads={uploads ?? []} outputs={outputs ?? []} selfTests={selfTests} studentName={studentName} />
         <div id="self-test" style={{ marginTop: 8 }}>

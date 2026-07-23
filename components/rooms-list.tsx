@@ -18,6 +18,15 @@ type Room = {
 // boxes. Public visibility is already the sensible default below.
 const SUBJECT_SUGGESTIONS = ["Maths", "Physics", "Chemistry", "Biology", "History", "Languages"];
 
+const DOC_ACCEPT = ".txt,.md,.markdown,.csv,.pdf,.docx,.xlsx,.mp3,.m4a,.wav,.webm,.ogg,.flac,audio/*,application/pdf,text/plain";
+const MAX_PACKET_BYTES = 20 * 1024 * 1024; // 20 MB total across the context docs
+
+function humanSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export function RoomsList({
   rooms,
   myRoomIds,
@@ -33,8 +42,24 @@ export function RoomsList({
   // Optional session timer: 0 = no timer; otherwise 10–60 min. Once it elapses
   // the room turns read-only (members can still read + generate the report).
   const [duration, setDuration] = useState(0);
+  // Context documents RAYA reads from the first message — so it skips the obvious
+  // "what are we studying?" questions. Uploaded to room_files right after create.
+  const [docs, setDocs] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function addDocs(list: FileList | null) {
+    if (!list?.length) return;
+    setError(null);
+    setDocs((prev) => {
+      const next = [...prev, ...Array.from(list)];
+      if (next.reduce((n, f) => n + f.size, 0) > MAX_PACKET_BYTES) {
+        setError("Context documents exceed 20 MB in total.");
+        return prev;
+      }
+      return next;
+    });
+  }
 
   // Picking a subject also seeds a room name if the user hasn't typed one — one
   // tap and the form is submittable.
@@ -66,6 +91,18 @@ export function RoomsList({
         visibility,
         durationMinutes: duration || null,
       });
+      // Upload the context documents so RAYA has them from the very first turn.
+      // Best-effort per file — the room exists regardless of a failed upload.
+      for (const f of docs) {
+        try {
+          const fd = new FormData();
+          fd.append("roomId", roomId);
+          fd.append("file", f);
+          await fetch("/api/rooms/files", { method: "POST", body: fd });
+        } catch {
+          // skip this doc — don't block entering the room
+        }
+      }
       router.push(`/rooms/${roomId}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't create the room.");
@@ -158,8 +195,55 @@ export function RoomsList({
             {duration ? "Read-only once the time is up." : "Open until closed."}
           </span>
         </div>
+        <div style={{ margin: "2px 0 14px" }}>
+          <div style={{ fontSize: 12, color: t.text, fontWeight: 600, marginBottom: 4 }}>📎 Context documents (optional)</div>
+          <div style={{ fontSize: 11, color: t.mutedLight, marginBottom: 6 }}>
+            RAYA reads these from the start, so it can skip the obvious questions. Max 20 MB total.
+          </div>
+          <input
+            type="file"
+            multiple
+            accept={DOC_ACCEPT}
+            onChange={(e) => {
+              addDocs(e.target.files);
+              e.target.value = "";
+            }}
+            style={{ fontSize: 12, color: t.muted }}
+          />
+          {docs.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+              {docs.map((f, i) => (
+                <span
+                  key={`${f.name}-${i}`}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    background: t.cardBg2,
+                    border: `1px solid ${t.cardBorder}`,
+                    borderRadius: 99,
+                    padding: "4px 6px 4px 11px",
+                    fontSize: 11,
+                    color: t.text,
+                  }}
+                >
+                  📄 <span style={{ maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</span>
+                  <span style={{ color: t.mutedLight }}>{humanSize(f.size)}</span>
+                  <button
+                    type="button"
+                    onClick={() => setDocs((prev) => prev.filter((_, j) => j !== i))}
+                    title="Remove"
+                    style={{ background: "transparent", border: "none", color: t.mutedLight, cursor: "pointer", fontSize: 13, padding: 0, lineHeight: 1 }}
+                  >
+                    ✕
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
         <button style={{ ...ctaButton(t), opacity: busy || !name.trim() ? 0.5 : 1 }} onClick={create} disabled={busy || !name.trim()}>
-          Create
+          {busy ? (docs.length ? "Creating & uploading…" : "Creating…") : "Create"}
         </button>
         {error && <p style={{ color: "#f87171", marginTop: 8, fontSize: 12.5 }}>{error}</p>}
       </div>

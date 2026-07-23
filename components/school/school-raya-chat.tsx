@@ -7,7 +7,8 @@ import { textInput, ctaButton } from "@/components/ui/forms";
 import { useChatEngine } from "@/components/chat/use-chat-engine";
 import { ChatSurface } from "@/components/chat/chat-surface";
 import { ChatHistoryList } from "@/components/chat/chat-history-list";
-import type { ChatConfig } from "@/components/chat/types";
+import { fetchHooks, type ChatConfig } from "@/components/chat/types";
+import { avatarInitials } from "@/lib/name";
 
 type Role = "admin_master" | "prof";
 
@@ -26,10 +27,13 @@ const SCHOOL_CONFIG: ChatConfig = {
     files: "/api/school/raya/files",
   },
   capabilities: { voice: true, files: true },
-  greeting: (name) => (name ? `Hi ${name}, what should we look into?` : "What should we look into?"),
+  greeting: (name) => (name ? `Where do you want eyes today, ${name}?` : "Where do you want eyes today?"),
   emptyHint: "Ask about your classes and students, or attach a document to analyse together.",
-  suggestions: ["Which class needs the most attention?", "Who is at risk right now?", "Weakest concepts this week"],
+  suggestions: ["Who's at risk right now?", "Which class needs attention?", "Weakest concepts this week", "Analyse a document"],
   placeholder: "Ask about your students…",
+  // Hybrid: /api/school/raya/hooks personalizes from live insights; offline /
+  // no data → the static set above stays.
+  personalizedHooks: fetchHooks("/api/school/raya/hooks"),
 };
 
 export function SchoolRayaChat({ role, staffName }: { role: Role; staffName?: string }) {
@@ -58,7 +62,10 @@ export function SchoolRayaChat({ role, staffName }: { role: Role; staffName?: st
     })();
   }, [setConversations]);
 
-  const greetingName = (staffName ?? "").trim().split(/\s+/)[0] || "";
+  // Address the staffer by ROLE, never by name — the admin surface passes the
+  // school name as `staffName`, so "…, Lycée François Dumas?" read absurd. A role
+  // word ("Admin"/"Teacher") is always sensible.
+  const greetingName = role === "admin_master" ? "Admin" : "Teacher";
 
   const headerActions = (
     <span style={{ position: "relative", display: "inline-flex" }}>
@@ -117,6 +124,7 @@ export function SchoolRayaChat({ role, staffName }: { role: Role; staffName?: st
           headerActions={headerActions}
           onToggleRight={() => setPanelOpen((o) => !o)}
           rightOpen={panelOpen}
+          userInitials={avatarInitials(staffName)}
         />
       </div>
       {panelOpen && <Scrim open onClick={() => setPanelOpen(false)} />}

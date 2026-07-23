@@ -214,7 +214,14 @@ export function OnboardingForm({
     if (!e || busy) return;
     setBusy(true);
     setError(null);
-    const { error: linkErr } = await supabase.auth.updateUser({ email: e });
+    // Route the confirmation link through /auth/callback (like every other email
+    // entry point) so clicking it exchanges the code, records email verification,
+    // and lands the user exactly where the flow gate says — onboarding if they
+    // haven't finished, their home otherwise. Without this the link falls back to
+    // Supabase's Site URL and the redirect (and verification) is lost.
+    const emailRedirectTo =
+      typeof window !== "undefined" ? `${window.location.origin}/auth/callback?next=/account` : undefined;
+    const { error: linkErr } = await supabase.auth.updateUser({ email: e }, { emailRedirectTo });
     setBusy(false);
     if (linkErr) return setError(linkErr.message);
     setEmailSent(true);

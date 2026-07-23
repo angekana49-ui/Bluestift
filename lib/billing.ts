@@ -220,12 +220,16 @@ export async function resolveSeatGate(schoolId: string): Promise<SeatGate> {
 /**
  * A short "forfait" label for the sidebar profile chip. Resolves the active
  * subscription's plan name for a school (b2b) or a user (b2c), falling back to
- * "Pilot" (a school still in its pilot window) or "Free" (no paid plan). Never
- * throws — degrades to "Free" on any read failure so the chip always renders.
+ * "Pilot" (a school still in its pilot window) or the free tier. A b2c user with
+ * no paid plan reads "User — Free" (matching the paid "User — Plus/Max" names) so
+ * the chip always shows the "User — <forfait>" format; a school with no plan reads
+ * "Free". Never throws — degrades to the free label on any read failure so the
+ * chip always renders.
  */
 export async function getPlanLabel(
   target: { schoolId: string } | { userId: string },
 ): Promise<string> {
+  const freeLabel = "userId" in target ? "User — Free" : "Free";
   try {
     const schools = createSchoolsAdminClient();
     const today = new Date().toISOString().slice(0, 10);
@@ -263,9 +267,9 @@ export async function getPlanLabel(
       const pilotUntil = (sc as { pilot_until: string | null } | null)?.pilot_until ?? null;
       if (pilotUntil && pilotUntil >= today) return "Pilot";
     }
-    return "Free";
+    return freeLabel;
   } catch {
-    return "Free";
+    return freeLabel;
   }
 }
 

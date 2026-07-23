@@ -10,6 +10,7 @@ import {
 } from "@/lib/school-admin";
 import { getActiveSchoolId } from "@/lib/school-active";
 import { getPlanLabel } from "@/lib/billing";
+import { ensureRecoveryCode, hasRealEmail } from "@/lib/auth";
 import type { AdminClass, ProfContext, SchoolDashboard } from "@/lib/school-admin";
 import { SchoolAdmin } from "@/components/school-admin";
 
@@ -25,9 +26,13 @@ export default async function SchoolPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  // Guarantee a recovery code exists (idempotent, session-safe) so the in-dashboard
+  // Settings panel can surface it — same guarantee /account gives.
+  await ensureRecoveryCode(user.id);
+
   const { data: profile } = await supabase
     .from("users")
-    .select("account_state, profile_picture_url, display_name, username")
+    .select("account_state, profile_picture_url, display_name, username, account_type, recovery_code")
     .eq("id", user.id)
     .single();
   if (!profile || profile.account_state === "onboarding_pending") {
@@ -69,6 +74,22 @@ export default async function SchoolPage({
     ? await getPlanLabel({ schoolId: resolvedActiveSchoolId })
     : null;
 
+  // The signed-in user's own account, so the prof dashboard can open Settings
+  // in-place (profile chip → in-dashboard panel) instead of bouncing to the
+  // RAYA-scaffolded /account page. Anonymous until a real email is linked.
+  const realEmail = hasRealEmail(user.email);
+  const account = {
+    user: { id: user.id, email: realEmail ? user.email ?? null : null, isAnonymous: !realEmail },
+    profile: {
+      username: profile.username,
+      display_name: profile.display_name,
+      account_type: profile.account_type,
+      account_state: profile.account_state,
+      recovery_code: profile.recovery_code,
+      profile_picture_url: profile.profile_picture_url,
+    },
+  };
+
   return (
     <SchoolAdmin
       role={role}
@@ -79,9 +100,11 @@ export default async function SchoolPage({
       planLabel={planLabel}
       profSubjects={profContext?.subjects ?? []}
       profSchoolName={profContext?.schoolName ?? null}
+      profSchoolLogoUrl={profContext?.schoolLogoUrl ?? null}
       userAvatarUrl={profile.profile_picture_url}
       memberships={memberships}
       activeSchoolId={resolvedActiveSchoolId}
+      account={account}
       initialTab={tab ?? null}
       initialJoinCode={join ?? null}
     />

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createContentAdminClient } from "@/lib/supabase/admin";
 import { listWallPosts } from "@/lib/content";
 import { verifyTurnstile } from "@/lib/turnstile";
+import { clientIp } from "@/lib/request-ip";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const PROFILES = new Set(["teacher", "student", "anonymous"]);
 
@@ -25,6 +27,11 @@ export async function POST(req: Request) {
   }
   if (!(await verifyTurnstile(body.token))) {
     return NextResponse.json({ error: "captcha_failed" }, { status: 403 });
+  }
+  // Defense-in-depth beyond the captcha (also covers the dev case where
+  // TURNSTILE_SECRET_KEY is unset and verification is skipped).
+  if (!(await checkRateLimit("wall_post", clientIp(req), 20))) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }
 
   const admin = createContentAdminClient();

@@ -15,6 +15,7 @@ export function RayaScaffold({
   studentName,
   studentInitials,
   studentAvatarUrl,
+  studentPlan,
   rightPanel,
   mainMinWidth,
   children,
@@ -23,6 +24,9 @@ export function RayaScaffold({
   studentName: string;
   studentInitials: string;
   studentAvatarUrl?: string | null;
+  /** The user's forfait (e.g. "User — Free"), shown under the name + used by the
+   *  profile menu to decide whether to surface the upgrade incentive. */
+  studentPlan?: string;
   rightPanel?: ReactNode;
   mainMinWidth?: number;
   children: ReactNode;
@@ -35,6 +39,7 @@ export function RayaScaffold({
         active={active}
         profileName={studentName || "My account"}
         profileInitials={studentInitials}
+        profileSubtitle={studentPlan}
         profileAvatarUrl={studentAvatarUrl}
         rightPanel={rightPanel}
         mainMinWidth={mainMinWidth}

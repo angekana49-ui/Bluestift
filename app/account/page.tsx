@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ensureRecoveryCode, hasRealEmail } from "@/lib/auth";
+import { getPlanLabel } from "@/lib/billing";
 import { AuthPanel } from "@/components/auth-panel";
 import { RayaScaffold } from "@/components/raya/raya-scaffold";
 import { SectionHeader } from "@/components/raya/section-header";
@@ -35,9 +36,10 @@ export default async function AccountPage() {
   // the synthetic recovery address must never surface as the user's email.
   const realEmail = hasRealEmail(user.email);
   const studentName = profile?.display_name || profile?.username || "";
+  const studentPlan = await getPlanLabel({ userId: user.id });
 
   return (
-    <RayaScaffold active="settings" studentName={studentName} studentInitials={initialsOf(studentName)} studentAvatarUrl={profile?.profile_picture_url}>
+    <RayaScaffold active="settings" studentName={studentName} studentInitials={initialsOf(studentName)} studentAvatarUrl={profile?.profile_picture_url} studentPlan={studentPlan}>
       <div style={{ flex: 1, overflow: "auto", padding: "32px 40px", minWidth: 0 }}>
         <SectionHeader title="Settings" />
         <SettingsThemeCard />

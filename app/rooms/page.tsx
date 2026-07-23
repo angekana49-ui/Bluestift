@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { RoomsList } from "@/components/rooms-list";
 import { RayaScaffold } from "@/components/raya/raya-scaffold";
 import { SectionHeader } from "@/components/raya/section-header";
+import { getPlanLabel } from "@/lib/billing";
 import { initialsOf } from "@/lib/name";
 
 export default async function RoomsPage() {
@@ -21,6 +22,7 @@ export default async function RoomsPage() {
     redirect("/onboarding");
   }
   const studentName = profile.display_name || profile.username || "";
+  const studentPlan = await getPlanLabel({ userId: user.id });
 
   // Discover = public rooms only. "Your rooms" = every room I'm a member of,
   // whatever its visibility (so my private rooms still show up for me).
@@ -60,7 +62,7 @@ export default async function RoomsPage() {
   const rooms = [...byId.values()].sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
 
   return (
-    <RayaScaffold active="rooms" studentName={studentName} studentInitials={initialsOf(studentName)} studentAvatarUrl={profile.profile_picture_url}>
+    <RayaScaffold active="rooms" studentName={studentName} studentInitials={initialsOf(studentName)} studentAvatarUrl={profile.profile_picture_url} studentPlan={studentPlan}>
       <div style={{ flex: 1, overflow: "auto", padding: "32px 40px", minWidth: 0 }}>
         <SectionHeader title="Rooms" subtitle="Study in a group with RAYA in the room." />
         <RoomsList rooms={rooms ?? []} myRoomIds={myRoomIds} />

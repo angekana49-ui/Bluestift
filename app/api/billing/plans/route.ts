@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { listPlans } from "@/lib/billing";
 
 /**
- * Public plan catalog (active plans). `?category=b2c` for student-facing plans,
+ * Public plan catalog (active plans). `?category=b2c` for solo (individual) plans,
  * `?category=b2b` for schools. Read via the service role inside listPlans — the
  * catalog is not sensitive, so no auth is required.
  */

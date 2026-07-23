@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { transcribeAudio, extractPdfText } from "@/lib/raya/llm";
 import { storageSafeName } from "@/lib/extract";
+import { contentLengthExceeds, tooLarge, MAX_DOC_BYTES } from "@/lib/upload-limits";
 
 // Transcription / PDF reading can take a moment.
 export const runtime = "nodejs";
@@ -33,6 +34,9 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
+  const oversized = contentLengthExceeds(request, MAX_DOC_BYTES);
+  if (oversized) return oversized;
+
   let form: FormData;
   try {
     form = await request.formData();
@@ -43,6 +47,8 @@ export async function POST(request: Request) {
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "no file" }, { status: 400 });
   }
+  const big = tooLarge(file, MAX_DOC_BYTES);
+  if (big) return big;
   const kind = kindOf(file);
   if (kind === "unsupported") {
     return NextResponse.json(

@@ -8,11 +8,11 @@ import { useDarkMode } from "@/components/ui/theme";
 import { RayaShell } from "@/components/raya/raya-shell";
 import { RightPanel } from "@/components/ui/shell";
 import { type AppTheme } from "@/components/ui/tokens";
-import { initialsOf } from "@/lib/name";
+import { initialsOf, avatarInitials } from "@/lib/name";
 import { useChatEngine } from "@/components/chat/use-chat-engine";
 import { ChatSurface } from "@/components/chat/chat-surface";
 import { ChatHistoryList } from "@/components/chat/chat-history-list";
-import type { ChatConfig, Msg, Conversation, ConversationFile } from "@/components/chat/types";
+import { fetchHooks, type ChatConfig, type Msg, type Conversation, type ConversationFile } from "@/components/chat/types";
 
 export type { ConversationFile } from "@/components/chat/types";
 
@@ -26,10 +26,13 @@ const RAYA_CONFIG: ChatConfig = {
     files: "/api/raya/files",
   },
   capabilities: { voice: true, files: true },
-  greeting: (name) => `Hi ${name}, ready to learn?`,
-  emptyHint: "Tell me what you'd like to work on today, or pick a quick restart.",
-  suggestions: ["Resume fractions", "Review grammar", "Surprise quiz"],
+  greeting: (name) => (name ? `What are we cracking today, ${name}?` : "What are we cracking today?"),
+  emptyHint: "Tell me what you'd like to work on — or pick a quick start.",
+  suggestions: ["Pick up where I left off", "Unstick me on something", "Quiz me", "Surprise me"],
   placeholder: "Write your reply to RAYA...",
+  // Hybrid: if the learner has history, /api/raya/hooks personalizes these;
+  // offline / brand-new → the static set above stays.
+  personalizedHooks: fetchHooks("/api/raya/hooks"),
 };
 
 function analysisToText(a: AnalyzeResponse): string {
@@ -236,6 +239,8 @@ export function Chat({
         headerActions={headerActions}
         onToggleRight={() => setRightOpen((o) => !o)}
         rightOpen={rightOpen}
+        userInitials={avatarInitials(studentName)}
+        userAvatarUrl={studentAvatarUrl}
       />
     </RayaShell>
   );

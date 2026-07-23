@@ -13,13 +13,27 @@ type Scope = "subject" | "class" | "school";
 
 const SCOPE_LABEL: Record<string, string> = { school: "Whole school", class: "Class report", subject: "Subject report" };
 
-export function SchoolReports({ classes, schoolName }: { classes: ClassOpt[]; schoolName?: string }) {
+const SCOPE_ORDER: Scope[] = ["subject", "class", "school"];
+
+export function SchoolReports({
+  classes,
+  schoolName,
+  allowedScopes = SCOPE_ORDER,
+}: {
+  classes: ClassOpt[];
+  schoolName?: string;
+  /** Which report scopes this face may generate. A prof gets class-only. */
+  allowedScopes?: Scope[];
+}) {
   const { theme: t } = useAppTheme();
   const box = panelCard(t);
   const btn = ctaButton(t);
   const ghost = ghostButton(t);
   const select = textInput(t);
-  const [scope, setScope] = useState<Scope>("school");
+  // Keep the whole-school default for the admin; a single-scope face pins to it.
+  const [scope, setScope] = useState<Scope>(
+    allowedScopes.includes("school") ? "school" : allowedScopes[0] ?? "class",
+  );
   const [classId, setClassId] = useState(classes[0]?.id ?? "");
   const [subjects, setSubjects] = useState<SubjectOpt[]>([]);
   const [subjectId, setSubjectId] = useState("");
@@ -97,11 +111,15 @@ export function SchoolReports({ classes, schoolName }: { classes: ClassOpt[]; sc
       <div style={box}>
         <h2 style={{ fontSize: "1.1rem", margin: "0 0 0.75rem" }}>Generate a report</h2>
         <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", alignItems: "center" }}>
-          <select style={select} value={scope} onChange={(e) => setScope(e.target.value as Scope)} disabled={busy}>
-            <option value="subject">By subject</option>
-            <option value="class">By class</option>
-            <option value="school">Whole school</option>
-          </select>
+          {allowedScopes.length > 1 && (
+            <select style={select} value={scope} onChange={(e) => setScope(e.target.value as Scope)} disabled={busy}>
+              {SCOPE_ORDER.filter((s) => allowedScopes.includes(s)).map((s) => (
+                <option key={s} value={s}>
+                  {s === "subject" ? "By subject" : s === "class" ? "By class" : "Whole school"}
+                </option>
+              ))}
+            </select>
+          )}
           {scope === "class" && (
             <select style={select} value={classId} onChange={(e) => setClassId(e.target.value)} disabled={busy}>
               {classes.length === 0 && <option value="">No classes</option>}

@@ -7,6 +7,7 @@ import {
   type RoomFileRow,
 } from "@/components/room-view";
 import { initialsOf } from "@/lib/name";
+import { getPlanLabel } from "@/lib/billing";
 
 export default async function RoomPage({
   params,
@@ -29,6 +30,7 @@ export default async function RoomPage({
     redirect("/onboarding");
   }
   const studentName = profile.display_name || profile.username || "";
+  const studentPlan = await getPlanLabel({ userId: user.id });
 
   const roomCols = "id, name, subject, ai_mode, visibility, timer_ends_at";
   let { data: room } = await supabase
@@ -158,6 +160,7 @@ export default async function RoomPage({
       studentName={studentName}
       studentInitials={initialsOf(studentName)}
       studentAvatarUrl={profile.profile_picture_url}
+      studentPlan={studentPlan}
       initialMessages={messages}
       initialRoomFiles={roomFiles}
       privateConvId={privateConvId}

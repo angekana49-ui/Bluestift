@@ -38,7 +38,7 @@ export function StudentBillingCard() {
 
   const free = plans?.find((p) => p.price === 0) ?? null;
   const paid = plans?.find((p) => (p.price ?? 0) > 0) ?? null;
-  const planName = free?.name ?? "Student plan — Free";
+  const planName = free?.name ?? "User — Free";
   const subtitle = free?.features[0] ?? "Unlimited solo RAYA sessions";
 
   return (
@@ -63,37 +63,34 @@ export function StudentBillingCard() {
           <span
             style={{
               fontSize: 11,
-              background: t.ctaBg,
-              color: t.ctaText,
+              background: t.inputBg,
+              color: t.muted,
+              border: `1px solid ${t.inputBorder}`,
               borderRadius: 99,
               padding: "8px 14px",
               fontWeight: 600,
               whiteSpace: "nowrap",
-              cursor: "pointer",
             }}
-            title={`${paid.name} — $${paid.price}/${paid.billingPeriod === "yearly" ? "yr" : "mo"}`}
+            title="Paid upgrades are temporarily unavailable"
           >
-            Upgrade to {paid.name}
+            Upgrades unavailable
           </span>
         )}
       </div>
-      <div style={{ fontSize: 11, color: t.muted, marginBottom: 8 }}>Payment method</div>
       <div
         style={{
           border: `1px solid ${t.inputBorder}`,
           background: t.inputBg,
           borderRadius: 10,
           padding: "10px 14px",
-          fontSize: 12.5,
-          color: t.text,
-          marginBottom: 14,
+          fontSize: 11.5,
+          lineHeight: 1.5,
+          color: t.muted,
         }}
       >
-        No payment method on file
-      </div>
-      <div style={{ fontSize: 11, color: t.muted, marginBottom: 8 }}>History</div>
-      <div style={{ fontSize: 11.5, color: t.mutedLight }}>
-        No invoices — the free plan doesn&apos;t generate billing.
+        <strong style={{ color: t.text }}>Billing is temporarily unavailable.</strong> We&apos;re
+        finalizing our payment integration — your free plan is unaffected, and no action is needed.
+        Paid upgrades will reopen shortly.
       </div>
     </SettingsCard>
   );

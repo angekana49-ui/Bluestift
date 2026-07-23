@@ -15,7 +15,17 @@ type Staff = { schoolName: string; role: string };
  * in the Schools app — because this is the shared user home. Already-staff users
  * see their school + the dashboard link, and can still spin up another school.
  */
-export function TeacherLink({ initial, startCreate = false }: { initial: Staff | null; startCreate?: boolean }) {
+export function TeacherLink({
+  initial,
+  startCreate = false,
+  hasEmail = true,
+}: {
+  initial: Staff | null;
+  startCreate?: boolean;
+  /** Whether the account has a verified email. Teacher/admin actions require one
+   *  (anonymous accounts are for basic learners); false shows the add-email gate. */
+  hasEmail?: boolean;
+}) {
   const { theme: t } = useAppTheme();
   const router = useRouter();
   const card = panelCard(t);
@@ -94,6 +104,26 @@ export function TeacherLink({ initial, startCreate = false }: { initial: Staff |
       setError("Couldn't reach the server.");
       setBusy(false);
     }
+  }
+
+  // ---- Email gate: staff (teacher/admin) accounts require a verified email ----
+  // Shown before any join/create surface for a not-yet-staff, email-less account
+  // (covers the onboarding create-intent deep link too). Anonymous accounts stay
+  // fine for basic learning; this is the deliberate line for adult staff accounts.
+  if (!hasEmail && !initial) {
+    return (
+      <div style={card}>
+        <h2 style={cardTitle(t)}>Do you teach at — or run — a school?</h2>
+        <p style={{ margin: "0 0 14px", color: t.muted, fontSize: 12.5, lineHeight: 1.6 }}>
+          Teacher and admin accounts need a <strong style={{ color: t.text }}>verified email</strong> — it keeps
+          school data tied to a real, recoverable account. Anonymous accounts stay perfect for learning solo, but
+          to join or run a school, link your email first.
+        </p>
+        <Link href="/account" style={{ ...btn, display: "inline-block", textDecoration: "none" }}>
+          Add your email →
+        </Link>
+      </div>
+    );
   }
 
   // ---- Create a school (reachable from any state) ----

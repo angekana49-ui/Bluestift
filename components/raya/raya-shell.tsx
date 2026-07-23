@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import {
   AppShell,
   Sidebar,
@@ -11,11 +12,13 @@ import {
   MainCard,
   MobileHeader,
   Scrim,
+  type ProfileMenuItem,
 } from "@/components/ui/shell";
 import {
   IconChat,
   IconRooms,
   IconTools,
+  IconQuiz,
   IconKernel,
   IconSettings,
   IconChevron,
@@ -27,6 +30,7 @@ const NAV = [
   { key: "chat", label: "Chat", href: "/chat", Icon: IconChat },
   { key: "rooms", label: "Rooms", href: "/rooms", Icon: IconRooms },
   { key: "tools", label: "Tools", href: "/tools", Icon: IconTools },
+  { key: "homework", label: "Homework", href: "/homework", Icon: IconQuiz },
   { key: "kernel", label: "My Kernel", href: "/profile", Icon: IconKernel },
   { key: "settings", label: "Settings", href: "/account", Icon: IconSettings },
 ] as const;
@@ -71,10 +75,32 @@ export function RayaShell({
   children: ReactNode;
 }) {
   const router = useRouter();
+  const [supabase] = useState(() => createClient());
   const [collapsed, setCollapsed] = useState(false);
   const [chatHistOpen, setChatHistOpen] = useState(true);
   /** Small-screen only: the sidebar is an overlay drawer. */
   const [navOpen, setNavOpen] = useState(false);
+  // Anonymous = no real email linked (the synthetic recovery address doesn't
+  // count). Drives the "Add your email" incentive in the profile menu.
+  const [isAnon, setIsAnon] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void supabase.auth.getUser().then(({ data }) => {
+      if (!active) return;
+      const email = data.user?.email?.toLowerCase() ?? null;
+      setIsAnon(!email || email.endsWith("@anon.bluestift.local"));
+    });
+    return () => {
+      active = false;
+    };
+  }, [supabase]);
+
+  async function signOut() {
+    await supabase.auth.signOut();
+    router.refresh();
+    router.push("/login");
+  }
 
   // While the drawer is open the sidebar is always full width, so the collapsed
   // icon-rail must not apply — otherwise labels vanish inside a wide drawer.
@@ -87,6 +113,25 @@ export function RayaShell({
     setNavOpen(false);
     router.push(href);
   };
+
+  // The profile chip opens this menu instead of jumping straight to Settings:
+  // coherent options + a gentle incentive to secure an anonymous account. The
+  // "Upgrade your plan" item is withheld while paid billing is unavailable.
+  const profileMenu: ProfileMenuItem[] = [
+    ...(isAnon
+      ? [{
+          key: "email",
+          label: "Add your email",
+          sublabel: "Secure your progress",
+          icon: <span style={{ fontSize: 15 }}>✉️</span>,
+          tone: "accent" as const,
+          onSelect: () => go("/account"),
+        }]
+      : []),
+    { key: "settings", label: "Settings", icon: <IconSettings />, onSelect: () => go("/account") },
+    { key: "kernel", label: "My Kernel", icon: <IconKernel />, onSelect: () => go("/profile") },
+    { key: "signout", label: "Sign out", tone: "danger", icon: <span style={{ fontSize: 14 }}>⏻</span>, onSelect: signOut },
+  ];
 
   return (
     <AppShell theme={t}>
@@ -167,7 +212,7 @@ export function RayaShell({
             subtitle={profileSubtitle}
             avatarBg={profileAvatarBg}
             avatarUrl={profileAvatarUrl}
-            onClick={() => go("/account")}
+            menu={profileMenu}
           />
         </div>
       </Sidebar>

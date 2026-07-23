@@ -4,6 +4,7 @@ import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { SCHOOL_TYPES } from "@/lib/school-admin";
 import { setActiveSchoolCookie } from "@/lib/school-active";
 import { currentAcademicYear } from "@/lib/school-constants";
+import { hasRealEmail } from "@/lib/auth";
 
 /**
  * Self-serve school creation: the signed-in user becomes the owner-admin of a new
@@ -17,6 +18,19 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  // Staff gate: creating a school makes you its admin — an adult, recoverable
+  // account. Anonymous (email-less) accounts are for basic learners only, so a
+  // verified email is required here. (Students join CLASSES anonymously elsewhere.)
+  if (!hasRealEmail(user.email)) {
+    return NextResponse.json(
+      {
+        error: "Add a verified email before creating a school — staff accounts need one. You can link it in Settings.",
+        code: "email_required",
+      },
+      { status: 403 },
+    );
+  }
 
   let body: { name?: string; countryCode?: string; schoolType?: string; city?: string };
   try {

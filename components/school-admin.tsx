@@ -5,16 +5,25 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { setActiveSchool } from "@/app/school/actions";
 import { SchoolRayaChat } from "@/components/school/school-raya-chat";
+import { AuthPanel } from "@/components/auth-panel";
+import { SettingsThemeCard } from "@/components/raya/settings-theme-card";
+import { StudentBillingCard } from "@/components/raya/settings-billing-card";
+import { SectionHeader } from "@/components/raya/section-header";
 import { SchoolReports } from "@/components/school-reports";
 import { SchoolTeam } from "@/components/school-team";
 import { SchoolInsights } from "@/components/school-insights";
 import { SchoolLms } from "@/components/school-lms";
 import { SchoolBilling } from "@/components/school-billing";
+import { InstructionsPanel } from "@/components/school/class-instructions";
+import { FollowupsPanel } from "@/components/school/prof-followups";
+import { ProfOverviewView } from "@/components/school/prof-overview";
+import { PrepareView } from "@/components/school/prof-prepare";
 import { downloadBrandedPdf, type BrandedDoc } from "@/lib/document";
 import { COUNTRIES, SCHOOL_TYPES } from "@/lib/school-constants";
 import { useDarkMode, useAppTheme, AppThemeProvider } from "@/components/ui/theme";
 import { SchoolsShell, type SchoolNavItem } from "@/components/school/schools-shell";
-import { RightPanel } from "@/components/ui/shell";
+import { RightPanel, type ProfileMenuItem } from "@/components/ui/shell";
+import { createClient } from "@/lib/supabase/client";
 import { KpiTile, MasteryGauge } from "@/components/ui/widgets";
 import {
   IconOverview,
@@ -43,6 +52,21 @@ import type {
   SchoolRole,
   StudentDetail,
 } from "@/lib/school-admin";
+
+/** The signed-in user's own account, for the in-dashboard Settings panel. Mirrors
+ * exactly what /account renders (theme + AuthPanel + billing), so the teacher's
+ * profile chip opens Settings in place instead of bouncing to the RAYA scaffold. */
+export type StaffAccount = {
+  user: { id: string; email: string | null; isAnonymous: boolean };
+  profile: {
+    username: string | null;
+    display_name: string | null;
+    account_type: string;
+    account_state: string;
+    recovery_code: string | null;
+    profile_picture_url: string | null;
+  };
+};
 
 const pctOrDash = (v: number | null) => (v == null ? "—" : `${Math.round(v * 100)}%`);
 const masteryColor = (m: number | null) =>
@@ -156,15 +180,18 @@ export function SchoolAdmin({
   planLabel = null,
   profSubjects = [],
   profSchoolName = null,
+  profSchoolLogoUrl = null,
   userAvatarUrl = null,
   memberships = [],
   activeSchoolId = null,
+  account = null,
   initialTab = null,
   initialJoinCode = null,
 }: {
   role: SchoolRole | null;
   dashboard: SchoolDashboard | null;
   profClasses: AdminClass[];
+  account?: StaffAccount | null;
   /** Signed-in teacher's identity + teaching subjects, for the prof dashboard. */
   teacherName?: string;
   /** Signed-in user's display name for the sidebar profile chip (name + photo). */
@@ -173,6 +200,7 @@ export function SchoolAdmin({
   planLabel?: string | null;
   profSubjects?: string[];
   profSchoolName?: string | null;
+  profSchoolLogoUrl?: string | null;
   userAvatarUrl?: string | null;
   memberships?: MembershipSummary[];
   activeSchoolId?: string | null;
@@ -190,18 +218,13 @@ export function SchoolAdmin({
       {showNoMembership ? (
         <NoMembership initialJoinCode={initialJoinCode} />
       ) : role === "prof" ? (
-        <ProfView classes={profClasses} teacherName={teacherName} planLabel={planLabel} subjects={profSubjects} schoolName={profSchoolName} />
+        <ProfView classes={profClasses} teacherName={teacherName} planLabel={planLabel} subjects={profSubjects} schoolName={profSchoolName} schoolLogoUrl={profSchoolLogoUrl} account={account} />
       ) : (
         <Dashboard dash={dash as SchoolDashboard} setDash={setDash} adminName={userName} planLabel={planLabel} initialTab={initialTab} />
       )}
      </SchoolUserContext.Provider>
     </AppThemeProvider>
   );
-}
-
-/** A concise "Teacher · Math, Physics" descriptor (or just "Teacher"). */
-function teacherRoleLabel(subjects: string[]): string {
-  return subjects.length > 0 ? `Teacher · ${subjects.join(", ")}` : "Teacher";
 }
 
 /**
@@ -217,8 +240,10 @@ function SchoolChrome({
   profileSubtitle,
   headerTitle,
   headerSubtitle,
+  headerLogoUrl,
   rightPanel,
   contentFlush,
+  onProfile,
   children,
 }: {
   nav: SchoolNavItem[];
@@ -230,13 +255,43 @@ function SchoolChrome({
   profileSubtitle?: string;
   headerTitle?: string;
   headerSubtitle?: string;
+  headerLogoUrl?: string | null;
   rightPanel?: React.ReactNode;
   contentFlush?: boolean;
+  /** What the sidebar profile chip does. Defaults to the /account page; the prof
+   *  dashboard overrides it to open Settings in place. */
+  onProfile?: () => void;
   children: React.ReactNode;
 }) {
   const { theme } = useAppTheme();
   const { avatarUrl, memberships, activeSchoolId } = useSchoolUser();
   const router = useRouter();
+
+  // The profile chip opens a small menu (like the RAYA app) rather than jumping
+  // straight to Settings. "Settings" delegates to the caller's `onProfile` (prof
+  // → in-dashboard settings; admin → /account), plus a sign-out.
+  const settingsAction = onProfile ?? (() => router.push("/account"));
+  async function signOut() {
+    await createClient().auth.signOut();
+    router.refresh();
+    router.push("/login");
+  }
+  const profileMenu: ProfileMenuItem[] = [
+    // An honest, non-forced door to the person's *own* Raya (solo chat, Tools,
+    // their Kernel). Teaching features live in this dashboard and are covered by
+    // the school; personal Raya is their own account — so we label who-pays and
+    // never redirect silently. This is the "want", not a "need".
+    {
+      key: "personal-raya",
+      label: "Your personal Raya",
+      sublabel: "Your own account · personal use",
+      icon: <IconChat />,
+      onSelect: () => router.push("/chat"),
+    },
+    { key: "settings", label: "Settings", icon: <IconSettings />, onSelect: settingsAction },
+    { key: "signout", label: "Sign out", tone: "danger", icon: <span style={{ fontSize: 14 }}>⏻</span>, onSelect: signOut },
+  ];
+
   return (
     <SchoolsShell
       theme={theme}
@@ -249,9 +304,11 @@ function SchoolChrome({
       profileSubtitle={profileSubtitle}
       profileAvatarUrl={avatarUrl}
       roleSwitch={<SchoolSwitcher memberships={memberships} activeSchoolId={activeSchoolId} />}
-      onProfile={() => router.push("/account")}
+      onProfile={onProfile ?? (() => router.push("/account"))}
+      profileMenu={profileMenu}
       headerTitle={headerTitle}
       headerSubtitle={headerSubtitle}
+      headerLogoUrl={headerLogoUrl}
       rightPanel={rightPanel}
       contentFlush={contentFlush}
     >
@@ -487,7 +544,20 @@ function AddSchoolByCode() {
   );
 }
 
-type ProfTab = "classes" | "insights" | "raya";
+type ProfTab =
+  | "overview"
+  | "classes"
+  | "focus"
+  | "prepare"
+  | "insights"
+  | "reports"
+  | "raya"
+  | "settings";
+
+type ProfNav =
+  | { mode: "list" }
+  | { mode: "class"; roster: ClassRoster }
+  | { mode: "student"; detail: StudentDetail; classId: string; onBack: () => void };
 
 function ProfView({
   classes,
@@ -495,22 +565,22 @@ function ProfView({
   planLabel = null,
   subjects,
   schoolName,
+  schoolLogoUrl = null,
+  account = null,
 }: {
   classes: AdminClass[];
   teacherName: string;
   planLabel?: string | null;
   subjects: string[];
   schoolName: string | null;
+  schoolLogoUrl?: string | null;
+  account?: StaffAccount | null;
 }) {
   const { t, box, ghost } = useSchoolStyles();
   const { memberships, activeSchoolId } = useSchoolUser();
-  const [tab, setTab] = useState<ProfTab>("classes");
+  const [tab, setTab] = useState<ProfTab>("overview");
   const [directives, setDirectives] = useState<{ id: string; content: string }[]>([]);
-  const [nav, setNav] = useState<
-    | { mode: "list" }
-    | { mode: "class"; roster: ClassRoster }
-    | { mode: "student"; detail: StudentDetail; onBack: () => void }
-  >({ mode: "list" });
+  const [nav, setNav] = useState<ProfNav>({ mode: "list" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -547,12 +617,18 @@ function ProfView({
       const detail = (await (
         await fetch(`/api/school/student?classId=${classId}&userId=${userId}`)
       ).json()) as StudentDetail;
-      setNav({ mode: "student", detail, onBack });
+      setNav({ mode: "student", detail, classId, onBack });
     } catch {
       setError("Could not load the student.");
     } finally {
       setBusy(false);
     }
+  }
+
+  // Open a student in the Focus tab (from the Overview at-risk feed or the picker).
+  function focusStudent(classId: string, userId: string) {
+    setTab("focus");
+    openStudent(classId, userId, () => setNav({ mode: "list" }));
   }
 
   // The school the teacher is currently viewing (server prop, else the active
@@ -562,14 +638,18 @@ function ProfView({
     memberships.find((m) => m.schoolId === activeSchoolId)?.schoolName ||
     memberships[0]?.schoolName ||
     "your school";
-  const roleLabel = teacherRoleLabel(subjects);
   // Profile chip (like RAYA): name + photo, with "Teacher · <forfait>" under it.
   const profileForfait = planLabel ? `Teacher · ${planLabel}` : "Teacher";
 
   const navItems: SchoolNavItem[] = [
+    { key: "overview", label: "Overview", icon: <IconOverview /> },
     { key: "classes", label: "Classes", icon: <IconClasses /> },
+    { key: "focus", label: "Focus", icon: <IconRooms /> },
+    { key: "prepare", label: "Prepare", icon: <IconFile /> },
     { key: "insights", label: "Insights", icon: <IconKernel /> },
+    { key: "reports", label: "Reports", icon: <IconSummary /> },
     { key: "raya", label: "RAYA", icon: <IconChat /> },
+    { key: "settings", label: "Settings", icon: <IconSettings /> },
   ];
   const goTab = (k: string) => {
     setTab(k as ProfTab);
@@ -580,9 +660,21 @@ function ProfView({
   // body (no page padding) when we're on that tab at the top level.
   const rayaFullScreen = tab === "raya" && nav.mode === "list";
 
+  // Header context line under the school name+logo: the drilled element, else the
+  // active tab — one short line so the header brands the school without saturating.
+  const tabLabel = navItems.find((n) => n.key === tab)?.label ?? "";
+  const contextLabel =
+    nav.mode === "student"
+      ? `${nav.detail.firstName} ${nav.detail.lastName}`.trim() || "Student"
+      : nav.mode === "class"
+        ? nav.roster.className
+        : tab === "raya"
+          ? "RAYA for Schools"
+          : tabLabel;
+
   let body: React.ReactNode;
   if (nav.mode === "student") {
-    body = <StudentDetailView detail={nav.detail} onBack={nav.onBack} />;
+    body = <StudentDetailView detail={nav.detail} classId={nav.classId} onBack={nav.onBack} />;
   } else if (nav.mode === "class") {
     const roster = nav.roster;
     body = (
@@ -598,8 +690,40 @@ function ProfView({
     );
   } else if (tab === "raya") {
     body = <SchoolRayaChat role="prof" staffName={teacherName} />;
+  } else if (tab === "settings") {
+    body = <ProfSettings account={account} classes={classes} />;
+  } else if (tab === "overview") {
+    body = (
+      <ProfOverviewView
+        classes={classes.map((c) => ({ id: c.id, name: c.name, studentCount: c.studentCount }))}
+        teacherName={teacherName}
+        onOpenStudent={focusStudent}
+        onGoto={(k) => goTab(k)}
+      />
+    );
+  } else if (tab === "prepare") {
+    body = <PrepareView classes={classes.map((c) => ({ id: c.id, name: c.name }))} schoolName={resolvedSchool} />;
+  } else if (tab === "reports") {
+    body = (
+      <SchoolReports
+        classes={classes.map((c) => ({ id: c.id, name: c.name }))}
+        schoolName={resolvedSchool}
+        allowedScopes={["class"]}
+      />
+    );
+  } else if (tab === "focus") {
+    body = (
+      <FocusView
+        classes={classes}
+        busy={busy}
+        error={error}
+        onOpenStudent={(classId, userId) =>
+          openStudent(classId, userId, () => setNav({ mode: "list" }))
+        }
+      />
+    );
   } else if (tab === "insights") {
-    body = <ProfInsightsView schoolName={resolvedSchool} onStudent={(classId, userId) => openStudent(classId, userId, () => setTab("insights"))} />;
+    body = <ProfInsightsView schoolName={resolvedSchool} onStudent={focusStudent} />;
   } else {
     body = (
       <>
@@ -644,17 +768,293 @@ function ProfView({
   return (
     <SchoolChrome
       nav={navItems}
-      activeKey={tab}
+      activeKey={nav.mode === "list" ? tab : ""}
       onNav={goTab}
       schoolName={resolvedSchool}
       profileName={teacherName}
       profileSubtitle={profileForfait}
-      headerTitle={rayaFullScreen ? "RAYA for Schools" : "Teacher dashboard"}
-      headerSubtitle={`${resolvedSchool} · ${roleLabel}`}
+      headerTitle={resolvedSchool}
+      headerSubtitle={contextLabel}
+      headerLogoUrl={schoolLogoUrl}
       contentFlush={rayaFullScreen}
+      onProfile={() => goTab("settings")}
     >
       {body}
     </SchoolChrome>
+  );
+}
+
+/**
+ * Focus mode: pick one student (class → student) and drop into their deep
+ * workspace (cognitive detail + learning graph + follow-up notes). A faster path
+ * than drilling through the class roster when you want to work on one learner.
+ */
+function FocusView({
+  classes,
+  busy,
+  error,
+  onOpenStudent,
+}: {
+  classes: AdminClass[];
+  busy: boolean;
+  error: string | null;
+  onOpenStudent: (classId: string, userId: string) => void;
+}) {
+  const { t, box } = useSchoolStyles();
+  const [classId, setClassId] = useState(classes[0]?.id ?? "");
+  const [roster, setRoster] = useState<ClassRoster | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!classId) {
+      setRoster(null);
+      return;
+    }
+    let alive = true;
+    setLoading(true);
+    (async () => {
+      try {
+        const r = (await (await fetch(`/api/school/roster?classId=${classId}`)).json()) as ClassRoster;
+        if (alive) setRoster(r);
+      } catch {
+        if (alive) setRoster(null);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [classId]);
+
+  if (classes.length === 0) {
+    return (
+      <div style={box}>
+        <p style={{ margin: 0, color: t.muted, fontSize: 12.5 }}>
+          You don&apos;t have any assigned classes yet, so there&apos;s no student to focus on.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={box}>
+        <h2 style={{ fontSize: "1.1rem", margin: "0 0 0.25rem" }}>Focus on a student</h2>
+        <p style={{ opacity: 0.6, fontSize: "0.85rem", margin: "0 0 0.75rem" }}>
+          Pick a class, then a student, to open their cognitive detail and your follow-up log.
+        </p>
+        <select
+          style={{ ...mkInput(t), minWidth: 200 }}
+          value={classId}
+          onChange={(e) => setClassId(e.target.value)}
+        >
+          {classes.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {error && <p style={{ color: "#f87171", fontSize: 12.5 }}>{error}</p>}
+      {(loading || busy) && <p style={{ color: t.muted, fontSize: 12.5 }}>Loading…</p>}
+
+      {roster && roster.students.length === 0 && (
+        <div style={box}>
+          <p style={{ margin: 0, opacity: 0.65 }}>No students have joined this class yet.</p>
+        </div>
+      )}
+      {roster?.students.map((s) => (
+        <RosterRow key={s.userId} s={s} busy={busy} onOpen={() => onOpenStudent(roster.classId, s.userId)} />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * The teacher's own account Settings, rendered *inside* the school dashboard so
+ * the profile chip no longer bounces to the RAYA-scaffolded /account page. Same
+ * cards as /account: theme, identity/auth (email link, recovery key), billing.
+ */
+function ProfSettings({ account, classes }: { account: StaffAccount | null; classes: AdminClass[] }) {
+  const { t } = useSchoolStyles();
+  if (!account) {
+    return (
+      <p style={{ color: t.muted, fontSize: 12.5 }}>
+        <Link href="/account" style={{ color: t.text }}>Open account settings →</Link>
+      </p>
+    );
+  }
+  return (
+    <div style={{ maxWidth: 560 }}>
+      <SectionHeader title="Settings" />
+      <SettingsThemeCard />
+      <TeachingPreferencesCard classes={classes} />
+      <AuthPanel user={account.user} profile={account.profile} />
+      <WhoPaysNote />
+      <StudentBillingCard />
+    </div>
+  );
+}
+
+/**
+ * Draws the billing boundary in plain words so the teacher understands the
+ * personal-Raya crossing is a choice, not a paywall on their work: teaching lives
+ * in this dashboard (school-covered), personal Raya is their own account. Keeps
+ * the fallback honest rather than abrupt or forced.
+ */
+function WhoPaysNote() {
+  const { t } = useSchoolStyles();
+  return (
+    <div
+      style={{
+        border: `1px solid ${t.cardBorder}`,
+        background: t.cardBg2,
+        borderRadius: 12,
+        padding: "12px 14px",
+        marginTop: 14,
+        fontSize: 11.5,
+        lineHeight: 1.5,
+        color: t.muted,
+      }}
+    >
+      <div style={{ fontWeight: 700, color: t.text, marginBottom: 4 }}>What your school covers</div>
+      Your teaching tools — classes, Focus, Prepare, reports and RAYA for Schools — are part of your
+      school&apos;s plan; you never pay for them. Your <strong style={{ color: t.text }}>personal Raya</strong>{" "}
+      (solo chat, Tools, your own Kernel) is your own account, on the free plan unless you choose to
+      upgrade it.
+    </div>
+  );
+}
+
+type TeachPrefs = {
+  defaultClassId: string | null;
+  defaultSubjectId: string | null;
+  reportTone: string | null;
+  examFocusWeakConcepts: boolean;
+};
+const TONES = ["", "neutral", "encouraging", "formal", "concise"];
+
+/**
+ * Teaching preferences that tailor the teacher's tools: a default class/subject
+ * to preselect, the tone of generated reports, and whether Prepare should aim
+ * material at the class's weakest concepts. Persisted per staff membership.
+ */
+function TeachingPreferencesCard({ classes }: { classes: AdminClass[] }) {
+  const { t, box, input, btn } = useSchoolStyles();
+  const [prefs, setPrefs] = useState<TeachPrefs | null>(null);
+  const [subjects, setSubjects] = useState<{ id: string; name: string }[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [p, s] = await Promise.all([
+          fetch("/api/school/preferences").then((r) => r.json()),
+          fetch("/api/school/subjects").then((r) => r.json()),
+        ]);
+        setPrefs(p.prefs as TeachPrefs);
+        if (Array.isArray(s.subjects)) setSubjects(s.subjects as { id: string; name: string }[]);
+      } catch {
+        setPrefs({ defaultClassId: null, defaultSubjectId: null, reportTone: null, examFocusWeakConcepts: true });
+      }
+    })();
+  }, []);
+
+  async function save() {
+    if (!prefs || busy) return;
+    setBusy(true);
+    setError(null);
+    setMsg(null);
+    try {
+      const res = await fetch("/api/school/preferences", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ prefs }),
+      });
+      const d = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(d?.error ?? "Could not save.");
+      setPrefs(d.prefs as TeachPrefs);
+      setMsg("Saved ✓");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!prefs) return <div style={box}><p style={{ margin: 0, color: t.muted, fontSize: 12.5 }}>Loading preferences…</p></div>;
+
+  const set = (patch: Partial<TeachPrefs>) => setPrefs((p) => (p ? { ...p, ...patch } : p));
+
+  return (
+    <div style={box}>
+      <h3 style={{ margin: "0 0 0.85rem", fontSize: "1.05rem" }}>Teaching preferences</h3>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.6rem" }}>
+        <label style={{ fontSize: "0.8rem", opacity: 0.6 }}>
+          Default class
+          <select
+            style={{ ...input, width: "100%", marginTop: 4 }}
+            value={prefs.defaultClassId ?? ""}
+            onChange={(e) => set({ defaultClassId: e.target.value || null })}
+            disabled={busy}
+          >
+            <option value="">None</option>
+            {classes.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </label>
+        <label style={{ fontSize: "0.8rem", opacity: 0.6 }}>
+          Default subject
+          <select
+            style={{ ...input, width: "100%", marginTop: 4 }}
+            value={prefs.defaultSubjectId ?? ""}
+            onChange={(e) => set({ defaultSubjectId: e.target.value || null })}
+            disabled={busy}
+          >
+            <option value="">None</option>
+            {subjects.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+        </label>
+        <label style={{ fontSize: "0.8rem", opacity: 0.6 }}>
+          Report tone
+          <select
+            style={{ ...input, width: "100%", marginTop: 4 }}
+            value={prefs.reportTone ?? ""}
+            onChange={(e) => set({ reportTone: e.target.value || null })}
+            disabled={busy}
+          >
+            {TONES.map((tone) => (
+              <option key={tone || "default"} value={tone}>
+                {tone ? tone.charAt(0).toUpperCase() + tone.slice(1) : "Default"}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.75rem", fontSize: "0.85rem" }}>
+        <input
+          type="checkbox"
+          checked={prefs.examFocusWeakConcepts}
+          onChange={(e) => set({ examFocusWeakConcepts: e.target.checked })}
+          disabled={busy}
+        />
+        Aim prepared material at my class&apos;s weakest concepts
+      </label>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginTop: "0.9rem" }}>
+        <button style={{ ...btn, opacity: busy ? 0.7 : 1 }} onClick={save} disabled={busy}>
+          {busy ? "Saving…" : "Save preferences"}
+        </button>
+        {msg && <span style={{ color: "#22c55e", fontSize: "0.85rem" }}>{msg}</span>}
+        {error && <span style={{ color: "#f87171", fontSize: "0.85rem" }}>{error}</span>}
+      </div>
+    </div>
   );
 }
 
@@ -1002,7 +1402,11 @@ function SchoolSettings({
 }
 
 type DashTab = "overview" | "manage" | "team" | "insights" | "lms" | "raya" | "reports" | "billing" | "settings";
-const DASH_TABS: DashTab[] = ["overview", "manage", "team", "insights", "lms", "raya", "reports", "billing", "settings"];
+// "lms" (Google Classroom) is intentionally omitted from the reachable set: the
+// integration needs a Google OAuth app that isn't provisioned yet, so it's hidden
+// from the nav until it's wired. The tab branch + component are kept so re-enabling
+// is a one-line change (add "lms" back here and to navItems).
+const DASH_TABS: DashTab[] = ["overview", "manage", "team", "insights", "raya", "reports", "billing", "settings"];
 
 function Dashboard({
   dash,
@@ -1182,7 +1586,7 @@ function Dashboard({
     { key: "manage", label: "Classes & codes", icon: <IconClasses /> },
     { key: "team", label: "Team", icon: <IconRooms /> },
     { key: "insights", label: "Insights", icon: <IconKernel /> },
-    { key: "lms", label: "LMS", icon: <IconFile /> },
+    // LMS (Google Classroom) hidden until the OAuth integration is provisioned.
     { key: "raya", label: "RAYA", icon: <IconChat /> },
     { key: "reports", label: "Reports", icon: <IconSummary /> },
     { key: "billing", label: "Billing", icon: <IconBilling /> },
@@ -1253,9 +1657,20 @@ function Dashboard({
   // its own right panel) — like the prof dashboard's RAYA tab.
   const rayaFlush = nav.mode === "list" && tab === "raya";
 
+  // Header context line under the school name+logo: the drilled element, else the
+  // active tab — one short line so the header brands the school without saturating.
+  const contextLabel =
+    nav.mode === "student"
+      ? `${nav.detail.firstName} ${nav.detail.lastName}`.trim() || "Student"
+      : nav.mode === "class"
+        ? nav.roster.className
+        : tab === "raya"
+          ? "RAYA for Schools"
+          : navItems.find((n) => n.key === tab)?.label ?? "";
+
   let body: React.ReactNode;
   if (nav.mode === "student") {
-    body = <StudentDetailView detail={nav.detail} onBack={() => setNav({ mode: "class", roster: nav.roster })} />;
+    body = <StudentDetailView detail={nav.detail} classId={nav.roster.classId} onBack={() => setNav({ mode: "class", roster: nav.roster })} />;
   } else if (nav.mode === "class") {
     body = (
       <RosterView
@@ -1285,7 +1700,9 @@ function Dashboard({
       schoolName={dash.school.name}
       profileName={adminName || dash.school.name}
       profileSubtitle={planLabel ? `Admin · ${planLabel}` : "Admin"}
-      headerTitle="School"
+      headerTitle={dash.school.name}
+      headerSubtitle={contextLabel}
+      headerLogoUrl={dash.school.logoUrl}
       contentFlush={rayaFlush}
       rightPanel={nav.mode === "list" && tab === "overview" && overview ? <OverviewRightPanel overview={overview} /> : undefined}
     >
@@ -1648,122 +2065,6 @@ function RosterView({
   );
 }
 
-type Instruction = { id: string; content: string; isActive: boolean; subjectId: string | null; subjectName: string | null };
-type SubjectOpt = { id: string; name: string };
-
-/** Teacher instructions that steer RAYA for this class (admin_master or assigned prof). */
-function InstructionsPanel({ classId }: { classId: string }) {
-  const { box, input, btn, ghost } = useSchoolStyles();
-  const [items, setItems] = useState<Instruction[]>([]);
-  const [subjects, setSubjects] = useState<SubjectOpt[]>([]);
-  const [content, setContent] = useState("");
-  const [subjectId, setSubjectId] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const r = await fetch(`/api/school/instructions?classId=${encodeURIComponent(classId)}`);
-        const d = await r.json();
-        if (r.ok) {
-          setItems(d.instructions ?? []);
-          setSubjects(d.subjects ?? []);
-        }
-      } catch {
-        // leave empty
-      }
-    })();
-  }, [classId]);
-
-  async function add(e: React.FormEvent) {
-    e.preventDefault();
-    if (!content.trim() || busy) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const d = (await postJson("/api/school/instructions", {
-        classId,
-        subjectId: subjectId || null,
-        content,
-      })) as Instruction;
-      const subjectName = subjects.find((s) => s.id === d.subjectId)?.name ?? null;
-      setItems((v) => [{ ...d, subjectName }, ...v]);
-      setContent("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not add the instruction.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function toggle(it: Instruction) {
-    setError(null);
-    try {
-      await postJson("/api/school/instructions", { id: it.id, isActive: !it.isActive }, "PATCH");
-      setItems((v) => v.map((x) => (x.id === it.id ? { ...x, isActive: !x.isActive } : x)));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not update.");
-    }
-  }
-
-  async function remove(id: string) {
-    setError(null);
-    try {
-      const res = await fetch(`/api/school/instructions?id=${encodeURIComponent(id)}`, { method: "DELETE" });
-      if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? "Could not delete.");
-      setItems((v) => v.filter((x) => x.id !== id));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not delete.");
-    }
-  }
-
-  return (
-    <div style={box}>
-      <h3 style={{ marginTop: 0 }}>Instructions to RAYA</h3>
-      <p style={{ opacity: 0.6, fontSize: "0.82rem", marginTop: 0 }}>
-        Focus areas RAYA applies for this class&apos;s students — guidance only, it never gives
-        answers away.
-      </p>
-      {error && <p style={{ color: "#f87171", fontSize: "0.85rem" }}>{error}</p>}
-      {items.length === 0 && <p style={{ opacity: 0.55, fontSize: "0.85rem" }}>No instructions yet.</p>}
-      {items.map((it) => (
-        <div key={it.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.35rem 0" }}>
-          <span style={{ flex: 1, opacity: it.isActive ? 1 : 0.45 }}>
-            {it.content}
-            <span style={{ opacity: 0.5, fontSize: "0.78rem" }}>
-              {" "}· {it.subjectName ?? "all subjects"}
-            </span>
-          </span>
-          <button style={ghost} onClick={() => toggle(it)}>{it.isActive ? "Disable" : "Enable"}</button>
-          <button
-            onClick={() => remove(it.id)}
-            title="Delete"
-            style={{ background: "transparent", color: "#6b7794", border: "none", cursor: "pointer" }}
-          >
-            ✕
-          </button>
-        </div>
-      ))}
-      <form onSubmit={add} style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem", flexWrap: "wrap" }}>
-        <input
-          style={{ ...input, flex: 1, minWidth: 200 }}
-          placeholder="e.g. Focus on fractions this week"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          maxLength={500}
-        />
-        <select style={input} value={subjectId} onChange={(e) => setSubjectId(e.target.value)}>
-          <option value="">All subjects</option>
-          {subjects.map((s) => (
-            <option key={s.id} value={s.id}>{s.name}</option>
-          ))}
-        </select>
-        <button type="submit" style={btn} disabled={busy || !content.trim()}>Add</button>
-      </form>
-    </div>
-  );
-}
 
 function RosterRow({ s, busy, onOpen }: { s: RosterStudent; busy: boolean; onOpen: () => void }) {
   const { box, ghost } = useSchoolStyles();
@@ -1871,7 +2172,16 @@ function LearningGraphView({ graph }: { graph: LearningGraph }) {
   );
 }
 
-function StudentDetailView({ detail, onBack }: { detail: StudentDetail; onBack: () => void }) {
+function StudentDetailView({
+  detail,
+  onBack,
+  classId,
+}: {
+  detail: StudentDetail;
+  onBack: () => void;
+  /** When set, the team-shared follow-up log for this student is shown below. */
+  classId?: string;
+}) {
   const { t, box, ghost } = useSchoolStyles();
   return (
     <div>
@@ -1960,6 +2270,8 @@ function StudentDetailView({ detail, onBack }: { detail: StudentDetail; onBack: 
           ))
         )}
       </div>
+
+      {classId && <FollowupsPanel classId={classId} studentUserId={detail.userId} />}
     </div>
   );
 }

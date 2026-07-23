@@ -293,6 +293,11 @@ export function FilePreview({
             <iframe
               src={url}
               title={file.file_name ?? "Document"}
+              // Sandboxed: the file is user-uploaded content served from the Storage
+              // origin via a signed URL. `allow-downloads` keeps the viewer's save
+              // button working while blocking scripts, forms, popups and same-origin
+              // access, so a malicious PDF/HTML can't run in our context.
+              sandbox="allow-downloads"
               style={{ width: "100%", height: "70vh", border: "none", borderRadius: 3 }}
             />
           )}

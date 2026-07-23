@@ -2,6 +2,30 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { getAdminMembership } from "@/lib/school-admin";
+import { sendEmail, renderEmail, getUserEmail, siteUrl } from "@/lib/email";
+
+/** Tell a teacher their join request was decided (best-effort, non-blocking). */
+async function notifyDecision(teacherUserId: string, schoolName: string, approved: boolean) {
+  const to = await getUserEmail(teacherUserId);
+  if (!to) return;
+  const { html, text } = approved
+    ? renderEmail({
+        heading: `You've joined ${schoolName}`,
+        lines: [
+          `Your request to join ${schoolName} on RAYA for Schools was approved.`,
+          "You can now open the school dashboard and start working with your classes.",
+        ],
+        cta: { label: "Open your dashboard", url: `${siteUrl()}/school` },
+      })
+    : renderEmail({
+        heading: `Update on your request to ${schoolName}`,
+        lines: [
+          `Your request to join ${schoolName} on RAYA for Schools wasn't approved this time.`,
+          "If you think this is a mistake, reach out to your school administrator.",
+        ],
+      });
+  await sendEmail({ to, subject: approved ? `You've joined ${schoolName}` : `Your request to ${schoolName}`, html, text });
+}
 
 type RequestRow = { id: string; school_id: string; user_id: string; status: string };
 
@@ -78,6 +102,10 @@ export async function POST(request: Request) {
     })
     .eq("id", requestId);
   if (updErr) return NextResponse.json({ error: updErr.message }, { status: 500 });
+
+  // Let the teacher know the outcome. Awaited (not fire-and-forget) so it isn't
+  // dropped when the serverless function ends; sendEmail never throws.
+  await notifyDecision(reqRow.user_id, membership.schoolName, action === "approve");
 
   return NextResponse.json({
     id: requestId,

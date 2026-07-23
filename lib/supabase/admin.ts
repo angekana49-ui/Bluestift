@@ -2,6 +2,25 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
 
 /**
+ * Call a Postgres function that isn't in the generated Database types (e.g. new
+ * SECURITY DEFINER helpers added by a migration before `gen:types` is re-run).
+ * Single cast point so call sites stay free of `any`.
+ */
+export async function adminRpc<T = unknown>(
+  client: ReturnType<typeof createAdminClient>,
+  fn: string,
+  args?: Record<string, unknown>,
+): Promise<{ data: T | null; error: { message: string } | null }> {
+  const c = client as unknown as {
+    rpc: (
+      f: string,
+      a?: Record<string, unknown>,
+    ) => Promise<{ data: T | null; error: { message: string } | null }>;
+  };
+  return c.rpc(fn, args);
+}
+
+/**
  * SERVER-ONLY admin client using the service_role key. Bypasses RLS.
  * Never import this into a client component. Use for privileged backend work
  * (cross-schema reads, trusted writes). The Kernel service uses its own

@@ -42,3 +42,63 @@ grant select, insert, update, delete on schools.class_instructions to service_ro
 
 Tant que le SQL n'est pas appliqué, `getProfInsights`/RAYA marchent, et la section
 Instructions dégrade en douceur (les lectures échouent en try/catch → liste vide).
+
+## Dashboard enseignant complet (migration `prof_dashboard_tables`)
+
+Le prof n'est plus un spectateur : `ProfView` (`components/school-admin.tsx`) est un vrai
+tableau de bord — **Overview · Classes · Focus · Prepare · Insights · Reports · RAYA · Settings**.
+
+- **Overview** (`components/school/prof-overview.tsx`) : KPIs de ses classes + fil « élèves à
+  suivre » (→ Focus) + carte **Instructions → RAYA** par classe (rend `class-instructions.tsx`,
+  extrait du roster pour éviter un import circulaire) + liens rapides.
+- **Focus** (`FocusView`) : sélection classe→élève → `StudentDetailView` (cognitif + graphe) +
+  **notes de suivi** partagées avec l'équipe de classe (`FollowupsPanel`,
+  `components/school/prof-followups.tsx`). Sert le « suivi personnalisé » et le « mode focus ».
+- **Prepare** (`components/school/prof-prepare.tsx`) : RAYA+Kernel génèrent exam/exo/worksheet/quiz
+  **ancrés sur les lacunes réelles** (`buildClassContext`/`buildSubjectContext`). Une seule
+  génération JSON produit les `questions[]` structurées ; le markdown est composé **de façon
+  déterministe** (doc et jsonb ne peuvent pas diverger) → export PDF brandé + bibliothèque
+  persistée. **Assignation aux élèves = branchée** (voir ci-dessous).
+- **Reports** : `SchoolReports` réutilisé avec `allowedScopes={["class"]}` (le prof ne voit que
+  ses classes ; école/matière restent admin).
+- **Settings** : compte (thème/auth/billing) + **préférences d'enseignement**
+  (`TeachingPreferencesCard`) — classe/matière par défaut, ton des rapports, focus lacunes.
+
+### Nouvelles tables `schools` (RLS deny-all + grant service_role explicite)
+
+- `student_followups` — notes de suivi, partagées équipe de classe (gate `assertClassAccess`).
+- `teacher_resources` — bibliothèque exam/exo (`kind` CHECK exam|exercise|worksheet|quiz,
+  `questions` jsonb = graine d'assignation future).
+- `staff_preferences` — préférences par membership (`admin_id` = `school_admins.id`).
+
+### Routes
+
+`app/api/school/followups` (CRUD, `assertClassAccess`), `app/api/school/prepare`
+(GET biblio / POST génère), `app/api/school/preferences` (GET/PATCH), `app/api/school/prof-overview`
+(GET), `app/api/school/subjects` (GET ajouté, staff). `app/api/school/reports` **étendu** : un prof
+peut générer un rapport `scope=class` sur une classe assignée (école/matière restent admin_master).
+
+> Propagation « via RAYA » = côté prompt app (getStudentRecommendations), inchangée — le contrat
+> Kernel n'ingère pas les consignes. Tout dégrade en douceur si le Kernel/LLM est indisponible.
+
+## Assignation d'un exam/exo aux élèves (migration `assignment_challenges`)
+
+Un `teacher_resources` peut être **assigné à une classe** : il est *matérialisé* en une
+`learning.challenges` (scope `assignment`, nouveau dans le CHECK) + ses `challenge_questions`,
+donc les élèves le passent via **le moteur de challenge existant** (1 tentative/user, QCM auto +
+open notées par le LLM, boucle Kernel). Le lien est `schools.resource_assignments`
+(`challenge_id` = uuid, couplage lâche cross-schema ; `class_id`, `due_at` optionnel, `is_active`).
+
+- **Côté prof** (`prof-prepare.tsx`) : bouton **Assign** par item de biblio (classe + date limite
+  optionnelle → `POST /api/school/prepare/assign`, gate `assertClassAccess`, dérive l'index QCM
+  depuis `answer`), puis section **« Assigned to classes »** avec compteur *done/assigned* et
+  **résultats par élève** (`GET /api/school/prepare/{assignments,results}`).
+- **Côté élève** : nouvel onglet **Homework** (`/homework`, nav `raya-shell`, `AssignmentsView`
+  réutilise `TestPlayer`). `GET /api/assignments` liste (statut à faire/fait+score/fermé),
+  `?challengeId=` renvoie les questions **sans réponses**, `POST /api/assignments/submit` **garde**
+  la passation : membre de la classe assignée, avant la date limite, **une seule tentative**
+  (409 sinon), puis notation identique au challenge + feed Kernel.
+
+> Décision : **1 tentative + date limite optionnelle** (vrai contrôle, pas entraînement).
+> La notation est **dupliquée** (self-contained) plutôt que d'extraire le grader du chemin
+> `/api/challenges/submit` éprouvé — même philosophie que le chemin de paiement.

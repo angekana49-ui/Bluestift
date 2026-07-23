@@ -1,7 +1,22 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
-import { getAdminMembership } from "@/lib/school-admin";
+import { getAdminMembership, getSchoolSubjects } from "@/lib/school-admin";
+
+/** List the subjects available to the caller's school (any staff). */
+export async function GET() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const membership = await getAdminMembership(user.id);
+  if (!membership) return NextResponse.json({ error: "School staff only." }, { status: 403 });
+
+  const subjects = await getSchoolSubjects(user.id);
+  return NextResponse.json({ subjects });
+}
 
 /** Create a subject for the admin_master's school. */
 export async function POST(request: Request) {

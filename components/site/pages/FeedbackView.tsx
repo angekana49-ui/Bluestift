@@ -10,31 +10,33 @@ import { IconLightbulb, IconBug, IconSparkle, IconHeart, IconChatBubble, IconSta
 type IconEl = ComponentType<{ size?: number; filled?: boolean }>;
 
 const PRAISE_RED = "#e0245e";
+const STAR_GOLD = "#f5a623";
 
-type FloatHeart = { id: number; left: number; size: number; delay: number; duration: number; drift: number; spin: number; color: string };
+type Kind = "heart" | "star";
+type Particle = { id: number; kind: Kind; left: number; size: number; delay: number; duration: number; drift: number; spin: number; color: string; glow: string };
 
-/** Full-screen one-shot burst of hearts rising and fading — the "Praise" like. */
-function HeartBurst({ hearts }: { hearts: FloatHeart[] }) {
-  if (hearts.length === 0) return null;
+/** Full-screen one-shot burst of hearts/stars rising and fading — the "like". */
+function ParticleBurst({ particles }: { particles: Particle[] }) {
+  if (particles.length === 0) return null;
   return (
     <div aria-hidden style={{ position: "fixed", inset: 0, pointerEvents: "none", overflow: "hidden", zIndex: 9999 }}>
-      {hearts.map((h) => (
+      {particles.map((p) => (
         <span
-          key={h.id}
+          key={p.id}
           style={
             {
               position: "absolute",
-              left: `${h.left}vw`,
+              left: `${p.left}vw`,
               bottom: -48,
-              color: h.color,
-              filter: "drop-shadow(0 2px 6px rgba(224,36,94,0.35))",
-              animation: `heartRise ${h.duration}s cubic-bezier(0.34,0.2,0.4,1) ${h.delay}s forwards`,
-              "--drift": `${h.drift}px`,
-              "--spin": `${h.spin}deg`,
+              color: p.color,
+              filter: `drop-shadow(0 2px 6px ${p.glow})`,
+              animation: `heartRise ${p.duration}s cubic-bezier(0.34,0.2,0.4,1) ${p.delay}s forwards`,
+              "--drift": `${p.drift}px`,
+              "--spin": `${p.spin}deg`,
             } as CSSProperties
           }
         >
-          <IconHeart size={h.size} filled />
+          {p.kind === "star" ? <IconStar size={p.size} filled /> : <IconHeart size={p.size} filled />}
         </span>
       ))}
     </div>
@@ -56,29 +58,32 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "busy" | "done" | "error">("idle");
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
-  const [hearts, setHearts] = useState<FloatHeart[]>([]);
+  const [particles, setParticles] = useState<Particle[]>([]);
   const turnstileRef = useRef<TurnstileHandle>(null);
   const burstTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Clear any pending burst timeout if the view unmounts mid-celebration.
   useEffect(() => () => { if (burstTimer.current) clearTimeout(burstTimer.current); }, []);
 
-  function celebratePraise() {
+  function celebrate(kind: Kind) {
     const base = Date.now();
-    const batch: FloatHeart[] = Array.from({ length: 22 }, (_, i) => ({
+    const glow = kind === "star" ? "rgba(245,166,35,0.4)" : "rgba(224,36,94,0.35)";
+    const batch: Particle[] = Array.from({ length: 22 }, (_, i) => ({
       id: base + i,
+      kind,
       left: 4 + Math.random() * 92, // vw
       size: 16 + Math.random() * 26,
       delay: Math.random() * 1.1, // s — staggered so they keep popping
       duration: 2.6 + Math.random() * 1.6, // s — rise time
       drift: (Math.random() - 0.5) * 160, // px sideways sway
       spin: (Math.random() - 0.5) * 60, // deg
-      color: i % 3 === 0 ? "#ff5c8a" : PRAISE_RED, // a couple of pink shades
+      color: kind === "star" ? (i % 2 === 0 ? STAR_GOLD : "#ffcf4d") : i % 3 === 0 ? "#ff5c8a" : PRAISE_RED,
+      glow,
     }));
-    setHearts(batch);
+    setParticles(batch);
     if (burstTimer.current) clearTimeout(burstTimer.current);
-    // Longest heart finishes by ~1.1s delay + ~4.2s rise; clear a hair after.
-    burstTimer.current = setTimeout(() => setHearts([]), 5000);
+    // Longest particle finishes by ~1.1s delay + ~4.2s rise; clear a hair after.
+    burstTimer.current = setTimeout(() => setParticles([]), 5000);
   }
 
   const canSend = message.trim().length > 0 || rating > 0;
@@ -120,7 +125,7 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
     <SitePage active="Product" section="Feedback" signedIn={signedIn}>
       {(t) => (
         <>
-        <HeartBurst hearts={hearts} />
+        <ParticleBurst particles={particles} />
         <section style={{ position: "relative", zIndex: 1, overflow: "hidden", padding: "150px 24px 0" }}>
           <div style={{ maxWidth: 560, margin: "0 auto", width: "100%", boxSizing: "border-box", paddingBottom: 96 }}>
             <h1 style={{ fontFamily: "'Inter Tight',sans-serif", fontWeight: 900, fontSize: "clamp(1.6rem,4vw,2.4rem)", letterSpacing: "-0.02em", margin: "0 0 10px", color: t.text }}>
@@ -149,7 +154,7 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
                         key={k}
                         onClick={() => {
                           setType(k);
-                          if (k === "praise") celebratePraise();
+                          if (k === "praise") celebrate("heart");
                         }}
                         style={{
                           display: "inline-flex",
@@ -180,7 +185,11 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
                   {[1, 2, 3, 4, 5].map((n) => (
                     <button
                       key={n}
-                      onClick={() => setRating(n === rating ? 0 : n)}
+                      onClick={() => {
+                        const next = n === rating ? 0 : n;
+                        setRating(next);
+                        if (next >= 4) celebrate("star");
+                      }}
                       aria-label={`${n} star${n > 1 ? "s" : ""}`}
                       style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "inline-flex", color: n <= rating ? "#f5a623" : t.mutedLight }}
                     >

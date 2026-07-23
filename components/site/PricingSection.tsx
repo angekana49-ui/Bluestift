@@ -50,9 +50,9 @@ export default function PricingSection({ theme: t }: { theme: Theme }) {
         </div>
 
         <div className="pub-grid-3" style={{ gap: 20, alignItems: "stretch" }}>
-          {/* 1 — Students (solo) */}
+          {/* 1 — Solo (individual) */}
           {gatewayCard({
-            title: "Students",
+            title: "Solo",
             lines: [
               "Solo learning, RAYA in your corner",
               "Remembers every concept",
@@ -60,8 +60,8 @@ export default function PricingSection({ theme: t }: { theme: Theme }) {
               "Quizzes, summaries, flashcards",
             ],
             meta: "Free · Plus $6.99 · Max $19.99 / mo",
-            cta: "See student plans",
-            href: "/pricing?for=students",
+            cta: "See solo plans",
+            href: "/pricing?for=solo",
             blobDur: "10.5s",
             blobDelay: "0s",
           })}

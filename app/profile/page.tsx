@@ -7,6 +7,8 @@ import { SchoolLink } from "@/components/school-link";
 import { TeacherLink } from "@/components/teacher-link";
 import { getStudentSchoolLink } from "@/lib/school";
 import { getAdminMembership } from "@/lib/school-admin";
+import { getPlanLabel } from "@/lib/billing";
+import { hasRealEmail } from "@/lib/auth";
 import { RayaScaffold } from "@/components/raya/raya-scaffold";
 import { SectionHeader } from "@/components/raya/section-header";
 import { initialsOf } from "@/lib/name";
@@ -49,20 +51,21 @@ export default async function ProfilePage({
     .filter((a): a is { score: number; completed_at: string } => a.score != null && a.completed_at != null)
     .map((a) => ({ t: a.completed_at, score: a.score }));
 
-  const [schoolLink, membership] = await Promise.all([
+  const [schoolLink, membership, studentPlan] = await Promise.all([
     getStudentSchoolLink(user.id),
     getAdminMembership(user.id),
+    getPlanLabel({ userId: user.id }),
   ]);
   const staff = membership
     ? { schoolName: membership.schoolName, role: membership.role }
     : null;
 
   return (
-    <RayaScaffold active="kernel" studentName={studentName} studentInitials={initialsOf(studentName)} studentAvatarUrl={profile.profile_picture_url}>
+    <RayaScaffold active="kernel" studentName={studentName} studentInitials={initialsOf(studentName)} studentAvatarUrl={profile.profile_picture_url} studentPlan={studentPlan}>
       <div style={{ flex: 1, overflow: "auto", padding: "32px 40px", minWidth: 0 }}>
         <SectionHeader title="My Kernel" subtitle="Your mastery, concept by concept — not a single grade." />
         <SchoolLink initial={schoolLink} />
-        <TeacherLink initial={staff} startCreate={startCreateSchool} />
+        <TeacherLink initial={staff} startCreate={startCreateSchool} hasEmail={hasRealEmail(user.email)} />
         <ProgressCurve points={points} />
         <CognitiveProfile />
         <StudentSimulation />

@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useDarkMode } from "@/components/ui/theme";
 import { type AppTheme } from "@/components/ui/tokens";
+import { downloadBrandedPdf, downloadBrandedText, type BrandedDoc } from "@/lib/document";
+import { TestPlayer, ReaderView, type TestAnswer, type TestQuestion, type TestResult } from "@/components/study/focus-player";
+import { ShareLinkButton } from "@/components/study/share-button";
+import { parseDoc } from "@/lib/doc-format";
 
 type Challenge = {
   id: string;
@@ -11,8 +15,9 @@ type Challenge = {
   description: string | null;
   status: string;
   question_count: number | null;
+  format?: string | null;
 };
-type Question = { id: string; content: string | null; options: string[] };
+type Question = { id: string; type: "mcq" | "open"; content: string | null; options: string[] };
 type LeaderRow = {
   user_id: string;
   display_name: string | null;
@@ -21,6 +26,14 @@ type LeaderRow = {
   status: string;
 };
 
+// Test kinds, as in the Tools studio — chosen at creation. Rooms keep their own
+// originality (the shared leaderboard) on top of the same focused player.
+const TEST_KINDS = [
+  { id: "quiz", label: "Quiz", hint: "Quick multiple-choice" },
+  { id: "exam", label: "Exam", hint: "Mixed MCQ + open" },
+  { id: "skills", label: "Skills", hint: "Open competency" },
+];
+
 const mkBtn = (t: AppTheme): React.CSSProperties => ({
   background: t.ctaBg,
   color: t.ctaText,
@@ -28,6 +41,16 @@ const mkBtn = (t: AppTheme): React.CSSProperties => ({
   borderRadius: 99,
   padding: "9px 16px",
   fontSize: 12,
+  fontWeight: 600,
+  cursor: "pointer",
+});
+const mkGhost = (t: AppTheme): React.CSSProperties => ({
+  background: t.cardBg2,
+  color: t.text,
+  border: `1.5px solid ${t.dark ? "rgba(255,255,255,0.22)" : "rgba(15,23,42,0.20)"}`,
+  borderRadius: 99,
+  padding: "6px 13px",
+  fontSize: 11.5,
   fontWeight: 600,
   cursor: "pointer",
 });
@@ -51,14 +74,26 @@ const mkField = (t: AppTheme): React.CSSProperties => ({
   boxSizing: "border-box",
   outline: "none",
 });
+const chip = (t: AppTheme, on: boolean): React.CSSProperties => ({
+  background: on ? t.ctaBg : "transparent",
+  color: on ? t.ctaText : t.muted,
+  border: `1px solid ${on ? t.ctaBg : t.cardBorder}`,
+  borderRadius: 99,
+  padding: "6px 12px",
+  fontSize: 11.5,
+  fontWeight: 600,
+  cursor: "pointer",
+});
 
 export function RoomChallenges({
   roomId,
+  roomName,
   subject,
   myUserId,
   readOnly = false,
 }: {
   roomId: string;
+  roomName: string;
   subject: string | null;
   myUserId: string;
   /** When the room's timer has ended: no new challenges, no new attempts. */
@@ -66,29 +101,32 @@ export function RoomChallenges({
 }) {
   const { theme: t } = useDarkMode();
   const btn = mkBtn(t);
+  const ghost = mkGhost(t);
   const box = mkBox(t);
   const field = mkField(t);
   const [supabase] = useState(() => createClient());
-  const [view, setView] = useState<"list" | "take" | "result">("list");
+  const [view, setView] = useState<"list" | "take" | "standings" | "analysis">("list");
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [name, setName] = useState("");
   const [topic, setTopic] = useState(subject ?? "");
   const [goal, setGoal] = useState("");
+  const [kind, setKind] = useState("quiz");
   const [sourceFile, setSourceFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [active, setActive] = useState<Challenge | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [answers, setAnswers] = useState<Record<string, number>>({});
   const [result, setResult] = useState<{ score: number; correct: number; total: number } | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderRow[]>([]);
+  const [analysis, setAnalysis] = useState<{ title: string; body: string } | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
 
   async function loadChallenges() {
     const { data } = await supabase
       .schema("learning")
       .from("challenges")
-      .select("id, title, description, status, question_count")
+      .select("id, title, description, status, question_count, format")
       .eq("room_id", roomId)
       .order("created_at", { ascending: false });
     setChallenges(data ?? []);
@@ -109,6 +147,7 @@ export function RoomChallenges({
       fd.append("name", name);
       fd.append("topic", topic);
       fd.append("goal", goal);
+      fd.append("kind", kind);
       if (sourceFile) fd.append("file", sourceFile);
       const res = await fetch("/api/challenges/create", { method: "POST", body: fd });
       const data = await res.json();
@@ -134,123 +173,191 @@ export function RoomChallenges({
       const { data } = await supabase
         .schema("learning")
         .from("challenge_questions")
-        .select("id, content, options, order")
+        .select("id, content, type, options, order")
         .eq("challenge_id", ch.id)
         .order("order", { ascending: true });
+      const qs: Question[] = (data ?? []).map((q) => ({
+        id: q.id,
+        type: q.type === "open" ? "open" : "mcq",
+        content: q.content,
+        options: (q.options as string[]) ?? [],
+      }));
+      if (qs.length === 0) {
+        setError("This challenge has no questions yet.");
+        return;
+      }
       setActive(ch);
-      setQuestions(
-        (data ?? []).map((q) => ({
-          id: q.id,
-          content: q.content,
-          options: (q.options as string[]) ?? [],
-        })),
-      );
-      setAnswers({});
+      setQuestions(qs);
       setResult(null);
+      setAnalysis(null);
       setView("take");
     } finally {
       setBusy(false);
     }
   }
 
-  async function submit() {
-    if (!active || busy) return;
-    setBusy(true);
+  // Server grading (MCQ auto + open via the LLM), then refresh the leaderboard so
+  // the squad standings are ready the moment the player finishes.
+  async function submitAnswers(answers: TestAnswer[]): Promise<TestResult> {
+    if (!active) throw new Error("no active challenge");
+    const res = await fetch("/api/challenges/submit", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ challengeId: active.id, answers }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error ?? "Couldn't submit.");
+    setResult({ score: data.score, correct: data.correct, total: data.total });
+    const { data: lb } = await supabase.rpc("challenge_leaderboard", { p_challenge_id: active.id });
+    setLeaderboard(lb ?? []);
+    return data as TestResult;
+  }
+
+  // Deeper narrative analysis of the attempt → the branded reader.
+  async function analyze() {
+    if (!active || analyzing) return;
+    setAnalyzing(true);
     setError(null);
     try {
-      const res = await fetch("/api/challenges/submit", {
+      const res = await fetch("/api/challenges/analyze", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          challengeId: active.id,
-          answers: Object.entries(answers).map(([questionId, choiceIndex]) => ({
-            questionId,
-            choiceIndex,
-          })),
-        }),
+        body: JSON.stringify({ challengeId: active.id }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        setError(data?.error ?? "Couldn't submit.");
-        return;
-      }
-      setResult(data);
-      const { data: lb } = await supabase.rpc("challenge_leaderboard", {
-        p_challenge_id: active.id,
-      });
-      setLeaderboard(lb ?? []);
-      setView("result");
-    } catch {
-      setError("Couldn't submit.");
+      if (!res.ok) throw new Error(data?.error ?? "Could not analyse.");
+      setAnalysis({ title: data.title, body: data.analysis });
+      setView("analysis");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not analyse.");
     } finally {
-      setBusy(false);
+      setAnalyzing(false);
     }
   }
 
+  // Branded documents — "…for <room> room" in the footer, like every room report.
+  function resultDoc(): BrandedDoc {
+    const body = [
+      active?.description ? `${active.description}\n` : "",
+      "## Score",
+      `${result?.correct ?? 0}/${result?.total ?? 0} · ${Math.round((result?.score ?? 0) * 100)}%`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+    return {
+      brand: "raya",
+      title: active?.title ? `${active.title} — result` : "Challenge result",
+      meta: new Date().toLocaleDateString(),
+      audience: `${roomName} room`,
+      body,
+    };
+  }
+  function analysisDoc(): BrandedDoc {
+    return {
+      brand: "raya",
+      title: analysis?.title ?? "Analysis",
+      meta: new Date().toLocaleDateString(),
+      audience: `${roomName} room`,
+      body: analysis?.body ?? "",
+    };
+  }
+
+  // Focused, one-question-at-a-time player (server-graded, MCQ + open).
   if (view === "take" && active) {
-    const answered = Object.keys(answers).length;
+    const testQuestions: TestQuestion[] = questions.map((q) => ({
+      id: q.id,
+      type: q.type,
+      question: q.content ?? "",
+      options: q.options,
+    }));
     return (
-      <div style={box}>
-        <h3 style={{ marginTop: 0, fontSize: 14, fontWeight: 700, color: t.text }}>{active.title ?? "Challenge"}</h3>
-        {questions.map((q, i) => (
-          <div key={q.id} style={{ marginBottom: 16 }}>
-            <p style={{ fontWeight: 600, marginBottom: 8, color: t.text, fontSize: 13 }}>
-              {i + 1}. {q.content}
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {q.options.map((opt, oi) => (
-                <button
-                  key={oi}
-                  onClick={() => setAnswers((a) => ({ ...a, [q.id]: oi }))}
-                  style={{
-                    textAlign: "left",
-                    background: answers[q.id] === oi ? t.ctaBg : t.cardBg,
-                    color: answers[q.id] === oi ? t.ctaText : t.text,
-                    border: `1px solid ${t.cardBorder}`,
-                    borderRadius: 10,
-                    padding: "9px 12px",
-                    cursor: "pointer",
-                    fontSize: 12.5,
-                  }}
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
-          </div>
-        ))}
-        <button style={{ ...btn, opacity: busy || answered < questions.length ? 0.5 : 1 }} onClick={submit} disabled={busy || answered < questions.length}>
-          Submit ({answered}/{questions.length})
-        </button>
-        {error && <p style={{ color: "#f87171", fontSize: 12.5 }}>{error}</p>}
-      </div>
+      <TestPlayer
+        title={active.title ?? "Challenge"}
+        questions={testQuestions}
+        onSubmit={submitAnswers}
+        onExit={() => setView("list")}
+        onAnalyze={analyze}
+        analyzing={analyzing}
+        resultActions={
+          <>
+            <button style={ghost} onClick={() => downloadBrandedText(resultDoc())}>TXT</button>
+            <button style={ghost} onClick={() => downloadBrandedPdf(resultDoc())}>PDF</button>
+            <ShareLinkButton theme={t} doc={resultDoc()} />
+            <button style={ghost} onClick={() => setView("standings")} title="Squad standings">🏆 Standings</button>
+          </>
+        }
+      />
     );
   }
 
-  if (view === "result" && result) {
+  // Narrative analysis of the attempt, in the branded reader.
+  if (view === "analysis" && analysis) {
+    return (
+      <ReaderView
+        title={analysis.title}
+        subtitle="Analysis"
+        blocks={parseDoc(analysis.body)}
+        onExit={() => setView("list")}
+        actions={
+          <>
+            <button style={ghost} onClick={() => downloadBrandedText(analysisDoc())}>TXT</button>
+            <button style={ghost} onClick={() => downloadBrandedPdf(analysisDoc())}>PDF</button>
+            <ShareLinkButton theme={t} doc={analysisDoc()} />
+          </>
+        }
+      />
+    );
+  }
+
+  // Squad standings — the room's own twist on top of the shared player.
+  if (view === "standings") {
     return (
       <div style={box}>
-        <h3 style={{ marginTop: 0, fontSize: 14, fontWeight: 700, color: t.text }}>Result</h3>
-        <p style={{ fontSize: 20, fontWeight: 700, color: t.text }}>
-          {result.correct}/{result.total} · {Math.round(result.score * 100)}%
-        </p>
-        <h4 style={{ color: t.text, fontSize: 13 }}>Leaderboard</h4>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
+          <h3 style={{ margin: 0, flex: 1, fontSize: 14, fontWeight: 700, color: t.text }}>🏆 Squad standings</h3>
+          {result && (
+            <span style={{ fontSize: 12.5, color: t.muted }}>
+              You · {result.correct}/{result.total} · {Math.round(result.score * 100)}%
+            </span>
+          )}
+        </div>
+        <h4 style={{ color: t.text, fontSize: 13, margin: "10px 0 4px" }}>{active?.title ?? "Challenge"}</h4>
         {leaderboard.length === 0 && <p style={{ color: t.muted, fontSize: 12.5 }}>No scores yet.</p>}
         {leaderboard
           .slice()
           .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
-          .map((r, i) => (
-            <div key={r.user_id} style={{ display: "flex", gap: 8, padding: "5px 0", color: t.text, fontSize: 12.5 }}>
-              <span style={{ color: t.mutedLight, width: 20 }}>{i + 1}.</span>
-              <span style={{ flex: 1 }}>
-                {r.user_id === myUserId ? "You" : r.display_name || `@${r.username}` || "Member"}
-              </span>
-              <span>{Math.round((r.score ?? 0) * 100)}%</span>
-            </div>
-          ))}
-        <button style={{ ...btn, marginTop: 16 }} onClick={() => setView("list")}>
-          Back
-        </button>
+          .map((r, i) => {
+            const mine = r.user_id === myUserId;
+            return (
+              <div
+                key={r.user_id}
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  alignItems: "center",
+                  padding: "7px 10px",
+                  borderRadius: 10,
+                  marginTop: 4,
+                  background: mine ? t.rowActiveBg : "transparent",
+                  color: t.text,
+                  fontSize: 12.5,
+                }}
+              >
+                <span style={{ color: t.mutedLight, width: 22, flex: "none", fontWeight: 700 }}>
+                  {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}.`}
+                </span>
+                <span style={{ flex: 1, minWidth: 0, fontWeight: mine ? 700 : 500 }}>
+                  {mine ? "You" : r.display_name || (r.username ? `@${r.username}` : "Member")}
+                </span>
+                <span style={{ fontWeight: 700 }}>{Math.round((r.score ?? 0) * 100)}%</span>
+              </div>
+            );
+          })}
+        <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
+          <button style={btn} onClick={() => setView("list")}>Back to challenges</button>
+          <button style={ghost} onClick={() => downloadBrandedPdf(resultDoc())}>My result (PDF)</button>
+          <ShareLinkButton theme={t} doc={resultDoc()} />
+        </div>
       </div>
     );
   }
@@ -274,6 +381,16 @@ export function RoomChallenges({
           value={goal}
           onChange={(e) => setGoal(e.target.value)}
         />
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 11, color: t.mutedLight, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Type of challenge</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {TEST_KINDS.map((k) => (
+              <button key={k.id} type="button" style={chip(t, kind === k.id)} onClick={() => setKind(k.id)} title={k.hint}>
+                {k.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <div style={{ marginBottom: 8 }}>
           <label style={{ fontSize: 11.5, color: t.muted, marginRight: 8 }}>Source file (optional):</label>
           <input
@@ -310,7 +427,7 @@ export function RoomChallenges({
               <div style={{ fontWeight: 600, color: t.text, fontSize: 13 }}>{ch.title ?? "Challenge"}</div>
               {ch.description && <div style={{ fontSize: 11.5, color: t.muted }}>{ch.description}</div>}
               <div style={{ fontSize: 11, color: t.mutedLight }}>
-                {ch.question_count ?? 0} questions · {ch.status}
+                {ch.question_count ?? 0} questions · {kindLabel(ch.format)} · {ch.status}
               </div>
             </div>
             <button style={{ ...btn, opacity: busy || readOnly ? 0.5 : 1 }} onClick={() => open(ch)} disabled={busy || readOnly}>
@@ -321,4 +438,11 @@ export function RoomChallenges({
       </div>
     </div>
   );
+}
+
+/** Storage `format` → the friendly challenge kind shown on the list. */
+function kindLabel(format?: string | null): string {
+  if (format === "exam") return "Exam";
+  if (format === "open") return "Skills";
+  return "Quiz";
 }
