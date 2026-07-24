@@ -152,7 +152,7 @@ export async function POST(request: Request) {
   let reportId: string | null = null;
   try {
     const schools = createSchoolsAdminClient();
-    const { data } = await schools
+    const { data, error } = await schools
       .from("reports")
       .insert({
         school_id: membership.schoolId,
@@ -165,9 +165,12 @@ export async function POST(request: Request) {
       })
       .select("id")
       .single();
+    // A rejected insert (e.g. a CHECK) returns an error rather than throwing;
+    // log it so this doesn't silently under-count the reports quota.
+    if (error) console.warn(`[reports] persistence failed (usage under-counted): ${error.message}`);
     reportId = (data as { id: string } | null)?.id ?? null;
-  } catch {
-    // not persisted — the report is still returned to the client
+  } catch (e) {
+    console.warn(`[reports] persistence threw (usage under-counted): ${e instanceof Error ? e.message : e}`);
   }
 
   return NextResponse.json({ id: reportId, title, content, scope, createdAt: new Date().toISOString() });

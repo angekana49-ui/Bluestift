@@ -147,7 +147,7 @@ export async function POST(request: Request) {
   let id: string | null = null;
   try {
     const schools = createSchoolsAdminClient();
-    const { data } = await schools
+    const { data, error } = await schools
       .from("teacher_resources")
       .insert({
         school_id: membership.schoolId,
@@ -163,9 +163,10 @@ export async function POST(request: Request) {
       })
       .select("id")
       .single();
+    if (error) console.warn(`[prepare] persistence failed (usage under-counted): ${error.message}`);
     id = (data as { id: string } | null)?.id ?? null;
-  } catch {
-    // not persisted — still return the generated resource
+  } catch (e) {
+    console.warn(`[prepare] persistence threw (usage under-counted): ${e instanceof Error ? e.message : e}`);
   }
 
   return NextResponse.json({

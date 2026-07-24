@@ -104,7 +104,7 @@ export async function POST(request: Request) {
   let id: string | null = null;
   try {
     const schools = createSchoolsAdminClient();
-    const { data } = await schools
+    const { data, error } = await schools
       .from("simulations")
       .insert({
         school_id: membership.schoolId,
@@ -116,9 +116,10 @@ export async function POST(request: Request) {
       })
       .select("id")
       .single();
+    if (error) console.warn(`[simulations] persistence failed (usage under-counted): ${error.message}`);
     id = (data as { id: string } | null)?.id ?? null;
-  } catch {
-    // not persisted — still return the projection
+  } catch (e) {
+    console.warn(`[simulations] persistence threw (usage under-counted): ${e instanceof Error ? e.message : e}`);
   }
 
   return NextResponse.json({ id, parameters, result, status: "done", createdAt: new Date().toISOString() });

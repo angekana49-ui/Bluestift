@@ -119,12 +119,15 @@ export async function POST(request: Request) {
   // Persist the run (best-effort — never fail the response if the write hiccups).
   let id: string | null = null;
   let createdAt = new Date().toISOString();
-  const { data: saved } = await supabase
+  const { data: saved, error: saveErr } = await supabase
     .schema("learning")
     .from("student_simulations")
     .insert({ user_id: user.id, focus: focus || null, add_hours: addHours, result: result as Json })
     .select("id, created_at")
     .maybeSingle();
+  // A rejected insert returns an error rather than throwing; log it so the weekly
+  // kernel-analysis quota isn't silently under-counted.
+  if (saveErr) console.warn(`[simulations] persistence failed (usage under-counted): ${saveErr.message}`);
   if (saved) {
     id = saved.id;
     createdAt = saved.created_at;

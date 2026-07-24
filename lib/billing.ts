@@ -3,6 +3,7 @@ import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { getAdminMembership } from "@/lib/school-admin";
 import { detectZone, type Zone } from "@/lib/billing/regions";
 import { MIN_B2B_SEATS, termTotal } from "@/lib/billing/terms";
+import { invalidateEntitlements } from "@/lib/entitlements";
 
 /**
  * Billing data layer (schools schema, service_role — untyped like the rest of
@@ -517,6 +518,10 @@ export async function activateSubscription(
       updated_at: startIso,
     })
     .eq("id", m.schoolId);
+
+  // The plan changed — drop any cached entitlements for this school so the new
+  // tier takes effect immediately on this instance (the TTL covers the rest).
+  invalidateEntitlements({ schoolId: m.schoolId });
 
   return { ok: true, subscriptionId: (ins as { id: string }).id, expiresAt: endIso };
 }

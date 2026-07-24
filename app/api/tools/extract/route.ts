@@ -146,8 +146,10 @@ export async function POST(request: Request) {
   try {
     const path = `${user.id}/${Date.now()}-${storageSafeName(file.name)}`;
     const up = await supabase.storage.from("user-media").upload(path, file);
-    if (!up.error) {
-      const { data } = await supabase
+    if (up.error) {
+      console.warn(`[extract] upload failed (upload usage under-counted): ${up.error.message}`);
+    } else {
+      const { data, error } = await supabase
         .schema("rag")
         .from("user_media")
         .insert({
@@ -160,10 +162,11 @@ export async function POST(request: Request) {
         })
         .select("id")
         .single();
+      if (error) console.warn(`[extract] persistence failed (upload usage under-counted): ${error.message}`);
       mediaId = data?.id ?? null;
     }
-  } catch {
-    // non-fatal — the extracted text is still returned to the client
+  } catch (e) {
+    console.warn(`[extract] persistence threw (upload usage under-counted): ${e instanceof Error ? e.message : e}`);
   }
 
   return NextResponse.json({ text, media_id: mediaId, kind });

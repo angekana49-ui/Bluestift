@@ -307,12 +307,65 @@ function warnIfDowngraded(plan: ActivePlan, resolved: string, base: string): voi
   }
 }
 
+// ---- Per-instance TTL cache (perf) -----------------------------------------
+// A burst of gated actions from the same user/school would otherwise re-run the
+// plan lookup (2 queries) every time. We cache only the resolved PLAN/tier, never
+// the usage counts (those stay live so quotas are accurate). Best-effort: it's a
+// process-local Map, not shared across serverless instances, and self-heals after
+// RESOLVE_TTL_MS — so a fresh upgrade takes effect within a minute even without
+// explicit invalidation. Mutating paths (activateSubscription) call invalidate*.
+
+const RESOLVE_TTL_MS = 60_000;
+type CacheEntry<T> = { value: T; expires: number };
+const rayaCache = new Map<string, CacheEntry<ResolvedRaya>>();
+const schoolCache = new Map<string, CacheEntry<ResolvedSchool>>();
+
+function cacheGet<T>(m: Map<string, CacheEntry<T>>, key: string): T | null {
+  const e = m.get(key);
+  if (!e) return null;
+  if (Date.now() > e.expires) {
+    m.delete(key);
+    return null;
+  }
+  return e.value;
+}
+function cacheSet<T>(m: Map<string, CacheEntry<T>>, key: string, value: T): void {
+  m.set(key, { value, expires: Date.now() + RESOLVE_TTL_MS });
+}
+
+/** Drop cached entitlements for a user (b2c) or school (b2b) after a plan change. */
+export function invalidateEntitlements(target: { userId: string } | { schoolId: string }): void {
+  if ("schoolId" in target) schoolCache.delete(target.schoolId);
+  else rayaCache.delete(target.userId);
+}
+
+/** Is the school inside its (paid-plan-free) pilot window? Never throws. */
+async function isSchoolInPilot(schoolId: string): Promise<boolean> {
+  try {
+    const schools = createSchoolsAdminClient();
+    const today = new Date().toISOString().slice(0, 10);
+    const { data } = await schools
+      .from("schools")
+      .select("pilot_until")
+      .eq("id", schoolId)
+      .maybeSingle();
+    const pilotUntil = (data as { pilot_until: string | null } | null)?.pilot_until ?? null;
+    return !!pilotUntil && pilotUntil >= today;
+  } catch {
+    return false;
+  }
+}
+
 /** Resolve a student's Raya entitlements. No paid plan → free. Never throws. */
 export async function resolveRayaEntitlements(userId: string): Promise<ResolvedRaya> {
+  const cached = cacheGet(rayaCache, userId);
+  if (cached) return cached;
   const plan = await getActivePlan({ userId });
   const tier = normalizeRayaTier(plan?.tier ?? plan?.name ?? null);
   warnIfDowngraded(plan, tier, "free");
-  return { tier, ent: RAYA_ENTITLEMENTS[tier], planName: plan?.name ?? null };
+  const resolved = { tier, ent: RAYA_ENTITLEMENTS[tier], planName: plan?.name ?? null };
+  cacheSet(rayaCache, userId, resolved);
+  return resolved;
 }
 
 export type ResolvedSchool = {
@@ -322,16 +375,32 @@ export type ResolvedSchool = {
 };
 
 /**
- * Resolve a school's entitlements. No paid plan (incl. pilot window) → standard
- * feature set. Seat gating is handled separately in lib/billing (a pilot school
- * is seat-ungated but gets Standard *features* here). If you'd rather let pilot
- * schools trial Plus-level features, uplift here — that's a policy choice.
+ * Resolve a school's entitlements. Resolution order:
+ *   1. an active paid plan → its tier (always wins);
+ *   2. else, inside the pilot window → the **Plus** feature set, so pilots trial
+ *      the real product for a compelling demo (seat gating stays ungated during a
+ *      pilot, handled separately in lib/billing);
+ *   3. else → standard.
+ * Never throws.
  */
 export async function resolveSchoolEntitlements(schoolId: string): Promise<ResolvedSchool> {
+  const cached = cacheGet(schoolCache, schoolId);
+  if (cached) return cached;
+
   const plan = await getActivePlan({ schoolId });
-  const tier = normalizeSchoolTier(plan?.tier ?? plan?.name ?? null);
-  warnIfDowngraded(plan, tier, "standard");
-  return { tier, ent: SCHOOL_ENTITLEMENTS[tier], planName: plan?.name ?? null };
+  let tier = normalizeSchoolTier(plan?.tier ?? plan?.name ?? null);
+  let planName = plan?.name ?? null;
+
+  if (!plan && (await isSchoolInPilot(schoolId))) {
+    tier = "plus";
+    planName = "Pilot";
+  } else {
+    warnIfDowngraded(plan, tier, "standard");
+  }
+
+  const resolved = { tier, ent: SCHOOL_ENTITLEMENTS[tier], planName };
+  cacheSet(schoolCache, schoolId, resolved);
+  return resolved;
 }
 
 // ---- Usage windows ----------------------------------------------------------
