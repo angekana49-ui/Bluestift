@@ -289,10 +289,29 @@ async function getActivePlan(target: { userId: string } | { schoolId: string }):
 
 export type ResolvedRaya = { tier: RayaTier; ent: RayaEntitlements; planName: string | null };
 
+/**
+ * Loudly flag the dangerous case: an ACTIVE paid plan exists, yet its tier/name
+ * doesn't confidently map to a paid tier, so we're about to serve the paying
+ * customer the base (free/standard) feature set. Silent in that case = a paying
+ * user quietly downgraded. This surfaces mis-seeded plan names in the logs so
+ * they're caught before ENTITLEMENTS_ENFORCE is flipped on. Base tier from
+ * "no plan at all" is expected and NOT warned.
+ */
+function warnIfDowngraded(plan: ActivePlan, resolved: string, base: string): void {
+  if (plan && resolved === base && (plan.tier || plan.name)) {
+    console.warn(
+      `[entitlements] active plan {tier:${plan.tier ?? "-"}, name:${plan.name ?? "-"}} ` +
+        `did not map to a paid tier and fell back to "${base}". ` +
+        `Fix the seeded plan tier/name before enforcing, or a paying user is downgraded.`,
+    );
+  }
+}
+
 /** Resolve a student's Raya entitlements. No paid plan → free. Never throws. */
 export async function resolveRayaEntitlements(userId: string): Promise<ResolvedRaya> {
   const plan = await getActivePlan({ userId });
   const tier = normalizeRayaTier(plan?.tier ?? plan?.name ?? null);
+  warnIfDowngraded(plan, tier, "free");
   return { tier, ent: RAYA_ENTITLEMENTS[tier], planName: plan?.name ?? null };
 }
 
@@ -311,6 +330,7 @@ export type ResolvedSchool = {
 export async function resolveSchoolEntitlements(schoolId: string): Promise<ResolvedSchool> {
   const plan = await getActivePlan({ schoolId });
   const tier = normalizeSchoolTier(plan?.tier ?? plan?.name ?? null);
+  warnIfDowngraded(plan, tier, "standard");
   return { tier, ent: SCHOOL_ENTITLEMENTS[tier], planName: plan?.name ?? null };
 }
 

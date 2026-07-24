@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { buildProfContext, buildSchoolContext, getAdminMembership } from "@/lib/school-admin";
 import { rayaStream, type ChatMsg } from "@/lib/raya/llm";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkUserRateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
   // Anti-abuse rate-limit only — staff chat is never quota-metered. Keyed by
   // user id so a school behind one shared NAT is never collectively throttled.
-  if (!(await checkRateLimit("school_raya_chat", user.id, 30, "1 minute"))) {
+  if (!(await checkUserRateLimit("school_raya_chat", user.id, 30, "1 minute"))) {
     return NextResponse.json(
       { error: "You're sending messages very fast — give it a second." },
       { status: 429 },

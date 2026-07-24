@@ -81,11 +81,13 @@ export async function POST(request: Request) {
     if (denied) return denied;
   }
   // Generations/month — derived from tool_outputs (no separate counter table).
+  // Failed generations don't count: a LLM/parse failure shouldn't burn a credit.
   const { count: genUsed } = await supabase
     .schema("learning")
     .from("tool_outputs")
     .select("id", { count: "exact", head: true })
     .eq("user_id", user.id)
+    .neq("status", "failed")
     .gte("created_at", startOfMonthIso());
   const overGen = gateQuota(genUsed ?? 0, ent.generationsPerMonth, {
     metric: "generations",
