@@ -493,7 +493,11 @@ skipped when unset), `GEMINI_API_KEY`, `GROQ_API_KEY`, `GEMINI_MODEL`,
 `GROQ_MODEL`, `GROQ_WHISPER_MODEL`, `ENTITLEMENTS_ENFORCE` (forfait gating —
 **defaults `false` = monitor mode**: gates log but never block. Set to `true`
 only once the paid Raya plans are seeded and payment is live; see
-`lib/entitlements.ts`).
+`lib/entitlements.ts`), `NEXT_PUBLIC_POSTHOG_KEY` +
+`NEXT_PUBLIC_POSTHOG_HOST` (PostHog analytics — **opt-in**: nothing is captured
+until the visitor accepts the consent banner. Unset ⇒ analytics fully disabled,
+no banner. Host defaults to `https://eu.i.posthog.com`; see
+`components/analytics/PostHogProvider.tsx`).
 
 Dashboard: enable Anonymous + Email providers; Turnstile secret (Attack
 Protection); Resend SMTP; URL config (Site URL + redirect allowlist); expose
