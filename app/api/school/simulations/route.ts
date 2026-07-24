@@ -42,7 +42,7 @@ export async function POST(request: Request) {
 
   // Prof simulations are quota-metered per week (Standard 3 / Plus+ ∞). Counted
   // from the last 7 days of this staff member's own runs (rolling window).
-  const { ent } = await resolveSchoolEntitlements(membership.schoolId);
+  const { ent, tier } = await resolveSchoolEntitlements(membership.schoolId);
   const { count: simUsed } = await createSchoolsAdminClient()
     .from("simulations")
     .select("id", { count: "exact", head: true })
@@ -53,6 +53,8 @@ export async function POST(request: Request) {
     period: "week",
     upgradeTo: "Plus",
     scope: "school",
+    userId: membership.adminId,
+    tier,
   });
   if (overSim) return overSim;
 

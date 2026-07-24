@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { assertClassAccess, getAdminMembership } from "@/lib/school-admin";
 import { resolveSchoolEntitlements, gateQuota, startOfMonthIso } from "@/lib/entitlements";
+import { captureServer } from "@/lib/analytics/server";
 
 export const runtime = "nodejs";
 
@@ -83,7 +84,7 @@ export async function POST(request: Request) {
   // who assigns it. Students are never blocked by this (see assignments/submit).
   const admin = createAdminClient();
   if (format !== "mcq") {
-    const { ent } = await resolveSchoolEntitlements(membership.schoolId);
+    const { ent, tier } = await resolveSchoolEntitlements(membership.schoolId);
     const { count: gradedUsed } = await admin
       .schema("learning")
       .from("challenges")
@@ -97,6 +98,8 @@ export async function POST(request: Request) {
       period: "month",
       upgradeTo: "Plus",
       scope: "school",
+      userId: membership.adminId,
+      tier,
     });
     if (overGrading) return overGrading;
   }
@@ -147,6 +150,12 @@ export async function POST(request: Request) {
     .single();
   if (aErr) return NextResponse.json({ error: aErr.message }, { status: 500 });
 
+  void captureServer(membership.adminId, "assignment_created", {
+    format,
+    kind: resource.kind,
+    ai_graded: format !== "mcq",
+    question_count: stored.length,
+  });
   return NextResponse.json({ assignmentId: (asg as { id: string }).id, challengeId: challenge.id, questionCount: stored.length });
 }
 

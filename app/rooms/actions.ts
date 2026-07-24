@@ -10,6 +10,7 @@ import {
   startOfMonthIso,
   ENTITLEMENTS_ENFORCE,
 } from "@/lib/entitlements";
+import { captureServer } from "@/lib/analytics/server";
 
 /**
  * Create a room and add the creator as its first member. An optional
@@ -32,7 +33,7 @@ export async function createRoom(input: {
   if (!user) throw new Error("Not signed in.");
 
   // --- Entitlements: rooms/month quota, private rooms, mandatory timer -------
-  const { ent } = await resolveRayaEntitlements(user.id);
+  const { ent, tier } = await resolveRayaEntitlements(user.id);
 
   // Rooms created this month (derived from learning.rooms, no counter table).
   const { count: roomsUsed } = await supabase
@@ -46,12 +47,14 @@ export async function createRoom(input: {
     period: "month",
     upgradeTo: "Plus",
     scope: "rooms",
+    userId: user.id,
+    tier,
   });
 
   // Private rooms are Plus+.
   const visibility = input.visibility ?? "public";
   if (visibility === "private") {
-    assertFeature(ent.privateRooms, { feature: "private_room", upgradeTo: "Plus", scope: "rooms" });
+    assertFeature(ent.privateRooms, { feature: "private_room", upgradeTo: "Plus", scope: "rooms", userId: user.id, tier });
   }
 
   // Free: the session timer is mandatory (the room auto-closes) — if none was
@@ -95,6 +98,7 @@ export async function createRoom(input: {
     .insert({ room_id: room.id, user_id: user.id, role: "creator", is_online: true });
   if (memErr) throw new Error(memErr.message);
 
+  void captureServer(user.id, "room_created", { visibility, timed: timer != null, tier });
   return { roomId: room.id };
 }
 
@@ -130,7 +134,7 @@ export async function joinRoom(roomId: string): Promise<void> {
     .eq("user_id", user.id)
     .maybeSingle();
   if (!already && room.created_by) {
-    const { ent } = await resolveRayaEntitlements(room.created_by);
+    const { ent, tier } = await resolveRayaEntitlements(room.created_by);
     const { count: members } = await admin
       .schema("learning")
       .from("room_members")
@@ -140,6 +144,8 @@ export async function joinRoom(roomId: string): Promise<void> {
       metric: "room participants",
       upgradeTo: "Plus",
       scope: "rooms",
+      userId: user.id,
+      tier,
     });
   }
 

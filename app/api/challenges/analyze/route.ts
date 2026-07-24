@@ -28,11 +28,13 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   // AI analysis of a self-test attempt is a Plus+ feature (Free gets the raw score).
-  const { ent } = await resolveRayaEntitlements(user.id);
+  const { ent, tier } = await resolveRayaEntitlements(user.id);
   const denied = gateFeature(ent.selfTestAiAnalysis, {
     feature: "self_test_ai_analysis",
     upgradeTo: "Plus",
     scope: "challenges",
+    userId: user.id,
+    tier,
   });
   if (denied) return denied;
 

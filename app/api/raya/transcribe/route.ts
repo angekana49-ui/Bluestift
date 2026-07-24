@@ -16,8 +16,8 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   // Voice input is a Plus+ feature.
-  const { ent } = await resolveRayaEntitlements(user.id);
-  const denied = gateFeature(ent.voiceInput, { feature: "voice_input", upgradeTo: "Plus", scope: "raya" });
+  const { ent, tier } = await resolveRayaEntitlements(user.id);
+  const denied = gateFeature(ent.voiceInput, { feature: "voice_input", upgradeTo: "Plus", scope: "raya", userId: user.id, tier });
   if (denied) return denied;
 
   const oversized = contentLengthExceeds(request, MAX_AUDIO_BYTES);

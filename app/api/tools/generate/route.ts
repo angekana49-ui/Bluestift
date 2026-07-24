@@ -8,6 +8,7 @@ import {
   gateQuota,
   startOfMonthIso,
 } from "@/lib/entitlements";
+import { captureServer } from "@/lib/analytics/server";
 
 const MAX_SOURCE_CHARS = 8000;
 const SUPPORTED = new Set(["quiz", "summary", "flashcards", "mind_map"]);
@@ -74,10 +75,10 @@ export async function POST(request: Request) {
   const primaryMediaId = body.source_media_id ?? mediaIds[0] ?? null;
 
   // --- Entitlements: feature availability + monthly generation quota ---------
-  const { ent } = await resolveRayaEntitlements(user.id);
+  const { ent, tier } = await resolveRayaEntitlements(user.id);
   // Mind map is a Plus+ generator; audio_summary/infographic (Max) aren't wired.
   if (toolType === "mind_map") {
-    const denied = gateFeature(ent.mindMap, { feature: "mind_map", upgradeTo: "Plus", scope: "tools" });
+    const denied = gateFeature(ent.mindMap, { feature: "mind_map", upgradeTo: "Plus", scope: "tools", userId: user.id, tier });
     if (denied) return denied;
   }
   // Generations/month — derived from tool_outputs (no separate counter table).
@@ -94,6 +95,8 @@ export async function POST(request: Request) {
     period: "month",
     upgradeTo: "Plus",
     scope: "tools",
+    userId: user.id,
+    tier,
   });
   if (overGen) return overGen;
 
@@ -185,6 +188,7 @@ export async function POST(request: Request) {
       .eq("id", id);
     if (updErr) throw new Error(updErr.message);
 
+    void captureServer(user.id, "artefact_generated", { tool_type: toolType, tier });
     return NextResponse.json({ id, status: "done", tool_type: toolType, output_content: output });
   } catch (e) {
     const message = e instanceof Error ? e.message : "generation failed";

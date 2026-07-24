@@ -124,7 +124,7 @@ export async function POST(request: Request) {
       .maybeSingle();
     const ownerId = (roomRow as { created_by: string | null } | null)?.created_by ?? null;
     if (ownerId) {
-      const { ent } = await resolveRayaEntitlements(ownerId);
+      const { ent, tier } = await resolveRayaEntitlements(ownerId);
       const { count: chUsed } = await supabase
         .schema("learning")
         .from("challenges")
@@ -134,6 +134,8 @@ export async function POST(request: Request) {
         metric: "room challenges",
         upgradeTo: "Plus",
         scope: "rooms",
+        userId: user.id,
+        tier,
       });
       if (overCh) return overCh;
     }

@@ -9,6 +9,7 @@ import {
   gateQuota,
   startOfMonthIso,
 } from "@/lib/entitlements";
+import { captureServer } from "@/lib/analytics/server";
 
 // Transcription / PDF reading can take a moment.
 export const runtime = "nodejs";
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   // --- Entitlements: per-tier packet size + monthly upload quota -------------
-  const { ent } = await resolveRayaEntitlements(user.id);
+  const { ent, tier } = await resolveRayaEntitlements(user.id);
   // Free is capped smaller (5 MB) than the 25 MB hard ceiling.
   const maxBytes = Math.min(MAX_DOC_BYTES, ent.packetMaxMb * 1024 * 1024);
 
@@ -61,6 +62,8 @@ export async function POST(request: Request) {
     period: "month",
     upgradeTo: "Plus",
     scope: "tools",
+    userId: user.id,
+    tier,
   });
   if (overUp) return overUp;
 
@@ -89,6 +92,8 @@ export async function POST(request: Request) {
       feature: "audio_extraction",
       upgradeTo: "Plus",
       scope: "tools",
+      userId: user.id,
+      tier,
     });
     if (denied) return denied;
   }
@@ -164,6 +169,7 @@ export async function POST(request: Request) {
         .single();
       if (error) console.warn(`[extract] persistence failed (upload usage under-counted): ${error.message}`);
       mediaId = data?.id ?? null;
+      if (mediaId) void captureServer(user.id, "document_uploaded", { kind, tier });
     }
   } catch (e) {
     console.warn(`[extract] persistence threw (upload usage under-counted): ${e instanceof Error ? e.message : e}`);

@@ -75,7 +75,7 @@ export async function POST(request: Request) {
 
   // Report generation is quota-metered per prof per week (Standard 1 / Plus+ ∞).
   // Counted from the last 7 days of reports authored by this staff member.
-  const { ent } = await resolveSchoolEntitlements(membership.schoolId);
+  const { ent, tier } = await resolveSchoolEntitlements(membership.schoolId);
   const { count: repUsed } = await createSchoolsAdminClient()
     .from("reports")
     .select("id", { count: "exact", head: true })
@@ -86,6 +86,8 @@ export async function POST(request: Request) {
     period: "week",
     upgradeTo: "Plus",
     scope: "school",
+    userId: membership.adminId,
+    tier,
   });
   if (overRep) return overRep;
 

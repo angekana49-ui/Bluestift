@@ -72,7 +72,7 @@ export async function POST(request: Request) {
 
   // Kernel what-if is quota-metered per week (Free: 1). Counted from the last
   // 7 days of the student's own runs (rolling window, no reset-gaming).
-  const { ent } = await resolveRayaEntitlements(user.id);
+  const { ent, tier } = await resolveRayaEntitlements(user.id);
   const { count: simUsed } = await supabase
     .schema("learning")
     .from("student_simulations")
@@ -84,6 +84,8 @@ export async function POST(request: Request) {
     period: "week",
     upgradeTo: "Plus",
     scope: "kernel",
+    userId: user.id,
+    tier,
   });
   if (overSim) return overSim;
 

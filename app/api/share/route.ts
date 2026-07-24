@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { randomBytes } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { resolveRayaEntitlements, gateQuota, sinceDaysIso } from "@/lib/entitlements";
+import { captureServer } from "@/lib/analytics/server";
 
 export const runtime = "nodejs";
 
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
   // but only the share is server-side, so this meters the shareable exports).
   // TXT/PDF happen client-side in the branded reader — gate those in the UI from
   // the same entitlements (pdfExport / exportsPerWeek) as a follow-up.
-  const { ent } = await resolveRayaEntitlements(user.id);
+  const { ent, tier } = await resolveRayaEntitlements(user.id);
   const { count: shareUsed } = await supabase
     .schema("learning")
     .from("shares")
@@ -52,6 +53,8 @@ export async function POST(request: Request) {
     period: "week",
     upgradeTo: "Plus",
     scope: "share",
+    userId: user.id,
+    tier,
   });
   if (overShare) return overShare;
 
@@ -62,6 +65,7 @@ export async function POST(request: Request) {
     .insert({ token, user_id: user.id, kind: "doc", title: title || null, body: content, brand });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  void captureServer(user.id, "doc_shared", { brand, tier });
   return NextResponse.json({ token, url: `${originOf(request)}/s/${token}` });
 }
 

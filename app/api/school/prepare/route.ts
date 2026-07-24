@@ -48,7 +48,7 @@ export async function POST(request: Request) {
 
   // Prepare is quota-metered per prof per month (Standard 30 / Plus 150 / Custom ∞).
   // Counted from teacher_resources authored by this staff member this month.
-  const { ent } = await resolveSchoolEntitlements(membership.schoolId);
+  const { ent, tier } = await resolveSchoolEntitlements(membership.schoolId);
   const { count: prepUsed } = await createSchoolsAdminClient()
     .from("teacher_resources")
     .select("id", { count: "exact", head: true })
@@ -59,6 +59,8 @@ export async function POST(request: Request) {
     period: "month",
     upgradeTo: "Plus",
     scope: "school",
+    userId: membership.adminId,
+    tier,
   });
   if (overPrep) return overPrep;
 

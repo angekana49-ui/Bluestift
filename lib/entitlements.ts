@@ -1,6 +1,7 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
+import { captureServer } from "@/lib/analytics/server";
 
 /**
  * Entitlements — the single source of truth for "what does each forfait unlock,
@@ -423,15 +424,47 @@ export function overQuota(used: number, limit: number | null): boolean {
 }
 
 /**
+ * Emit the gate signal to product analytics (best-effort, consent-gated, no-op
+ * without a PostHog key). Fires whenever a gate is HIT — in monitor mode too, so
+ * "what free users reach for" is captured even though the action still succeeds.
+ * `userId`/`tier` come from the resolver at the call site.
+ */
+function emitGateEvent(
+  kind: "feature_locked" | "quota_reached",
+  name: string,
+  opts: {
+    userId?: string;
+    tier?: string;
+    scope?: string;
+    period?: string;
+    used?: number;
+    limit?: number | null;
+  },
+): void {
+  void captureServer(opts.userId, "entitlement_gate", {
+    kind,
+    name,
+    tier: opts.tier,
+    scope: opts.scope,
+    period: opts.period,
+    used: opts.used,
+    limit: opts.limit,
+    enforced: ENTITLEMENTS_ENFORCE,
+  });
+}
+
+/**
  * Feature gate. Returns a 403 NextResponse when the plan lacks `allowed` AND
  * enforcement is on; otherwise null (allowed through). In monitor mode a denial
- * is logged, not blocked, so we can see what free users are reaching for.
+ * is logged, not blocked, so we can see what free users are reaching for. Pass
+ * `userId`/`tier` to attribute the analytics signal.
  */
 export function gateFeature(
   allowed: boolean,
-  opts: { feature: string; upgradeTo?: string; scope?: string },
+  opts: { feature: string; upgradeTo?: string; scope?: string; userId?: string; tier?: string },
 ): NextResponse | null {
   if (allowed) return null;
+  emitGateEvent("feature_locked", opts.feature, opts);
   if (!ENTITLEMENTS_ENFORCE) {
     console.info(
       `[entitlements:monitor] feature "${opts.feature}" would be blocked` +
@@ -452,14 +485,16 @@ export function gateFeature(
 /**
  * Quota gate. Returns a 429 NextResponse when `used >= limit` AND enforcement is
  * on; otherwise null. In monitor mode an over-quota is logged, not blocked.
- * `limit == null` (unlimited) is always allowed.
+ * `limit == null` (unlimited) is always allowed. Pass `userId`/`tier` to
+ * attribute the analytics signal.
  */
 export function gateQuota(
   used: number,
   limit: number | null,
-  opts: { metric: string; period?: string; upgradeTo?: string; scope?: string },
+  opts: { metric: string; period?: string; upgradeTo?: string; scope?: string; userId?: string; tier?: string },
 ): NextResponse | null {
   if (!overQuota(used, limit)) return null;
+  emitGateEvent("quota_reached", opts.metric, { ...opts, used, limit });
   if (!ENTITLEMENTS_ENFORCE) {
     console.info(
       `[entitlements:monitor] quota "${opts.metric}" reached: ${used}/${limit}` +
@@ -497,9 +532,10 @@ export class EntitlementError extends Error {
  */
 export function assertFeature(
   allowed: boolean,
-  opts: { feature: string; upgradeTo?: string; scope?: string },
+  opts: { feature: string; upgradeTo?: string; scope?: string; userId?: string; tier?: string },
 ): void {
   if (allowed) return;
+  emitGateEvent("feature_locked", opts.feature, opts);
   if (!ENTITLEMENTS_ENFORCE) {
     console.info(
       `[entitlements:monitor] feature "${opts.feature}" would be blocked` +
@@ -517,9 +553,10 @@ export function assertFeature(
 export function assertQuota(
   used: number,
   limit: number | null,
-  opts: { metric: string; period?: string; upgradeTo?: string; scope?: string },
+  opts: { metric: string; period?: string; upgradeTo?: string; scope?: string; userId?: string; tier?: string },
 ): void {
   if (!overQuota(used, limit)) return;
+  emitGateEvent("quota_reached", opts.metric, { ...opts, used, limit });
   if (!ENTITLEMENTS_ENFORCE) {
     console.info(
       `[entitlements:monitor] quota "${opts.metric}" reached: ${used}/${limit}` +
