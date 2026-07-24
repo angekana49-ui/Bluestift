@@ -3,6 +3,12 @@ import { createClient } from "@/lib/supabase/server";
 import { transcribeAudio, extractPdfText } from "@/lib/raya/llm";
 import { storageSafeName } from "@/lib/extract";
 import { contentLengthExceeds, tooLarge, MAX_DOC_BYTES } from "@/lib/upload-limits";
+import {
+  resolveRayaEntitlements,
+  gateFeature,
+  gateQuota,
+  startOfMonthIso,
+} from "@/lib/entitlements";
 
 // Transcription / PDF reading can take a moment.
 export const runtime = "nodejs";
@@ -34,8 +40,29 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const oversized = contentLengthExceeds(request, MAX_DOC_BYTES);
+  // --- Entitlements: per-tier packet size + monthly upload quota -------------
+  const { ent } = await resolveRayaEntitlements(user.id);
+  // Free is capped smaller (5 MB) than the 25 MB hard ceiling.
+  const maxBytes = Math.min(MAX_DOC_BYTES, ent.packetMaxMb * 1024 * 1024);
+
+  const oversized = contentLengthExceeds(request, maxBytes);
   if (oversized) return oversized;
+
+  // Uploads/month — doc capacity is a metered lever (chat never is). Counted
+  // from rag.user_media, no separate counter. Gated before any extraction work.
+  const { count: upUsed } = await supabase
+    .schema("rag")
+    .from("user_media")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .gte("created_at", startOfMonthIso());
+  const overUp = gateQuota(upUsed ?? 0, ent.uploadsPerMonth, {
+    metric: "uploads",
+    period: "month",
+    upgradeTo: "Plus",
+    scope: "tools",
+  });
+  if (overUp) return overUp;
 
   let form: FormData;
   try {
@@ -47,7 +74,7 @@ export async function POST(request: Request) {
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "no file" }, { status: 400 });
   }
-  const big = tooLarge(file, MAX_DOC_BYTES);
+  const big = tooLarge(file, maxBytes);
   if (big) return big;
   const kind = kindOf(file);
   if (kind === "unsupported") {
@@ -55,6 +82,15 @@ export async function POST(request: Request) {
       { error: "Unsupported file. Use text (.txt/.md), PDF, or audio." },
       { status: 400 },
     );
+  }
+  // Audio extraction (transcription) is a Plus+ feature.
+  if (kind === "audio") {
+    const denied = gateFeature(ent.audioExtraction, {
+      feature: "audio_extraction",
+      upgradeTo: "Plus",
+      scope: "tools",
+    });
+    if (denied) return denied;
   }
 
   // Extract text first, so the stored media row carries it (making the doc

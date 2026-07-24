@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { randomBytes } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
+import { resolveRayaEntitlements, gateQuota, sinceDaysIso } from "@/lib/entitlements";
 
 export const runtime = "nodejs";
 
@@ -34,6 +35,25 @@ export async function POST(request: Request) {
   const content = (body.body ?? "").toString().slice(0, 100000);
   const brand = body.brand === "bluestift" ? "bluestift" : "raya";
   if (!content.trim()) return NextResponse.json({ error: "nothing to share" }, { status: 400 });
+
+  // Exports are quota-metered per week (Free: 5; the grid counts TXT + shares,
+  // but only the share is server-side, so this meters the shareable exports).
+  // TXT/PDF happen client-side in the branded reader — gate those in the UI from
+  // the same entitlements (pdfExport / exportsPerWeek) as a follow-up.
+  const { ent } = await resolveRayaEntitlements(user.id);
+  const { count: shareUsed } = await supabase
+    .schema("learning")
+    .from("shares")
+    .select("token", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .gte("created_at", sinceDaysIso(7));
+  const overShare = gateQuota(shareUsed ?? 0, ent.exportsPerWeek, {
+    metric: "exports",
+    period: "week",
+    upgradeTo: "Plus",
+    scope: "share",
+  });
+  if (overShare) return overShare;
 
   const token = randomBytes(9).toString("base64url");
   const { error } = await supabase

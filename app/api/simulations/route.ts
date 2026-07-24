@@ -4,6 +4,7 @@ import { kernel } from "@/lib/kernel/client";
 import { generateJson } from "@/lib/raya/llm";
 import type { LoadProfileResponse } from "@/lib/kernel/types";
 import type { Json } from "@/types/database.types";
+import { resolveRayaEntitlements, gateQuota, sinceDaysIso } from "@/lib/entitlements";
 
 /**
  * Student-facing what-if simulation — the learner's own mirror of the Schools
@@ -68,6 +69,23 @@ export async function POST(request: Request) {
   const addHours = Number.isFinite(body.addHours)
     ? Math.min(Math.max(Number(body.addHours), 1), 20)
     : 3;
+
+  // Kernel what-if is quota-metered per week (Free: 1). Counted from the last
+  // 7 days of the student's own runs (rolling window, no reset-gaming).
+  const { ent } = await resolveRayaEntitlements(user.id);
+  const { count: simUsed } = await supabase
+    .schema("learning")
+    .from("student_simulations")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .gte("created_at", sinceDaysIso(7));
+  const overSim = gateQuota(simUsed ?? 0, ent.kernelAnalysisPerWeek, {
+    metric: "what-if simulations",
+    period: "week",
+    upgradeTo: "Plus",
+    scope: "kernel",
+  });
+  if (overSim) return overSim;
 
   // Baseline = the student's own cognitive profile. Kernel down → thin baseline,
   // low confidence (never blocks — the projection still runs and says so).

@@ -6,6 +6,7 @@ import { buildRayaMessages } from "@/lib/raya/prompt";
 import { rayaStream } from "@/lib/raya/llm";
 import { kernel, clampHistory } from "@/lib/kernel/client";
 import { assertRoomOpen } from "@/lib/rooms";
+import { checkRateLimit } from "@/lib/rate-limit";
 import {
   getCachedProfile,
   getLatestAlerts,
@@ -47,6 +48,17 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  // Anti-abuse rate-limit. The chat itself is never quota-metered (core learning
+  // loop), but a scripted flood would burn LLM budget — so cap the raw rate.
+  // Keyed by user id, NOT IP, so a whole school behind one shared NAT is never
+  // punished for one abuser. Fails open on any limiter hiccup.
+  if (!(await checkRateLimit("raya_chat", user.id, 30, "1 minute"))) {
+    return NextResponse.json(
+      { error: "You're sending messages very fast — give it a second." },
+      { status: 429 },
+    );
+  }
 
   let body: {
     conversationId?: string | null;

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { rayaComplete } from "@/lib/raya/llm";
+import { resolveRayaEntitlements, gateFeature } from "@/lib/entitlements";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -25,6 +26,15 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  // AI analysis of a self-test attempt is a Plus+ feature (Free gets the raw score).
+  const { ent } = await resolveRayaEntitlements(user.id);
+  const denied = gateFeature(ent.selfTestAiAnalysis, {
+    feature: "self_test_ai_analysis",
+    upgradeTo: "Plus",
+    scope: "challenges",
+  });
+  if (denied) return denied;
 
   let body: { challengeId?: string };
   try {

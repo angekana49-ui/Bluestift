@@ -11,6 +11,7 @@ import {
   getStaffPreferences,
 } from "@/lib/school-admin";
 import { rayaComplete, type ChatMsg } from "@/lib/raya/llm";
+import { resolveSchoolEntitlements, gateQuota, sinceDaysIso } from "@/lib/entitlements";
 
 const SYSTEM = `You are RAYA for Schools. Write a concise performance report for a school
 administrator, in the administrator's language, using ONLY the DATA below — never invent
@@ -71,6 +72,22 @@ export async function POST(request: Request) {
   if (!membership) {
     return NextResponse.json({ error: "School staff only." }, { status: 403 });
   }
+
+  // Report generation is quota-metered per prof per week (Standard 1 / Plus+ ∞).
+  // Counted from the last 7 days of reports authored by this staff member.
+  const { ent } = await resolveSchoolEntitlements(membership.schoolId);
+  const { count: repUsed } = await createSchoolsAdminClient()
+    .from("reports")
+    .select("id", { count: "exact", head: true })
+    .eq("created_by", membership.adminId)
+    .gte("created_at", sinceDaysIso(7));
+  const overRep = gateQuota(repUsed ?? 0, ent.reportsPerWeekPerProf, {
+    metric: "reports",
+    period: "week",
+    upgradeTo: "Plus",
+    scope: "school",
+  });
+  if (overRep) return overRep;
 
   let body: { scope?: string; classId?: string; subjectId?: string };
   try {

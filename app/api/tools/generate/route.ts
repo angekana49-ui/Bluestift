@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateJson, rayaComplete } from "@/lib/raya/llm";
 import type { Json } from "@/types/database.types";
+import {
+  resolveRayaEntitlements,
+  gateFeature,
+  gateQuota,
+  startOfMonthIso,
+} from "@/lib/entitlements";
 
 const MAX_SOURCE_CHARS = 8000;
 const SUPPORTED = new Set(["quiz", "summary", "flashcards", "mind_map"]);
@@ -66,6 +72,28 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "empty source text" }, { status: 400 });
   }
   const primaryMediaId = body.source_media_id ?? mediaIds[0] ?? null;
+
+  // --- Entitlements: feature availability + monthly generation quota ---------
+  const { ent } = await resolveRayaEntitlements(user.id);
+  // Mind map is a Plus+ generator; audio_summary/infographic (Max) aren't wired.
+  if (toolType === "mind_map") {
+    const denied = gateFeature(ent.mindMap, { feature: "mind_map", upgradeTo: "Plus", scope: "tools" });
+    if (denied) return denied;
+  }
+  // Generations/month — derived from tool_outputs (no separate counter table).
+  const { count: genUsed } = await supabase
+    .schema("learning")
+    .from("tool_outputs")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .gte("created_at", startOfMonthIso());
+  const overGen = gateQuota(genUsed ?? 0, ent.generationsPerMonth, {
+    metric: "generations",
+    period: "month",
+    upgradeTo: "Plus",
+    scope: "tools",
+  });
+  if (overGen) return overGen;
 
   // Create the tool_output (generating).
   const { data: created, error: insErr } = await supabase

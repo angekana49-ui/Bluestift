@@ -10,6 +10,7 @@ import {
   getTeacherResources,
 } from "@/lib/school-admin";
 import { generateJson } from "@/lib/raya/llm";
+import { resolveSchoolEntitlements, gateQuota, startOfMonthIso } from "@/lib/entitlements";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -44,6 +45,22 @@ export async function GET() {
 export async function POST(request: Request) {
   const { user, membership, error } = await authStaff();
   if (error) return error;
+
+  // Prepare is quota-metered per prof per month (Standard 30 / Plus 150 / Custom ∞).
+  // Counted from teacher_resources authored by this staff member this month.
+  const { ent } = await resolveSchoolEntitlements(membership.schoolId);
+  const { count: prepUsed } = await createSchoolsAdminClient()
+    .from("teacher_resources")
+    .select("id", { count: "exact", head: true })
+    .eq("created_by", membership.adminId)
+    .gte("created_at", startOfMonthIso());
+  const overPrep = gateQuota(prepUsed ?? 0, ent.preparePerMonthPerProf, {
+    metric: "Prepare generations",
+    period: "month",
+    upgradeTo: "Plus",
+    scope: "school",
+  });
+  if (overPrep) return overPrep;
 
   let body: { classId?: string; subjectId?: string; kind?: string; topic?: string; count?: number };
   try {

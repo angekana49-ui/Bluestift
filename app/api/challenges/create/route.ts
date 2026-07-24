@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { generateJson } from "@/lib/raya/llm";
 import { extractFileText } from "@/lib/extract";
 import { assertRoomOpen } from "@/lib/rooms";
+import { resolveRayaEntitlements, gateQuota } from "@/lib/entitlements";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -111,6 +112,30 @@ export async function POST(request: Request) {
     const { open } = await assertRoomOpen(supabase, roomId);
     if (!open) {
       return NextResponse.json({ error: "This room has ended — it's now read-only." }, { status: 403 });
+    }
+    // Free rooms allow a single challenge per room; the cap is set by the room
+    // owner's plan, not the member creating the challenge. Solo self-tests
+    // (no roomId) have no creation quota — only their AI analysis is gated.
+    const { data: roomRow } = await supabase
+      .schema("learning")
+      .from("rooms")
+      .select("created_by")
+      .eq("id", roomId)
+      .maybeSingle();
+    const ownerId = (roomRow as { created_by: string | null } | null)?.created_by ?? null;
+    if (ownerId) {
+      const { ent } = await resolveRayaEntitlements(ownerId);
+      const { count: chUsed } = await supabase
+        .schema("learning")
+        .from("challenges")
+        .select("id", { count: "exact", head: true })
+        .eq("room_id", roomId);
+      const overCh = gateQuota(chUsed ?? 0, ent.roomChallengesPerRoom, {
+        metric: "room challenges",
+        upgradeTo: "Plus",
+        scope: "rooms",
+      });
+      if (overCh) return overCh;
     }
   }
 
