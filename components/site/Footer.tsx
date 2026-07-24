@@ -24,6 +24,7 @@ const COLUMNS: { label: string; links: [string, string][] }[] = [
     links: [
       ["Contact", "/contact"],
       ["Feedback", "/feedback"],
+      ["Privacy", "/privacy"],
       ["Sign in", "/login"],
     ],
   },
@@ -48,7 +49,12 @@ export default function Footer({ theme: t, variant = "full" }: { theme: Theme; v
           textAlign: "center",
         }}
       >
-        <span style={{ fontSize: 10, color: t.footerMuted }}>© 2026 BlueStift. All rights reserved.</span>
+        <span style={{ fontSize: 10, color: t.footerMuted }}>
+          © 2026 BlueStift. All rights reserved. ·{" "}
+          <Link href="/privacy" style={{ color: t.footerMuted, textDecoration: "underline" }}>
+            Privacy
+          </Link>
+        </span>
       </footer>
     );
   }

@@ -4,7 +4,9 @@ import Link from "next/link";
 import type { Theme } from "./theme";
 import ThemeToggle from "./ThemeToggle";
 
-export type NavLink = "Product" | "Research" | "Survey" | "Pricing" | "Contact";
+// "Privacy" is a valid section (for SitePage's `active`) but intentionally not in
+// LINKS below — the privacy page has no nav pill, so nothing highlights for it.
+export type NavLink = "Product" | "Research" | "Survey" | "Pricing" | "Contact" | "Privacy";
 
 const LINKS: { label: NavLink; href: string }[] = [
   { label: "Product", href: "/" },

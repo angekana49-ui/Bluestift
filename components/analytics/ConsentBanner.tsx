@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import posthog from "posthog-js";
 import { getConsent, setConsent } from "@/lib/analytics/consent";
 import { createClient } from "@/lib/supabase/client";
@@ -63,7 +64,10 @@ export function ConsentBanner() {
     >
       <p style={{ margin: "0 0 12px" }}>
         We use privacy-friendly analytics to understand how Bluestift is used and make it better —
-        no ads, and we never sell your data. You can decline and keep using everything.
+        no ads, and we never sell your data. You can decline and keep using everything.{" "}
+        <Link href="/privacy" style={{ color: "#8ab4ff", textDecoration: "underline" }}>
+          Privacy
+        </Link>
       </p>
       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
         <button
