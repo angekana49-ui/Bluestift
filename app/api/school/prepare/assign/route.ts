@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { assertClassAccess, getAdminMembership } from "@/lib/school-admin";
+import { resolveSchoolEntitlements, gateQuota, startOfMonthIso } from "@/lib/entitlements";
 
 export const runtime = "nodejs";
 
@@ -75,8 +76,32 @@ export async function POST(request: Request) {
       ? "open"
       : "exam";
 
-  // Create the challenge + its questions (service-trusted; answers stay server-side).
+  // AI-grading quota (Standard 5 / Plus 75 / Custom ∞ per prof per month). Metered
+  // HERE, once per assignment, not per student submission — an mcq-only assignment
+  // needs no AI grading so it's free; an open/exam assignment will trigger LLM
+  // grading for every student, so it consumes one AI-grading credit for the prof
+  // who assigns it. Students are never blocked by this (see assignments/submit).
   const admin = createAdminClient();
+  if (format !== "mcq") {
+    const { ent } = await resolveSchoolEntitlements(membership.schoolId);
+    const { count: gradedUsed } = await admin
+      .schema("learning")
+      .from("challenges")
+      .select("id", { count: "exact", head: true })
+      .eq("created_by", user.id)
+      .eq("scope", "assignment")
+      .in("format", ["open", "exam"])
+      .gte("created_at", startOfMonthIso());
+    const overGrading = gateQuota(gradedUsed ?? 0, ent.aiGradingPerMonthPerProf, {
+      metric: "AI-graded assignments",
+      period: "month",
+      upgradeTo: "Plus",
+      scope: "school",
+    });
+    if (overGrading) return overGrading;
+  }
+
+  // Create the challenge + its questions (service-trusted; answers stay server-side).
   const { data: challenge, error: cErr } = await admin
     .schema("learning")
     .from("challenges")
