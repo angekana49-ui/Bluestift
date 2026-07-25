@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { AttachmentChip, type Attachment } from "@/components/attachment";
 import { IconButton, THREAD_MAX_W } from "@/components/ui/shell";
 import { IconMic, IconAttach, IconAiMode } from "@/components/ui/icons";
-import type { AppTheme } from "@/components/ui/tokens";
+import { text, type AppTheme } from "@/components/ui/tokens";
 
 /** The minimal voice-recorder shape the composer needs (see useVoiceRecorder). */
 export type ComposerVoice = {
@@ -76,13 +76,13 @@ export function ChatComposer({
             {pending.map((a) => (
               <AttachmentChip key={a.id} file={a} onRemove={() => onRemovePending?.(a.id)} busy={busy} />
             ))}
-            {uploading && <span style={{ fontSize: 11, color: t.mutedLight }}>Reading the document…</span>}
+            {uploading && <span style={{ fontSize: text.xs, color: t.mutedLight }}>Reading the document…</span>}
           </div>
         )}
 
         {/* error */}
         {(error || voice?.error) && (
-          <div style={{ padding: "0 24px 8px", fontSize: 12, color: "#f87171" }}>{error || voice?.error}</div>
+          <div style={{ padding: "0 24px 8px", fontSize: text.sm, color: "#f87171" }}>{error || voice?.error}</div>
         )}
 
         {/* composer */}
@@ -113,7 +113,7 @@ export function ChatComposer({
               border: `1px solid ${t.inputBorder}`,
               borderRadius: 99,
               padding: "12px 18px",
-              fontSize: 12.5,
+              fontSize: text.base,
               color: t.text,
               outline: "none",
             }}

@@ -131,6 +131,23 @@ export const display =
   "var(--font-inter-tight),'Inter Tight',ui-sans-serif,system-ui,sans-serif";
 export const hand = "var(--font-caveat),'Caveat',cursive";
 
+/**
+ * Type scale (px) — the single source of truth for font sizes, replacing the
+ * inline magic numbers (11 / 12.5 / 13.5 …) scattered across the app. The
+ * baseline is lifted for a more current, breathable feel: body copy sits at
+ * `base` (14), secondary/meta at `sm`/`xs`, headings above. `xs` (12) is the
+ * floor — nothing renders smaller. Prefer these tokens so the whole app can be
+ * re-scaled from one place.
+ */
+export const text = {
+  xs: 12, // micro-labels, status, timestamps — the floor
+  sm: 13, // secondary text, chips, captions, inline errors
+  base: 14, // body copy, message bubbles, inputs
+  lg: 16, // emphasis, sub-headings
+  xl: 20, // card/section headings, KPI values
+  "2xl": 24, // page headings
+} as const;
+
 /** Shape scale (border-radii). Buttons/pills/badges use `pill`. */
 export const radius = {
   pill: 99,

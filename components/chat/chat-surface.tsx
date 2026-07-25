@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/shell";
 import { Bird } from "@/components/ui/widgets";
 import { IconFile, IconImage, IconPanel } from "@/components/ui/icons";
-import { status, hand, type AppTheme } from "@/components/ui/tokens";
+import { status, hand, text, type AppTheme } from "@/components/ui/tokens";
 import { ChatComposer } from "./chat-composer";
 import { ChatAvatar } from "./chat-avatar";
 import type { ChatConfig } from "./types";
@@ -160,8 +160,8 @@ export function ChatSurface({
         >
           {/* Session name + state only — no product wordmark or AI avatar. */}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={ell(13.5, 700, t.text)}>{activeTitle}</div>
-            <div style={{ fontSize: 10.5, color: busy ? t.mutedLight : status.positive }}>
+            <div style={ell(text.base, 700, t.text)}>{activeTitle}</div>
+            <div style={{ fontSize: text.xs, color: busy ? t.mutedLight : status.positive }}>
               {busy ? "Thinking…" : "● in session"}
             </div>
           </div>
@@ -196,9 +196,9 @@ export function ChatSurface({
                 padding: 12,
               }}
             >
-              <div style={{ fontSize: 11, fontWeight: 700, color: t.text, marginBottom: 8 }}>Session documents</div>
+              <div style={{ fontSize: text.xs, fontWeight: 700, color: t.text, marginBottom: 8 }}>Session documents</div>
               {sessionFiles.length === 0 && (
-                <div style={{ fontSize: 10.5, color: t.muted }}>No documents yet.</div>
+                <div style={{ fontSize: text.xs, color: t.muted }}>No documents yet.</div>
               )}
               {sessionFiles.map((f) => (
                 <div
@@ -212,7 +212,7 @@ export function ChatSurface({
                     <IconFile size={13} style={{ color: t.muted }} />
                   )}
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={ell(10.5, 600, t.text)}>{f.file_name}</div>
+                    <div style={ell(text.xs, 600, t.text)}>{f.file_name}</div>
                   </div>
                 </div>
               ))}
@@ -241,7 +241,7 @@ export function ChatSurface({
               <Bird variant={1} fill={status.aiIndigo} />
               <Bird variant={2} fill={t.mutedLight} />
             </div>
-            <p style={{ maxWidth: 380, margin: "14px 0 26px", fontSize: 13, lineHeight: 1.7, color: t.muted }}>
+            <p style={{ maxWidth: 380, margin: "14px 0 26px", fontSize: text.base, lineHeight: 1.7, color: t.muted }}>
               {config.emptyHint}
             </p>
 
@@ -259,7 +259,7 @@ export function ChatSurface({
                     border: `1px solid ${t.cardBorder}`,
                     borderRadius: 14,
                     padding: "12px 16px",
-                    fontSize: 12,
+                    fontSize: text.sm,
                     fontWeight: 600,
                     color: t.text,
                     animation: `floatSm ${6.5 + i * 0.35}s ease-in-out infinite`,
@@ -299,7 +299,7 @@ export function ChatSurface({
                         color: mine ? t.ctaText : t.text,
                         borderRadius: mine ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
                         padding: "13px 16px",
-                        fontSize: 13.5,
+                        fontSize: text.base,
                         lineHeight: 1.65,
                         whiteSpace: "pre-wrap",
                       }}
