@@ -57,6 +57,16 @@ export function SchoolReports({
     })();
   }, []);
 
+  // Close the open report with Escape.
+  useEffect(() => {
+    if (!current) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setCurrent(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [current]);
+
   async function generate() {
     if (busy) return;
     if (scope === "class" && !classId) {
@@ -147,14 +157,35 @@ export function SchoolReports({
         {error && <p style={{ color: "#f87171", margin: "0.75rem 0 0" }}>{error}</p>}
       </div>
 
+      {/* The opened report is shown in a centred modal (dimmed, scrollable) so it
+          clearly opens in place regardless of where "View" was clicked, at a
+          consistent size, with the TXT/PDF/close actions visible in its header. */}
       {current && (
-        <div style={{ marginTop: "1rem" }}>
-          <DocumentView
-            {...docFor(current)}
-            onTxt={() => downloadBrandedText(docFor(current))}
-            onPdf={() => downloadBrandedPdf(docFor(current))}
-            onClose={() => setCurrent(null)}
-          />
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={current.title}
+          onClick={() => setCurrent(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 5000,
+            background: "rgba(4,10,24,0.5)",
+            overflowY: "auto",
+            padding: "40px 16px",
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "center",
+          }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 900 }}>
+            <DocumentView
+              {...docFor(current)}
+              onTxt={() => downloadBrandedText(docFor(current))}
+              onPdf={() => downloadBrandedPdf(docFor(current))}
+              onClose={() => setCurrent(null)}
+            />
+          </div>
         </div>
       )}
 
