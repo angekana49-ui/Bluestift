@@ -88,7 +88,7 @@ export default function Navbar({
               <span style={{ color: t.wordmarkB }}>Stift</span>
               {section && <span style={{ fontWeight: 400, opacity: 0.6, marginLeft: 4, color: t.text }}>· {section}</span>}
             </div>
-            <div style={{ fontSize: 9, color: t.text }}>Raya · AI tutor K-12</div>
+            <div style={{ fontSize: 11, color: t.text }}>Raya · AI tutor K-12</div>
           </div>
         </Link>
 
@@ -102,7 +102,7 @@ export default function Navbar({
                 style={{
                   padding: "6px 14px",
                   borderRadius: 999,
-                  fontSize: 11,
+                  fontSize: 13,
                   fontWeight: isActive ? 600 : 400,
                   color: isActive ? t.text : t.muted,
                   background: isActive ? t.pillActiveBg : "transparent",
