@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { AttachmentChip, type Attachment } from "@/components/attachment";
 import { IconButton, THREAD_MAX_W } from "@/components/ui/shell";
 import { IconMic, IconAttach, IconAiMode } from "@/components/ui/icons";
@@ -60,6 +60,19 @@ export function ChatComposer({
   disabled?: boolean;
 }) {
   const sendIdle = busy || uploading || disabled || !input.trim();
+
+  // The input is a textarea so long messages wrap and the field grows with the
+  // text (up to a cap, then it scrolls internally) instead of running off in one
+  // endless line. Re-measured whenever `input` changes — including the reset to
+  // "" after a send, which snaps it back to a single row.
+  const taRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = taRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
+  }, [input]);
+
   return (
     <div
       style={
@@ -86,7 +99,7 @@ export function ChatComposer({
         )}
 
         {/* composer */}
-        <div style={{ padding: "16px 24px", display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ padding: "16px 24px", display: "flex", gap: 8, alignItems: "flex-end" }}>
           {voice && (
             <IconButton
               theme={t}
@@ -100,20 +113,33 @@ export function ChatComposer({
               {voice.recording ? <span style={{ fontSize: 14 }}>■</span> : <IconMic size={16} />}
             </IconButton>
           )}
-          <input
+          <textarea
+            ref={taRef}
             value={input}
             onChange={(e) => onInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && onSend()}
+            onKeyDown={(e) => {
+              // Enter sends; Shift+Enter (or Alt+Enter) drops to a new line.
+              if (e.key === "Enter" && !e.shiftKey && !e.altKey) {
+                e.preventDefault();
+                onSend();
+              }
+            }}
             disabled={busy || disabled}
             placeholder={placeholder}
+            rows={1}
             style={{
               flex: 1,
               minWidth: 100,
+              resize: "none",
+              maxHeight: 140,
+              overflowY: "auto",
               background: t.inputBg,
               border: `1px solid ${t.inputBorder}`,
-              borderRadius: 99,
-              padding: "12px 18px",
+              borderRadius: 20,
+              padding: "10px 18px",
               fontSize: text.base,
+              lineHeight: 1.5,
+              fontFamily: "inherit",
               color: t.text,
               outline: "none",
             }}
