@@ -43,7 +43,7 @@ export function RoomsList({
   // Optional session timer: 0 = no timer; otherwise 10–60 min. Once it elapses
   // the room turns read-only (members can still read + generate the report).
   const [duration, setDuration] = useState(0);
-  // Context documents RAYA reads from the first message — so it skips the obvious
+  // Context documents Raya reads from the first message — so it skips the obvious
   // "what are we studying?" questions. Uploaded to room_files right after create.
   const [docs, setDocs] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
@@ -98,7 +98,7 @@ export function RoomsList({
         return;
       }
       const { roomId } = result;
-      // Upload the context documents so RAYA has them from the very first turn.
+      // Upload the context documents so Raya has them from the very first turn.
       // Best-effort per file — the room exists regardless of a failed upload.
       for (const f of docs) {
         try {
@@ -205,7 +205,7 @@ export function RoomsList({
         <div style={{ margin: "2px 0 14px" }}>
           <div style={{ fontSize: 12, color: t.text, fontWeight: 600, marginBottom: 4 }}>📎 Context documents (optional)</div>
           <div style={{ fontSize: 11, color: t.mutedLight, marginBottom: 6 }}>
-            RAYA reads these from the start, so it can skip the obvious questions. Max 20 MB total.
+            Raya reads these from the start, so it can skip the obvious questions. Max 20 MB total.
           </div>
           <input
             type="file"

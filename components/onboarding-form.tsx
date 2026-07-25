@@ -20,11 +20,11 @@ import {
 } from "@/components/ui/auth-chrome";
 
 /**
- * First-run account setup for BlueStift — the umbrella brand over RAYA (the
+ * First-run account setup for BlueStift — the umbrella brand over Raya (the
  * tutor) and Schools. Full-screen split (shared chrome in ui/auth-chrome).
  *
  * Shape:
- * - TWO differentiated tracks chosen up front: RAYA (learn) and Schools
+ * - TWO differentiated tracks chosen up front: Raya (learn) and Schools
  *   (teach / run). Same account, different questions + copy.
  * - One question per screen — 5 steps per track, goal-gradient bar.
  * - Anonymous accounts get a 6th screen: continue-with-email + the recovery key

@@ -10,11 +10,11 @@ export const maxDuration = 60;
 const MAX_CONTENT = 12000;
 
 /**
- * Attach a document to a RAYA conversation: store it, extract its text, and keep
- * the text on a conversation_files row so RAYA can use it as context. If no
+ * Attach a document to a Raya conversation: store it, extract its text, and keep
+ * the text on a conversation_files row so Raya can use it as context. If no
  * conversation exists yet, one is created so a doc can open a fresh chat.
  *
- * With `roomId`, the conversation is a room's private student<->RAYA channel —
+ * With `roomId`, the conversation is a room's private student<->Raya channel —
  * the doc stays private to that channel and is never broadcast to the group.
  * (Documents shared with the whole room go through /api/rooms/files instead.)
  */

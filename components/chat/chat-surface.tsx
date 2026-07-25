@@ -26,7 +26,7 @@ const ell = (size: number, weight: number, color: string): React.CSSProperties =
 });
 
 /**
- * The presentational chat surface shared by both Raya and RAYA-for-Schools:
+ * The presentational chat surface shared by both Raya and Raya-for-Schools:
  * header (session name + state), the pale-blue animated welcome screen, the
  * centred reading column, message bubbles, pending attachments, the composer
  * (voice / attach / send), and the file preview modal.
@@ -62,7 +62,7 @@ export function ChatSurface({
   hideHeader?: boolean;
   /** Surface-specific composer control slotted before the send button. */
   extraComposerAction?: ReactNode;
-  /** Avatar shown on the current user's bubbles (RAYA's own is always its logo). */
+  /** Avatar shown on the current user's bubbles (Raya's own is always its logo). */
   userInitials?: string;
   userAvatarUrl?: string | null;
 }) {

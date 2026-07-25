@@ -1,5 +1,5 @@
 /**
- * RAYA chat — prop contract. This is the seam between the container
+ * Raya chat — prop contract. This is the seam between the container
  * (`components/chat.tsx`, keeps state + /api calls) and your presentational
  * screen. Build `ChatScreen` against these types and wiring is a one-liner.
  *

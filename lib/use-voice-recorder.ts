@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 
 /**
  * Record a short voice message, transcribe it via /api/raya/transcribe (Whisper
- * on Groq), and hand the text back. Shared by the solo chat and both room RAYA
+ * on Groq), and hand the text back. Shared by the solo chat and both room Raya
  * channels. Needs a secure context (HTTPS or localhost) + mic permission —
  * a refusal surfaces on `error` rather than throwing.
  */

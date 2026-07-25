@@ -10,7 +10,7 @@ import { resolveSchoolEntitlements, gateQuota, sinceDaysIso } from "@/lib/entitl
  * app-side by a grounded LLM from the certified `class_insights` baseline and
  * clearly labelled an estimate. Swap for a Kernel call when one exists.
  */
-const SYSTEM = `You are RAYA for Schools running a what-if projection for a school admin.
+const SYSTEM = `You are Raya for Schools running a what-if projection for a school admin.
 From the certified BASELINE and the LEVER, estimate the plausible effect. Never fabricate
 data — if the baseline is empty, say confidence is low. Return JSON exactly as:
 {"projected_mastery_pct": <int 0-100 or null>, "confidence": "low"|"medium"|"high",

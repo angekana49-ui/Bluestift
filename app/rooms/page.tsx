@@ -64,7 +64,7 @@ export default async function RoomsPage() {
   return (
     <RayaScaffold active="rooms" studentName={studentName} studentInitials={initialsOf(studentName)} studentAvatarUrl={profile.profile_picture_url} studentPlan={studentPlan}>
       <div style={{ flex: 1, overflow: "auto", padding: "32px 40px", minWidth: 0 }}>
-        <SectionHeader title="Rooms" subtitle="Study in a group with RAYA in the room." />
+        <SectionHeader title="Rooms" subtitle="Study in a group with Raya in the room." />
         <RoomsList rooms={rooms ?? []} myRoomIds={myRoomIds} />
       </div>
     </RayaScaffold>

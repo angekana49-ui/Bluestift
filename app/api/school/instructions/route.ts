@@ -11,9 +11,9 @@ type InstrRow = {
 };
 
 /**
- * Teacher instructions steering RAYA for a class. Access is gated by
+ * Teacher instructions steering Raya for a class. Access is gated by
  * assertClassAccess (admin_master of the school, or a prof assigned to the class).
- * These feed the student RAYA prompt as bounded, guardrail-subordinate guidance.
+ * These feed the student Raya prompt as bounded, guardrail-subordinate guidance.
  */
 
 /** GET ?classId= → the class's instructions + the caller's assignable subjects. */

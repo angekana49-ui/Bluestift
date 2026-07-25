@@ -21,7 +21,7 @@ export type GroupMsg = {
  * the pale-blue animated wash, the welcome greeting, the centred reading column
  * and the shared composer. The multi-party bits the solo chat doesn't have —
  * per-sender name labels, a third ("other member") bubble tone, shared-document
- * cards and the "Ask RAYA" action — stay here; the visuals stay identical.
+ * cards and the "Ask Raya" action — stay here; the visuals stay identical.
  *
  * Realtime, roster and send/upload logic all live in RoomView and arrive as
  * props, so this file is purely presentational.
@@ -86,7 +86,7 @@ export function RoomGroupChat({
     whiteSpace: "pre-wrap",
   });
 
-  // The avatar for a message's author: RAYA's logo, my photo/initials, or the
+  // The avatar for a message's author: Raya's logo, my photo/initials, or the
   // sending member's photo/initials from the roster.
   const avatarFor = (m: GroupMsg) => {
     if (m.role === "assistant") return <ChatAvatar theme={t} isRaya />;
@@ -99,7 +99,7 @@ export function RoomGroupChat({
     <button
       onClick={onAskRaya}
       disabled={busy || expired}
-      title="Bring RAYA into the room"
+      title="Bring Raya into the room"
       style={{
         flex: "none",
         height: 38,
@@ -115,7 +115,7 @@ export function RoomGroupChat({
         whiteSpace: "nowrap",
       }}
     >
-      Ask RAYA
+      Ask Raya
     </button>
   );
 
@@ -162,7 +162,7 @@ export function RoomGroupChat({
             <Bird variant={2} fill={t.mutedLight} />
           </div>
           <p style={{ maxWidth: 380, margin: "14px 0 26px", fontSize: 13, lineHeight: 1.7, color: t.muted }}>
-            Study together with your squad, share documents, or bring RAYA into the room.
+            Study together with your squad, share documents, or bring Raya into the room.
           </p>
 
           {composer(true)}
@@ -174,7 +174,7 @@ export function RoomGroupChat({
               ...(subject?.trim()
                 ? [{ label: `Start on ${subject.trim()}`, disabled: expired, onClick: () => onSend(`Let's start on ${subject.trim()}`) }]
                 : []),
-              { label: "Ask RAYA to help", disabled: expired || busy, onClick: () => onAskRaya() },
+              { label: "Ask Raya to help", disabled: expired || busy, onClick: () => onAskRaya() },
             ].map((chip, i) => (
               <span
                 key={chip.label}
@@ -249,7 +249,7 @@ export function RoomGroupChat({
                   {avatarFor(m)}
                   <div style={{ display: "flex", flexDirection: "column", alignItems: kind === "me" ? "flex-end" : "flex-start", gap: 3, minWidth: 0 }}>
                     <span style={{ fontSize: 10, color: t.mutedLight }}>
-                      {kind === "raya" ? "RAYA" : kind === "me" ? "You" : nameOf(m.user_id)}
+                      {kind === "raya" ? "Raya" : kind === "me" ? "You" : nameOf(m.user_id)}
                     </span>
                     <div style={bubble(kind)}>{m.content}</div>
                   </div>

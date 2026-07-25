@@ -10,7 +10,7 @@ export type Conversation = { id: string; title: string | null; updated_at: strin
 export type ConversationFile = Attachment & { message_id: string | null };
 
 /**
- * Everything that differs between the two chat surfaces (Raya vs RAYA-for-Schools)
+ * Everything that differs between the two chat surfaces (Raya vs Raya-for-Schools)
  * lives here, so the engine + surface stay identical. The backend endpoints must
  * be shape-compatible with the Raya ones:
  *  - `chat`          POST → streams text; sets x-conversation-id / x-message-id headers

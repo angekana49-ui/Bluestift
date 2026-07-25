@@ -10,7 +10,7 @@ import { COUNTRIES } from "@/lib/school-constants";
 type Staff = { schoolName: string; role: string };
 
 /**
- * Teacher/founder surface inside RAYA (where every user is): join a school with a
+ * Teacher/founder surface inside Raya (where every user is): join a school with a
  * staff invite code, OR create your own school. Creation lives here — not buried
  * in the Schools app — because this is the shared user home. Already-staff users
  * see their school + the dashboard link, and can still spin up another school.

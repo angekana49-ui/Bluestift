@@ -56,7 +56,7 @@ export function RoomFiles({ roomId, readOnly = false }: { roomId: string; readOn
         setError(data?.error ?? "Upload failed.");
         return;
       }
-      setStatus(data.hasText ? "Added — RAYA can use it as context ✓" : "Added ✓");
+      setStatus(data.hasText ? "Added — Raya can use it as context ✓" : "Added ✓");
       await load();
     } catch {
       setError("Upload failed.");
@@ -68,7 +68,7 @@ export function RoomFiles({ roomId, readOnly = false }: { roomId: string; readOn
   return (
     <div style={box}>
       <p style={{ color: t.muted, marginTop: 0, fontSize: 12.5 }}>
-        Shared documents give the room its context — RAYA reads them.
+        Shared documents give the room its context — Raya reads them.
       </p>
       {readOnly ? (
         <p style={{ color: t.muted, fontSize: 12, margin: 0 }}>

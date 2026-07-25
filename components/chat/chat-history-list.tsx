@@ -6,7 +6,7 @@ import type { Conversation } from "./types";
 /**
  * The conversation history: a "+ New session" button and the list of past
  * conversations (switch / delete). Extracted from the Raya chat so both the
- * Raya sidebar and the RAYA-for-Schools in-tab history render the same list.
+ * Raya sidebar and the Raya-for-Schools in-tab history render the same list.
  */
 export function ChatHistoryList({
   theme: t,

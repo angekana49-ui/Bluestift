@@ -29,7 +29,7 @@ const RAYA_CONFIG: ChatConfig = {
   greeting: (name) => (name ? `What are we cracking today, ${name}?` : "What are we cracking today?"),
   emptyHint: "Tell me what you'd like to work on — or pick a quick start.",
   suggestions: ["Pick up where I left off", "Unstick me on something", "Quiz me", "Surprise me"],
-  placeholder: "Write your reply to RAYA...",
+  placeholder: "Write your reply to Raya...",
   // Hybrid: if the learner has history, /api/raya/hooks personalizes these;
   // offline / brand-new → the static set above stays.
   personalizedHooks: fetchHooks("/api/raya/hooks"),

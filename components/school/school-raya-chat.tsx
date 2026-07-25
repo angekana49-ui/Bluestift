@@ -13,11 +13,11 @@ import { avatarInitials } from "@/lib/name";
 type Role = "admin_master" | "prof";
 
 /**
- * RAYA-for-Schools chat — the same engine + surface as the Raya student chat
+ * Raya-for-Schools chat — the same engine + surface as the Raya student chat
  * (streaming, voice, document upload, persisted history), wired to the Schools
  * backend. History lives in an in-tab popover (the dashboard sidebar is the
  * nav, not a chat list); the right panel carries the school directives +
- * a derived notifications feed. Rendered in the RAYA tab's contentFlush body,
+ * a derived notifications feed. Rendered in the Raya tab's contentFlush body,
  * so its own header is the single header.
  */
 const SCHOOL_CONFIG: ChatConfig = {
@@ -217,7 +217,7 @@ function DirectivesPanel({ role }: { role: Role }) {
     <div>
       <div style={{ fontSize: 12.5, fontWeight: 700, color: t.text, marginBottom: 4 }}>Instructions</div>
       <div style={{ fontSize: 10.5, color: t.muted, marginBottom: 10 }}>
-        School guidance RAYA passes to students and shows teachers. Never overrides RAYA&apos;s rules.
+        School guidance Raya passes to students and shows teachers. Never overrides Raya&apos;s rules.
       </div>
       {error && <div style={{ fontSize: 11, color: "#f87171", marginBottom: 6 }}>{error}</div>}
       {items.length === 0 && <div style={{ fontSize: 11, color: t.muted }}>No directives yet.</div>}

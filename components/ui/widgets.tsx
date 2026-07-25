@@ -263,7 +263,7 @@ export function Avatar({
   );
 }
 
-/** Flying bird silhouette used in the RAYA new-session greeting. */
+/** Flying bird silhouette used in the Raya new-session greeting. */
 export function Bird({
   variant,
   fill,

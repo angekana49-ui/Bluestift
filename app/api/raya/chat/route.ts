@@ -16,9 +16,9 @@ import {
 import type { KernelMessage } from "@/lib/kernel/types";
 
 /**
- * Light EMT classification of a RAYA reply (kernel-handoff §7). Heuristic, not a
+ * Light EMT classification of a Raya reply (kernel-handoff §7). Heuristic, not a
  * model call: a reply whose final sentence is a question is throwing the ball
- * back to the student (PUMP); otherwise RAYA is stating something (ASSERTION).
+ * back to the student (PUMP); otherwise Raya is stating something (ASSERTION).
  * Nullable + soft — the kernel treats emt_level as a weak signal.
  */
 function classifyEmt(reply: string): "pump" | "assertion" | null {
@@ -38,7 +38,7 @@ async function teacherInstructionsFor(userId: string): Promise<string> {
 }
 
 /**
- * One RAYA turn, STREAMED for minimal perceived latency:
+ * One Raya turn, STREAMED for minimal perceived latency:
  * store student message -> read cached cognitive profile (non-blocking) ->
  * stream the guarded reply -> persist the full reply when the stream ends.
  */
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
     ? body.fileIds.filter((id): id is string => typeof id === "string").slice(0, 10)
     : [];
 
-  // Student "think time" between RAYA's last reply and this message — a genuine
+  // Student "think time" between Raya's last reply and this message — a genuine
   // cognitive signal (very fast answers can indicate passive dependency).
   // Clamped: ignore negatives, cap at 1h to drop tab-left-open outliers.
   const responseTimeMs =
@@ -90,11 +90,11 @@ export async function POST(request: Request) {
       ? Math.min(Math.round(body.responseTimeMs), 60 * 60 * 1000)
       : null;
 
-  // When roomId is set, this is the private student<->RAYA channel scoped to
-  // that room — RAYA draws on the room's shared documents.
+  // When roomId is set, this is the private student<->Raya channel scoped to
+  // that room — Raya draws on the room's shared documents.
   const roomId = body.roomId ?? null;
 
-  // A timed room turns read-only once it ends — the private RAYA channel too.
+  // A timed room turns read-only once it ends — the private Raya channel too.
   if (roomId) {
     const { open } = await assertRoomOpen(supabase, roomId);
     if (!open) {
@@ -153,7 +153,7 @@ export async function POST(request: Request) {
       .eq("conversation_id", convId)
       .is("message_id", null);
     if (linkErr) {
-      // Non-fatal: the document still feeds RAYA's context, it just floats free
+      // Non-fatal: the document still feeds Raya's context, it just floats free
       // of the bubble. Losing the turn over a cosmetic link would be worse.
       console.error("attachment link failed", linkErr.message);
     }
@@ -176,10 +176,10 @@ export async function POST(request: Request) {
   // students from different classes). Kicked off here to run in parallel.
   const instructionsPromise = roomId ? Promise.resolve("") : teacherInstructionsFor(user.id);
 
-  // Document context. In the private-room channel RAYA draws on BOTH the room's
+  // Document context. In the private-room channel Raya draws on BOTH the room's
   // shared files and the docs the student attached privately to this channel —
   // otherwise a doc dropped in the private composer would render in the thread
-  // but stay invisible to RAYA.
+  // but stay invisible to Raya.
   const convFiles = supabase
     .schema("learning")
     .from("conversation_files")
@@ -233,7 +233,7 @@ export async function POST(request: Request) {
       } catch {
         // keep whatever streamed so far
       }
-      // Persist RAYA's full reply (best-effort).
+      // Persist Raya's full reply (best-effort).
       try {
         await supabase.schema("learning").from("messages").insert({
           conversation_id: convIdFinal,

@@ -9,7 +9,7 @@ type Audience = (typeof AUDIENCES)[number];
 type DirectiveRow = { id: string; content: string; audience: string; is_active: boolean };
 
 /**
- * School-wide directives the admin broadcasts through RAYA. GET is role-aware
+ * School-wide directives the admin broadcasts through Raya. GET is role-aware
  * (admin manages all; a prof reads the teacher-facing active ones); writes are
  * admin_master only.
  */

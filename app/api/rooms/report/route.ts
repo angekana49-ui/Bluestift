@@ -51,7 +51,7 @@ export async function POST(request: Request) {
 
   const transcript =
     msgs
-      .map((m) => `${m.role === "assistant" ? "RAYA" : "Student"}: ${m.content ?? ""}`)
+      .map((m) => `${m.role === "assistant" ? "Raya" : "Student"}: ${m.content ?? ""}`)
       .join("\n")
       .slice(0, 6000) + (docs ? `\n\n=== Room documents ===\n${docs}` : "");
 
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
   };
   try {
     const raw = await generateJson(
-      "You are RAYA writing a short group study report from a room transcript, in the transcript's language. Return JSON exactly as: " +
+      "You are Raya writing a short group study report from a room transcript, in the transcript's language. Return JSON exactly as: " +
         '{"summary":"...","key_learnings":"...","highlights":["...","..."],"recommendations":"...","squad_score":0}. ' +
         "squad_score is 0-100 reflecting engagement and progress.",
       transcript,

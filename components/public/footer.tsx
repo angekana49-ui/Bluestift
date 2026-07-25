@@ -5,7 +5,7 @@ const COLS: Array<{ label: string; links: Array<[string, string]> }> = [
   {
     label: "Produit",
     links: [
-      ["RAYA", "/login"],
+      ["Raya", "/login"],
       ["Rooms", "/login"],
       ["Tools", "/login"],
       ["Écoles", "/school"],

@@ -25,7 +25,7 @@ export default function DifferentiatorsSection({ theme: t }: { theme: Theme }) {
           {cross("Khan Academy", "A fixed path; step off the script and you're on your own.")}
           <div style={{ display: "flex", alignItems: "center", gap: 14, border: `1px solid ${t.diffRowBorder}`, background: t.diffRowBg, borderRadius: 16, padding: "16px 20px" }}>
             <span style={{ width: 24, height: 24, borderRadius: "50%", background: "#22c55e", color: "white", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>✓</span>
-            <span style={{ fontSize: 13, fontWeight: 600, color: t.diffStrong }}>RAYA</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: t.diffStrong }}>Raya</span>
             <span style={{ fontSize: 12, color: t.diffSoft }}>— Remembers. Adapts. Measures. And learns from you.</span>
           </div>
         </div>

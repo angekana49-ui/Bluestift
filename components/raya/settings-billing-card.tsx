@@ -13,7 +13,7 @@ type B2cPlan = {
 };
 
 /**
- * Settings "Billing" card — the third stacked card in the RAYA student Settings
+ * Settings "Billing" card — the third stacked card in the Raya student Settings
  * screen. Now backed by the real plan catalog: it loads the active b2c plans and
  * shows the student's current (free) plan with its real name + features, plus any
  * paid upgrade. Students have no charge today, so payment/history stay empty until
@@ -39,7 +39,7 @@ export function StudentBillingCard() {
   const free = plans?.find((p) => p.price === 0) ?? null;
   const paid = plans?.find((p) => (p.price ?? 0) > 0) ?? null;
   const planName = free?.name ?? "User — Free";
-  const subtitle = free?.features[0] ?? "Unlimited solo RAYA sessions";
+  const subtitle = free?.features[0] ?? "Unlimited solo Raya sessions";
 
   return (
     <SettingsCard theme={t} mt>

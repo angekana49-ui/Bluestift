@@ -26,7 +26,7 @@ type GenQuestion = {
 };
 
 /**
- * Prepare mode: RAYA + Kernel help a teacher build an exam / exercise / worksheet
+ * Prepare mode: Raya + Kernel help a teacher build an exam / exercise / worksheet
  * grounded in the class's REAL cognitive gaps (buildClassContext / buildSubjectContext,
  * which already surface weakest concepts). One JSON generation yields the structured
  * questions; the markdown document is composed deterministically from them so the
@@ -111,7 +111,7 @@ export async function POST(request: Request) {
 
   const label = [subjectName, className].filter(Boolean).join(" · ");
   const system =
-    `You are RAYA for Schools, helping a teacher build a ${kind}. Return STRICT JSON ` +
+    `You are Raya for Schools, helping a teacher build a ${kind}. Return STRICT JSON ` +
     `{"title":"...","instructions":"...","questions":[{"prompt":"...","choices":["..."]?,"answer":"...","concept":"..."?}]}. ` +
     `Produce exactly ${count} questions in the teacher's language. ${focusLine}` +
     (kind === "quiz" || kind === "exam"

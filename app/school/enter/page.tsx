@@ -8,7 +8,7 @@ import { getMemberships } from "@/lib/school-admin";
  *  2. teacher of a school → the teacher dashboard        (/school renders it)
  *     (a user can be linked to one OR MORE schools via school_admins; the /school
  *      page picks the active one + shows the switcher.)
- *  3. classic user (no link) → RAYA → create-a-school flow. The pricing shown right
+ *  3. classic user (no link) → Raya → create-a-school flow. The pricing shown right
  *     after school onboarding is the deterrent against casual school creation.
  */
 export default async function SchoolEnterPage() {

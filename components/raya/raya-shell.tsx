@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/icons";
 import type { AppTheme } from "@/components/ui/tokens";
 
-/** RAYA student-app nav → real routes. `key` matches each page's `active` prop. */
+/** Raya student-app nav → real routes. `key` matches each page's `active` prop. */
 const NAV = [
   { key: "chat", label: "Chat", href: "/chat", Icon: IconChat },
   { key: "rooms", label: "Rooms", href: "/rooms", Icon: IconRooms },
@@ -38,7 +38,7 @@ const NAV = [
 export type RayaNav = (typeof NAV)[number]["key"];
 
 /**
- * Shared chrome for the RAYA student app: the cloud shell + collapsible sidebar
+ * Shared chrome for the Raya student app: the cloud shell + collapsible sidebar
  * (nav routes to /chat, /rooms, /tools, /profile, /account) + the main card, with
  * optional `chatHistory` (rendered under the Chat item on the chat route) and an
  * optional `rightPanel` sibling card. The page owns the theme (via useDarkMode)
@@ -155,7 +155,7 @@ export function RayaShell({
           logoSrcDark="/raya-mark-violet.png"
           logoRadius={0}
           logoSize={52}
-          name="RAYA"
+          name="Raya"
           onToggle={() => setCollapsed((c) => !c)}
         />
 
@@ -220,7 +220,7 @@ export function RayaShell({
       <MainCard theme={t} column>
         <MobileHeader
           theme={t}
-          title={NAV.find((n) => n.key === active)?.label ?? "RAYA"}
+          title={NAV.find((n) => n.key === active)?.label ?? "Raya"}
           onOpenLeft={() => setNavOpen(true)}
           onOpenRight={onToggleRight}
         />

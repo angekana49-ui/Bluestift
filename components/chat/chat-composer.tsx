@@ -19,12 +19,12 @@ export const COMPOSER_ACCEPT =
   ".txt,.md,.markdown,.csv,.pdf,.docx,.xlsx,.mp3,.m4a,.wav,.webm,.ogg,.flac,audio/*,application/pdf,text/plain";
 
 /**
- * The one chat composer, shared by every chat surface (Raya solo, RAYA-for-Schools,
+ * The one chat composer, shared by every chat surface (Raya solo, Raya-for-Schools,
  * and both room channels) so they stay pixel-identical: optional voice + attach,
  * the AI-mode pill, the round send button, the staged-attachment chips and the
  * inline error line. `centered` places it under the welcome greeting; otherwise it
  * pins to the bottom edge with a top border. `extraAction` slots a surface-specific
- * control (e.g. the room's "Ask RAYA") just before the send button.
+ * control (e.g. the room's "Ask Raya") just before the send button.
  */
 export function ChatComposer({
   theme: t,

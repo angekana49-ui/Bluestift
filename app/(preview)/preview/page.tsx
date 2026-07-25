@@ -7,7 +7,7 @@ import Link from "next/link";
  */
 export default function PreviewIndex() {
   const screens = [
-    ["RAYA (student app)", "/preview/raya"],
+    ["Raya (student app)", "/preview/raya"],
     ["Schools (admin/teacher app)", "/preview/school"],
     ["Onboarding (join via code)", "/preview/onboarding"],
     ["Rooms screen (contract stub)", "/preview/rooms"],

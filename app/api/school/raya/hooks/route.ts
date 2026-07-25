@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 export const maxDuration = 15;
 
 /**
- * HYBRID new-conversation hooks for the RAYA-for-Schools surface. Grounds on the
+ * HYBRID new-conversation hooks for the Raya-for-Schools surface. Grounds on the
  * same live context the chat uses (buildSchoolContext for admins / buildProfContext
  * for teachers — at-risk students, weak concepts, classes). If that context exists,
  * an LLM turns it into a short greeting + analytic quick-start chips; otherwise it
@@ -34,7 +34,7 @@ export async function GET() {
     const roleLabel = membership.role === "admin_master" ? "Admin" : "Teacher";
 
     const system =
-      "You write micro-copy for the empty 'new chat' screen of RAYA for Schools, an analytics " +
+      "You write micro-copy for the empty 'new chat' screen of Raya for Schools, an analytics " +
       "assistant for teachers and admins. From the live school context, return STRICT JSON " +
       '{"greeting":"...","suggestions":["...","...","..."]}. ' +
       `greeting: one short line (max 7 words), addressed to "${roleLabel}" (never a person or school name). ` +

@@ -308,7 +308,7 @@ function DoneScreen({ responseId, onFreeWall }: { responseId: string | null; onF
         Merci.
       </h2>
       <p style={{ fontSize: 13, color: T.sub, lineHeight: 1.7, marginBottom: 24 }}>
-        Tes réponses vont directement alimenter le développement de RAYA. Laisse ton email si tu veux un accès
+        Tes réponses vont directement alimenter le développement de Raya. Laisse ton email si tu veux un accès
         anticipé quand la beta sera prête.
       </p>
 
@@ -692,7 +692,7 @@ export function SurveyView({ signedIn, initialPosts, stats }: Props) {
             </em>
           </h1>
           <p style={{ fontSize: 13, color: T.sub, lineHeight: 1.65, maxWidth: 400, margin: "0 auto 36px" }}>
-            6 questions. Pas de compte requis. Tes réponses alimentent directement le développement de RAYA et du
+            6 questions. Pas de compte requis. Tes réponses alimentent directement le développement de Raya et du
             Cognitive Kernel.
           </p>
 

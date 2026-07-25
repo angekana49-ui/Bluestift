@@ -17,7 +17,7 @@ export default async function OnboardingPage() {
     .eq("id", user.id)
     .single();
 
-  // Already onboarded → straight to their home (RAYA or Schools, depending).
+  // Already onboarded → straight to their home (Raya or Schools, depending).
   if (profile && profile.account_state !== "onboarding_pending") {
     redirect(await resolveHome(user.id));
   }

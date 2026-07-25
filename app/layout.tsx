@@ -35,7 +35,7 @@ const instrumentSerif = Instrument_Serif({
 
 export const metadata: Metadata = {
   title: "Bluestift",
-  description: "Bluestift — RAYA learning platform",
+  description: "Bluestift — Raya learning platform",
 };
 
 export default function RootLayout({

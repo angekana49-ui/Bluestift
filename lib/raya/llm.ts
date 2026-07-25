@@ -14,7 +14,7 @@ const TEMPERATURE = 0.4;
 const MAX_TOKENS = 600;
 
 /**
- * Generate a RAYA reply. Gemini primary, Groq fallback.
+ * Generate a Raya reply. Gemini primary, Groq fallback.
  * Server-only; keys never reach the client.
  */
 export async function rayaComplete(
@@ -134,7 +134,7 @@ async function* groqDeltas(res: Response): AsyncGenerator<string> {
 }
 
 /**
- * Streaming RAYA reply for minimal perceived latency. Gemini primary; if it
+ * Streaming Raya reply for minimal perceived latency. Gemini primary; if it
  * fails to start, Groq fallback. Returns the chosen model + a delta stream.
  */
 export async function rayaStream(
@@ -309,7 +309,7 @@ export async function extractPdfText(pdf: ArrayBuffer): Promise<string> {
 
 /**
  * Transcribe a voice message using OpenAI Whisper served by Groq (STT).
- * `language` is an optional ISO-639-1 hint (RAYA is multilingual).
+ * `language` is an optional ISO-639-1 hint (Raya is multilingual).
  */
 export async function transcribeAudio(
   audio: Blob,

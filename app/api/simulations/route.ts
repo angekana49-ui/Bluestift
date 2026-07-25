@@ -13,7 +13,7 @@ import { resolveRayaEntitlements, gateQuota, sinceDaysIso } from "@/lib/entitlem
  * simulation endpoint yet), clearly labelled. Runs are persisted to
  * `learning.student_simulations` (RLS: owner-only) so the student keeps a history.
  */
-const SYSTEM = `You are RAYA running a personal what-if projection for a student.
+const SYSTEM = `You are Raya running a personal what-if projection for a student.
 From the student's cognitive BASELINE (their mastery per concept — Knowledge K,
 Retention V, Application P — plus mindset) and the LEVER (extra weekly study time
 on a focus), estimate the plausible effect on their overall mastery over ~6 weeks.

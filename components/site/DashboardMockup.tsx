@@ -149,7 +149,7 @@ export default function DashboardMockup({ theme: t }: { theme: Theme }) {
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
               <span style={{ width: 26, height: 26, borderRadius: "50%", background: "#6366f1", color: "white", fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>AI</span>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 600 }}>RAYA&apos;s suggestions</div>
+                <div style={{ fontSize: 11, fontWeight: 600 }}>Raya&apos;s suggestions</div>
                 <div style={{ fontSize: 10, color: t.muted }}>Tailored explanation in seconds.</div>
               </div>
             </div>

@@ -11,7 +11,7 @@ export const maxDuration = 60;
 const MAX_CONTENT = 12000;
 
 /**
- * Attach a document to a RAYA-for-Schools conversation — the staff-side mirror
+ * Attach a document to a Raya-for-Schools conversation — the staff-side mirror
  * of /api/raya/files. Stores the file, extracts its text, and keeps it on a
  * conversation_files row so the assistant can ground on it. New conversations
  * are seeded as `context_type='school_analytics'` + `school_id`.

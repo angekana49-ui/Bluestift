@@ -75,5 +75,5 @@ export default async function CheckoutReturnPage({
 }
 
 function audienceHome(audience?: string): { href: string; label: string } {
-  return audience === "b2b" ? { href: "/school", label: "Go to your school" } : { href: "/chat", label: "Open RAYA" };
+  return audience === "b2b" ? { href: "/school", label: "Go to your school" } : { href: "/chat", label: "Open Raya" };
 }

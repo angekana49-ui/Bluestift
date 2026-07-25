@@ -38,7 +38,7 @@ export default function Navbar({
   section?: string;
   signedIn?: boolean;
   /** Where "Open app" goes for a signed-in user — their resolved home
-   *  (RAYA or Schools). Defaults to RAYA when the page doesn't resolve it. */
+   *  (Raya or Schools). Defaults to Raya when the page doesn't resolve it. */
   homeHref?: string;
 }) {
   const ctaPill = {
@@ -88,7 +88,7 @@ export default function Navbar({
               <span style={{ color: t.wordmarkB }}>Stift</span>
               {section && <span style={{ fontWeight: 400, opacity: 0.6, marginLeft: 4, color: t.text }}>· {section}</span>}
             </div>
-            <div style={{ fontSize: 9, color: t.text }}>RAYA · AI tutor K-12</div>
+            <div style={{ fontSize: 9, color: t.text }}>Raya · AI tutor K-12</div>
           </div>
         </Link>
 

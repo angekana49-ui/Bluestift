@@ -190,7 +190,7 @@ function DoneScreen({ t, responseId, onFreeWall }: { t: Theme; responseId: strin
       </div>
       <h2 style={{ fontFamily: "'Inter Tight',sans-serif", fontWeight: 900, fontSize: "1.9rem", letterSpacing: "-0.02em", margin: "0 0 12px", color: t.text }}>Thank you.</h2>
       <p style={{ fontSize: 13, lineHeight: 1.7, color: t.text, marginBottom: 24 }}>
-        Your answers feed straight into RAYA&apos;s development. Leave your email if you want early access when the beta is ready.
+        Your answers feed straight into Raya&apos;s development. Leave your email if you want early access when the beta is ready.
       </p>
 
       {responseId && !saved && (
@@ -392,7 +392,7 @@ export function SurveyView({ signedIn, initialPosts, stats }: Props) {
                 <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", color: t.orange }}>Tell us what&apos;s really getting in the way.</em>
               </h1>
               <p style={{ maxWidth: 380, margin: "0 auto 32px", fontSize: 13, color: t.text, lineHeight: 1.7 }}>
-                6 questions. No account needed. Your answers feed directly into RAYA&apos;s development.
+                6 questions. No account needed. Your answers feed directly into Raya&apos;s development.
               </p>
 
               <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginBottom: 20 }}>

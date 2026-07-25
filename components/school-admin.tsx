@@ -55,7 +55,7 @@ import type {
 
 /** The signed-in user's own account, for the in-dashboard Settings panel. Mirrors
  * exactly what /account renders (theme + AuthPanel + billing), so the teacher's
- * profile chip opens Settings in place instead of bouncing to the RAYA scaffold. */
+ * profile chip opens Settings in place instead of bouncing to the Raya scaffold. */
 export type StaffAccount = {
   user: { id: string; email: string | null; isAnonymous: boolean };
   profile: {
@@ -267,7 +267,7 @@ function SchoolChrome({
   const { avatarUrl, memberships, activeSchoolId } = useSchoolUser();
   const router = useRouter();
 
-  // The profile chip opens a small menu (like the RAYA app) rather than jumping
+  // The profile chip opens a small menu (like the Raya app) rather than jumping
   // straight to Settings. "Settings" delegates to the caller's `onProfile` (prof
   // → in-dashboard settings; admin → /account), plus a sign-out.
   const settingsAction = onProfile ?? (() => router.push("/account"));
@@ -321,7 +321,7 @@ function SchoolChrome({
  * Sidebar school switcher for multi-school users: lists every school the user
  * belongs to and switches the active one via the `setActiveSchool` server action.
  * Only renders when the user has more than one school. (Creating a school happens
- * in RAYA / the profile; a teacher adds more schools by code in their dashboard.)
+ * in Raya / the profile; a teacher adds more schools by code in their dashboard.)
  */
 function SchoolSwitcher({
   memberships,
@@ -401,7 +401,7 @@ function SchoolSwitcher({
 }
 
 /**
- * No school yet: join with a staff invite code. Creating a school lives in RAYA
+ * No school yet: join with a staff invite code. Creating a school lives in Raya
  * (the profile), where every user is — so we point there rather than duplicating
  * the create form here.
  */
@@ -638,7 +638,7 @@ function ProfView({
     memberships.find((m) => m.schoolId === activeSchoolId)?.schoolName ||
     memberships[0]?.schoolName ||
     "your school";
-  // Profile chip (like RAYA): name + photo, with "Teacher · <forfait>" under it.
+  // Profile chip (like Raya): name + photo, with "Teacher · <forfait>" under it.
   const profileForfait = planLabel ? `Teacher · ${planLabel}` : "Teacher";
 
   const navItems: SchoolNavItem[] = [
@@ -648,7 +648,7 @@ function ProfView({
     { key: "prepare", label: "Prepare", icon: <IconFile /> },
     { key: "insights", label: "Insights", icon: <IconKernel /> },
     { key: "reports", label: "Reports", icon: <IconSummary /> },
-    { key: "raya", label: "RAYA", icon: <IconChat /> },
+    { key: "raya", label: "Raya", icon: <IconChat /> },
     { key: "settings", label: "Settings", icon: <IconSettings /> },
   ];
   const goTab = (k: string) => {
@@ -656,7 +656,7 @@ function ProfView({
     setNav({ mode: "list" });
   };
 
-  // The RAYA tab is a full-height conversational surface — it owns the whole card
+  // The Raya tab is a full-height conversational surface — it owns the whole card
   // body (no page padding) when we're on that tab at the top level.
   const rayaFullScreen = tab === "raya" && nav.mode === "list";
 
@@ -669,7 +669,7 @@ function ProfView({
       : nav.mode === "class"
         ? nav.roster.className
         : tab === "raya"
-          ? "RAYA for Schools"
+          ? "Raya for Schools"
           : tabLabel;
 
   let body: React.ReactNode;
@@ -874,7 +874,7 @@ function FocusView({
 
 /**
  * The teacher's own account Settings, rendered *inside* the school dashboard so
- * the profile chip no longer bounces to the RAYA-scaffolded /account page. Same
+ * the profile chip no longer bounces to the Raya-scaffolded /account page. Same
  * cards as /account: theme, identity/auth (email link, recovery key), billing.
  */
 function ProfSettings({ account, classes }: { account: StaffAccount | null; classes: AdminClass[] }) {
@@ -920,7 +920,7 @@ function WhoPaysNote() {
       }}
     >
       <div style={{ fontWeight: 700, color: t.text, marginBottom: 4 }}>What your school covers</div>
-      Your teaching tools — classes, Focus, Prepare, reports and RAYA for Schools — are part of your
+      Your teaching tools — classes, Focus, Prepare, reports and Raya for Schools — are part of your
       school&apos;s plan; you never pay for them. Your <strong style={{ color: t.text }}>personal Raya</strong>{" "}
       (solo chat, Tools, your own Kernel) is your own account, on the free plan unless you choose to
       upgrade it.
@@ -1059,7 +1059,7 @@ function TeachingPreferencesCard({ classes }: { classes: AdminClass[] }) {
 }
 
 /**
- * The teacher's "double-hat" banner: makes explicit that this dashboard is RAYA
+ * The teacher's "double-hat" banner: makes explicit that this dashboard is Raya
  * extended for someone who also teaches — showing who they are, the subject(s)
  * they teach, and at which school.
  */
@@ -1113,7 +1113,7 @@ function TeacherBanner({
           </span>
         </div>
         <div style={{ fontSize: 11.5, color: t.mutedLight, marginTop: 2 }}>
-          {schoolName} · {classCount} {classCount === 1 ? "class" : "classes"} · your RAYA, extended for teaching
+          {schoolName} · {classCount} {classCount === 1 ? "class" : "classes"} · your Raya, extended for teaching
         </div>
       </div>
     </div>
@@ -1587,7 +1587,7 @@ function Dashboard({
     { key: "team", label: "Team", icon: <IconRooms /> },
     { key: "insights", label: "Insights", icon: <IconKernel /> },
     // LMS (Google Classroom) hidden until the OAuth integration is provisioned.
-    { key: "raya", label: "RAYA", icon: <IconChat /> },
+    { key: "raya", label: "Raya", icon: <IconChat /> },
     { key: "reports", label: "Reports", icon: <IconSummary /> },
     { key: "billing", label: "Billing", icon: <IconBilling /> },
     { key: "settings", label: "Settings", icon: <IconSettings /> },
@@ -1653,8 +1653,8 @@ function Dashboard({
       </>
     );
 
-  // The RAYA tab is a full-height chat that owns the whole card (its own header,
-  // its own right panel) — like the prof dashboard's RAYA tab.
+  // The Raya tab is a full-height chat that owns the whole card (its own header,
+  // its own right panel) — like the prof dashboard's Raya tab.
   const rayaFlush = nav.mode === "list" && tab === "raya";
 
   // Header context line under the school name+logo: the drilled element, else the
@@ -1665,7 +1665,7 @@ function Dashboard({
       : nav.mode === "class"
         ? nav.roster.className
         : tab === "raya"
-          ? "RAYA for Schools"
+          ? "Raya for Schools"
           : navItems.find((n) => n.key === tab)?.label ?? "";
 
   let body: React.ReactNode;
@@ -2232,7 +2232,7 @@ function StudentDetailView({
       {detail.insight && (
         <div style={{ ...box, borderColor: "#8b5cf655", background: t.cardBg }}>
           <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#a78bfa", marginBottom: "0.35rem" }}>
-            RAYA analysis
+            Raya analysis
           </div>
           <p style={{ margin: 0, lineHeight: 1.55 }}>{detail.insight}</p>
         </div>
@@ -2246,7 +2246,7 @@ function StudentDetailView({
         </div>
         {detail.kcs.length === 0 ? (
           <p style={{ margin: 0, opacity: 0.6 }}>
-            No cognitive data yet — it appears once this student works with RAYA.
+            No cognitive data yet — it appears once this student works with Raya.
           </p>
         ) : (
           detail.kcs.map((kc, i) => (

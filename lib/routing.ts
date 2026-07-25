@@ -6,16 +6,16 @@ type ServerClient = Awaited<ReturnType<typeof createClient>>;
 
 /**
  * The single source of truth for the post-auth flow ORDER:
- *   sign up / login  →  onboarding  →  home (RAYA or Schools)
+ *   sign up / login  →  onboarding  →  home (Raya or Schools)
  * gated on the user's account_state (verification progress). Use it at every
  * entry point (login page, auth callbacks) so the sequence is always enforced.
  */
 
 /**
- * Where an *onboarded* user lands. "RAYA or Schools, depending": if they belong
+ * Where an *onboarded* user lands. "Raya or Schools, depending": if they belong
  * to a school (admin or teacher) their home is the Schools dashboard, otherwise
- * the RAYA tutor. A school-intent user who hasn't created/joined one yet has no
- * membership, so RAYA is their home until they do (they can create from there).
+ * the Raya tutor. A school-intent user who hasn't created/joined one yet has no
+ * membership, so Raya is their home until they do (they can create from there).
  */
 export async function resolveHome(userId: string): Promise<string> {
   const memberships = await getMemberships(userId);

@@ -13,7 +13,7 @@ import {
 import { rayaComplete, type ChatMsg } from "@/lib/raya/llm";
 import { resolveSchoolEntitlements, gateQuota, sinceDaysIso } from "@/lib/entitlements";
 
-const SYSTEM = `You are RAYA for Schools. Write a concise performance report for a school
+const SYSTEM = `You are Raya for Schools. Write a concise performance report for a school
 administrator, in the administrator's language, using ONLY the DATA below — never invent
 students, classes, or numbers. Use this Markdown structure:
 # Overview  (1-2 sentences with the key figures)

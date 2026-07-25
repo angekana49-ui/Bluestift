@@ -15,7 +15,7 @@ export type SchoolNotification = {
 };
 
 /**
- * A lightweight, DERIVED notifications feed for the RAYA-for-Schools right panel
+ * A lightweight, DERIVED notifications feed for the Raya-for-Schools right panel
  * — no new table. It aggregates signals that already exist:
  *   admin → pending team join-requests + the school-wide at-risk count
  *   prof  → at-risk students in their assigned classes

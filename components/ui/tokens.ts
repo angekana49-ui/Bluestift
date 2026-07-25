@@ -1,6 +1,6 @@
 /**
  * App design tokens — single source of truth for the connected app shell
- * (RAYA student app + Schools admin/teacher app). Every color is derived from
+ * (Raya student app + Schools admin/teacher app). Every color is derived from
  * `getTheme(isDark)`; a component should never hardcode a surface/text color —
  * it reads from the returned `AppTheme`. Values are ported verbatim from the
  * design handoff references (`design_handoff_raya_schools_app/reference-*.html`).

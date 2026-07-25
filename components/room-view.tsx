@@ -55,7 +55,7 @@ function reportDoc(roomName: string, r: Parameters<typeof reportToMd>[0]): Brand
 
 /** A learning.room_files row, already tied to the message that shared it. */
 export type RoomFileRow = Attachment & { message_id: string | null };
-/** A learning.conversation_files row from the private RAYA channel. */
+/** A learning.conversation_files row from the private Raya channel. */
 export type PrivateFileRow = Attachment & { message_id: string | null };
 type RoomReport = {
   id: string;
@@ -257,10 +257,10 @@ export function RoomView({
     return { initials: avatarInitials(nameOf(userId)), avatarUrl: r?.profile_picture_url ?? null };
   }
 
-  // Private student<->RAYA channel — the very same surface as the solo /chat,
+  // Private student<->Raya channel — the very same surface as the solo /chat,
   // driven by the shared chat engine. `roomId` rides along in every request so
   // the streaming endpoint scopes the conversation to this room and grounds
-  // RAYA on the room's shared documents.
+  // Raya on the room's shared documents.
   const privateConfig: ChatConfig = {
     endpoints: {
       chat: "/api/raya/chat",
@@ -268,10 +268,10 @@ export function RoomView({
       files: "/api/raya/files",
     },
     capabilities: { voice: true, files: true },
-    greeting: (name) => (name ? `This stays between us, ${name}` : "Private line to RAYA"),
-    emptyHint: "Private to you and RAYA. Ask anything about the room's topic — RAYA can read the shared documents.",
+    greeting: (name) => (name ? `This stays between us, ${name}` : "Private line to Raya"),
+    emptyHint: "Private to you and Raya. Ask anything about the room's topic — Raya can read the shared documents.",
     suggestions: ["Explain the key idea", "Quiz me on this", "Break down the shared docs"],
-    placeholder: "Write privately to RAYA…",
+    placeholder: "Write privately to Raya…",
     extraBody: { roomId },
     // Hybrid: no LLM needed — when the room has a subject we template the chips
     // from it (works offline); otherwise the static set above stays.
@@ -289,7 +289,7 @@ export function RoomView({
     initialConversations: [],
   });
 
-  // Voice input for the group RAYA channel (record → transcribe → send). The
+  // Voice input for the group Raya channel (record → transcribe → send). The
   // private channel gets its own voice from the shared engine.
   const groupVoice = useVoiceRecorder((text) => send(text));
 
@@ -433,10 +433,10 @@ export function RoomView({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        setError(data?.error ? `RAYA: ${data.error}` : "RAYA could not reply.");
+        setError(data?.error ? `Raya: ${data.error}` : "Raya could not reply.");
       }
     } catch {
-      setError("Could not reach RAYA.");
+      setError("Could not reach Raya.");
     } finally {
       setBusy(false);
     }
@@ -585,7 +585,7 @@ export function RoomView({
                 {c === "group"
                   ? "Group chat"
                   : c === "private"
-                    ? "RAYA (private)"
+                    ? "Raya (private)"
                     : c === "challenge"
                       ? "Challenges"
                       : c === "files"
@@ -817,7 +817,7 @@ export function RoomView({
         <div style={panelSectionTitle}>Members</div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 2px" }}>
           <ChatAvatar theme={t} size={26} isRaya />
-          <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 600, color: t.text }}>RAYA</span>
+          <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 600, color: t.text }}>Raya</span>
           <span className="online-dot" />
         </div>
         {Object.values(roster).map((r) => {

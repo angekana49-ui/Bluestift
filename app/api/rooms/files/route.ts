@@ -12,7 +12,7 @@ const MAX_CONTENT = 12000;
 
 /**
  * Upload a file to a room: store it, extract its text, and keep the text on the
- * room_files row so RAYA can use the room's documents as context.
+ * room_files row so Raya can use the room's documents as context.
  */
 export async function POST(request: Request) {
   const supabase = await createClient();

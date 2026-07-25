@@ -5,7 +5,7 @@ import type { CSSProperties, ReactNode } from "react";
 import type { AppTheme } from "./tokens";
 
 /**
- * AppShell — the shared frame for the RAYA and Schools apps.
+ * AppShell — the shared frame for the Raya and Schools apps.
  *
  * Flat by design: no cloud backdrop, no floating cards, no gaps. The content
  * zone is the primary surface and the side panels are simply adjacent panels
@@ -586,7 +586,7 @@ export const RETRACT_HEADER_MIN_H = 64;
 
 /** Comfortable reading width for a conversation column on wide screens; the
  *  thread and composer centre within it and fall back to full width below it.
- *  Shared by the Raya chat and the Schools RAYA chat so both read identically. */
+ *  Shared by the Raya chat and the Schools Raya chat so both read identically. */
 export const THREAD_MAX_W = 760;
 
 /**

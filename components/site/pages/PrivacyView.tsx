@@ -45,14 +45,14 @@ export function PrivacyView({ signedIn }: { signedIn: boolean }) {
             <p style={{ fontSize: 11.5, color: t.muted, margin: "0 0 26px" }}>Last updated {UPDATED}</p>
 
             <p style={p(t)}>
-              BlueStift builds RAYA, an AI tutor for students and a companion dashboard for schools. We try to
+              BlueStift builds Raya, an AI tutor for students and a companion dashboard for schools. We try to
               collect as little as possible, to be clear about what we do collect, and to let you use the product
               without handing over more than you want to. This page explains what we hold and why.
             </p>
 
             <h2 style={h2(t)}>The short version</h2>
             <ul style={{ paddingLeft: 18, margin: "0 0 12px" }}>
-              <li style={li(t)}>You can start anonymously — no email required to try RAYA.</li>
+              <li style={li(t)}>You can start anonymously — no email required to try Raya.</li>
               <li style={li(t)}>Analytics is <strong>opt-in</strong>: nothing is measured until you accept the banner, and declining changes nothing about how the product works.</li>
               <li style={li(t)}>We don&apos;t show ads, and we don&apos;t sell your data.</li>
             </ul>
@@ -60,17 +60,17 @@ export function PrivacyView({ signedIn }: { signedIn: boolean }) {
             <h2 style={h2(t)}>What we collect</h2>
             <ul style={{ paddingLeft: 18, margin: "0 0 12px" }}>
               <li style={li(t)}>
-                <strong>Account.</strong> RAYA can be used with an anonymous account (a random identifier, no
+                <strong>Account.</strong> Raya can be used with an anonymous account (a random identifier, no
                 personal details). If you add an email — for account recovery, a school invitation, or receipts —
                 we store it.
               </li>
               <li style={li(t)}>
-                <strong>What you create.</strong> Your conversations with RAYA, documents you upload, and the
+                <strong>What you create.</strong> Your conversations with Raya, documents you upload, and the
                 study material generated for you (summaries, quizzes, mind maps, exam prep). This is stored so the
                 product can remember your progress and you can come back to it.
               </li>
               <li style={li(t)}>
-                <strong>Learning signals.</strong> To personalise tutoring, RAYA keeps a model of what a student
+                <strong>Learning signals.</strong> To personalise tutoring, Raya keeps a model of what a student
                 has worked on and where they struggle. For school accounts, staff see aggregated performance for
                 their own classes.
               </li>
@@ -110,7 +110,7 @@ export function PrivacyView({ signedIn }: { signedIn: boolean }) {
             <ul style={{ paddingLeft: 18, margin: "0 0 12px" }}>
               <li style={li(t)}><strong>Supabase</strong> — database, authentication, and file storage.</li>
               <li style={li(t)}><strong>PostHog</strong> — product analytics (only with your consent).</li>
-              <li style={li(t)}><strong>AI model providers</strong> — the text you send to RAYA is processed by large-language-model providers to generate replies. It isn&apos;t used to train their public models under our configuration.</li>
+              <li style={li(t)}><strong>AI model providers</strong> — the text you send to Raya is processed by large-language-model providers to generate replies. It isn&apos;t used to train their public models under our configuration.</li>
               <li style={li(t)}><strong>Cloudflare Turnstile</strong> — bot/abuse protection on public forms.</li>
               <li style={li(t)}><strong>Email &amp; payment providers</strong> — to send account emails and, for paid plans, to process payments. We never store full card numbers.</li>
             </ul>
@@ -126,12 +126,12 @@ export function PrivacyView({ signedIn }: { signedIn: boolean }) {
             <ul style={{ paddingLeft: 18, margin: "0 0 12px" }}>
               <li style={li(t)}>Change or withdraw analytics consent at any time by clearing site data, which brings the banner back.</li>
               <li style={li(t)}>Ask for a copy of your data, or its deletion, by contacting us.</li>
-              <li style={li(t)}>Use RAYA anonymously if you&apos;d rather not share an email.</li>
+              <li style={li(t)}>Use Raya anonymously if you&apos;d rather not share an email.</li>
             </ul>
 
             <h2 style={h2(t)}>Students &amp; schools</h2>
             <p style={p(t)}>
-              RAYA is used by K-12 students, often through their school. When a school adopts BlueStift, the school
+              Raya is used by K-12 students, often through their school. When a school adopts BlueStift, the school
               is responsible for the appropriate consent for its students, and staff only see data for their own
               classes. If you&apos;re a parent or school and have a question about a student&apos;s data, contact
               us and we&apos;ll help.

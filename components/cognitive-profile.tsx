@@ -94,7 +94,7 @@ export function CognitiveProfile() {
     return (
       <div style={panelCard(t)}>
         <p style={{ margin: 0, color: t.text, fontSize: 12.5 }}>
-          Your profile isn&apos;t available right now. It&apos;s built by RAYA&apos;s cognitive
+          Your profile isn&apos;t available right now. It&apos;s built by Raya&apos;s cognitive
           engine — try again in a moment.
         </p>
       </div>
@@ -131,7 +131,7 @@ export function CognitiveProfile() {
       {concepts.length === 0 ? (
         <div style={panelCard(t)}>
           <p style={{ margin: 0, color: t.text, fontSize: 12.5 }}>
-            No concepts tracked yet. Keep working with RAYA and your strengths and gaps will
+            No concepts tracked yet. Keep working with Raya and your strengths and gaps will
             show up here.
           </p>
         </div>

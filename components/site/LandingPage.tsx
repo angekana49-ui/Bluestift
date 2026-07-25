@@ -82,14 +82,14 @@ export interface SiteConfig {
 export const defaultConfig: SiteConfig = {
   brand: {
     name: "BlueStift",
-    tagline: "RAYA · K-12 AI tutor",
+    tagline: "Raya · K-12 AI tutor",
     description:
-      "BlueStift builds RAYA, the AI tutor that remembers every student — for classrooms from Cameroon to the United States.",
+      "BlueStift builds Raya, the AI tutor that remembers every student — for classrooms from Cameroon to the United States.",
   },
   hero: {
     headline: "The AI tutor that remembers every student.",
     subheadline:
-      "RAYA adapts every session to each student's real cognitive profile — solo, in groups, in real time. Not a chatbot. A tutor.",
+      "Raya adapts every session to each student's real cognitive profile — solo, in groups, in real time. Not a chatbot. A tutor.",
     ctaPrimary: "Try it free",
     ctaSecondary: "See how it works",
   },
@@ -113,7 +113,7 @@ export const defaultConfig: SiteConfig = {
         icon: "S",
         title: "Study Rooms",
         description:
-          "Students and RAYA in real time, to revise together or unblock a problem as a group.",
+          "Students and Raya in real time, to revise together or unblock a problem as a group.",
         stats: [
           { label: "Active rooms", value: "12", color: "#4f46e5" },
           { label: "Students", value: "340", color: "#4f46e5" },
@@ -139,14 +139,14 @@ export const defaultConfig: SiteConfig = {
       { label: "ChatGPT / Claude", verdict: "Answers but doesn't remember. Starts from scratch every session.", bad: true },
       { label: "Khan Academy", verdict: "Fixed path. Step off the script and you're on your own.", bad: true },
       { label: "NotebookLM", verdict: "Analyzes documents but doesn't challenge you, doesn't measure.", bad: true },
-      { label: "RAYA", verdict: "Remembers. Adapts. Measures. And learns from you.", bad: false },
+      { label: "Raya", verdict: "Remembers. Adapts. Measures. And learns from you.", bad: false },
     ],
   },
   inbox: {
-    headline: "RAYA never starts from",
+    headline: "Raya never starts from",
     highlightedWord: "scratch.",
     description:
-      "Every session enriches the student's cognitive profile. The next day, RAYA knows exactly where to pick up — and the teacher sees everything, without entering a thing.",
+      "Every session enriches the student's cognitive profile. The next day, Raya knows exactly where to pick up — and the teacher sees everything, without entering a thing.",
     bullets: [
       {
         title: "It asks questions, not answers",
@@ -166,7 +166,7 @@ export const defaultConfig: SiteConfig = {
       { initials: "JT", name: "Jonas · 12th grade", preview: "Still stuck on function limits, 4th session on the topic.", status: "Watch", statusColor: "orange" },
       { initials: "AO", name: "Aiko · 7th grade", preview: "Study Room session finished with two classmates.", status: "", statusColor: "" },
       { initials: "RC", name: "Refik · 8th grade", preview: "Quiz auto-generated from his biology lesson.", status: "Done", statusColor: "gray" },
-      { initials: "EC", name: "Elena · 10th grade", preview: "RAYA spotted a drop-off on trigonometry this morning.", status: "New", statusColor: "yellow" },
+      { initials: "EC", name: "Elena · 10th grade", preview: "Raya spotted a drop-off on trigonometry this morning.", status: "New", statusColor: "yellow" },
     ],
   },
   pricing: {
@@ -178,8 +178,8 @@ export const defaultConfig: SiteConfig = {
         name: "Student",
         price: "Free",
         period: "forever",
-        description: "To get started solo with RAYA.",
-        features: ["Solo sessions with RAYA", "Study Rooms", "Tools (quizzes, summaries, flashcards)", "Personal cognitive profile", "Email support"],
+        description: "To get started solo with Raya.",
+        features: ["Solo sessions with Raya", "Study Rooms", "Tools (quizzes, summaries, flashcards)", "Personal cognitive profile", "Email support"],
         cta: "Create an account",
       },
       {
@@ -205,7 +205,7 @@ export const defaultConfig: SiteConfig = {
           "Multi-class, multi-teacher",
           "Per-class insights and simulations",
           "Full LMS integration",
-          "RAYA for Schools",
+          "Raya for Schools",
           "Reports by subject, class, school",
           "Dedicated support",
         ],

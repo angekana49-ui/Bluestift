@@ -3,7 +3,7 @@
 import type { AppTheme } from "@/components/ui/tokens";
 
 /**
- * A small round chat avatar shared by every chat surface. RAYA always wears its
+ * A small round chat avatar shared by every chat surface. Raya always wears its
  * logo (theme-aware mark); a human wears their profile photo when we have one,
  * otherwise a coloured circle with their initials (e.g. "J" / "AR"). Kept in one
  * place so the solo chat, the school chat and both room channels stay identical.
@@ -43,7 +43,7 @@ export function ChatAvatar({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={t.dark ? "/raya-mark-violet.png" : "/raya-mark.png"}
-          alt="RAYA"
+          alt="Raya"
           style={{ width: "82%", height: "82%", objectFit: "contain" }}
         />
       </span>

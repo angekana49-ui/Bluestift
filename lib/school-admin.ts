@@ -434,7 +434,7 @@ export async function getProfClasses(userId: string): Promise<AdminClass[]> {
 /**
  * Identity context for a teacher's dashboard: the school they're viewing plus the
  * subject(s) they've been assigned. Powers the "You're teaching as … · Teacher of
- * <subjects>" framing — the prof dashboard is an extension of RAYA for a user who
+ * <subjects>" framing — the prof dashboard is an extension of Raya for a user who
  * also teaches, so we surface their teaching hat explicitly.
  */
 export type ProfContext = { schoolName: string; schoolLogoUrl: string | null; subjects: string[] };
@@ -1160,7 +1160,7 @@ export async function getSchoolOverview(userId: string): Promise<SchoolOverview 
 }
 
 /**
- * Compact, factual snapshot of the admin's school for grounding RAYA-for-Schools.
+ * Compact, factual snapshot of the admin's school for grounding Raya-for-Schools.
  * Returns null if the user administers no school. Everything comes from real
  * data (rosters + Kernel state); empty sections say so explicitly.
  */
@@ -1262,7 +1262,7 @@ export async function buildSchoolContext(userId: string): Promise<string | null>
 
 /**
  * Like buildSchoolContext but scoped to a teacher's assigned classes — grounds
- * RAYA-for-Schools when a prof asks about their own students. Returns null if the
+ * Raya-for-Schools when a prof asks about their own students. Returns null if the
  * teacher has no assigned classes.
  */
 export async function buildProfContext(userId: string): Promise<string | null> {
@@ -1362,7 +1362,7 @@ export async function buildProfContext(userId: string): Promise<string | null> {
 export type StudentRecommendation = { content: string; source: string };
 
 /**
- * Soft, transparent nudges for a student, shown to them AND passed to RAYA as a
+ * Soft, transparent nudges for a student, shown to them AND passed to Raya as a
  * light preference (never a command). Two sources, merged: their teacher's
  * class recommendations (`class_instructions`) and their school's directives
  * (`school_directives`, audience students/both). Empty when the student isn't
@@ -1452,7 +1452,7 @@ export type StudentDetail = {
   insight: string | null;
 };
 
-/** One student's cognitive detail (KCs, mindset, latest RAYA insight), admin-gated. */
+/** One student's cognitive detail (KCs, mindset, latest Raya insight), admin-gated. */
 export async function getStudentDetail(
   adminUserId: string,
   studentUserId: string,

@@ -30,7 +30,7 @@ const TITLES: Record<View, string> = {
   overview: "Overview",
   classes: "Classes",
   kernel: "Kernel",
-  raya: "RAYA",
+  raya: "Raya",
   settings: "Réglages",
 };
 
@@ -77,7 +77,7 @@ export function SchoolsApp() {
             /* eslint-disable-next-line @next/next/no-img-element */
             <img src="/raya-logo.jpeg" alt="" style={{ width: 16, height: 16, borderRadius: 4, objectFit: "cover", flex: "none" }} />
           }
-          label="RAYA"
+          label="Raya"
           onClick={() => setView("raya")}
         />
         <NavItem theme={t} active={view === "settings"} collapsed={collapsed} icon={<IconSettings />} label="Réglages" onClick={() => setView("settings")} />
@@ -318,7 +318,7 @@ function Slider({ theme: t, label, value, fillPct, knobPct, mb }: { theme: AppTh
   );
 }
 
-/* ── RAYA (school-wide) ──────────────────────────────────── */
+/* ── Raya (school-wide) ──────────────────────────────────── */
 function RayaView({ theme: t }: { theme: AppTheme }) {
   return (
     <div style={{ padding: "24px 26px", display: "grid", gridTemplateColumns: "1fr", gap: 18 }}>
@@ -326,7 +326,7 @@ function RayaView({ theme: t }: { theme: AppTheme }) {
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/raya-logo.jpeg" alt="" style={{ width: 26, height: 26, borderRadius: 7, objectFit: "cover" }} />
-          <span style={{ fontSize: 14, fontWeight: 700, color: t.text }}>Activité RAYA — établissement</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: t.text }}>Activité Raya — établissement</span>
         </div>
         <TableHead theme={t} cols="1.6fr 1fr 1fr" labels={["Classe", "Sessions / 7j", "Ton configuré"]} />
         <RayaRow theme={t} cls="6e-A · Maths" sessions="142" tone="Encourageant" />
@@ -424,7 +424,7 @@ function SchoolsRightPanel({ theme: t, view, role }: { theme: AppTheme; view: Vi
             <MasteryGauge theme={t} valueLabel="1,204" caption="élèves suivis" dashoffset={50} />
           </div>
           <div style={{ border: `1px solid ${t.cardBorder}`, borderRadius: 20, padding: 16, background: t.cardBg2 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10, color: t.text }}>Insights RAYA</div>
+            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10, color: t.text }}>Insights Raya</div>
             <InsightCard theme={t} title="6 élèves de 5e-B décrochent sur les accords" sub="Suggestion : session ciblée" mb />
             <InsightCard theme={t} title="+12pts sur 6e-A ce mois" sub="Tendance stable, 3 semaines" />
           </div>
@@ -441,7 +441,7 @@ function SchoolsRightPanel({ theme: t, view, role }: { theme: AppTheme; view: Vi
       {view === "raya" && (
         <>
           <div style={{ background: t.ctaBg, color: t.ctaText, borderRadius: 20, padding: 16 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 6 }}>Personnalité de RAYA</div>
+            <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 6 }}>Personnalité de Raya</div>
             <div style={{ fontSize: 11, opacity: 0.7, marginBottom: 12 }}>Ton par défaut pour toutes les classes</div>
             <span style={{ display: "inline-block", background: "rgba(255,255,255,0.15)", borderRadius: 99, padding: "8px 14px", fontSize: 11, fontWeight: 600 }}>Configurer</span>
           </div>

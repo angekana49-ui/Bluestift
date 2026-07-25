@@ -30,7 +30,7 @@ const riskColor = (level: string | null) =>
 
 /**
  * The teacher's home: KPIs across their classes, an at-risk feed that jumps
- * straight into Focus, an Instructions-to-RAYA card (per class), and quick links
+ * straight into Focus, an Instructions-to-Raya card (per class), and quick links
  * to Prepare / Reports. Everything degrades gracefully when the Kernel is down.
  */
 export function ProfOverviewView({
@@ -131,7 +131,7 @@ export function ProfOverviewView({
 
       <div style={box}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.6rem", flexWrap: "wrap" }}>
-          <h3 style={{ margin: 0, flex: 1 }}>Steer RAYA for a class</h3>
+          <h3 style={{ margin: 0, flex: 1 }}>Steer Raya for a class</h3>
           <select style={input} value={instrClassId} onChange={(e) => setInstrClassId(e.target.value)}>
             {classes.length === 0 && <option value="">No classes</option>}
             {classes.map((c) => (

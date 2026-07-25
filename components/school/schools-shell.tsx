@@ -109,8 +109,8 @@ export function SchoolsShell({
           if (!navOpen) setCollapsed((c) => !c);
         }}
       >
-        {/* The dashboard brand is Schools (the BlueStift bird). RAYA for Schools —
-            the assistant — carries the RAYA rosette inside its own panel. */}
+        {/* The dashboard brand is Schools (the BlueStift bird). Raya for Schools —
+            the assistant — carries the Raya rosette inside its own panel. */}
         <SidebarBrand
           theme={t}
           collapsed={effectiveCollapsed}

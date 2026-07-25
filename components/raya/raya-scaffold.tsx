@@ -5,7 +5,7 @@ import { useDarkMode, AppThemeProvider } from "@/components/ui/theme";
 import { RayaShell, type RayaNav } from "@/components/raya/raya-shell";
 
 /**
- * Client wrapper a server page can drop around any RAYA student route. Owns the
+ * Client wrapper a server page can drop around any Raya student route. Owns the
  * single `useDarkMode` instance, publishes it via `AppThemeProvider` (so the
  * inner screens read the same theme with `useAppTheme()`), and renders the
  * `RayaShell` chrome with the right `active` nav item. `rightPanel` is optional.

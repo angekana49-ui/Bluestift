@@ -2,7 +2,7 @@ import type { Theme } from "./theme";
 
 const FEATURES: { icon: string; title: string; desc: string; float: string; delay: string; shineDelay: string }[] = [
   { icon: "K", title: "Cognitive Kernel", desc: "Mastery is measured concept by concept, not by an overall grade.", float: "6.5s", delay: "0s", shineDelay: "0s" },
-  { icon: "S", title: "Study Rooms", desc: "Students and RAYA together in real time, studying as a group.", float: "7.2s", delay: "0.5s", shineDelay: "2s" },
+  { icon: "S", title: "Study Rooms", desc: "Students and Raya together in real time, studying as a group.", float: "7.2s", delay: "0.5s", shineDelay: "2s" },
   { icon: "T", title: "Tools Studio", desc: "Quizzes, summaries, and flashcards generated from any lesson.", float: "6.8s", delay: "1s", shineDelay: "4s" },
 ];
 

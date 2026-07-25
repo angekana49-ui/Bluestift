@@ -178,7 +178,7 @@ export function SchoolBilling() {
           <strong>How billing works:</strong> you pay per <em>enrolled</em> student — your
           effectif — <strong>not</strong> per active user. A school of{" "}
           {billing.declaredEffectif ?? "N"} students pays for {billing.declaredEffectif ?? "N"},
-          whether 250 or all of them use RAYA this month. The contracted number caps how many
+          whether 250 or all of them use Raya this month. The contracted number caps how many
           students can join.
         </div>
         <p style={{ fontSize: 11.5, color: t.muted, margin: "0 0 14px" }}>

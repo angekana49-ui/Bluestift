@@ -13,7 +13,7 @@ export const WORDMARK_A = "#173d8a";
 export const WORDMARK_B = "#2f7fe0";
 export const HEAD_FONT = "var(--font-inter-tight), 'Inter Tight', sans-serif";
 export const HAND_FONT = "var(--font-caveat), 'Caveat', cursive";
-// RAYA is written "Raya" in a bold serif (Cambria Math / Times New Roman) — a
+// Raya is written "Raya" in a bold serif (Cambria Math / Times New Roman) — a
 // softer, less clinical wordmark. See <RayaName/>.
 export const RAYA_FONT = "'Cambria Math', 'Cambria', 'Times New Roman', serif";
 
@@ -36,7 +36,7 @@ export function Logo({ size = 30 }: { size?: number }) {
   );
 }
 
-/** The RAYA wordmark, written "Raya" in a bold serif. Inherits colour. */
+/** The Raya wordmark, written "Raya" in a bold serif. Inherits colour. */
 export function RayaName({ style }: { style?: React.CSSProperties }) {
   return <span style={{ fontFamily: RAYA_FONT, fontWeight: 700, ...style }}>Raya</span>;
 }

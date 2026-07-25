@@ -6,7 +6,7 @@ import type { SchoolShellProps } from "@/components/school/contracts";
  * Schools — presentational shell. STUB: design it here. Props only, no fetch.
  *
  * Suggested breakdown: role-aware tabs (admin_master: Overview · Classes ·
- * Team · RAYA · Reports · Insights · LMS ; prof: assigned classes read-only),
+ * Team · Raya · Reports · Insights · LMS ; prof: assigned classes read-only),
  * then per-tab panels each fed a slice of `dashboard`.
  */
 export function SchoolShell(props: SchoolShellProps) {

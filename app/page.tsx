@@ -9,7 +9,7 @@ export default async function Home() {
   } = await supabase.auth.getUser();
 
   // thebluestift.com is the public WEBSITE — open to everyone, signed in or not.
-  // No login/onboarding gate lives here: that belongs to the PRODUCTS (RAYA,
+  // No login/onboarding gate lives here: that belongs to the PRODUCTS (Raya,
   // Schools, Rooms, Tools), whose routes each enforce login → onboarding → home.
   // For a signed-in visitor we only resolve where the "Open app" CTA points
   // (their product home); if they haven't onboarded, the product route bounces

@@ -9,7 +9,7 @@ import { hasRealEmail } from "@/lib/auth";
  * RESEND_API_KEY is unset the module is a clean no-op (`skipped`), so the app runs
  * unchanged in dev / before the key is provisioned.
  *
- * Config: RESEND_API_KEY, EMAIL_FROM (e.g. "RAYA <no-reply@yourdomain>").
+ * Config: RESEND_API_KEY, EMAIL_FROM (e.g. "Raya <no-reply@yourdomain>").
  */
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails";

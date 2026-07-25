@@ -8,14 +8,14 @@ import { checkUserRateLimit } from "@/lib/rate-limit";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const SYSTEM = `You are RAYA for Schools, an analytics assistant for a school staff member.
+const SYSTEM = `You are Raya for Schools, an analytics assistant for a school staff member.
 Answer ONLY from the DATA SNAPSHOT and any attached documents below — never invent
 students, classes, or numbers. Be concise and cite the actual figures. If the data lacks
 the information, say so plainly and suggest what would surface it (e.g. students using
-RAYA more). Honour any STANDING INSTRUCTIONS from the school. Reply in the user's language.`;
+Raya more). Honour any STANDING INSTRUCTIONS from the school. Reply in the user's language.`;
 
 /**
- * One RAYA-for-Schools turn, STREAMED — the staff-side mirror of /api/raya/chat.
+ * One Raya-for-Schools turn, STREAMED — the staff-side mirror of /api/raya/chat.
  * Persists to learning.conversations (context_type='school_analytics' + school_id)
  * so the staff member keeps a real, reloadable history. Grounded in the school
  * data snapshot + active directives + any documents attached to the conversation.

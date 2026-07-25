@@ -6,7 +6,7 @@ import { splitByMessage, type Attachment } from "@/components/attachment";
 import { type ChatConfig, type Msg, type Conversation, type ConversationFile, titleFrom } from "./types";
 
 /**
- * The full conversation engine shared by the Raya chat and the RAYA-for-Schools
+ * The full conversation engine shared by the Raya chat and the Raya-for-Schools
  * chat: message/conversation/attachment/voice state and every handler
  * (send [streamed], upload, history switch/delete, new session). Endpoint URLs
  * come from `config` — the logic is lifted verbatim from the original Raya
@@ -176,7 +176,7 @@ export function useChatEngine({
       });
       if (!res.ok || !res.body) {
         const data = await res.json().catch(() => null);
-        setError(data?.error ? `RAYA error: ${data.error}` : `Request failed (${res.status}).`);
+        setError(data?.error ? `Raya error: ${data.error}` : `Request failed (${res.status}).`);
         // Hand the files back to the composer — the turn never happened.
         if (sentFiles.length) {
           setFilesByMessage((map) => {
@@ -227,7 +227,7 @@ export function useChatEngine({
       // The reply finished — start the think-time clock for the next turn.
       lastReplyRef.current = Date.now();
     } catch {
-      setError("Could not reach RAYA.");
+      setError("Could not reach Raya.");
     } finally {
       setBusy(false);
     }

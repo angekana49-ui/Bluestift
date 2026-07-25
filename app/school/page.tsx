@@ -63,7 +63,7 @@ export default async function SchoolPage({
   }
 
   // The signed-in user's own identity for the sidebar profile chip (name + photo,
-  // like RAYA) — the dashboard is an extension of RAYA for staff, so we show
+  // like Raya) — the dashboard is an extension of Raya for staff, so we show
   // *them*, not the school name / "My classes".
   const userName = profile.display_name || profile.username || "";
   const teacherName = userName || "Teacher";
@@ -76,7 +76,7 @@ export default async function SchoolPage({
 
   // The signed-in user's own account, so the prof dashboard can open Settings
   // in-place (profile chip → in-dashboard panel) instead of bouncing to the
-  // RAYA-scaffolded /account page. Anonymous until a real email is linked.
+  // Raya-scaffolded /account page. Anonymous until a real email is linked.
   const realEmail = hasRealEmail(user.email);
   const account = {
     user: { id: user.id, email: realEmail ? user.email ?? null : null, isAnonymous: !realEmail },

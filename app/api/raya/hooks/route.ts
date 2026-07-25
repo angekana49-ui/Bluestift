@@ -60,7 +60,7 @@ export async function GET() {
     if (topics.length === 0) return empty;
 
     const system =
-      "You write micro-copy for the empty 'new chat' screen of RAYA, a Socratic AI tutor. " +
+      "You write micro-copy for the empty 'new chat' screen of Raya, a Socratic AI tutor. " +
       "From the learner's recent topics, return STRICT JSON " +
       '{"greeting":"...","suggestions":["...","...","..."]}. ' +
       `greeting: one short warm line (max 7 words)${firstName ? `, addressed to "${firstName}"` : ""}. ` +

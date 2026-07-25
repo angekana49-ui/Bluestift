@@ -19,7 +19,7 @@ export type DarkModeValue = {
 
 /**
  * Dark-mode state, persisted to localStorage under the shared `bluestift-dark`
- * key (RAYA + Schools stay in sync if a user has both open). The value is read
+ * key (Raya + Schools stay in sync if a user has both open). The value is read
  * on mount only — the first render is always light (matching the reference
  * `hint-placeholder-val` default) so SSR and the initial client render agree,
  * then the effect swaps in the stored preference. Returns the resolved theme.

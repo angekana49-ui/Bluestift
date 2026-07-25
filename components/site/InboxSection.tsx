@@ -55,7 +55,7 @@ export default function InboxSection({ config }: { config: SiteConfig }) {
               className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-5 py-2.5 text-xs font-medium text-white shadow-[0_14px_30px_rgba(15,23,42,0.16)] transition-transform hover:-translate-y-0.5 hover:bg-slate-800"
             >
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              See a RAYA session
+              See a Raya session
             </Link>
             <Link href="/research" className="flex items-center gap-1 text-xs text-solid">
               See the Cognitive Kernel →

@@ -5,7 +5,7 @@ const COLUMNS: { label: string; links: [string, string][] }[] = [
   {
     label: "PRODUCT",
     links: [
-      ["RAYA", "/chat"],
+      ["Raya", "/chat"],
       ["Study Rooms", "/rooms"],
       ["Tools Studio", "/tools"],
       ["Schools", "/school"],
@@ -80,7 +80,7 @@ export default function Footer({ theme: t, variant = "full" }: { theme: Theme; v
               </span>
             </div>
             <p style={{ maxWidth: 220, fontSize: 11, color: t.footerMuted, lineHeight: 1.7, margin: 0 }}>
-              BlueStift builds RAYA, the AI tutor that remembers every student.
+              BlueStift builds Raya, the AI tutor that remembers every student.
             </p>
           </div>
 

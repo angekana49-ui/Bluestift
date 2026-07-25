@@ -43,7 +43,7 @@ const KIND_LABEL: Record<string, string> = {
 const pctScore = (v: number | null) => (v == null ? "—" : `${Math.round(v * 100)}%`);
 
 /**
- * Prepare mode: RAYA + the Kernel help a teacher build an exam / exercise set /
+ * Prepare mode: Raya + the Kernel help a teacher build an exam / exercise set /
  * worksheet / quiz grounded in the class's REAL cognitive gaps. The result is a
  * downloadable branded document AND can be assigned to a class — the students take
  * it in their Homework tab through the shared challenge/grading engine, results
@@ -155,10 +155,10 @@ export function PrepareView({
   return (
     <div>
       <div style={box}>
-        <h2 style={{ fontSize: "1.1rem", margin: "0 0 0.25rem" }}>Prepare with RAYA</h2>
+        <h2 style={{ fontSize: "1.1rem", margin: "0 0 0.25rem" }}>Prepare with Raya</h2>
         <p style={{ opacity: 0.6, fontSize: "0.85rem", margin: "0 0 0.85rem" }}>
           Generate a {KIND_LABEL[kind]?.toLowerCase()} grounded in your class&apos;s real gaps — the
-          Kernel points RAYA at the weakest concepts so the material shores them up.
+          Kernel points Raya at the weakest concepts so the material shores them up.
         </p>
         <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", alignItems: "center" }}>
           <select style={input} value={kind} onChange={(e) => setKind(e.target.value as Kind)} disabled={busy}>

@@ -5,7 +5,7 @@ import type { KernelAlert, LoadProfileResponse } from "./types";
 /**
  * Non-blocking learner-profile cache. The chat hot path must NOT await a Kernel
  * round-trip, so we return whatever is cached instantly and refresh in the
- * background when stale. First-ever turn returns null (RAYA works without it);
+ * background when stale. First-ever turn returns null (Raya works without it);
  * the next turn has the profile.
  *
  * In-memory / per-instance — fine for dev and single-instance deploys. For

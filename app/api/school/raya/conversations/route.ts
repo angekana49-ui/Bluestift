@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAdminMembership } from "@/lib/school-admin";
 
 /**
- * History for the RAYA-for-Schools chat — the staff-side mirror of
+ * History for the Raya-for-Schools chat — the staff-side mirror of
  * /api/raya/conversations, scoped to `context_type='school_analytics'` for the
  * signed-in staff member and their active school.
  *   GET  (no id) -> the conversation list (for the in-tab history)

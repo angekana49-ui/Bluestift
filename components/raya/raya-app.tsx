@@ -44,8 +44,8 @@ type View = "chat" | "rooms" | "tools" | "kernel" | "settings";
 type RoomTab = "group" | "private";
 
 /**
- * RAYA — student app shell, faithful reproduction of the design handoff
- * (`reference-RAYA.html`). A self-contained client SPA that switches views in
+ * Raya — student app shell, faithful reproduction of the design handoff
+ * (`reference-Raya.html`). A self-contained client SPA that switches views in
  * local state, exactly like the mockup; wiring each view to the real routes
  * (/chat, /rooms, /tools, /profile, /account) is the follow-up step. French copy
  * is kept verbatim; identifiers are English.
@@ -97,7 +97,7 @@ export function RayaApp() {
         expandedWidth={212}
         onBackgroundClick={() => setCollapsed((c) => !c)}
       >
-        <SidebarBrand theme={t} collapsed={collapsed} logoSrc="/raya-mark.png" logoSrcDark="/raya-mark-violet.png" logoRadius={0} logoSize={52} name="RAYA" />
+        <SidebarBrand theme={t} collapsed={collapsed} logoSrc="/raya-mark.png" logoSrcDark="/raya-mark-violet.png" logoRadius={0} logoSize={52} name="Raya" />
 
         <NavItem
           theme={t}
@@ -267,7 +267,7 @@ function ChatView({
       >
         <Avatar initials="AI" size={32} bg={status.aiIndigo} style={{ fontSize: 11.5 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={ellipsis(13.5, 700, t.text)}>RAYA · Fractions — Ch.4</div>
+          <div style={ellipsis(13.5, 700, t.text)}>Raya · Fractions — Ch.4</div>
           <div style={{ ...ellipsis(10.5, 400, status.positive) }}>● en session</div>
         </div>
         <span
@@ -310,7 +310,7 @@ function ChatView({
             }}
           >
             <div style={{ fontSize: 11, fontWeight: 700, color: t.text, marginBottom: 8 }}>Documents de la session</div>
-            <FileRow theme={t} icon={<IconFile size={13} style={{ color: t.muted }} />} name="Exercice_fractions.pdf" meta="envoyé par RAYA · il y a 3 min" active />
+            <FileRow theme={t} icon={<IconFile size={13} style={{ color: t.muted }} />} name="Exercice_fractions.pdf" meta="envoyé par Raya · il y a 3 min" active />
             <FileRow theme={t} icon={<IconImage size={13} style={{ color: t.muted }} />} name="Photo_devoir.jpg" meta="envoyé par toi · hier" />
           </div>
         )}
@@ -356,7 +356,7 @@ function ChatView({
             color: t.mutedLight,
           }}
         >
-          Écris ta réponse à RAYA...
+          Écris ta réponse à Raya...
         </div>
         <IconButton theme={t} size={38} radius={999} title="Joindre un fichier">
           <IconAttach size={16} />
@@ -491,7 +491,7 @@ function RoomsView({ theme: t, roomTab, onRoomTab, onToggleRight }: { theme: App
             onChange={onRoomTab}
             options={[
               { value: "group", label: "Chat groupe" },
-              { value: "private", label: "Chat privé avec RAYA" },
+              { value: "private", label: "Chat privé avec Raya" },
             ]}
           />
         </div>
@@ -506,7 +506,7 @@ function RoomsView({ theme: t, roomTab, onRoomTab, onToggleRight }: { theme: App
           <div style={{ flex: 1, padding: "26px 30px", display: "flex", flexDirection: "column", gap: 14, overflow: "auto" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
               <Avatar initials="AI" size={26} bg={status.aiIndigo} style={{ fontSize: 10 }} />
-              <span style={{ fontSize: 12, fontWeight: 700, color: t.text }}>RAYA modère la session</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: t.text }}>Raya modère la session</span>
             </div>
             <Bubble theme={t} maxWidth="60%">Léo, tu peux expliquer à Sami comment tu as trouvé le dénominateur commun ?</Bubble>
             <div style={{ maxWidth: "52%", background: t.bubbleAccentBg, color: t.text, borderRadius: "16px 16px 16px 4px", padding: "13px 16px", fontSize: 13, lineHeight: 1.65 }}>
@@ -521,12 +521,12 @@ function RoomsView({ theme: t, roomTab, onRoomTab, onToggleRight }: { theme: App
           <div style={{ flex: 1, padding: "26px 30px", display: "flex", flexDirection: "column", gap: 14, overflow: "auto" }}>
             <div style={{ fontSize: 10.5, color: t.mutedLight, textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
               <IconLock size={12} />
-              Cette conversation n&apos;est visible que par toi et RAYA
+              Cette conversation n&apos;est visible que par toi et Raya
             </div>
             <Bubble theme={t} maxWidth="62%">Tu veux qu&apos;on revoie ce point tranquillement avant de le refaire devant le groupe ?</Bubble>
             <Bubble theme={t} maxWidth="50%" me>Oui stp, j&apos;ose pas demander devant les autres</Bubble>
           </div>
-          <RoomComposer theme={t} placeholder="Écris en privé à RAYA..." />
+          <RoomComposer theme={t} placeholder="Écris en privé à Raya..." />
         </>
       )}
     </div>
@@ -646,7 +646,7 @@ function SettingsView({ theme: t, dark, onToggleDark }: { theme: AppTheme; dark:
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: t.rowActiveBg, borderRadius: 12, padding: "14px 16px", marginBottom: 14 }}>
           <div>
             <div style={{ fontSize: 12.5, fontWeight: 700, color: t.text }}>Plan Étudiant — Gratuit</div>
-            <div style={{ fontSize: 10.5, color: t.muted, marginTop: 2 }}>Sessions RAYA solo illimitées</div>
+            <div style={{ fontSize: 10.5, color: t.muted, marginTop: 2 }}>Sessions Raya solo illimitées</div>
           </div>
           <span style={{ fontSize: 11, background: t.ctaBg, color: t.ctaText, borderRadius: 99, padding: "8px 14px", fontWeight: 600, whiteSpace: "nowrap" }}>Passer à Classroom</span>
         </div>
@@ -723,7 +723,7 @@ function ChatRightPanel({ theme: t, onGoTools }: { theme: AppTheme; onGoTools: (
       <div style={{ border: `1px solid ${t.cardBorder}`, borderRadius: 16, padding: 16 }}>
         <div style={{ background: t.cardBg2, borderRadius: 12, padding: 11, marginBottom: 10 }}>
           <div style={{ fontSize: 11, color: t.muted }}>Encore bloqué·e ?</div>
-          <div style={{ fontSize: 12, fontWeight: 700, marginTop: 3, color: t.text }}>RAYA propose 3 exercices ciblés</div>
+          <div style={{ fontSize: 12, fontWeight: 700, marginTop: 3, color: t.text }}>Raya propose 3 exercices ciblés</div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <div onClick={onGoTools} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", background: t.ctaBg, color: t.ctaText, borderRadius: 10, padding: "9px 12px", fontSize: 11.5, fontWeight: 600 }}>

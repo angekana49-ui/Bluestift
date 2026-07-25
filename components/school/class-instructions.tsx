@@ -25,7 +25,7 @@ async function postJson(url: string, body: unknown, method = "POST") {
 }
 
 /**
- * Teacher instructions that steer RAYA for one class. Access is gated server-side
+ * Teacher instructions that steer Raya for one class. Access is gated server-side
  * by assertClassAccess (admin_master, or a prof assigned to the class). Active
  * instructions reach the class's students as guardrail-subordinate guidance in
  * their solo /chat prompt (via getStudentRecommendations) — never a command that
@@ -109,9 +109,9 @@ export function InstructionsPanel({ classId }: { classId: string }) {
 
   return (
     <div style={box}>
-      <h3 style={{ marginTop: 0 }}>Instructions to RAYA</h3>
+      <h3 style={{ marginTop: 0 }}>Instructions to Raya</h3>
       <p style={{ opacity: 0.6, fontSize: "0.82rem", marginTop: 0 }}>
-        Focus areas RAYA applies for this class&apos;s students — guidance only, it never gives
+        Focus areas Raya applies for this class&apos;s students — guidance only, it never gives
         answers away.
       </p>
       {error && <p style={{ color: "#f87171", fontSize: "0.85rem" }}>{error}</p>}

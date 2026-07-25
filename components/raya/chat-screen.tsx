@@ -3,7 +3,7 @@
 import type { ChatScreenProps } from "@/components/raya/contracts";
 
 /**
- * RAYA chat — presentational screen. STUB: design the whole thing here.
+ * Raya chat — presentational screen. STUB: design the whole thing here.
  * Consumes ChatScreenProps only. No data fetching, no /api calls.
  *
  * Suggested breakdown (your call): conversation sidebar · message thread ·

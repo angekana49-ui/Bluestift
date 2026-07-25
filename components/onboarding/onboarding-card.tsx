@@ -22,13 +22,13 @@ export function OnboardingCard() {
 
   const headline = isStudent ? "Rejoins ta classe" : "Rejoins ton établissement";
   const subline = isStudent
-    ? "Entre le code donné par ton professeur pour accéder à tes cours et à RAYA."
+    ? "Entre le code donné par ton professeur pour accéder à tes cours et à Raya."
     : "Entre le code donné par ton administrateur pour rejoindre l'équipe enseignante.";
   const codeHint = isStudent ? "professeur ou administrateur" : "administrateur";
   const successLine = isStudent
-    ? "Tu es maintenant inscrit·e en 6e-A. RAYA connaît déjà ton programme."
+    ? "Tu es maintenant inscrit·e en 6e-A. Raya connaît déjà ton programme."
     : "Ton compte professeur est activé. Tu peux voir tes classes dans Schools.";
-  const enterLabel = isStudent ? "Aller à RAYA" : "Aller à Schools";
+  const enterLabel = isStudent ? "Aller à Raya" : "Aller à Schools";
 
   return (
     <div

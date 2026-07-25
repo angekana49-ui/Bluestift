@@ -69,7 +69,7 @@ export default function HeroSection({ theme: t }: { theme: Theme }) {
         </div>
 
         <p style={{ maxWidth: 560, margin: "20px auto 0", fontSize: 16, lineHeight: 1.7, color: t.text }}>
-          RAYA adapts every session to each student&apos;s real cognitive profile — solo, in groups, in real time. Not a
+          Raya adapts every session to each student&apos;s real cognitive profile — solo, in groups, in real time. Not a
           chatbot. A tutor.
         </p>
 
