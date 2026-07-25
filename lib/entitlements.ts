@@ -242,9 +242,12 @@ export const SCHOOL_ENTITLEMENTS: Record<SchoolTier, SchoolEntitlements> = {
 
 /**
  * Map a plan's DB `tier`/`name` onto our normalized tier enum. We match on
- * keywords rather than exact strings so the resolver is resilient to the exact
- * seeded values ("User — Plus", "Plus", tier "plus", …) and always degrades to
- * the base tier on anything unrecognized.
+ * keywords rather than exact strings so the resolver is resilient to however the
+ * plans happen to be seeded, and always degrades to the base tier on anything
+ * unrecognized. Callers pass BOTH the tier and the name (see `planSignal`) so
+ * that either field carrying the signal is enough — important because the live
+ * b2c plans use a generic ladder where tier "custom" actually means the Max plan
+ * (only the name "User — Max" reveals it).
  */
 export function normalizeRayaTier(planTierOrName: string | null | undefined): RayaTier {
   const s = (planTierOrName ?? "").toLowerCase();
@@ -255,8 +258,10 @@ export function normalizeRayaTier(planTierOrName: string | null | undefined): Ra
 
 export function normalizeSchoolTier(planTierOrName: string | null | undefined): SchoolTier {
   const s = (planTierOrName ?? "").toLowerCase();
-  if (s.includes("custom") || s.includes("enterprise") || s.includes("école") || s.includes("ecole"))
-    return "custom";
+  // NB: no "école"/"ecole" keyword — every school plan is named "École — …", so
+  // matching that would flag ALL of them as custom. "devis" (quote) is the safe
+  // French signal for a bespoke plan.
+  if (s.includes("custom") || s.includes("enterprise") || s.includes("devis")) return "custom";
   if (s.includes("plus") || s.includes("pro")) return "plus";
   return "standard";
 }
@@ -264,6 +269,11 @@ export function normalizeSchoolTier(planTierOrName: string | null | undefined): 
 // ---- Resolvers --------------------------------------------------------------
 
 type ActivePlan = { tier: string | null; name: string | null } | null;
+
+/** Combined tier+name signal fed to the normalizers (either field is enough). */
+function planSignal(plan: ActivePlan): string {
+  return [plan?.name, plan?.tier].filter(Boolean).join(" ");
+}
 
 /** The newest active/trial subscription's plan for a user (b2c) or school (b2b). */
 async function getActivePlan(target: { userId: string } | { schoolId: string }): Promise<ActivePlan> {
@@ -362,7 +372,7 @@ export async function resolveRayaEntitlements(userId: string): Promise<ResolvedR
   const cached = cacheGet(rayaCache, userId);
   if (cached) return cached;
   const plan = await getActivePlan({ userId });
-  const tier = normalizeRayaTier(plan?.tier ?? plan?.name ?? null);
+  const tier = normalizeRayaTier(planSignal(plan));
   warnIfDowngraded(plan, tier, "free");
   const resolved = { tier, ent: RAYA_ENTITLEMENTS[tier], planName: plan?.name ?? null };
   cacheSet(rayaCache, userId, resolved);
@@ -389,7 +399,7 @@ export async function resolveSchoolEntitlements(schoolId: string): Promise<Resol
   if (cached) return cached;
 
   const plan = await getActivePlan({ schoolId });
-  let tier = normalizeSchoolTier(plan?.tier ?? plan?.name ?? null);
+  let tier = normalizeSchoolTier(planSignal(plan));
   let planName = plan?.name ?? null;
 
   if (!plan && (await isSchoolInPilot(schoolId))) {

@@ -29,6 +29,22 @@ describe("tier normalization", () => {
     expect(normalizeSchoolTier("Plus")).toBe("plus");
     expect(normalizeSchoolTier("Standard")).toBe("standard");
     expect(normalizeSchoolTier(null)).toBe("standard");
+    // Regression: "École — …" names must NOT all collapse to custom (the audience
+    // prefix is not a tier signal).
+    expect(normalizeSchoolTier("École — Standard")).toBe("standard");
+  });
+
+  // The resolvers feed "<name> <tier>" to the normalizers (planSignal), so pin the
+  // ACTUAL seeded rows: the b2c ladder is standard/pro/custom, where tier "custom"
+  // is really the Max plan — only the name reveals it. A naive tier-only match
+  // would silently serve a paying Max user the Free set.
+  it("resolves the real seeded plan rows correctly (name + tier combined)", () => {
+    expect(normalizeRayaTier("User — Free standard")).toBe("free");
+    expect(normalizeRayaTier("User — Plus pro")).toBe("plus");
+    expect(normalizeRayaTier("User — Max custom")).toBe("max");
+    expect(normalizeSchoolTier("École — Standard standard")).toBe("standard");
+    expect(normalizeSchoolTier("École — Plus pro")).toBe("plus");
+    expect(normalizeSchoolTier("École — Custom custom")).toBe("custom");
   });
 });
 
