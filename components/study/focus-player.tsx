@@ -88,16 +88,16 @@ export function FocusOverlay({
             background: t.cardBg2,
             color: t.text,
             cursor: "pointer",
-            fontSize: 15,
+            fontSize: 17,
           }}
         >
           ✕
         </button>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, fontFamily: display, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          <div style={{ fontSize: 17, fontWeight: 800, fontFamily: display, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {title}
           </div>
-          {subtitle && <div style={{ fontSize: 11.5, color: t.muted }}>{subtitle}</div>}
+          {subtitle && <div style={{ fontSize: 14, color: t.muted }}>{subtitle}</div>}
         </div>
         {actions}
       </div>
@@ -146,7 +146,7 @@ function ProgressDots({ t, total, index }: { t: AppTheme; total: number; index: 
           />
         ))}
       </div>
-      <span style={{ fontSize: 11.5, color: t.muted, flex: "none" }}>
+      <span style={{ fontSize: 14, color: t.muted, flex: "none" }}>
         {Math.min(index + 1, total)} / {total}
       </span>
     </div>
@@ -154,7 +154,7 @@ function ProgressDots({ t, total, index }: { t: AppTheme; total: number; index: 
 }
 
 function primaryBtn(t: AppTheme): React.CSSProperties {
-  return { background: t.ctaBg, color: t.ctaText, border: "none", borderRadius: 99, padding: "10px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer" };
+  return { background: t.ctaBg, color: t.ctaText, border: "none", borderRadius: 99, padding: "10px 24px", fontSize: 15, fontWeight: 700, cursor: "pointer" };
 }
 // A more visible outline button: solid fill + a clearly-drawn border + full-weight
 // text, so it reads as a control (the old faint ghost was easy to miss).
@@ -165,7 +165,7 @@ function ghostBtn(t: AppTheme): React.CSSProperties {
     border: `1.5px solid ${t.dark ? "rgba(255,255,255,0.24)" : "rgba(15,23,42,0.22)"}`,
     borderRadius: 99,
     padding: "10px 18px",
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: 600,
     cursor: "pointer",
   };
@@ -253,16 +253,16 @@ export function QuizPlayer({
     return (
       <FocusOverlay theme={t} title={title} subtitle="Result" onClose={onExit} actions={resultActions ?? actions}>
         <div style={{ textAlign: "center", paddingTop: 40 }}>
-          <div style={{ fontSize: 13, color: t.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Your score</div>
+          <div style={{ fontSize: 15, color: t.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Your score</div>
           {score ? (
             <>
-              <div style={{ fontSize: 54, fontWeight: 800, fontFamily: display, color: t.text, margin: "8px 0" }}>{pct}%</div>
-              <div style={{ fontSize: 15, color: t.muted }}>
+              <div style={{ fontSize: 60, fontWeight: 800, fontFamily: display, color: t.text, margin: "8px 0" }}>{pct}%</div>
+              <div style={{ fontSize: 17, color: t.muted }}>
                 {score.correct} / {score.total} correct
               </div>
             </>
           ) : (
-            <div style={{ fontSize: 18, color: t.text, margin: "16px 0" }}>Submitted ✓</div>
+            <div style={{ fontSize: 21, color: t.text, margin: "16px 0" }}>Submitted ✓</div>
           )}
           <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 28 }}>
             <button
@@ -313,8 +313,8 @@ export function QuizPlayer({
         </>
       }
     >
-      <div style={{ fontSize: 12, color: t.mutedLight, marginBottom: 8 }}>Question {index + 1}</div>
-      <div style={{ fontSize: 20, fontWeight: 700, color: t.text, lineHeight: 1.4, marginBottom: 22 }}>{q.question}</div>
+      <div style={{ fontSize: 14, color: t.mutedLight, marginBottom: 8 }}>Question {index + 1}</div>
+      <div style={{ fontSize: 23, fontWeight: 700, color: t.text, lineHeight: 1.4, marginBottom: 22 }}>{q.question}</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {q.options.map((opt, oi) => {
           const isPicked = picked === oi;
@@ -347,7 +347,7 @@ export function QuizPlayer({
                 borderRadius: 14,
                 padding: "14px 16px",
                 cursor: revealed ? "default" : "pointer",
-                fontSize: 14,
+                fontSize: 16,
                 display: "flex",
                 alignItems: "center",
                 gap: 10,
@@ -365,7 +365,7 @@ export function QuizPlayer({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: 11.5,
+                  fontSize: 14,
                   fontWeight: 700,
                   color: t.muted,
                 }}
@@ -373,14 +373,14 @@ export function QuizPlayer({
                 {String.fromCharCode(65 + oi)}
               </span>
               <span style={{ flex: 1 }}>{opt}</span>
-              {revealed && isCorrect && <span style={{ color: greenTint(t).fg, fontWeight: 800, fontSize: 16 }}>✓</span>}
-              {revealed && isPicked && !isCorrect && <span style={{ color: redTint(t).fg, fontWeight: 800, fontSize: 16 }}>✗</span>}
+              {revealed && isCorrect && <span style={{ color: greenTint(t).fg, fontWeight: 800, fontSize: 18 }}>✓</span>}
+              {revealed && isPicked && !isCorrect && <span style={{ color: redTint(t).fg, fontWeight: 800, fontSize: 18 }}>✗</span>}
             </button>
           );
         })}
       </div>
       {revealed && q.explanation && (
-        <div style={{ marginTop: 18, padding: "14px 16px", background: t.cardBg2, border: `1px solid ${t.cardBorder}`, borderRadius: 12, fontSize: 13, lineHeight: 1.55, color: t.muted }}>
+        <div style={{ marginTop: 18, padding: "14px 16px", background: t.cardBg2, border: `1px solid ${t.cardBorder}`, borderRadius: 12, fontSize: 15, lineHeight: 1.55, color: t.muted }}>
           <span style={{ fontWeight: 700, color: t.text }}>Why: </span>
           {q.explanation}
         </div>
@@ -453,9 +453,9 @@ export function TestPlayer({
     return (
       <FocusOverlay theme={t} title={title} subtitle="Result" onClose={onExit} actions={resultActions}>
         <div style={{ textAlign: "center", paddingTop: 20, paddingBottom: 8 }}>
-          <div style={{ fontSize: 12.5, color: t.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Your score</div>
-          <div style={{ fontSize: 50, fontWeight: 800, fontFamily: display, color: t.text, margin: "6px 0" }}>{pct}%</div>
-          <div style={{ fontSize: 14, color: t.muted }}>{result.correct} / {result.total} correct</div>
+          <div style={{ fontSize: 15, color: t.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Your score</div>
+          <div style={{ fontSize: 56, fontWeight: 800, fontFamily: display, color: t.text, margin: "6px 0" }}>{pct}%</div>
+          <div style={{ fontSize: 16, color: t.muted }}>{result.correct} / {result.total} correct</div>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 20, flexWrap: "wrap" }}>
             {onAnalyze && (
               <button style={{ ...primaryBtn(t), opacity: analyzing ? 0.6 : 1 }} disabled={analyzing} onClick={onAnalyze}>
@@ -478,17 +478,17 @@ export function TestPlayer({
               <div key={i} style={{ background: tint.bg, border: `1.5px solid ${tint.border}`, borderRadius: 12, padding: "12px 14px" }}>
                 <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
                   <span style={{ color: tint.fg, fontWeight: 800, flex: "none" }}>{r.isCorrect ? "✓" : "✗"}</span>
-                  <span style={{ flex: 1, fontSize: 13.5, fontWeight: 600, color: t.text }}>{i + 1}. {qq?.question}</span>
+                  <span style={{ flex: 1, fontSize: 16, fontWeight: 600, color: t.text }}>{i + 1}. {qq?.question}</span>
                   {r.score != null && r.type === "open" && (
-                    <span style={{ fontSize: 11.5, color: tint.fg, fontWeight: 700, flex: "none" }}>{Math.round(r.score * 100)}%</span>
+                    <span style={{ fontSize: 14, color: tint.fg, fontWeight: 700, flex: "none" }}>{Math.round(r.score * 100)}%</span>
                   )}
                 </div>
                 {r.type === "mcq" && !r.isCorrect && r.correctIndex != null && qq?.options && (
-                  <div style={{ fontSize: 12.5, color: t.muted, marginTop: 6 }}>
+                  <div style={{ fontSize: 15, color: t.muted, marginTop: 6 }}>
                     Correct: <span style={{ color: greenTint(t).fg, fontWeight: 600 }}>{qq.options[r.correctIndex]}</span>
                   </div>
                 )}
-                {r.feedback && <div style={{ fontSize: 12.5, color: t.muted, marginTop: 6, lineHeight: 1.5 }}>{r.feedback}</div>}
+                {r.feedback && <div style={{ fontSize: 15, color: t.muted, marginTop: 6, lineHeight: 1.5 }}>{r.feedback}</div>}
               </div>
             );
           })}
@@ -522,10 +522,10 @@ export function TestPlayer({
         </>
       }
     >
-      <div style={{ fontSize: 12, color: t.mutedLight, marginBottom: 8 }}>
+      <div style={{ fontSize: 14, color: t.mutedLight, marginBottom: 8 }}>
         Question {index + 1} · {q.type === "open" ? "Open answer" : "Multiple choice"}
       </div>
-      <div style={{ fontSize: 20, fontWeight: 700, color: t.text, lineHeight: 1.4, marginBottom: 22 }}>{q.question}</div>
+      <div style={{ fontSize: 23, fontWeight: 700, color: t.text, lineHeight: 1.4, marginBottom: 22 }}>{q.question}</div>
 
       {q.type === "open" ? (
         <textarea
@@ -541,7 +541,7 @@ export function TestPlayer({
             border: `1.5px solid ${t.cardBorder}`,
             borderRadius: 14,
             padding: "14px 16px",
-            fontSize: 14,
+            fontSize: 16,
             lineHeight: 1.6,
             resize: "vertical",
             outline: "none",
@@ -564,7 +564,7 @@ export function TestPlayer({
                   borderRadius: 14,
                   padding: "14px 16px",
                   cursor: "pointer",
-                  fontSize: 14,
+                  fontSize: 16,
                   display: "flex",
                   alignItems: "center",
                   gap: 10,
@@ -581,7 +581,7 @@ export function TestPlayer({
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: 11.5,
+                    fontSize: 14,
                     fontWeight: 700,
                     color: t.muted,
                   }}
@@ -694,11 +694,11 @@ export function FlashcardsPlayer({ title, cards, onExit, actions }: { title: str
           transition: "background .18s ease, border-color .18s ease",
         }}
       >
-        <span style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700, color: face.fg }}>
+        <span style={{ fontSize: 13, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700, color: face.fg }}>
           {flipped ? "Answer" : "Question"}
         </span>
-        <span style={{ fontSize: 22, fontWeight: 600, lineHeight: 1.45, color: t.text }}>{flipped ? card.back : card.front}</span>
-        <span style={{ fontSize: 11.5, color: t.muted, marginTop: 8 }}>Tap to flip</span>
+        <span style={{ fontSize: 25, fontWeight: 600, lineHeight: 1.45, color: t.text }}>{flipped ? card.back : card.front}</span>
+        <span style={{ fontSize: 14, color: t.muted, marginTop: 8 }}>Tap to flip</span>
       </button>
     </FocusOverlay>
   );
@@ -727,17 +727,17 @@ export function ReaderView({
     <FocusOverlay theme={t} title={title} subtitle={subtitle} onClose={onExit} actions={actions}>
       <article style={{ paddingBottom: 40 }}>
         {rendered.map((b, i) => {
-          if (b.type === "h1") return <h1 key={i} style={{ fontSize: 22, fontWeight: 800, fontFamily: display, color: t.text, margin: "22px 0 10px" }}>{b.text}</h1>;
-          if (b.type === "h2") return <h2 key={i} style={{ fontSize: 17, fontWeight: 700, color: statusColors.aiIndigo, margin: "20px 0 8px" }}>{b.text}</h2>;
-          if (b.type === "h3") return <h3 key={i} style={{ fontSize: 14.5, fontWeight: 700, color: t.text, margin: "16px 0 6px" }}>{b.text}</h3>;
+          if (b.type === "h1") return <h1 key={i} style={{ fontSize: 25, fontWeight: 800, fontFamily: display, color: t.text, margin: "22px 0 10px" }}>{b.text}</h1>;
+          if (b.type === "h2") return <h2 key={i} style={{ fontSize: 20, fontWeight: 700, color: statusColors.aiIndigo, margin: "20px 0 8px" }}>{b.text}</h2>;
+          if (b.type === "h3") return <h3 key={i} style={{ fontSize: 17, fontWeight: 700, color: t.text, margin: "16px 0 6px" }}>{b.text}</h3>;
           if (b.type === "li")
             return (
-              <div key={i} style={{ display: "flex", gap: 10, margin: "6px 0", fontSize: 15, lineHeight: 1.6, color: t.text }}>
+              <div key={i} style={{ display: "flex", gap: 10, margin: "6px 0", fontSize: 17, lineHeight: 1.6, color: t.text }}>
                 <span style={{ color: statusColors.aiIndigo, flex: "none" }}>•</span>
                 <span>{b.text}</span>
               </div>
             );
-          return <p key={i} style={{ fontSize: 15, lineHeight: 1.7, color: t.text, margin: "10px 0" }}>{b.text}</p>;
+          return <p key={i} style={{ fontSize: 17, lineHeight: 1.7, color: t.text, margin: "10px 0" }}>{b.text}</p>;
         })}
       </article>
     </FocusOverlay>
@@ -927,7 +927,7 @@ export function MindMapView({
         </>
       }
     >
-      <div style={{ textAlign: "center", fontSize: 12, color: t.muted, marginBottom: 14 }}>
+      <div style={{ textAlign: "center", fontSize: 14, color: t.muted, marginBottom: 14 }}>
         Drag the checkpoints to lay out your own path — arranging it helps you remember it. Tap Départ / Arrivée to light their alert.
       </div>
       <div style={{ position: "relative", width: canvasW, height: canvasH, margin: "0 auto", touchAction: "none" }}>
@@ -970,7 +970,7 @@ export function MindMapView({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: 14,
+                  fontSize: 16,
                   fontWeight: 800,
                   cursor: "grab",
                   touchAction: "none",
@@ -991,7 +991,7 @@ export function MindMapView({
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      fontSize: 10,
+                      fontSize: 13,
                       fontWeight: 800,
                       pointerEvents: "none",
                       background: lit[k] ? "#f59e0b" : t.cardBg2,
@@ -1019,11 +1019,11 @@ export function MindMapView({
                   boxShadow: t.dark ? "0 4px 14px rgba(0,0,0,0.35)" : "0 4px 14px rgba(15,23,42,0.10)",
                 }}
               >
-                <div style={{ fontSize: 13, fontWeight: 700, color: t.dark ? "#fff" : accent, marginBottom: n.children.length ? 7 : 0, fontFamily: n.role === "root" ? display : undefined }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: t.dark ? "#fff" : accent, marginBottom: n.children.length ? 7 : 0, fontFamily: n.role === "root" ? display : undefined }}>
                   {n.label}
                 </div>
                 {n.children.map((c, ci) => (
-                  <div key={ci} style={{ display: "flex", gap: 7, alignItems: "baseline", margin: "3px 0", fontSize: 12, lineHeight: 1.45, color: t.text }}>
+                  <div key={ci} style={{ display: "flex", gap: 7, alignItems: "baseline", margin: "3px 0", fontSize: 14, lineHeight: 1.45, color: t.text }}>
                     <span style={{ width: 5, height: 5, borderRadius: "50%", flex: "none", background: accent, transform: "translateY(-1px)" }} />
                     <span>{c}</span>
                   </div>

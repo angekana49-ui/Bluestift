@@ -49,7 +49,7 @@ export default function Navbar({
     color: t.ctaText,
     borderRadius: 999,
     padding: "8px 16px",
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: 600,
     whiteSpace: "nowrap" as const,
     textDecoration: "none",
@@ -83,12 +83,12 @@ export default function Navbar({
             style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
           />
           <div>
-            <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: "-0.02em", fontFamily: "'IBM Plex Sans',sans-serif" }}>
+            <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: "-0.02em", fontFamily: "'IBM Plex Sans',sans-serif" }}>
               <span style={{ color: t.wordmarkA }}>Blue</span>
               <span style={{ color: t.wordmarkB }}>Stift</span>
               {section && <span style={{ fontWeight: 400, opacity: 0.6, marginLeft: 4, color: t.text }}>· {section}</span>}
             </div>
-            <div style={{ fontSize: 11, color: t.text }}>Raya · AI tutor K-12</div>
+            <div style={{ fontSize: 13, color: t.text }}>Raya · AI tutor K-12</div>
           </div>
         </Link>
 
@@ -102,7 +102,7 @@ export default function Navbar({
                 style={{
                   padding: "6px 14px",
                   borderRadius: 999,
-                  fontSize: 13,
+                  fontSize: 15,
                   fontWeight: isActive ? 600 : 400,
                   color: isActive ? t.text : t.muted,
                   background: isActive ? t.pillActiveBg : "transparent",
@@ -126,7 +126,7 @@ export default function Navbar({
             </Link>
           ) : (
             <>
-              <Link href="/login" className="pub-hide-sm" style={{ fontSize: 12, color: t.text, whiteSpace: "nowrap", textDecoration: "none" }}>
+              <Link href="/login" className="pub-hide-sm" style={{ fontSize: 14, color: t.text, whiteSpace: "nowrap", textDecoration: "none" }}>
                 Sign in
               </Link>
               <Link href="/login" style={ctaPill}>

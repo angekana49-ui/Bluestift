@@ -51,7 +51,7 @@ function fieldStyle(t: Theme) {
     background: t.inputBg,
     borderRadius: 12,
     padding: 16,
-    fontSize: 13,
+    fontSize: 15,
     lineHeight: 1.6,
     color: t.text,
     outline: "none",
@@ -116,14 +116,14 @@ function SurveyFlow({ t, profile, onDone }: { t: Theme; profile: "teacher" | "st
           <div style={{ flex: 1, height: 3, background: t.pillTrackBg, borderRadius: 999, overflow: "hidden" }}>
             <div style={{ width: `${progress}%`, height: "100%", background: t.orange, transition: "width 0.3s ease" }} />
           </div>
-          <span style={{ fontSize: 10, color: t.mutedLight }}>{step + 1} / {total}</span>
+          <span style={{ fontSize: 13, color: t.mutedLight }}>{step + 1} / {total}</span>
         </div>
 
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 600, color: t.orange, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 12 }}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600, color: t.orange, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 12 }}>
           {profile === "teacher" ? <IconTeacher size={14} /> : <IconStudent size={14} />}
           {profile === "teacher" ? "Teacher" : "Student"}
         </div>
-        <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: t.text }}>{q.question}</div>
+        <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 16, color: t.text }}>{q.question}</div>
 
         {q.type === "choice" ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -132,7 +132,7 @@ function SurveyFlow({ t, profile, onDone }: { t: Theme; profile: "teacher" | "st
                 key={opt}
                 onClick={() => answer({ question_id: q.id, answer_choice: opt })}
                 disabled={submitting}
-                style={{ border: `1px solid ${t.cardBorder}`, background: t.inputBg, borderRadius: 12, padding: "12px 16px", fontSize: 12, textAlign: "left", color: t.text, cursor: submitting ? "default" : "pointer" }}
+                style={{ border: `1px solid ${t.cardBorder}`, background: t.inputBg, borderRadius: 12, padding: "12px 16px", fontSize: 14, textAlign: "left", color: t.text, cursor: submitting ? "default" : "pointer" }}
               >
                 {opt}
               </button>
@@ -144,7 +144,7 @@ function SurveyFlow({ t, profile, onDone }: { t: Theme; profile: "teacher" | "st
             <button
               onClick={() => answer(text.trim() ? { question_id: q.id, answer_text: text.trim() } : null)}
               disabled={submitting}
-              style={{ marginTop: 12, display: "inline-flex", alignItems: "center", gap: 6, background: t.orange, color: "white", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 12, fontWeight: 700, cursor: submitting ? "default" : "pointer" }}
+              style={{ marginTop: 12, display: "inline-flex", alignItems: "center", gap: 6, background: t.orange, color: "white", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 14, fontWeight: 700, cursor: submitting ? "default" : "pointer" }}
             >
               {submitting ? "Sending…" : isLast ? "Finish" : "Continue →"}
               {!submitting && isLast && <IconCheck size={14} />}
@@ -155,8 +155,8 @@ function SurveyFlow({ t, profile, onDone }: { t: Theme; profile: "teacher" | "st
         <div style={{ marginTop: 16 }}>
           <Turnstile ref={turnstileRef} onVerify={setCaptchaToken} onExpire={() => setCaptchaToken(null)} />
         </div>
-        {error && <p style={{ marginTop: 10, fontSize: 11, color: "#ef4444" }}>Couldn&apos;t submit — try again.</p>}
-        <button onClick={() => answer(null)} disabled={submitting} style={{ marginTop: 14, background: "none", border: "none", fontSize: 11, color: t.mutedLight, cursor: "pointer" }}>
+        {error && <p style={{ marginTop: 10, fontSize: 13, color: "#ef4444" }}>Couldn&apos;t submit — try again.</p>}
+        <button onClick={() => answer(null)} disabled={submitting} style={{ marginTop: 14, background: "none", border: "none", fontSize: 13, color: t.mutedLight, cursor: "pointer" }}>
           Skip this question →
         </button>
       </div>
@@ -189,31 +189,31 @@ function DoneScreen({ t, responseId, onFreeWall }: { t: Theme; responseId: strin
         <IconHeart size={44} filled />
       </div>
       <h2 style={{ fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "1.9rem", letterSpacing: "-0.02em", margin: "0 0 12px", color: t.text }}>Thank you.</h2>
-      <p style={{ fontSize: 13, lineHeight: 1.7, color: t.text, marginBottom: 24 }}>
+      <p style={{ fontSize: 15, lineHeight: 1.7, color: t.text, marginBottom: 24 }}>
         Your answers feed straight into Raya&apos;s development. Leave your email if you want early access when the beta is ready.
       </p>
 
       {responseId && !saved && (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, marginBottom: 24 }}>
-          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.com" type="email" style={{ width: 220, border: `1px solid ${t.cardBorder}`, background: t.inputBg, borderRadius: 8, padding: "10px 14px", fontSize: 12, color: t.text, outline: "none" }} />
+          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.com" type="email" style={{ width: 220, border: `1px solid ${t.cardBorder}`, background: t.inputBg, borderRadius: 8, padding: "10px 14px", fontSize: 14, color: t.text, outline: "none" }} />
           <Turnstile ref={turnstileRef} onVerify={setCaptchaToken} onExpire={() => setCaptchaToken(null)} />
-          <button onClick={saveEmail} style={{ background: t.ctaBg, color: t.ctaText, border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+          <button onClick={saveEmail} style={{ background: t.ctaBg, color: t.ctaText, border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
             Early access
           </button>
         </div>
       )}
       {saved && (
-        <p style={{ display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 24, fontSize: 12, fontWeight: 600, color: t.greenText }}>
+        <p style={{ display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 24, fontSize: 14, fontWeight: 600, color: t.greenText }}>
           <IconCheck size={13} /> Noted — see you soon!
         </p>
       )}
 
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-        <button onClick={onFreeWall} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: t.orange, color: "white", border: "none", borderRadius: 8, padding: "12px 28px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+        <button onClick={onFreeWall} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: t.orange, color: "white", border: "none", borderRadius: 8, padding: "12px 28px", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
           <IconPencil size={15} />
           Share freely
         </button>
-        <Link href="/" style={{ border: `1px solid ${t.cardBorder}`, borderRadius: 8, padding: "10px 28px", fontSize: 13, color: t.muted, textDecoration: "none" }}>
+        <Link href="/" style={{ border: `1px solid ${t.cardBorder}`, borderRadius: 8, padding: "10px 28px", fontSize: 15, color: t.muted, textDecoration: "none" }}>
           Back home
         </Link>
       </div>
@@ -272,7 +272,7 @@ function FreeWall({ t, initialPosts }: { t: Theme; initialPosts: WallPost[] }) {
     <div style={{ maxWidth: 580, margin: "0 auto", padding: "8px 24px 32px" }}>
       <div style={{ marginBottom: 28 }}>
         <h2 style={{ fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "clamp(1.3rem,3vw,1.8rem)", letterSpacing: "-0.02em", margin: "0 0 8px", color: t.text }}>Tell us what you think.</h2>
-        <p style={{ fontSize: 13, lineHeight: 1.7, color: t.text, margin: 0 }}>
+        <p style={{ fontSize: 15, lineHeight: 1.7, color: t.text, margin: 0 }}>
           No questions, no form. Just a space to express yourself freely. What you write here feeds straight into the product.
         </p>
       </div>
@@ -286,7 +286,7 @@ function FreeWall({ t, initialPosts }: { t: Theme; initialPosts: WallPost[] }) {
               <button
                 key={k}
                 onClick={() => setProfile(k)}
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, borderRadius: 999, border: `1px solid ${on ? t.orange : t.cardBorder}`, background: on ? t.orangeBg : "transparent", color: on ? t.orangeText : t.muted, padding: "6px 12px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, borderRadius: 999, border: `1px solid ${on ? t.orange : t.cardBorder}`, background: on ? t.orangeBg : "transparent", color: on ? t.orangeText : t.muted, padding: "6px 12px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
               >
                 <Icon size={13} /> {PROFILE_LABEL[k]}
               </button>
@@ -296,11 +296,11 @@ function FreeWall({ t, initialPosts }: { t: Theme; initialPosts: WallPost[] }) {
         <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="What I really miss in today's education tools is…" rows={3} style={{ ...fieldStyle(t), background: t.inputFieldBg, border: "none", marginBottom: 10 }} />
         <Turnstile ref={turnstileRef} onVerify={setCaptchaToken} onExpire={() => setCaptchaToken(null)} />
         <div style={{ marginTop: 10, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12 }}>
-          {error && <span style={{ fontSize: 11, color: "#ef4444" }}>Couldn&apos;t post — try again.</span>}
+          {error && <span style={{ fontSize: 13, color: "#ef4444" }}>Couldn&apos;t post — try again.</span>}
           <button
             onClick={submit}
             disabled={!text.trim() || busy}
-            style={{ background: text.trim() && !busy ? t.orange : t.inputFieldBg, color: text.trim() && !busy ? "white" : t.muted, border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 12, fontWeight: 700, cursor: text.trim() && !busy ? "pointer" : "default" }}
+            style={{ background: text.trim() && !busy ? t.orange : t.inputFieldBg, color: text.trim() && !busy ? "white" : t.muted, border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 14, fontWeight: 700, cursor: text.trim() && !busy ? "pointer" : "default" }}
           >
             {busy ? "Posting…" : "Post"}
           </button>
@@ -315,9 +315,9 @@ function FreeWall({ t, initialPosts }: { t: Theme; initialPosts: WallPost[] }) {
             <div key={post.id} style={{ borderRadius: 18, border: `1px solid ${post.isNew ? t.orangeBorder : t.cardBorder}`, background: post.isNew ? t.orangeBg : t.cardBg, padding: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, color: t.muted }}>
                 <Icon size={15} />
-                <span style={{ fontSize: 11, fontWeight: 600, color: t.muted }}>{PROFILE_LABEL[p] ?? "Anonymous"}</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: t.muted }}>{PROFILE_LABEL[p] ?? "Anonymous"}</span>
               </div>
-              <p style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", fontSize: 13, lineHeight: 1.6, color: t.text, margin: "0 0 14px" }}>&ldquo;{post.content}&rdquo;</p>
+              <p style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", fontSize: 15, lineHeight: 1.6, color: t.text, margin: "0 0 14px" }}>&ldquo;{post.content}&rdquo;</p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
                 {(["resonates", "important"] as const).map((kind) => {
                   const on = reacted.has(`${post.id}:${kind}`);
@@ -325,7 +325,7 @@ function FreeWall({ t, initialPosts }: { t: Theme; initialPosts: WallPost[] }) {
                     <button
                       key={kind}
                       onClick={() => react(post.id, kind)}
-                      style={{ display: "flex", alignItems: "center", gap: 6, borderRadius: 999, border: `1px solid ${on ? t.orange : t.cardBorder}`, background: "transparent", color: on ? t.orangeText : t.muted, padding: "6px 12px", fontSize: 11, cursor: "pointer" }}
+                      style={{ display: "flex", alignItems: "center", gap: 6, borderRadius: 999, border: `1px solid ${on ? t.orange : t.cardBorder}`, background: "transparent", color: on ? t.orangeText : t.muted, padding: "6px 12px", fontSize: 13, cursor: "pointer" }}
                     >
                       {kind === "resonates" ? (
                         <>
@@ -371,7 +371,7 @@ export function SurveyView({ signedIn, initialPosts, stats }: Props) {
                 <button
                   key={k}
                   onClick={() => setView(k)}
-                  style={{ borderRadius: 999, border: `1px solid ${activeGroup ? t.orange : "transparent"}`, background: activeGroup ? t.orangeBg : "transparent", color: activeGroup ? t.orangeText : t.muted, padding: "6px 14px", fontSize: 11, cursor: "pointer" }}
+                  style={{ borderRadius: 999, border: `1px solid ${activeGroup ? t.orange : "transparent"}`, background: activeGroup ? t.orangeBg : "transparent", color: activeGroup ? t.orangeText : t.muted, padding: "6px 14px", fontSize: 13, cursor: "pointer" }}
                 >
                   {l}
                 </button>
@@ -383,7 +383,7 @@ export function SurveyView({ signedIn, initialPosts, stats }: Props) {
             <div style={{ maxWidth: 560, margin: "0 auto", padding: "0 24px 40px", textAlign: "center" }}>
               <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: t.orangeBg, border: `1px solid ${t.orangeBorder}`, borderRadius: 999, padding: "6px 16px", marginBottom: 20 }}>
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: t.orange }} />
-                <span style={{ fontSize: 11, fontWeight: 600, color: t.orangeText }}>R&amp;D · 5 minutes · Anonymous</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: t.orangeText }}>R&amp;D · 5 minutes · Anonymous</span>
               </div>
 
               <h1 style={{ fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "clamp(1.6rem,4vw,2.4rem)", letterSpacing: "-0.02em", lineHeight: 1.2, margin: "0 0 14px", color: t.text }}>
@@ -391,20 +391,20 @@ export function SurveyView({ signedIn, initialPosts, stats }: Props) {
                 <br />
                 <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", color: t.orange }}>Tell us what&apos;s really getting in the way.</em>
               </h1>
-              <p style={{ maxWidth: 380, margin: "0 auto 32px", fontSize: 13, color: t.text, lineHeight: 1.7 }}>
+              <p style={{ maxWidth: 380, margin: "0 auto 32px", fontSize: 15, color: t.text, lineHeight: 1.7 }}>
                 6 questions. No account needed. Your answers feed directly into Raya&apos;s development.
               </p>
 
               <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginBottom: 20 }}>
-                <button onClick={() => setView("survey-teacher")} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: t.ctaBg, color: t.ctaText, border: "none", borderRadius: 12, padding: "14px 26px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                <button onClick={() => setView("survey-teacher")} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: t.ctaBg, color: t.ctaText, border: "none", borderRadius: 12, padding: "14px 26px", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
                   <IconTeacher size={16} /> I&apos;m a teacher
                 </button>
-                <button onClick={() => setView("survey-student")} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: t.orange, color: "white", border: "none", borderRadius: 12, padding: "14px 26px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                <button onClick={() => setView("survey-student")} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: t.orange, color: "white", border: "none", borderRadius: 12, padding: "14px 26px", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
                   <IconStudent size={16} /> I&apos;m a student
                 </button>
               </div>
 
-              <button onClick={() => setView("free")} style={{ background: "none", border: "none", fontSize: 12, color: t.mutedLight, textDecoration: "underline", cursor: "pointer", marginBottom: 32 }}>
+              <button onClick={() => setView("free")} style={{ background: "none", border: "none", fontSize: 14, color: t.mutedLight, textDecoration: "underline", cursor: "pointer", marginBottom: 32 }}>
                 Or share freely →
               </button>
 
@@ -415,8 +415,8 @@ export function SurveyView({ signedIn, initialPosts, stats }: Props) {
                     { v: String(stats.posts), l: "stories shared" },
                   ].map((s) => (
                     <div key={s.l}>
-                      <div style={{ fontSize: 22, fontWeight: 800, color: t.orange }}>{s.v}</div>
-                      <div style={{ fontSize: 10, color: t.mutedLight }}>{s.l}</div>
+                      <div style={{ fontSize: 25, fontWeight: 800, color: t.orange }}>{s.v}</div>
+                      <div style={{ fontSize: 13, color: t.mutedLight }}>{s.l}</div>
                     </div>
                   ))}
                 </div>

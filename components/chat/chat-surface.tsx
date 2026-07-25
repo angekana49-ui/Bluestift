@@ -140,7 +140,7 @@ export function ChatSurface({
           on top of it so the session bar reads as a distinct strip. */}
       <div
         className={t.dark ? "chat-welcome-bg is-dark" : "chat-welcome-bg"}
-        style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}
+        style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0 }}
       >
         {/* header */}
         {!hideHeader && (
@@ -223,7 +223,7 @@ export function ChatSurface({
 
         {/* thread */}
         {messages.length === 0 ? (
-          <div style={{ flex: 1, position: "relative", overflow: "auto", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: 24 }}>
+          <div style={{ flex: 1, minHeight: 0, position: "relative", overflow: "auto", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: 24 }}>
             <div style={{ position: "relative", display: "inline-block", maxWidth: 520 }}>
               <h1
                 style={{
@@ -272,7 +272,7 @@ export function ChatSurface({
             </div>
           </div>
         ) : (
-          <div style={{ flex: 1, overflow: "auto", padding: "28px 24px" }}>
+          <div style={{ flex: 1, minHeight: 0, overflow: "auto", padding: "28px 24px" }}>
             {/* Centred reading column — full width until the zone is narrower
                 than THREAD_MAX_W, capped beyond it. */}
             <div style={{ maxWidth: THREAD_MAX_W, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>

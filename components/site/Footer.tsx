@@ -49,7 +49,7 @@ export default function Footer({ theme: t, variant = "full" }: { theme: Theme; v
           textAlign: "center",
         }}
       >
-        <span style={{ fontSize: 10, color: t.footerMuted }}>
+        <span style={{ fontSize: 13, color: t.footerMuted }}>
           © 2026 BlueStift. All rights reserved. ·{" "}
           <Link href="/privacy" style={{ color: t.footerMuted, textDecoration: "underline" }}>
             Privacy
@@ -74,22 +74,22 @@ export default function Footer({ theme: t, variant = "full" }: { theme: Theme; v
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/bluestift-mark.png" alt="BlueStift" style={{ width: 26, height: 26, borderRadius: 7, objectFit: "cover" }} />
-              <span style={{ fontSize: 13, fontWeight: 800 }}>
+              <span style={{ fontSize: 15, fontWeight: 800 }}>
                 <span style={{ color: t.wordmarkA }}>Blue</span>
                 <span style={{ color: t.wordmarkB }}>Stift</span>
               </span>
             </div>
-            <p style={{ maxWidth: 220, fontSize: 11, color: t.footerMuted, lineHeight: 1.7, margin: 0 }}>
+            <p style={{ maxWidth: 220, fontSize: 13, color: t.footerMuted, lineHeight: 1.7, margin: 0 }}>
               BlueStift builds Raya, the AI tutor that remembers every student.
             </p>
           </div>
 
           {COLUMNS.map((col) => (
             <div key={col.label}>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", marginBottom: 12, color: t.text }}>{col.label}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.08em", marginBottom: 12, color: t.text }}>{col.label}</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {col.links.map(([label, href]) => (
-                  <Link key={label} href={href} style={{ fontSize: 11, color: t.text, textDecoration: "none" }}>
+                  <Link key={label} href={href} style={{ fontSize: 13, color: t.text, textDecoration: "none" }}>
                     {label}
                   </Link>
                 ))}
@@ -106,7 +106,7 @@ export default function Footer({ theme: t, variant = "full" }: { theme: Theme; v
             justifyContent: "space-between",
             flexWrap: "wrap",
             gap: 8,
-            fontSize: 10,
+            fontSize: 13,
             color: t.footerMuted,
           }}
         >

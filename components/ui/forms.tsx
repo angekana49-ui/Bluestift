@@ -12,7 +12,7 @@ export const panelCard = (t: AppTheme): CSSProperties => ({
 });
 
 export const cardTitle = (t: AppTheme): CSSProperties => ({
-  fontSize: 14,
+  fontSize: 16,
   fontWeight: 700,
   color: t.text,
   margin: "0 0 6px",
@@ -25,7 +25,7 @@ export const textInput = (t: AppTheme): CSSProperties => ({
   borderRadius: 10,
   padding: "10px 14px",
   width: "100%",
-  fontSize: 12.5,
+  fontSize: 15,
   boxSizing: "border-box",
   outline: "none",
 });
@@ -36,7 +36,7 @@ export const ctaButton = (t: AppTheme): CSSProperties => ({
   border: "none",
   borderRadius: 99,
   padding: "10px 18px",
-  fontSize: 12,
+  fontSize: 14,
   fontWeight: 600,
   cursor: "pointer",
 });
@@ -47,7 +47,7 @@ export const ghostButton = (t: AppTheme): CSSProperties => ({
   border: `1px solid ${t.cardBorder}`,
   borderRadius: 99,
   padding: "6px 12px",
-  fontSize: 11,
+  fontSize: 13,
   fontWeight: 600,
   cursor: "pointer",
 });
@@ -55,6 +55,6 @@ export const ghostButton = (t: AppTheme): CSSProperties => ({
 export const linkText = (t: AppTheme): CSSProperties => ({
   color: t.dark ? "#6f9bff" : "#2f7fe0",
   textDecoration: "none",
-  fontSize: 12.5,
+  fontSize: 15,
   fontWeight: 600,
 });

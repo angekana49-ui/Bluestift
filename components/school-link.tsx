@@ -45,14 +45,14 @@ export function SchoolLink({ initial }: { initial: SchoolLinkInfo | null }) {
     return (
       <div style={card}>
         <h2 style={cardTitle(t)}>Your school</h2>
-        <p style={{ margin: "0 0 4px", color: t.text, fontSize: 12.5 }}>
+        <p style={{ margin: "0 0 4px", color: t.text, fontSize: 15 }}>
           <strong>{link.schoolName ?? "School"}</strong>
           {link.className ? ` · ${link.className}` : ""}
         </p>
-        <p style={{ margin: 0, color: t.muted, fontSize: 11.5 }}>
+        <p style={{ margin: 0, color: t.muted, fontSize: 14 }}>
           Enrolled as {link.firstName} {link.lastName}.
         </p>
-        <p style={{ margin: "10px 0 0", color: t.mutedLight, fontSize: 11 }}>
+        <p style={{ margin: "10px 0 0", color: t.mutedLight, fontSize: 13 }}>
           Your name and class are shared only with your school — not on your public profile.
         </p>
       </div>
@@ -62,7 +62,7 @@ export function SchoolLink({ initial }: { initial: SchoolLinkInfo | null }) {
   return (
     <form style={card} onSubmit={onSubmit}>
       <h2 style={cardTitle(t)}>Join your school</h2>
-      <p style={{ margin: "0 0 14px", color: t.muted, fontSize: 11.5 }}>
+      <p style={{ margin: "0 0 14px", color: t.muted, fontSize: 14 }}>
         Enter the class code your teacher gave you. Your name is shared only with your school.
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -86,7 +86,7 @@ export function SchoolLink({ initial }: { initial: SchoolLinkInfo | null }) {
           {busy ? "Linking…" : "Link my account"}
         </button>
       </div>
-      {error && <p style={{ color: "#f87171", margin: "12px 0 0", fontSize: 12.5 }}>{error}</p>}
+      {error && <p style={{ color: "#f87171", margin: "12px 0 0", fontSize: 15 }}>{error}</p>}
     </form>
   );
 }

@@ -32,7 +32,7 @@ export default function HeroSection({ theme: t }: { theme: Theme }) {
             border: `1px solid ${t.chipBorder}`,
             borderRadius: 999,
             padding: "6px 16px",
-            fontSize: 11,
+            fontSize: 13,
             fontWeight: 500,
             marginBottom: 20,
             color: t.text,
@@ -68,18 +68,18 @@ export default function HeroSection({ theme: t }: { theme: Theme }) {
           </span>
         </div>
 
-        <p style={{ maxWidth: 560, margin: "20px auto 0", fontSize: 16, lineHeight: 1.7, color: t.text }}>
+        <p style={{ maxWidth: 560, margin: "20px auto 0", fontSize: 18, lineHeight: 1.7, color: t.text }}>
           Raya adapts every session to each student&apos;s real cognitive profile — solo, in groups, in real time. Not a
           chatbot. A tutor.
         </p>
 
         <div style={{ display: "flex", gap: 12, justifyContent: "center", marginTop: 28, flexWrap: "wrap" }}>
-          <a href="/login" style={{ background: t.ctaBg, color: t.ctaText, borderRadius: 999, padding: "13px 24px", fontSize: 14, fontWeight: 500, textDecoration: "none" }}>
+          <a href="/login" style={{ background: t.ctaBg, color: t.ctaText, borderRadius: 999, padding: "13px 24px", fontSize: 16, fontWeight: 500, textDecoration: "none" }}>
             Try it free
           </a>
           <a
             href="#pricing"
-            style={{ background: t.chipBg, border: `1px solid ${t.chipBorder}`, borderRadius: 999, padding: "13px 22px", fontSize: 14, fontWeight: 500, color: t.text, textDecoration: "none" }}
+            style={{ background: t.chipBg, border: `1px solid ${t.chipBorder}`, borderRadius: 999, padding: "13px 22px", fontSize: 16, fontWeight: 500, color: t.text, textDecoration: "none" }}
           >
             See how it works
           </a>
@@ -87,7 +87,7 @@ export default function HeroSection({ theme: t }: { theme: Theme }) {
 
         <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 24, flexWrap: "wrap" }}>
           {CHIPS.map((c) => (
-            <span key={c} style={{ fontSize: 10, background: t.chipBg, border: `1px solid ${t.chipBorder}`, borderRadius: 999, padding: "5px 12px", color: t.text }}>
+            <span key={c} style={{ fontSize: 13, background: t.chipBg, border: `1px solid ${t.chipBorder}`, borderRadius: 999, padding: "5px 12px", color: t.text }}>
               {c}
             </span>
           ))}

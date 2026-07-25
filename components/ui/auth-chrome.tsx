@@ -127,12 +127,12 @@ export function AuthSplit({ children, back }: { children: React.ReactNode; back?
           <h2 style={{ fontFamily: HAND_FONT, fontWeight: 700, fontSize: "clamp(2rem,3.4vw,3rem)", lineHeight: 1, margin: 0, color: "#0b1220" }}>
             One account.<br />Everything BlueStift.
           </h2>
-          <p style={{ maxWidth: 360, marginTop: 16, fontSize: 14, lineHeight: 1.7, color: "#475569" }}>
+          <p style={{ maxWidth: 360, marginTop: 16, fontSize: 16, lineHeight: 1.7, color: "#475569" }}>
             Learn with <RayaName />, teach, or run a whole school — set it up once,
             in a few taps.
           </p>
         </div>
-        <span style={{ fontSize: 11.5, color: "#64748b" }}>AI tutor · K-12 · Cameroon &amp; US</span>
+        <span style={{ fontSize: 14, color: "#64748b" }}>AI tutor · K-12 · Cameroon &amp; US</span>
       </aside>
 
       <main
@@ -163,14 +163,14 @@ export function AuthSplit({ children, back }: { children: React.ReactNode; back?
 export const heading: React.CSSProperties = {
   fontFamily: HEAD_FONT,
   fontWeight: 800,
-  fontSize: 22,
+  fontSize: 25,
   letterSpacing: "-0.01em",
   margin: "0 0 6px",
   textAlign: "center",
   color: "#0b1220",
 };
 export const sub: React.CSSProperties = {
-  fontSize: 13.5,
+  fontSize: 16,
   fontWeight: 500,
   color: "#334155",
   textAlign: "center",
@@ -179,7 +179,7 @@ export const sub: React.CSSProperties = {
 };
 export const fieldLabel: React.CSSProperties = {
   display: "block",
-  fontSize: 12,
+  fontSize: 14,
   fontWeight: 600,
   color: "#1e293b",
   marginBottom: 6,
@@ -192,7 +192,7 @@ export const fieldInput: React.CSSProperties = {
   border: "1.5px solid #cbd5e1",
   borderRadius: 10,
   padding: "11px 14px",
-  fontSize: 14,
+  fontSize: 16,
   fontWeight: 500,
   marginBottom: 16,
   boxSizing: "border-box",
@@ -207,7 +207,7 @@ export const primaryBtn: React.CSSProperties = {
   border: "none",
   borderRadius: 99,
   padding: 14,
-  fontSize: 13,
+  fontSize: 15,
   fontWeight: 600,
   cursor: "pointer",
 };
@@ -217,7 +217,7 @@ export const secondaryBtn: React.CSSProperties = {
   border: "1px solid #dde5ee",
   borderRadius: 99,
   padding: "14px 20px",
-  fontSize: 13,
+  fontSize: 15,
   fontWeight: 600,
   cursor: "pointer",
 };

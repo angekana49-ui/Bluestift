@@ -79,8 +79,8 @@ export function UpgradeModal() {
           </svg>
         </div>
 
-        <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 8 }}>{title}</div>
-        <p style={{ fontSize: 13, lineHeight: 1.6, color: "#cdd6e4", margin: "0 0 20px" }}>
+        <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 8 }}>{title}</div>
+        <p style={{ fontSize: 15, lineHeight: 1.6, color: "#cdd6e4", margin: "0 0 20px" }}>
           {detail.message}
         </p>
 
@@ -93,7 +93,7 @@ export function UpgradeModal() {
               color: "#cdd6e4",
               borderRadius: 999,
               padding: "9px 18px",
-              fontSize: 12.5,
+              fontSize: 15,
               fontWeight: 600,
               cursor: "pointer",
             }}
@@ -108,7 +108,7 @@ export function UpgradeModal() {
               color: "#ffffff",
               borderRadius: 999,
               padding: "9px 22px",
-              fontSize: 12.5,
+              fontSize: 15,
               fontWeight: 700,
               textDecoration: "none",
             }}

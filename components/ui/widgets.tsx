@@ -25,12 +25,12 @@ export function KpiTile({
       className={shine ? "kpi shine" : "kpi"}
       style={{ background: t.cardBg2, color: t.text }}
     >
-      <div style={{ fontSize: 11, color: t.muted }}>{label}</div>
+      <div style={{ fontSize: 13, color: t.muted }}>{label}</div>
       <div className="val">{value}</div>
       {delta != null && (
         <div
           style={{
-            fontSize: 10,
+            fontSize: 13,
             marginTop: 3,
             color: deltaPositive ? status.positive : t.mutedLight,
           }}
@@ -172,7 +172,7 @@ export function ConceptRow({
         style={{
           display: "flex",
           justifyContent: "space-between",
-          fontSize: 11.5,
+          fontSize: 14,
           marginBottom: 6,
           color: t.text,
         }}

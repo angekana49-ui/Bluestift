@@ -114,7 +114,7 @@ export function TeacherLink({
     return (
       <div style={card}>
         <h2 style={cardTitle(t)}>Do you teach at — or run — a school?</h2>
-        <p style={{ margin: "0 0 14px", color: t.muted, fontSize: 12.5, lineHeight: 1.6 }}>
+        <p style={{ margin: "0 0 14px", color: t.muted, fontSize: 15, lineHeight: 1.6 }}>
           Teacher and admin accounts need a <strong style={{ color: t.text }}>verified email</strong> — it keeps
           school data tied to a real, recoverable account. Anonymous accounts stay perfect for learning solo, but
           to join or run a school, link your email first.
@@ -131,7 +131,7 @@ export function TeacherLink({
     return (
       <form style={card} onSubmit={createSchool}>
         <h2 style={cardTitle(t)}>Create your school</h2>
-        <p style={{ margin: "0 0 14px", color: t.muted, fontSize: 11.5 }}>
+        <p style={{ margin: "0 0 14px", color: t.muted, fontSize: 14 }}>
           You&apos;ll become its administrator — add classes, access codes and teachers from the
           Schools dashboard.
         </p>
@@ -176,7 +176,7 @@ export function TeacherLink({
             Cancel
           </button>
         </div>
-        {error && <p style={{ color: "#f87171", margin: "12px 0 0", fontSize: 12.5 }}>{error}</p>}
+        {error && <p style={{ color: "#f87171", margin: "12px 0 0", fontSize: 15 }}>{error}</p>}
       </form>
     );
   }
@@ -186,7 +186,7 @@ export function TeacherLink({
     return (
       <div style={card}>
         <h2 style={cardTitle(t)}>Your school (team)</h2>
-        <p style={{ margin: "0 0 10px", color: t.text, fontSize: 12.5 }}>
+        <p style={{ margin: "0 0 10px", color: t.text, fontSize: 15 }}>
           You are {initial.role === "admin_master" ? "an administrator" : "a teacher"} at{" "}
           <strong>{initial.schoolName}</strong>.
         </p>
@@ -211,7 +211,7 @@ export function TeacherLink({
     return (
       <div style={card}>
         <h2 style={cardTitle(t)}>Teach at a school</h2>
-        <p style={{ margin: 0, color: "#22c55e", fontSize: 12.5 }}>{msg}</p>
+        <p style={{ margin: 0, color: "#22c55e", fontSize: 15 }}>{msg}</p>
         {done === "joined" && (
           <Link href="/school" style={{ ...link, display: "inline-block", marginTop: 10 }}>
             Open the Schools dashboard →
@@ -225,7 +225,7 @@ export function TeacherLink({
   return (
     <form style={card} onSubmit={submit}>
       <h2 style={cardTitle(t)}>Do you teach at — or run — a school?</h2>
-      <p style={{ margin: "0 0 14px", color: t.muted, fontSize: 11.5 }}>
+      <p style={{ margin: "0 0 14px", color: t.muted, fontSize: 14 }}>
         Enter the invite code your school gave you to join the teaching team.
       </p>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -241,7 +241,7 @@ export function TeacherLink({
           {busy ? "Joining…" : "Join"}
         </button>
       </div>
-      <p style={{ margin: "14px 0 0", fontSize: 11.5, color: t.muted }}>
+      <p style={{ margin: "14px 0 0", fontSize: 14, color: t.muted }}>
         No code — running your own?{" "}
         <button
           type="button"
@@ -251,7 +251,7 @@ export function TeacherLink({
           Create a school
         </button>
       </p>
-      {error && <p style={{ color: "#f87171", margin: "12px 0 0", fontSize: 12.5 }}>{error}</p>}
+      {error && <p style={{ color: "#f87171", margin: "12px 0 0", fontSize: 15 }}>{error}</p>}
     </form>
   );
 }

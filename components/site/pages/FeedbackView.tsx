@@ -114,7 +114,7 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
       background: t.inputBg,
       borderRadius: 10,
       padding: "11px 14px",
-      fontSize: 12,
+      fontSize: 14,
       color: t.text,
       outline: "none",
       width: "100%",
@@ -131,7 +131,7 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
             <h1 style={{ fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "clamp(1.6rem,4vw,2.4rem)", letterSpacing: "-0.02em", margin: "0 0 10px", color: t.text }}>
               Your <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", color: t.wordmarkB }}>feedback.</em>
             </h1>
-            <p style={{ fontSize: 13, color: t.text, lineHeight: 1.7, margin: "0 0 28px" }}>
+            <p style={{ fontSize: 15, color: t.text, lineHeight: 1.7, margin: "0 0 28px" }}>
               A bug, an idea, something you loved or that annoyed you — we want it all, and we read it all.
             </p>
 
@@ -140,8 +140,8 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
                 <div style={{ display: "flex", justifyContent: "center", marginBottom: 10, color: t.wordmarkB }}>
                   <IconHeart size={34} filled />
                 </div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: t.wordmarkB, marginBottom: 6 }}>Thank you!</div>
-                <p style={{ fontSize: 12, color: t.muted, margin: 0 }}>Your feedback has been sent to the team.</p>
+                <div style={{ fontSize: 18, fontWeight: 700, color: t.wordmarkB, marginBottom: 6 }}>Thank you!</div>
+                <p style={{ fontSize: 14, color: t.muted, margin: 0 }}>Your feedback has been sent to the team.</p>
               </div>
             ) : (
               <div style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: 20, padding: 24, display: "flex", flexDirection: "column", gap: 14, boxShadow: t.cardShadow }}>
@@ -165,7 +165,7 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
                           background: praiseOn ? "rgba(224,36,94,0.1)" : on ? "rgba(47,127,224,0.1)" : "transparent",
                           color: praiseOn ? PRAISE_RED : on ? t.wordmarkB : t.muted,
                           padding: "6px 14px",
-                          fontSize: 11,
+                          fontSize: 13,
                           fontWeight: 600,
                           cursor: "pointer",
                           transition: "color 0.2s, border-color 0.2s, background 0.2s",
@@ -181,7 +181,7 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
                 </div>
 
                 <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <span style={{ marginRight: 4, fontSize: 12, color: t.muted }}>Rating:</span>
+                  <span style={{ marginRight: 4, fontSize: 14, color: t.muted }}>Rating:</span>
                   {[1, 2, 3, 4, 5].map((n) => (
                     <button
                       key={n}
@@ -207,7 +207,7 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
                 />
                 <input placeholder="Your email if you'd like a reply (optional)" type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={input(t)} />
                 <Turnstile ref={turnstileRef} onVerify={setCaptchaToken} onExpire={() => setCaptchaToken(null)} />
-                {state === "error" && <span style={{ fontSize: 11, color: "#ef4444" }}>Couldn&apos;t send — try again.</span>}
+                {state === "error" && <span style={{ fontSize: 13, color: "#ef4444" }}>Couldn&apos;t send — try again.</span>}
                 <button
                   onClick={submit}
                   disabled={!canSend || state === "busy"}
@@ -218,7 +218,7 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
                     border: "none",
                     borderRadius: 999,
                     padding: "12px 26px",
-                    fontSize: 13,
+                    fontSize: 15,
                     fontWeight: 700,
                     cursor: canSend && state !== "busy" ? "pointer" : "default",
                   }}

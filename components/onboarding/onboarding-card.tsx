@@ -58,7 +58,7 @@ export function OnboardingCard() {
         <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center", marginBottom: 22 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/raya-logo.jpeg" alt="" style={{ width: 28, height: 28, borderRadius: 7, objectFit: "cover" }} />
-          <span style={{ fontSize: 14, fontWeight: 800, fontFamily: display }}>
+          <span style={{ fontSize: 16, fontWeight: 800, fontFamily: display }}>
             <span style={{ color: "#173d8a" }}>Blue</span>
             <span style={{ color: "#2f7fe0" }}>Stift</span>
           </span>
@@ -72,20 +72,20 @@ export function OnboardingCard() {
 
         {status === "pending" ? (
           <>
-            <h1 style={{ fontFamily: display, fontWeight: 800, fontSize: 20, letterSpacing: "-0.01em", margin: "0 0 6px", textAlign: "center" }}>{headline}</h1>
-            <p style={{ fontSize: 12.5, color: "#64748b", textAlign: "center", margin: "0 0 24px", lineHeight: 1.6 }}>{subline}</p>
+            <h1 style={{ fontFamily: display, fontWeight: 800, fontSize: 23, letterSpacing: "-0.01em", margin: "0 0 6px", textAlign: "center" }}>{headline}</h1>
+            <p style={{ fontSize: 15, color: "#64748b", textAlign: "center", margin: "0 0 24px", lineHeight: 1.6 }}>{subline}</p>
 
             <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 8 }}>
               {["V", "O", "L", "T", "6", "A"].map((ch, i) => (
                 <input key={i} maxLength={1} defaultValue={ch} style={codeInputStyle} />
               ))}
             </div>
-            <p style={{ fontSize: 10.5, color: "#94a3b8", textAlign: "center", margin: "8px 0 24px" }}>Code fourni par ton établissement ({codeHint})</p>
+            <p style={{ fontSize: 13, color: "#94a3b8", textAlign: "center", margin: "8px 0 24px" }}>Code fourni par ton établissement ({codeHint})</p>
 
-            <div onClick={() => setStatus("success")} style={{ cursor: "pointer", background: "#0b1220", color: "#fff", borderRadius: 99, padding: 14, textAlign: "center", fontSize: 13, fontWeight: 600 }}>
+            <div onClick={() => setStatus("success")} style={{ cursor: "pointer", background: "#0b1220", color: "#fff", borderRadius: 99, padding: 14, textAlign: "center", fontSize: 15, fontWeight: 600 }}>
               Rejoindre l&apos;établissement
             </div>
-            <p style={{ fontSize: 11.5, color: "#64748b", textAlign: "center", marginTop: 16 }}>
+            <p style={{ fontSize: 14, color: "#64748b", textAlign: "center", marginTop: 16 }}>
               Pas de code ? <span style={{ color: "#2f7fe0", fontWeight: 600, cursor: "pointer" }}>Continuer sans école</span>
             </p>
           </>
@@ -94,9 +94,9 @@ export function OnboardingCard() {
             <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#dcfce7", color: "#16a34a", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 18 }}>
               <IconCheck size={26} />
             </div>
-            <h1 style={{ fontFamily: display, fontWeight: 800, fontSize: 19, margin: "0 0 6px" }}>Bienvenue chez Lycée Voltaire</h1>
-            <p style={{ fontSize: 12.5, color: "#64748b", margin: "0 0 24px", lineHeight: 1.6 }}>{successLine}</p>
-            <div onClick={() => setStatus("pending")} style={{ cursor: "pointer", width: "100%", background: "#0b1220", color: "#fff", borderRadius: 99, padding: 14, textAlign: "center", fontSize: 13, fontWeight: 600, boxSizing: "border-box" }}>
+            <h1 style={{ fontFamily: display, fontWeight: 800, fontSize: 22, margin: "0 0 6px" }}>Bienvenue chez Lycée Voltaire</h1>
+            <p style={{ fontSize: 15, color: "#64748b", margin: "0 0 24px", lineHeight: 1.6 }}>{successLine}</p>
+            <div onClick={() => setStatus("pending")} style={{ cursor: "pointer", width: "100%", background: "#0b1220", color: "#fff", borderRadius: 99, padding: 14, textAlign: "center", fontSize: 15, fontWeight: 600, boxSizing: "border-box" }}>
               {enterLabel}
             </div>
           </div>
@@ -110,7 +110,7 @@ const codeInputStyle: React.CSSProperties = {
   width: 44,
   height: 56,
   textAlign: "center",
-  fontSize: 24,
+  fontSize: 27,
   fontWeight: 700,
   borderRadius: 12,
   border: "1px solid #dde5ee",
@@ -128,7 +128,7 @@ function RoleTab({ label, active, onClick }: { label: string; active: boolean; o
         textAlign: "center",
         padding: "10px 18px",
         borderRadius: 99,
-        fontSize: 13,
+        fontSize: 15,
         fontWeight: 600,
         cursor: "pointer",
         transition: "background .2s ease,color .2s ease",

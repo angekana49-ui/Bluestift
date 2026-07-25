@@ -81,8 +81,8 @@ export function SchoolBilling() {
     void load();
   }, []);
 
-  if (loading) return <p style={{ color: t.muted, fontSize: 12.5 }}>Loading billing…</p>;
-  if (error) return <p style={{ color: "#f87171", fontSize: 12.5 }}>{error}</p>;
+  if (loading) return <p style={{ color: t.muted, fontSize: 15 }}>Loading billing…</p>;
+  if (error) return <p style={{ color: "#f87171", fontSize: 15 }}>{error}</p>;
   if (!billing) return null;
 
   const { seats } = billing;
@@ -108,7 +108,7 @@ export function SchoolBilling() {
           <span>Current plan</span>
           <span
             style={{
-              fontSize: 10.5,
+              fontSize: 13,
               fontWeight: 700,
               textTransform: "uppercase",
               letterSpacing: 0.4,
@@ -121,10 +121,10 @@ export function SchoolBilling() {
             {billing.status === "none" ? "No plan" : billing.status}
           </span>
         </div>
-        <div style={{ fontSize: 20, fontWeight: 700, color: t.text, marginBottom: 2 }}>
+        <div style={{ fontSize: 23, fontWeight: 700, color: t.text, marginBottom: 2 }}>
           {billing.planName ?? "Not subscribed"}
         </div>
-        <div style={{ fontSize: 11.5, color: t.muted }}>
+        <div style={{ fontSize: 14, color: t.muted }}>
           {onPilot
             ? `Pilot access until ${fmtDate(billing.pilotUntil)} — seats unlimited during the pilot.`
             : billing.expiresAt
@@ -134,7 +134,7 @@ export function SchoolBilling() {
 
         {/* Seat meter */}
         <div style={{ marginTop: 16 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: t.muted, marginBottom: 6 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: t.muted, marginBottom: 6 }}>
             <span>Seats used</span>
             <span style={{ color: t.text, fontWeight: 600 }}>
               {seats.used}
@@ -153,7 +153,7 @@ export function SchoolBilling() {
             />
           </div>
           {seats.limit != null && seats.remaining === 0 && (
-            <p style={{ fontSize: 11, color: "#f87171", margin: "6px 0 0" }}>
+            <p style={{ fontSize: 13, color: "#f87171", margin: "6px 0 0" }}>
               Seat limit reached — new students can&apos;t join until you add seats or upgrade.
             </p>
           )}
@@ -169,7 +169,7 @@ export function SchoolBilling() {
             background: t.rowActiveBg,
             borderRadius: 10,
             padding: "10px 12px",
-            fontSize: 11.5,
+            fontSize: 14,
             color: t.text,
             margin: "0 0 12px",
             lineHeight: 1.5,
@@ -181,7 +181,7 @@ export function SchoolBilling() {
           whether 250 or all of them use Raya this month. The contracted number caps how many
           students can join.
         </div>
-        <p style={{ fontSize: 11.5, color: t.muted, margin: "0 0 14px" }}>
+        <p style={{ fontSize: 14, color: t.muted, margin: "0 0 14px" }}>
           Record a payment received out-of-band (transfer, invoice) to activate your plan. Prices
           below are the USD reference. Online self-serve checkout is temporarily unavailable while
           we finalize our payment integration.
@@ -204,12 +204,12 @@ export function SchoolBilling() {
       <div style={box}>
         <div style={title}>Billing history</div>
         {billing.history.length === 0 ? (
-          <p style={{ fontSize: 11.5, color: t.mutedLight, margin: 0 }}>
+          <p style={{ fontSize: 14, color: t.mutedLight, margin: 0 }}>
             No subscriptions yet — activating a plan records an entry here.
           </p>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11.5 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
               <thead>
                 <tr style={{ color: t.muted, textAlign: "left" }}>
                   <th style={{ padding: "6px 8px" }}>Plan</th>
@@ -327,15 +327,15 @@ function PlanCard({
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <span style={{ fontSize: 13.5, fontWeight: 700, color: t.text }}>{plan.name}</span>
-        <span style={{ fontSize: 12, fontWeight: 700, color: t.text }}>{fmtPrice(plan)}</span>
+        <span style={{ fontSize: 16, fontWeight: 700, color: t.text }}>{plan.name}</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: t.text }}>{fmtPrice(plan)}</span>
       </div>
-      <div style={{ fontSize: 11, color: t.muted, margin: "2px 0 8px" }}>
+      <div style={{ fontSize: 13, color: t.muted, margin: "2px 0 8px" }}>
         {isPerSeat ? "Billed per student — set the contracted headcount" : `${plan.seatLimit ?? 1} seat`}
       </div>
       <ul style={{ margin: "0 0 12px", padding: 0, listStyle: "none", flex: 1 }}>
         {plan.features.map((f, i) => (
-          <li key={i} style={{ fontSize: 11, color: t.muted, marginBottom: 4, display: "flex", gap: 6 }}>
+          <li key={i} style={{ fontSize: 13, color: t.muted, marginBottom: 4, display: "flex", gap: 6 }}>
             <span style={{ color: "#22c55e" }}>✓</span>
             {f}
           </li>
@@ -343,7 +343,7 @@ function PlanCard({
       </ul>
 
       {current ? (
-        <div style={{ fontSize: 11, fontWeight: 700, color: "#22c55e", textAlign: "center" }}>Current plan</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "#22c55e", textAlign: "center" }}>Current plan</div>
       ) : !open ? (
         <button style={{ ...btn, width: "100%" }} onClick={() => setOpen(true)}>
           Activate
@@ -361,7 +361,7 @@ function PlanCard({
                 onChange={(e) => setStudents(e.target.value)}
                 disabled={busy}
               />
-              <div style={{ fontSize: 10.5, color: t.muted, marginTop: -2 }}>
+              <div style={{ fontSize: 13, color: t.muted, marginTop: -2 }}>
                 {defaultSeats > 0
                   ? `Prefilled from your declared effectif (${defaultSeats}).` +
                     (floorSeats > 0 ? ` Can't go below ${floorSeats} already enrolled.` : "")
@@ -389,7 +389,7 @@ function PlanCard({
             <option value="1">Monthly — 1 month</option>
           </select>
           {estimated != null && (
-            <div style={{ fontSize: 11.5, color: t.text }}>
+            <div style={{ fontSize: 14, color: t.text }}>
               Total for {seatCount} students × {monthCount} mo:{" "}
               <strong>${estimated.toLocaleString(undefined, { maximumFractionDigits: 2 })}</strong>
               {annualSaving && (
@@ -397,7 +397,7 @@ function PlanCard({
               )}
             </div>
           )}
-          {error && <span style={{ color: "#f87171", fontSize: 11 }}>{error}</span>}
+          {error && <span style={{ color: "#f87171", fontSize: 13 }}>{error}</span>}
           <div style={{ display: "flex", gap: 8 }}>
             <button style={{ ...btn, flex: 1, opacity: busy ? 0.7 : 1 }} onClick={activate} disabled={busy}>
               {busy ? "Activating…" : "Confirm payment"}
@@ -410,7 +410,7 @@ function PlanCard({
               Cancel
             </button>
           </div>
-          <div style={{ fontSize: 10.5, color: t.muted, textAlign: "center", marginTop: 2, lineHeight: 1.4 }}>
+          <div style={{ fontSize: 13, color: t.muted, textAlign: "center", marginTop: 2, lineHeight: 1.4 }}>
             Online checkout (card · mobile money · PayPal) is temporarily unavailable while we
             finalize our payment integration — record your payment above and we&apos;ll activate it.
           </div>

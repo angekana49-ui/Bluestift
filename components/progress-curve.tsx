@@ -25,7 +25,7 @@ export function ProgressCurve({ points }: { points: ProgressPoint[] }) {
     return (
       <div style={card}>
         <h2 style={cardTitle(t)}>Graded performance over time</h2>
-        <p style={{ margin: 0, color: t.muted, fontSize: 12.5 }}>
+        <p style={{ margin: 0, color: t.muted, fontSize: 15 }}>
           Do a few challenges or self-tests and your score curve will show up here.
         </p>
       </div>
@@ -54,7 +54,7 @@ export function ProgressCurve({ points }: { points: ProgressPoint[] }) {
   return (
     <div style={card}>
       <h2 style={cardTitle(t)}>Graded performance over time</h2>
-      <p style={{ margin: "0 0 12px", color: t.muted, fontSize: 11.5 }}>
+      <p style={{ margin: "0 0 12px", color: t.muted, fontSize: 14 }}>
         {sorted.length} {sorted.length === 1 ? "assessment" : "assessments"}
       </p>
       <svg

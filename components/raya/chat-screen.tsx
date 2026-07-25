@@ -20,7 +20,7 @@ function ScreenStub({ name, propsInfo }: { name: string; propsInfo: string }) {
   return (
     <div style={{ border: "1px dashed #556", borderRadius: 4, padding: 24, opacity: 0.7 }}>
       <strong>{name}</strong> — stub to design
-      <div style={{ fontSize: 12, opacity: 0.6, marginTop: 4 }}>{propsInfo}</div>
+      <div style={{ fontSize: 14, opacity: 0.6, marginTop: 4 }}>{propsInfo}</div>
     </div>
   );
 }

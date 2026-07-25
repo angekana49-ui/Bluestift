@@ -89,7 +89,7 @@ const mkInput = (t: AppTheme): React.CSSProperties => ({
   border: `1px solid ${t.inputBorder}`,
   borderRadius: 10,
   padding: "9px 12px",
-  fontSize: 12.5,
+  fontSize: 15,
   outline: "none",
 });
 const mkBtn = (t: AppTheme): React.CSSProperties => ({
@@ -98,7 +98,7 @@ const mkBtn = (t: AppTheme): React.CSSProperties => ({
   border: "none",
   borderRadius: 99,
   padding: "9px 16px",
-  fontSize: 12,
+  fontSize: 14,
   fontWeight: 600,
   cursor: "pointer",
 });
@@ -108,7 +108,7 @@ const mkGhost = (t: AppTheme): React.CSSProperties => ({
   border: `1px solid ${t.cardBorder}`,
   borderRadius: 99,
   padding: "6px 12px",
-  fontSize: 11,
+  fontSize: 13,
   fontWeight: 600,
   cursor: "pointer",
 });
@@ -289,7 +289,7 @@ function SchoolChrome({
       onSelect: () => router.push("/chat"),
     },
     { key: "settings", label: "Settings", icon: <IconSettings />, onSelect: settingsAction },
-    { key: "signout", label: "Sign out", tone: "danger", icon: <span style={{ fontSize: 14 }}>⏻</span>, onSelect: signOut },
+    { key: "signout", label: "Sign out", tone: "danger", icon: <span style={{ fontSize: 16 }}>⏻</span>, onSelect: signOut },
   ];
 
   return (
@@ -348,7 +348,7 @@ function SchoolSwitcher({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: "0 6px" }}>
-      <div style={{ fontSize: 9.5, textTransform: "uppercase", letterSpacing: "0.06em", color: t.sidebarMuted, marginBottom: 2 }}>
+      <div style={{ fontSize: 13, textTransform: "uppercase", letterSpacing: "0.06em", color: t.sidebarMuted, marginBottom: 2 }}>
         My schools
       </div>
       {memberships.map((m) => {
@@ -380,7 +380,7 @@ function SchoolSwitcher({
                 borderRadius: 6,
                 background: active ? "#2f7fe0" : t.cardBg2,
                 color: active ? "#fff" : t.sidebarMuted,
-                fontSize: 9,
+                fontSize: 13,
                 fontWeight: 700,
                 display: "flex",
                 alignItems: "center",
@@ -389,10 +389,10 @@ function SchoolSwitcher({
             >
               {initialsOf(m.schoolName)}
             </span>
-            <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 11, color: t.sidebarText }}>
+            <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13, color: t.sidebarText }}>
               {m.schoolName}
             </span>
-            <span style={{ fontSize: 8.5, color: t.sidebarMuted, flex: "none" }}>{roleLabel(m.role)}</span>
+            <span style={{ fontSize: 13, color: t.sidebarMuted, flex: "none" }}>{roleLabel(m.role)}</span>
           </button>
         );
       })}
@@ -410,7 +410,7 @@ function NoMembership({ initialJoinCode }: { initialJoinCode: string | null }) {
   return (
     <SchoolChrome nav={[]} activeKey="" onNav={() => {}} schoolName="School" headerTitle="School">
       <JoinSchool initialCode={initialJoinCode} />
-      <p style={{ fontSize: 12.5, color: t.muted, marginTop: 16 }}>
+      <p style={{ fontSize: 15, color: t.muted, marginTop: 16 }}>
         Want to run your own school?{" "}
         <Link href="/profile" style={{ color: "#2f7fe0", fontWeight: 600 }}>
           Create one from your profile →
@@ -521,8 +521,8 @@ function AddSchoolByCode() {
 
   return (
     <form style={{ ...box, marginTop: 24 }} onSubmit={submit}>
-      <h3 style={{ margin: "0 0 4px", fontSize: 13, fontWeight: 700 }}>＋ Add another school</h3>
-      <p style={{ margin: "0 0 10px", opacity: 0.6, fontSize: 11.5 }}>
+      <h3 style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 700 }}>＋ Add another school</h3>
+      <p style={{ margin: "0 0 10px", opacity: 0.6, fontSize: 14 }}>
         Teach at more than one school? Enter another school&apos;s invite code to link it — you can
         switch between them from the sidebar.
       </p>
@@ -538,8 +538,8 @@ function AddSchoolByCode() {
           {busy ? "Joining…" : "Add school"}
         </button>
       </div>
-      {msg && <p style={{ color: "#22c55e", margin: "10px 0 0", fontSize: 12 }}>{msg}</p>}
-      {error && <p style={{ color: "#f87171", margin: "10px 0 0", fontSize: 12 }}>{error}</p>}
+      {msg && <p style={{ color: "#22c55e", margin: "10px 0 0", fontSize: 14 }}>{msg}</p>}
+      {error && <p style={{ color: "#f87171", margin: "10px 0 0", fontSize: 14 }}>{error}</p>}
     </form>
   );
 }
@@ -730,17 +730,17 @@ function ProfView({
         <TeacherBanner name={teacherName} subjects={subjects} schoolName={resolvedSchool} classCount={classes.length} />
         {directives.length > 0 && (
           <div style={{ border: `1px solid ${t.cardBorder}`, background: t.cardBg2, borderRadius: 12, padding: "10px 14px", marginBottom: 16 }}>
-            <div style={{ fontSize: 11.5, fontWeight: 700, color: t.muted, marginBottom: 6 }}>📌 From your school</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: t.muted, marginBottom: 6 }}>📌 From your school</div>
             {directives.map((d) => (
-              <div key={d.id} style={{ fontSize: 12.5 }}>{d.content}</div>
+              <div key={d.id} style={{ fontSize: 15 }}>{d.content}</div>
             ))}
           </div>
         )}
-        {error && <p style={{ color: "#f87171", fontSize: 12.5 }}>{error}</p>}
-        {busy && <p style={{ color: t.muted, fontSize: 12.5 }}>Loading…</p>}
+        {error && <p style={{ color: "#f87171", fontSize: 15 }}>{error}</p>}
+        {busy && <p style={{ color: t.muted, fontSize: 15 }}>Loading…</p>}
         {classes.length === 0 ? (
           <div style={box}>
-            <p style={{ margin: 0, color: t.muted, fontSize: 12.5 }}>
+            <p style={{ margin: 0, color: t.muted, fontSize: 15 }}>
               You don&apos;t have any assigned classes yet. Your administrator assigns you classes and subjects.
             </p>
           </div>
@@ -752,7 +752,7 @@ function ProfView({
                   {c.name}
                   {c.level ? <span style={{ opacity: 0.5, fontWeight: 400 }}> · {c.level}</span> : null}
                 </div>
-                <div style={{ opacity: 0.55, fontSize: 11.5 }}>{c.studentCount} students</div>
+                <div style={{ opacity: 0.55, fontSize: 14 }}>{c.studentCount} students</div>
               </div>
               <button style={ghost} onClick={() => openClass(c.id)} disabled={busy}>
                 Open →
@@ -830,7 +830,7 @@ function FocusView({
   if (classes.length === 0) {
     return (
       <div style={box}>
-        <p style={{ margin: 0, color: t.muted, fontSize: 12.5 }}>
+        <p style={{ margin: 0, color: t.muted, fontSize: 15 }}>
           You don&apos;t have any assigned classes yet, so there&apos;s no student to focus on.
         </p>
       </div>
@@ -857,8 +857,8 @@ function FocusView({
         </select>
       </div>
 
-      {error && <p style={{ color: "#f87171", fontSize: 12.5 }}>{error}</p>}
-      {(loading || busy) && <p style={{ color: t.muted, fontSize: 12.5 }}>Loading…</p>}
+      {error && <p style={{ color: "#f87171", fontSize: 15 }}>{error}</p>}
+      {(loading || busy) && <p style={{ color: t.muted, fontSize: 15 }}>Loading…</p>}
 
       {roster && roster.students.length === 0 && (
         <div style={box}>
@@ -881,7 +881,7 @@ function ProfSettings({ account, classes }: { account: StaffAccount | null; clas
   const { t } = useSchoolStyles();
   if (!account) {
     return (
-      <p style={{ color: t.muted, fontSize: 12.5 }}>
+      <p style={{ color: t.muted, fontSize: 15 }}>
         <Link href="/account" style={{ color: t.text }}>Open account settings →</Link>
       </p>
     );
@@ -914,7 +914,7 @@ function WhoPaysNote() {
         borderRadius: 12,
         padding: "12px 14px",
         marginTop: 14,
-        fontSize: 11.5,
+        fontSize: 14,
         lineHeight: 1.5,
         color: t.muted,
       }}
@@ -986,7 +986,7 @@ function TeachingPreferencesCard({ classes }: { classes: AdminClass[] }) {
     }
   }
 
-  if (!prefs) return <div style={box}><p style={{ margin: 0, color: t.muted, fontSize: 12.5 }}>Loading preferences…</p></div>;
+  if (!prefs) return <div style={box}><p style={{ margin: 0, color: t.muted, fontSize: 15 }}>Loading preferences…</p></div>;
 
   const set = (patch: Partial<TeachPrefs>) => setPrefs((p) => (p ? { ...p, ...patch } : p));
 
@@ -1096,7 +1096,7 @@ function TeacherBanner({
           borderRadius: 12,
           background: "linear-gradient(135deg,#2f7fe0,#173d8a)",
           color: "#fff",
-          fontSize: 15,
+          fontSize: 17,
           fontWeight: 700,
           display: "flex",
           alignItems: "center",
@@ -1106,13 +1106,13 @@ function TeacherBanner({
         {initialsOf(name)}
       </span>
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: t.text }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: t.text }}>
           {name}
           <span style={{ fontWeight: 500, color: t.muted }}>
             {" "}· Teacher{subjects.length > 0 ? ` of ${subjects.join(", ")}` : ""}
           </span>
         </div>
-        <div style={{ fontSize: 11.5, color: t.mutedLight, marginTop: 2 }}>
+        <div style={{ fontSize: 14, color: t.mutedLight, marginTop: 2 }}>
           {schoolName} · {classCount} {classCount === 1 ? "class" : "classes"} · your Raya, extended for teaching
         </div>
       </div>
@@ -1322,7 +1322,7 @@ function SchoolSettings({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: 24,
+            fontSize: 27,
             fontWeight: 700,
             flexShrink: 0,
           }}
@@ -1619,8 +1619,8 @@ function Dashboard({
       <>
         <div style={{ ...box, display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1 }}>
-            <h2 style={{ fontSize: 16, margin: 0, color: t.text }}>{dash.school.name}</h2>
-            <p style={{ margin: "4px 0 0", color: t.muted, fontSize: 12 }}>
+            <h2 style={{ fontSize: 18, margin: 0, color: t.text }}>{dash.school.name}</h2>
+            <p style={{ margin: "4px 0 0", color: t.muted, fontSize: 14 }}>
               {dash.school.currentYearLabel ? `Year ${dash.school.currentYearLabel} · ` : ""}
               {dash.classes.length} {dash.classes.length === 1 ? "class" : "classes"}
             </p>
@@ -1631,7 +1631,7 @@ function Dashboard({
         </div>
 
         <form style={box} onSubmit={addClass}>
-          <h3 style={{ margin: "0 0 10px", fontSize: 14, color: t.text }}>Add a class</h3>
+          <h3 style={{ margin: "0 0 10px", fontSize: 16, color: t.text }}>Add a class</h3>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <input style={{ ...input, flex: 2, minWidth: 160 }} placeholder="Class name (e.g. 6th A)" value={className} onChange={(e) => setClassName(e.target.value)} disabled={busy} />
             <input style={{ ...input, flex: 1, minWidth: 110 }} placeholder="Level (optional)" value={level} onChange={(e) => setLevel(e.target.value)} disabled={busy} />
@@ -1640,12 +1640,12 @@ function Dashboard({
               Add
             </button>
           </div>
-          <p style={{ margin: "8px 0 0", color: t.mutedLight, fontSize: 11 }}>
+          <p style={{ margin: "8px 0 0", color: t.mutedLight, fontSize: 13 }}>
             The class size is the number you set. Students can join up to <strong>n + 5</strong>.
           </p>
         </form>
 
-        {navBusy && <p style={{ color: t.muted, fontSize: 12.5 }}>Loading…</p>}
+        {navBusy && <p style={{ color: t.muted, fontSize: 15 }}>Loading…</p>}
 
         {dash.classes.map((c) => (
           <ClassCard key={c.id} c={c} onGenCode={genCode} onToggleCode={toggleCode} onSetEffectif={updateEffectif} onOpen={() => openClass(c.id)} />
@@ -1686,7 +1686,7 @@ function Dashboard({
   } else {
     body = (
       <>
-        {error && <p style={{ color: "#f87171", fontSize: 12.5 }}>{error}</p>}
+        {error && <p style={{ color: "#f87171", fontSize: 15 }}>{error}</p>}
         {tabContent}
       </>
     );
@@ -1723,8 +1723,8 @@ function OverviewView({
   onClass: (classId: string) => void;
 }) {
   const { t, box } = useSchoolStyles();
-  if (busy && !overview) return <p style={{ color: t.muted, fontSize: 12.5 }}>Loading overview…</p>;
-  if (!overview) return <p style={{ color: t.muted, fontSize: 12.5 }}>No overview available.</p>;
+  if (busy && !overview) return <p style={{ color: t.muted, fontSize: 15 }}>Loading overview…</p>;
+  if (!overview) return <p style={{ color: t.muted, fontSize: 15 }}>No overview available.</p>;
 
   return (
     <div>
@@ -1735,11 +1735,11 @@ function OverviewView({
         <KpiTile theme={t} label="Average mastery" value={pctOrDash(overview.totals.avgMastery)} />
       </div>
 
-      <div style={{ fontSize: 13, fontWeight: 700, color: t.text, margin: "0 0 10px" }}>{school} · by class</div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: t.text, margin: "0 0 10px" }}>{school} · by class</div>
 
       {overview.classes.length === 0 ? (
         <div style={box}>
-          <p style={{ margin: 0, color: t.muted, fontSize: 12.5 }}>
+          <p style={{ margin: 0, color: t.muted, fontSize: 15 }}>
             No classes. Add one in “Classes &amp; codes”.
           </p>
         </div>
@@ -1756,7 +1756,7 @@ function OverviewClassRow({ c, onOpen }: { c: ClassSummary; onOpen: () => void }
     <div style={{ ...box, marginBottom: 8, display: "flex", alignItems: "center", gap: 12 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 600, color: t.text }}>{c.name}</div>
-        <div style={{ color: t.mutedLight, fontSize: 11.5 }}>
+        <div style={{ color: t.mutedLight, fontSize: 14 }}>
           {c.studentCount} students · {c.active} active
         </div>
       </div>
@@ -1767,7 +1767,7 @@ function OverviewClassRow({ c, onOpen }: { c: ClassSummary; onOpen: () => void }
             color: "#dc2626",
             borderRadius: 999,
             padding: "2px 9px",
-            fontSize: 11,
+            fontSize: 13,
             fontWeight: 600,
           }}
         >
@@ -1778,7 +1778,7 @@ function OverviewClassRow({ c, onOpen }: { c: ClassSummary; onOpen: () => void }
         <span style={{ width: 70, height: 6, borderRadius: 99, background: t.gaugeTrack, overflow: "hidden" }}>
           <span style={{ display: "block", width: `${Math.round((c.avgMastery ?? 0) * 100)}%`, height: "100%", background: masteryColor(c.avgMastery) }} />
         </span>
-        <span style={{ color: t.text, fontSize: 11.5, width: 40, textAlign: "right" }}>{pctOrDash(c.avgMastery)}</span>
+        <span style={{ color: t.text, fontSize: 14, width: 40, textAlign: "right" }}>{pctOrDash(c.avgMastery)}</span>
       </span>
       <button style={ghost} onClick={onOpen}>
         Open →
@@ -1796,7 +1796,7 @@ function OverviewRightPanel({ overview }: { overview: SchoolOverview }) {
     .sort((a, b) => (a.avgMastery ?? 1) - (b.avgMastery ?? 1))
     .slice(0, 2);
   const card: React.CSSProperties = { border: `1px solid ${t.cardBorder}`, borderRadius: 20, padding: 16, background: t.cardBg2 };
-  const title: React.CSSProperties = { fontSize: 14, fontWeight: 700, marginBottom: 10, color: t.text };
+  const title: React.CSSProperties = { fontSize: 16, fontWeight: 700, marginBottom: 10, color: t.text };
   const insight: React.CSSProperties = { background: t.rowActiveBg, borderRadius: 12, padding: 12, marginBottom: 8 };
   return (
     <RightPanel theme={t} width={300} title="Live snapshot">
@@ -1812,10 +1812,10 @@ function OverviewRightPanel({ overview }: { overview: SchoolOverview }) {
       <div style={card}>
         <div style={title}>Alerts</div>
         <div style={{ ...insight, marginBottom: 0 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: t.text }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: t.text }}>
             {overview.totals.alerts} student{overview.totals.alerts === 1 ? "" : "s"} struggling
           </div>
-          <div style={{ fontSize: 10.5, color: t.muted, marginTop: 2 }}>{overview.totals.active} active over 7 days</div>
+          <div style={{ fontSize: 13, color: t.muted, marginTop: 2 }}>{overview.totals.active} active over 7 days</div>
         </div>
       </div>
       {weak.length > 0 && (
@@ -1823,8 +1823,8 @@ function OverviewRightPanel({ overview }: { overview: SchoolOverview }) {
           <div style={title}>Classes to watch</div>
           {weak.map((c) => (
             <div key={c.id} style={insight}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: t.text }}>{c.name}</div>
-              <div style={{ fontSize: 10.5, color: t.muted, marginTop: 2 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: t.text }}>{c.name}</div>
+              <div style={{ fontSize: 13, color: t.muted, marginTop: 2 }}>
                 Mastery {pctOrDash(c.avgMastery)} · {c.alerts} alert{c.alerts === 1 ? "" : "s"}
               </div>
             </div>

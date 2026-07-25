@@ -50,9 +50,9 @@ export default function DashboardMockup({ theme: t }: { theme: Theme }) {
           }}
         />
       )}
-      <div style={{ position: "relative", fontSize: 10, color: t.muted }}>{label}</div>
-      <div style={{ position: "relative", fontSize: 20, fontWeight: 600 }}>{value}</div>
-      <div style={{ position: "relative", fontSize: 9, color: subColor }}>{sub}</div>
+      <div style={{ position: "relative", fontSize: 13, color: t.muted }}>{label}</div>
+      <div style={{ position: "relative", fontSize: 23, fontWeight: 600 }}>{value}</div>
+      <div style={{ position: "relative", fontSize: 13, color: subColor }}>{sub}</div>
     </div>
   );
 
@@ -69,13 +69,13 @@ export default function DashboardMockup({ theme: t }: { theme: Theme }) {
     >
       {/* Tab bar */}
       <div style={{ display: "flex", alignItems: "center", gap: 6, borderBottom: `1px solid ${t.cardBorder}`, padding: "12px 16px" }}>
-        <span style={{ background: t.ctaBg, color: t.ctaText, borderRadius: 999, padding: "7px 14px", fontSize: 11, fontWeight: 500 }}>Overview</span>
-        <span style={{ color: t.mutedLight, padding: "7px 14px", fontSize: 11 }}>Sessions</span>
-        <span style={{ color: t.mutedLight, padding: "7px 14px", fontSize: 11 }}>Students</span>
-        <span style={{ color: t.mutedLight, padding: "7px 14px", fontSize: 11 }}>Kernel</span>
+        <span style={{ background: t.ctaBg, color: t.ctaText, borderRadius: 999, padding: "7px 14px", fontSize: 13, fontWeight: 500 }}>Overview</span>
+        <span style={{ color: t.mutedLight, padding: "7px 14px", fontSize: 13 }}>Sessions</span>
+        <span style={{ color: t.mutedLight, padding: "7px 14px", fontSize: 13 }}>Students</span>
+        <span style={{ color: t.mutedLight, padding: "7px 14px", fontSize: 13 }}>Kernel</span>
         <span
           className="pub-hide-sm"
-          style={{ marginLeft: "auto", color: t.mutedLight, fontSize: 11, border: `1px solid ${t.inputBorder}`, borderRadius: 999, padding: "6px 12px", background: t.inputFieldBg }}
+          style={{ marginLeft: "auto", color: t.mutedLight, fontSize: 13, border: `1px solid ${t.inputBorder}`, borderRadius: 999, padding: "6px 12px", background: t.inputFieldBg }}
         >
           Search students, classes…
         </span>
@@ -86,10 +86,10 @@ export default function DashboardMockup({ theme: t }: { theme: Theme }) {
         <div style={{ border: `1px solid ${t.cardBorder}`, borderRadius: 20, padding: 18 }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
             <div>
-              <div style={{ fontSize: 16, fontWeight: 600 }}>Teaching overview</div>
-              <div style={{ fontSize: 11, color: t.muted, marginTop: 2 }}>Real-time signals across every class you track.</div>
+              <div style={{ fontSize: 18, fontWeight: 600 }}>Teaching overview</div>
+              <div style={{ fontSize: 13, color: t.muted, marginTop: 2 }}>Real-time signals across every class you track.</div>
             </div>
-            <span style={{ background: t.ctaBg, color: t.ctaText, borderRadius: 999, padding: "6px 12px", fontSize: 10, alignSelf: "flex-start" }}>Share</span>
+            <span style={{ background: t.ctaBg, color: t.ctaText, borderRadius: 999, padding: "6px 12px", fontSize: 13, alignSelf: "flex-start" }}>Share</span>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
@@ -102,8 +102,8 @@ export default function DashboardMockup({ theme: t }: { theme: Theme }) {
           {/* Bar chart */}
           <div style={{ border: `1px solid ${t.cardBorder}`, borderRadius: 18, padding: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-              <span style={{ fontSize: 12, fontWeight: 600 }}>Sessions vs. mastery</span>
-              <div style={{ display: "flex", gap: 10, fontSize: 10, color: t.mutedLight }}>
+              <span style={{ fontSize: 14, fontWeight: 600 }}>Sessions vs. mastery</span>
+              <div style={{ display: "flex", gap: 10, fontSize: 13, color: t.mutedLight }}>
                 <span>
                   <span style={{ display: "inline-block", width: 8, height: 8, background: "#4f46e5", borderRadius: 2, marginRight: 4 }} />
                   Sessions
@@ -128,13 +128,13 @@ export default function DashboardMockup({ theme: t }: { theme: Theme }) {
                       {bar(m.bars.quizzes, c.quizzes)}
                       {bar(m.bars.mastery, c.mastery)}
                     </div>
-                    <span style={{ fontSize: 8, fontWeight: m.current ? 700 : 400, color: m.current ? t.text : t.mutedLight }}>{m.label}</span>
+                    <span style={{ fontSize: 13, fontWeight: m.current ? 700 : 400, color: m.current ? t.text : t.mutedLight }}>{m.label}</span>
                   </div>
                 );
               })}
             </div>
             <div style={{ textAlign: "center", marginTop: 8 }}>
-              <span style={{ background: t.ctaBg, color: t.ctaText, borderRadius: 999, padding: "6px 12px", fontSize: 9 }}>June 2026 — Mastery climbing</span>
+              <span style={{ background: t.ctaBg, color: t.ctaText, borderRadius: 999, padding: "6px 12px", fontSize: 13 }}>June 2026 — Mastery climbing</span>
             </div>
           </div>
         </div>
@@ -143,22 +143,22 @@ export default function DashboardMockup({ theme: t }: { theme: Theme }) {
         <div className="pub-hide-sm" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ border: `1px solid ${t.cardBorder}`, borderRadius: 18, padding: 14 }}>
             <div style={{ background: t.inputFieldBg, borderRadius: 14, padding: 10 }}>
-              <div style={{ fontSize: 11, color: t.muted }}>Still stuck on fractions?</div>
-              <div style={{ fontSize: 11, fontWeight: 600, marginTop: 3 }}>Let&apos;s try a different way.</div>
+              <div style={{ fontSize: 13, color: t.muted }}>Still stuck on fractions?</div>
+              <div style={{ fontSize: 13, fontWeight: 600, marginTop: 3 }}>Let&apos;s try a different way.</div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
-              <span style={{ width: 26, height: 26, borderRadius: "50%", background: "#6366f1", color: "white", fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>AI</span>
+              <span style={{ width: 26, height: 26, borderRadius: "50%", background: "#6366f1", color: "white", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>AI</span>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 600 }}>Raya&apos;s suggestions</div>
-                <div style={{ fontSize: 10, color: t.muted }}>Tailored explanation in seconds.</div>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>Raya&apos;s suggestions</div>
+                <div style={{ fontSize: 13, color: t.muted }}>Tailored explanation in seconds.</div>
               </div>
             </div>
           </div>
 
           <div style={{ border: `1px solid ${t.cardBorder}`, borderRadius: 18, padding: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-              <span style={{ fontSize: 12, fontWeight: 600 }}>Kernel mastery</span>
-              <span style={{ fontSize: 9, color: t.mutedLight }}>Updated just now</span>
+              <span style={{ fontSize: 14, fontWeight: 600 }}>Kernel mastery</span>
+              <span style={{ fontSize: 13, color: t.mutedLight }}>Updated just now</span>
             </div>
             <svg viewBox="0 0 160 96" style={{ width: "100%", display: "block" }}>
               <defs>

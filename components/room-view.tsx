@@ -74,7 +74,7 @@ const mkBtn = (t: AppTheme): React.CSSProperties => ({
   border: "none",
   borderRadius: 99,
   padding: "8px 14px",
-  fontSize: 12,
+  fontSize: 14,
   fontWeight: 600,
   cursor: "pointer",
 });
@@ -84,7 +84,7 @@ const mkGhost = (t: AppTheme): React.CSSProperties => ({
   border: `1px solid ${t.cardBorder}`,
   borderRadius: 99,
   padding: "8px 14px",
-  fontSize: 12,
+  fontSize: 14,
   fontWeight: 600,
   cursor: "pointer",
 });
@@ -443,7 +443,7 @@ export function RoomView({
   }
 
   const tabBtn = (on: boolean): React.CSSProperties =>
-    on ? { ...btn, fontSize: 12 } : { ...ghost, fontSize: 12 };
+    on ? { ...btn, fontSize: 14 } : { ...ghost, fontSize: 14 };
 
   // The room's shared documents, for the header docs popover + the panel list.
   const sharedDocs = Object.values(roomFiles);
@@ -460,8 +460,8 @@ export function RoomView({
       }}
     >
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
-        <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0, color: t.text, fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif" }}>{roomName}</h1>
-        <span style={{ color: t.muted, fontSize: 12.5 }}>
+        <h1 style={{ fontSize: 23, fontWeight: 800, margin: 0, color: t.text, fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif" }}>{roomName}</h1>
+        <span style={{ color: t.muted, fontSize: 15 }}>
           {subject ?? "—"} · {memberCount} member{memberCount === 1 ? "" : "s"}
         </span>
         {remainingMs != null && (
@@ -471,7 +471,7 @@ export function RoomView({
               display: "inline-flex",
               alignItems: "center",
               gap: 5,
-              fontSize: 11.5,
+              fontSize: 14,
               fontWeight: 700,
               fontVariantNumeric: "tabular-nums",
               borderRadius: 99,
@@ -527,9 +527,9 @@ export function RoomView({
                   padding: 12,
                 }}
               >
-                <div style={{ fontSize: 11, fontWeight: 700, color: t.text, marginBottom: 8 }}>Room documents</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: t.text, marginBottom: 8 }}>Room documents</div>
                 {sharedDocs.length === 0 ? (
-                  <div style={{ fontSize: 10.5, color: t.muted }}>No documents yet.</div>
+                  <div style={{ fontSize: 13, color: t.muted }}>No documents yet.</div>
                 ) : (
                   sharedDocs.map((f) => (
                     <div
@@ -541,8 +541,8 @@ export function RoomView({
                       title={f.file_name ?? undefined}
                       style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 8px", borderRadius: 9, cursor: "pointer" }}
                     >
-                      <span style={{ fontSize: 13, flex: "none" }}>📄</span>
-                      <span style={{ minWidth: 0, flex: 1, fontSize: 10.5, fontWeight: 600, color: t.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      <span style={{ fontSize: 15, flex: "none" }}>📄</span>
+                      <span style={{ minWidth: 0, flex: 1, fontSize: 13, fontWeight: 600, color: t.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                         {f.file_name}
                       </span>
                     </div>
@@ -563,7 +563,7 @@ export function RoomView({
                 alignItems: "center",
                 gap: 8,
                 marginTop: 12,
-                fontSize: 12,
+                fontSize: 14,
                 color: t.text,
                 background: "rgba(239,68,68,0.1)",
                 border: "1px solid rgba(239,68,68,0.35)",
@@ -614,11 +614,11 @@ export function RoomView({
             textAlign: "center",
           }}
         >
-          <p style={{ color: t.muted, fontSize: 13 }}>Join this room to see the conversation.</p>
+          <p style={{ color: t.muted, fontSize: 15 }}>Join this room to see the conversation.</p>
           <button style={btn} onClick={join} disabled={busy}>
             Join the room
           </button>
-          {error && <p style={{ color: "#f87171", fontSize: 12.5 }}>{error}</p>}
+          {error && <p style={{ color: "#f87171", fontSize: 15 }}>{error}</p>}
         </div>
       </div>
     );
@@ -671,17 +671,17 @@ export function RoomView({
         ) : (
           <div style={listBox}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <h3 style={{ margin: 0, flex: 1, fontSize: 14, fontWeight: 700, color: t.text }}>Session report</h3>
+              <h3 style={{ margin: 0, flex: 1, fontSize: 16, fontWeight: 700, color: t.text }}>Session report</h3>
               {report && (
                 <>
-                  <button style={{ ...ghost, padding: "5px 12px", fontSize: 11 }} onClick={() => downloadBrandedText(reportDoc(roomName, report))}>
+                  <button style={{ ...ghost, padding: "5px 12px", fontSize: 13 }} onClick={() => downloadBrandedText(reportDoc(roomName, report))}>
                     TXT
                   </button>
-                  <button style={{ ...ghost, padding: "5px 12px", fontSize: 11 }} onClick={() => downloadBrandedPdf(reportDoc(roomName, report))}>
+                  <button style={{ ...ghost, padding: "5px 12px", fontSize: 13 }} onClick={() => downloadBrandedPdf(reportDoc(roomName, report))}>
                     PDF
                   </button>
                   <ShareLinkButton theme={t} doc={reportDoc(roomName, report)} />
-                  <button style={{ ...ghost, padding: "5px 12px", fontSize: 11 }} title="Close" onClick={() => setReport(null)}>
+                  <button style={{ ...ghost, padding: "5px 12px", fontSize: 13 }} title="Close" onClick={() => setReport(null)}>
                     ✕
                   </button>
                 </>
@@ -691,11 +691,11 @@ export function RoomView({
               </button>
             </div>
             {!report ? (
-              <p style={{ color: t.muted, fontSize: 12.5 }}>
+              <p style={{ color: t.muted, fontSize: 15 }}>
                 No report yet — generate one from the room conversation.
               </p>
             ) : (
-              <div style={{ lineHeight: 1.6, color: t.text, fontSize: 13 }}>
+              <div style={{ lineHeight: 1.6, color: t.text, fontSize: 15 }}>
                 {report.squad_score != null && (
                   <p>
                     <strong>Squad score:</strong> {report.squad_score}/100
@@ -725,7 +725,7 @@ export function RoomView({
             )}
           </div>
         )}
-        {error && <p style={{ color: "#f87171", marginTop: 8, fontSize: 12.5 }}>{error}</p>}
+        {error && <p style={{ color: "#f87171", marginTop: 8, fontSize: 15 }}>{error}</p>}
       </div>
     );
   }
@@ -747,7 +747,7 @@ export function RoomView({
   }
 
   const panelSectionTitle: React.CSSProperties = {
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: 700,
     letterSpacing: 0.3,
     textTransform: "uppercase",
@@ -762,7 +762,7 @@ export function RoomView({
         <div style={panelSectionTitle}>Notifications</div>
         {notifications.map((n) => (
           <div key={n.id} style={{ background: t.rowActiveBg, borderRadius: 10, padding: "9px 11px", marginBottom: 6 }}>
-            <div style={{ fontSize: 11.5, fontWeight: 600, color: t.text, display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: t.text, display: "flex", alignItems: "center", gap: 6 }}>
               <span
                 style={{
                   width: 7,
@@ -774,7 +774,7 @@ export function RoomView({
               />
               {n.title}
             </div>
-            <div style={{ fontSize: 10.5, color: t.muted, marginTop: 2 }}>{n.detail}</div>
+            <div style={{ fontSize: 13, color: t.muted, marginTop: 2 }}>{n.detail}</div>
           </div>
         ))}
       </div>
@@ -783,7 +783,7 @@ export function RoomView({
       <div>
         <div style={panelSectionTitle}>Documents</div>
         {sharedDocs.length === 0 ? (
-          <div style={{ fontSize: 11, color: t.muted }}>No documents shared yet.</div>
+          <div style={{ fontSize: 13, color: t.muted }}>No documents shared yet.</div>
         ) : (
           sharedDocs.map((f) => (
             <div
@@ -792,12 +792,12 @@ export function RoomView({
               title={f.file_name ?? undefined}
               style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 8px", borderRadius: 9, cursor: "pointer" }}
             >
-              <span style={{ fontSize: 14, flex: "none" }}>📄</span>
+              <span style={{ fontSize: 16, flex: "none" }}>📄</span>
               <span
                 style={{
                   minWidth: 0,
                   flex: 1,
-                  fontSize: 11,
+                  fontSize: 13,
                   fontWeight: 600,
                   color: t.text,
                   whiteSpace: "nowrap",
@@ -817,7 +817,7 @@ export function RoomView({
         <div style={panelSectionTitle}>Members</div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 2px" }}>
           <ChatAvatar theme={t} size={26} isRaya />
-          <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 600, color: t.text }}>Raya</span>
+          <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: t.text }}>Raya</span>
           <span className="online-dot" />
         </div>
         {Object.values(roster).map((r) => {
@@ -826,7 +826,7 @@ export function RoomView({
           return (
             <div key={r.user_id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 2px" }}>
               <ChatAvatar theme={t} size={26} initials={avatarInitials(label === "You" ? studentName : label)} avatarUrl={r.profile_picture_url} />
-              <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: t.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              <span style={{ flex: 1, minWidth: 0, fontSize: 14, color: t.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {label}
               </span>
               <span className={online.has(r.user_id) ? "online-dot" : "offline-dot"} />
@@ -838,7 +838,7 @@ export function RoomView({
       {/* Settings */}
       <div>
         <div style={panelSectionTitle}>Room settings</div>
-        <div style={{ fontSize: 11.5, color: t.text, display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ fontSize: 14, color: t.text, display: "flex", flexDirection: "column", gap: 6 }}>
           <div>
             <span style={{ color: t.muted }}>Subject · </span>
             {subject ?? "—"}

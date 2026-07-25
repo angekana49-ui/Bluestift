@@ -8,8 +8,8 @@ export function SectionHeader({ title, subtitle }: { title: string; subtitle?: s
   const { theme: t } = useAppTheme();
   return (
     <div style={{ marginBottom: 20 }}>
-      <div style={{ fontSize: 20, fontWeight: 800, fontFamily: display, color: t.text }}>{title}</div>
-      {subtitle && <div style={{ fontSize: 12.5, color: t.muted, marginTop: 4 }}>{subtitle}</div>}
+      <div style={{ fontSize: 23, fontWeight: 800, fontFamily: display, color: t.text }}>{title}</div>
+      {subtitle && <div style={{ fontSize: 15, color: t.muted, marginTop: 4 }}>{subtitle}</div>}
     </div>
   );
 }

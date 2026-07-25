@@ -67,11 +67,11 @@ export function RoomFiles({ roomId, readOnly = false }: { roomId: string; readOn
 
   return (
     <div style={box}>
-      <p style={{ color: t.muted, marginTop: 0, fontSize: 12.5 }}>
+      <p style={{ color: t.muted, marginTop: 0, fontSize: 15 }}>
         Shared documents give the room its context — Raya reads them.
       </p>
       {readOnly ? (
-        <p style={{ color: t.muted, fontSize: 12, margin: 0 }}>
+        <p style={{ color: t.muted, fontSize: 14, margin: 0 }}>
           🔒 This session has ended — no new documents can be shared.
         </p>
       ) : (
@@ -80,14 +80,14 @@ export function RoomFiles({ roomId, readOnly = false }: { roomId: string; readOn
           accept=".txt,.md,.markdown,.csv,.pdf,.docx,.xlsx,.mp3,.m4a,.wav,.webm,.ogg,.flac,audio/*,application/pdf,text/plain"
           onChange={(e) => upload(e.target.files?.[0] ?? null)}
           disabled={busy}
-          style={{ fontSize: 12, color: t.muted }}
+          style={{ fontSize: 14, color: t.muted }}
         />
       )}
-      {status && <p style={{ color: t.muted, marginTop: 8, fontSize: 12 }}>{status}</p>}
-      {error && <p style={{ color: "#f87171", marginTop: 8, fontSize: 12.5 }}>{error}</p>}
+      {status && <p style={{ color: t.muted, marginTop: 8, fontSize: 14 }}>{status}</p>}
+      {error && <p style={{ color: "#f87171", marginTop: 8, fontSize: 15 }}>{error}</p>}
 
       <div style={{ marginTop: 16 }}>
-        {files.length === 0 && <p style={{ color: t.muted, fontSize: 12.5 }}>No files yet.</p>}
+        {files.length === 0 && <p style={{ color: t.muted, fontSize: 15 }}>No files yet.</p>}
         {files.map((f) => (
           <div
             key={f.id}
@@ -103,8 +103,8 @@ export function RoomFiles({ roomId, readOnly = false }: { roomId: string; readOn
             }}
           >
             <span>📄</span>
-            <span style={{ flex: 1, color: t.text, fontSize: 12.5 }}>{f.file_name}</span>
-            <span style={{ color: t.mutedLight, fontSize: 11 }}>{f.file_type}</span>
+            <span style={{ flex: 1, color: t.text, fontSize: 15 }}>{f.file_name}</span>
+            <span style={{ color: t.mutedLight, fontSize: 13 }}>{f.file_type}</span>
             <button
               onClick={() => setPreview(f)}
               style={{
@@ -114,7 +114,7 @@ export function RoomFiles({ roomId, readOnly = false }: { roomId: string; readOn
                 borderRadius: 99,
                 padding: "4px 12px",
                 cursor: "pointer",
-                fontSize: 11,
+                fontSize: 13,
                 fontWeight: 600,
               }}
             >

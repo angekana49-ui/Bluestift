@@ -10,8 +10,8 @@ export function SettingsThemeCard() {
     <SettingsCard theme={t}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
-          <div style={{ fontSize: 13.5, fontWeight: 700, color: t.text }}>Theme</div>
-          <div style={{ fontSize: 11, color: t.muted, marginTop: 2 }}>Switch between light and dark mode</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: t.text }}>Theme</div>
+          <div style={{ fontSize: 13, color: t.muted, marginTop: 2 }}>Switch between light and dark mode</div>
         </div>
         <ThemeToggle dark={dark} theme={t} onToggle={toggle} />
       </div>

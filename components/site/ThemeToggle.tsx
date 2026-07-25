@@ -83,7 +83,7 @@ export default function ThemeToggle({
           top: "50%",
           transform: "translateY(-50%)",
           [labelSide]: 6,
-          fontSize: 9,
+          fontSize: 13,
           fontWeight: 600,
           color: labelColor,
         }}

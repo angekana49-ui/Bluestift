@@ -123,14 +123,14 @@ export function RayaShell({
           key: "email",
           label: "Add your email",
           sublabel: "Secure your progress",
-          icon: <span style={{ fontSize: 15 }}>✉️</span>,
+          icon: <span style={{ fontSize: 17 }}>✉️</span>,
           tone: "accent" as const,
           onSelect: () => go("/account"),
         }]
       : []),
     { key: "settings", label: "Settings", icon: <IconSettings />, onSelect: () => go("/account") },
     { key: "kernel", label: "My Kernel", icon: <IconKernel />, onSelect: () => go("/profile") },
-    { key: "signout", label: "Sign out", tone: "danger", icon: <span style={{ fontSize: 14 }}>⏻</span>, onSelect: signOut },
+    { key: "signout", label: "Sign out", tone: "danger", icon: <span style={{ fontSize: 16 }}>⏻</span>, onSelect: signOut },
   ];
 
   return (

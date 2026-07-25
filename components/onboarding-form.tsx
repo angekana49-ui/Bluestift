@@ -270,7 +270,7 @@ export function OnboardingForm({
               Welcome to BlueStift, {firstName}.
             </h1>
           </div>
-          <p style={{ maxWidth: 400, margin: "16px auto 0", fontSize: 14, lineHeight: 1.7, color: "#475569" }}>
+          <p style={{ maxWidth: 400, margin: "16px auto 0", fontSize: 16, lineHeight: 1.7, color: "#475569" }}>
             {track === "schools" ? (
               "Your account is ready. Let's get your school set up."
             ) : (
@@ -301,7 +301,7 @@ export function OnboardingForm({
       <button
         onClick={leaveOnboarding}
         disabled={busy}
-        style={{ background: "none", border: "none", padding: 0, fontSize: 12, color: "#64748b", cursor: "pointer", fontFamily: "inherit" }}
+        style={{ background: "none", border: "none", padding: 0, fontSize: 14, color: "#64748b", cursor: "pointer", fontFamily: "inherit" }}
       >
         ← Use a different sign-in method
       </button>
@@ -314,10 +314,10 @@ export function OnboardingForm({
       {/* Goal-gradient progress — seeded, never 0. */}
       <div style={{ marginBottom: 22 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-          <span style={{ fontSize: 10.5, fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.06em" }}>
             Step {stepNumber} of {totalSteps}
           </span>
-          <span style={{ fontSize: 11, fontWeight: 700, color: WORDMARK_B }}>{progress}% set up</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: WORDMARK_B }}>{progress}% set up</span>
         </div>
         <div style={{ height: 6, borderRadius: 99, background: "#eef2f8", overflow: "hidden" }}>
           <div style={{ height: "100%", width: `${progress}%`, borderRadius: 99, background: "linear-gradient(90deg,#2f7fe0,#6366f1)", transition: "width 0.4s ease" }} />
@@ -477,7 +477,7 @@ export function OnboardingForm({
         </>
       )}
 
-      {error && <p style={{ color: "#dc2626", textAlign: "center", marginTop: 16, fontSize: 12 }}>{error}</p>}
+      {error && <p style={{ color: "#dc2626", textAlign: "center", marginTop: 16, fontSize: 14 }}>{error}</p>}
     </AuthSplit>
   );
 }
@@ -547,7 +547,7 @@ function EmailStep({
         </button>
       </div>
       {emailSent && (
-        <p style={{ fontSize: 11.5, color: "#047857", margin: "8px 0 0", lineHeight: 1.5 }}>
+        <p style={{ fontSize: 14, color: "#047857", margin: "8px 0 0", lineHeight: 1.5 }}>
           Check your inbox to confirm — you can finish setting up now.
         </p>
       )}
@@ -563,7 +563,7 @@ function EmailStep({
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
           <Icon color="#6366f1">{IconKey}</Icon>
-          <span style={{ fontSize: 12.5, fontWeight: 700, color: "#0b1220" }}>Your recovery key</span>
+          <span style={{ fontSize: 15, fontWeight: 700, color: "#0b1220" }}>Your recovery key</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
           <code
@@ -574,7 +574,7 @@ function EmailStep({
               border: "1px solid #dde5ee",
               borderRadius: 8,
               padding: "9px 12px",
-              fontSize: 13,
+              fontSize: 15,
               letterSpacing: shown ? "0.12em" : "0.24em",
               color: "#0b1220",
               fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
@@ -593,14 +593,14 @@ function EmailStep({
             {copied ? "Copied ✓" : "Copy"}
           </button>
         </div>
-        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 11.5, color: "#475569", lineHeight: 1.7 }}>
+        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 14, color: "#475569", lineHeight: 1.7 }}>
           <li>It is the <strong style={{ color: "#0b1220" }}>only way back in</strong> without an email.</li>
           <li>If you lose it, <strong style={{ color: "#0b1220" }}>we cannot recover it</strong> for you.</li>
           <li>Anyone who has it gets <strong style={{ color: "#0b1220" }}>full access</strong> to your account — its security is minimal, so keep it private.</li>
         </ul>
       </div>
 
-      <label style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 14, cursor: "pointer", fontSize: 12, color: "#334155" }}>
+      <label style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 14, cursor: "pointer", fontSize: 14, color: "#334155" }}>
         <input type="checkbox" checked={savedKey} onChange={(e) => setSavedKey(e.target.checked)} style={{ marginTop: 2 }} />
         I&apos;ve saved my recovery key somewhere safe.
       </label>
@@ -673,7 +673,7 @@ const keyPill: React.CSSProperties = {
   border: "1px solid #dde5ee",
   borderRadius: 99,
   padding: "5px 12px",
-  fontSize: 11,
+  fontSize: 13,
   fontWeight: 600,
   cursor: "pointer",
 };
@@ -691,13 +691,13 @@ const roleCard = (on: boolean): React.CSSProperties => ({
 });
 const pathTitle = (on = false): React.CSSProperties => ({
   display: "block",
-  fontSize: 13,
+  fontSize: 15,
   fontWeight: 700,
   color: on ? "#fff" : "#0b1220",
 });
 const pathDesc = (on = false): React.CSSProperties => ({
   display: "block",
-  fontSize: 11.5,
+  fontSize: 14,
   color: on ? "rgba(255,255,255,0.9)" : "#475569",
 });
 const noteBox: React.CSSProperties = {
@@ -705,7 +705,7 @@ const noteBox: React.CSSProperties = {
   border: "1px solid #dde5ee",
   borderRadius: 12,
   padding: 14,
-  fontSize: 12,
+  fontSize: 14,
   color: "#475569",
   lineHeight: 1.6,
 };
@@ -720,7 +720,7 @@ const chip = (on: boolean): React.CSSProperties => ({
   border: `1px solid ${on ? "#0b1220" : "#dde5ee"}`,
   borderRadius: 99,
   padding: "8px 14px",
-  fontSize: 12,
+  fontSize: 14,
   fontWeight: 600,
   cursor: "pointer",
 });

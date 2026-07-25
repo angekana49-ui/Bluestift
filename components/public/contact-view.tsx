@@ -12,7 +12,7 @@ const inputStyle: React.CSSProperties = {
   border: `1px solid ${T.border}`,
   borderRadius: 10,
   padding: "11px 14px",
-  fontSize: 13,
+  fontSize: 15,
   color: T.ink,
   outline: "none",
   boxSizing: "border-box",
@@ -48,7 +48,7 @@ export function ContactView({ signedIn }: { signedIn: boolean }) {
         <h1 style={{ fontSize: "clamp(1.6rem,4vw,2.4rem)", fontWeight: 900, letterSpacing: "-0.03em", margin: "0 0 10px" }}>
           Parler à <em style={{ fontFamily: serif, fontStyle: "italic", color: T.teal }}>l&apos;équipe.</em>
         </h1>
-        <p style={{ fontSize: 13, color: T.inkSub, lineHeight: 1.6, marginBottom: 28 }}>
+        <p style={{ fontSize: 15, color: T.inkSub, lineHeight: 1.6, marginBottom: 28 }}>
           École intéressée, chercheur, presse ou juste curieux — écris-nous, on répond vite.
         </p>
 
@@ -62,9 +62,9 @@ export function ContactView({ signedIn }: { signedIn: boolean }) {
               textAlign: "center",
             }}
           >
-            <div style={{ fontSize: 36, marginBottom: 10 }}>✓</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: T.teal, marginBottom: 6 }}>Message envoyé.</div>
-            <p style={{ fontSize: 12, color: T.inkSub, margin: 0 }}>On te répond à {form.email} au plus vite.</p>
+            <div style={{ fontSize: 40, marginBottom: 10 }}>✓</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: T.teal, marginBottom: 6 }}>Message envoyé.</div>
+            <p style={{ fontSize: 14, color: T.inkSub, margin: 0 }}>On te répond à {form.email} au plus vite.</p>
           </div>
         ) : (
           <div
@@ -121,7 +121,7 @@ export function ContactView({ signedIn }: { signedIn: boolean }) {
             />
             <Turnstile ref={turnstileRef} onVerify={setCaptchaToken} onExpire={() => setCaptchaToken(null)} />
             {state === "error" && (
-              <span style={{ fontSize: 11, color: "#dc2626" }}>Échec de l&apos;envoi — réessaie.</span>
+              <span style={{ fontSize: 13, color: "#dc2626" }}>Échec de l&apos;envoi — réessaie.</span>
             )}
             <button
               onClick={submit}
@@ -133,7 +133,7 @@ export function ContactView({ signedIn }: { signedIn: boolean }) {
                 border: "none",
                 borderRadius: 99,
                 padding: "12px 26px",
-                fontSize: 13,
+                fontSize: 15,
                 fontWeight: 700,
                 cursor: canSend ? "pointer" : "default",
               }}

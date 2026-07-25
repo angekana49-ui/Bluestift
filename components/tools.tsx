@@ -70,7 +70,7 @@ const cta = (t: AppTheme): React.CSSProperties => ({
   border: "none",
   borderRadius: 99,
   padding: "9px 16px",
-  fontSize: 12,
+  fontSize: 14,
   fontWeight: 600,
   cursor: "pointer",
 });
@@ -80,7 +80,7 @@ const ghost = (t: AppTheme): React.CSSProperties => ({
   border: `1.5px solid ${t.dark ? "rgba(255,255,255,0.22)" : "rgba(15,23,42,0.20)"}`,
   borderRadius: 99,
   padding: "6px 13px",
-  fontSize: 11.5,
+  fontSize: 14,
   fontWeight: 600,
   cursor: "pointer",
 });
@@ -275,10 +275,10 @@ export function Tools({
 
   return (
     <div>
-      <div style={{ fontSize: 20, fontWeight: 800, fontFamily: display, marginBottom: 4, color: t.text }}>
+      <div style={{ fontSize: 23, fontWeight: 800, fontFamily: display, marginBottom: 4, color: t.text }}>
         Tools Studio
       </div>
-      <div style={{ fontSize: 12.5, color: t.muted, marginBottom: 24 }}>
+      <div style={{ fontSize: 15, color: t.muted, marginBottom: 24 }}>
         Generate quizzes, summaries and flashcards from any lesson — then study them one at a time.
       </div>
 
@@ -304,7 +304,7 @@ export function Tools({
               <div style={{ width: 36, height: 36, borderRadius: 11, background: t.ctaBg, color: t.ctaText, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
                 {toolIcon[x.id] ?? <IconSummary size={18} />}
               </div>
-              <div style={{ fontSize: 13, fontWeight: 700 }}>{x.label}</div>
+              <div style={{ fontSize: 15, fontWeight: 700 }}>{x.label}</div>
             </button>
           );
         })}
@@ -321,13 +321,13 @@ export function Tools({
           maxWidth: 900,
           textAlign: "center",
           color: t.mutedLight,
-          fontSize: 12,
+          fontSize: 14,
           cursor: busy ? "default" : "pointer",
           background: t.cardBg2,
         }}
       >
         Drop one or more files (PDF, notes, Word, Excel, audio) — they combine into one packet
-        <div style={{ fontSize: 10.5, color: t.mutedLight, marginTop: 4 }}>
+        <div style={{ fontSize: 13, color: t.mutedLight, marginTop: 4 }}>
           Up to {Math.round(MAX_PACKET_BYTES / 1024 / 1024)} MB total{packetBytes > 0 ? ` · ${(packetBytes / 1024 / 1024).toFixed(1)} MB used` : ""}
         </div>
         <input
@@ -354,7 +354,7 @@ export function Tools({
                 border: `1px solid ${t.cardBorder}`,
                 borderRadius: 99,
                 padding: "5px 6px 5px 12px",
-                fontSize: 12,
+                fontSize: 14,
                 color: t.text,
               }}
             >
@@ -365,7 +365,7 @@ export function Tools({
               <button
                 onClick={() => removeSource(i)}
                 title="Remove"
-                style={{ background: t.cardBg2, border: `1px solid ${t.cardBorder}`, color: t.mutedLight, borderRadius: "50%", width: 20, height: 20, cursor: "pointer", lineHeight: 1, fontSize: 12 }}
+                style={{ background: t.cardBg2, border: `1px solid ${t.cardBorder}`, color: t.mutedLight, borderRadius: "50%", width: 20, height: 20, cursor: "pointer", lineHeight: 1, fontSize: 14 }}
               >
                 ✕
               </button>
@@ -378,9 +378,9 @@ export function Tools({
         <button style={{ ...cta(t), opacity: busy || sources.length === 0 ? 0.5 : 1 }} onClick={generate} disabled={busy || sources.length === 0}>
           Generate
         </button>
-        {statusMsg && <span style={{ fontSize: 12, color: t.muted }}>{statusMsg}</span>}
+        {statusMsg && <span style={{ fontSize: 14, color: t.muted }}>{statusMsg}</span>}
       </div>
-      {error && <p style={{ color: "#f87171", marginTop: 12, fontSize: 12.5 }}>{error}</p>}
+      {error && <p style={{ color: "#f87171", marginTop: 12, fontSize: 15 }}>{error}</p>}
 
       {(uploads.length > 0 || outputs.length > 0 || selfTests.length > 0) && (
         <div style={{ marginTop: 20, maxWidth: 900, display: "flex", flexDirection: "column", gap: 14 }}>
@@ -495,10 +495,10 @@ function LibraryHeader({ theme: t, title, count, hint }: { theme: AppTheme; titl
   return (
     <div style={{ marginBottom: 8 }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-        <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: t.text }}>{title}</h3>
-        <span style={{ fontSize: 11, fontWeight: 600, color: t.mutedLight }}>{count}</span>
+        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: t.text }}>{title}</h3>
+        <span style={{ fontSize: 13, fontWeight: 600, color: t.mutedLight }}>{count}</span>
       </div>
-      <div style={{ fontSize: 11, color: t.mutedLight, marginTop: 2 }}>{hint}</div>
+      <div style={{ fontSize: 13, color: t.mutedLight, marginTop: 2 }}>{hint}</div>
     </div>
   );
 }
@@ -524,8 +524,8 @@ function LibraryRow({
 }) {
   return (
     <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "8px 0", borderTop: `1px solid ${t.cardBorder}` }}>
-      <span style={{ flex: 1, fontSize: 12.5, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
-      {meta && <span style={{ color: t.mutedLight, fontSize: 11, flex: "none" }}>{meta}</span>}
+      <span style={{ flex: 1, fontSize: 15, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+      {meta && <span style={{ color: t.mutedLight, fontSize: 13, flex: "none" }}>{meta}</span>}
       {action2 && onAction2 && (
         <button style={ghost(t)} onClick={onAction2}>
           {action2}

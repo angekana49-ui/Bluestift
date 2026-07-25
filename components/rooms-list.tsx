@@ -76,7 +76,7 @@ export function RoomsList({
     border: `1px solid ${on ? t.ctaBg : t.cardBorder}`,
     borderRadius: 99,
     padding: "6px 12px",
-    fontSize: 11.5,
+    fontSize: 14,
     fontWeight: 600,
     cursor: "pointer",
   });
@@ -122,7 +122,7 @@ export function RoomsList({
   const discover = rooms.filter((r) => !mySet.has(r.id));
 
   const sectionLabel: React.CSSProperties = {
-    fontSize: 10.5,
+    fontSize: 13,
     color: t.mutedLight,
     textTransform: "uppercase",
     letterSpacing: "0.06em",
@@ -146,8 +146,8 @@ export function RoomsList({
       }}
     >
       <div style={{ flex: 1 }}>
-        <div style={{ fontWeight: 600, color: t.text, fontSize: 13 }}>{r.name}</div>
-        <div style={{ fontSize: 11, color: t.mutedLight }}>
+        <div style={{ fontWeight: 600, color: t.text, fontSize: 15 }}>{r.name}</div>
+        <div style={{ fontSize: 13, color: t.mutedLight }}>
           {r.subject ?? "—"} · {r.visibility === "public" ? "public" : "private"}
         </div>
       </div>
@@ -170,7 +170,7 @@ export function RoomsList({
             </button>
           ))}
         </div>
-        <div style={{ display: "flex", gap: 16, margin: "10px 0 14px", fontSize: 12 }}>
+        <div style={{ display: "flex", gap: 16, margin: "10px 0 14px", fontSize: 14 }}>
           {(["public", "private"] as const).map((v) => (
             <label key={v} style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", color: t.text }}>
               <input type="radio" name="visibility" checked={visibility === v} onChange={() => setVisibility(v)} />
@@ -183,7 +183,7 @@ export function RoomsList({
             </label>
           ))}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "2px 0 14px", fontSize: 12, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "2px 0 14px", fontSize: 14, flexWrap: "wrap" }}>
           <span style={{ color: t.text, fontWeight: 600 }}>⏱ Session length</span>
           <select
             value={duration}
@@ -203,8 +203,8 @@ export function RoomsList({
           </span>
         </div>
         <div style={{ margin: "2px 0 14px" }}>
-          <div style={{ fontSize: 12, color: t.text, fontWeight: 600, marginBottom: 4 }}>📎 Context documents (optional)</div>
-          <div style={{ fontSize: 11, color: t.mutedLight, marginBottom: 6 }}>
+          <div style={{ fontSize: 14, color: t.text, fontWeight: 600, marginBottom: 4 }}>📎 Context documents (optional)</div>
+          <div style={{ fontSize: 13, color: t.mutedLight, marginBottom: 6 }}>
             Raya reads these from the start, so it can skip the obvious questions. Max 20 MB total.
           </div>
           <input
@@ -215,7 +215,7 @@ export function RoomsList({
               addDocs(e.target.files);
               e.target.value = "";
             }}
-            style={{ fontSize: 12, color: t.muted }}
+            style={{ fontSize: 14, color: t.muted }}
           />
           {docs.length > 0 && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
@@ -230,7 +230,7 @@ export function RoomsList({
                     border: `1px solid ${t.cardBorder}`,
                     borderRadius: 99,
                     padding: "4px 6px 4px 11px",
-                    fontSize: 11,
+                    fontSize: 13,
                     color: t.text,
                   }}
                 >
@@ -240,7 +240,7 @@ export function RoomsList({
                     type="button"
                     onClick={() => setDocs((prev) => prev.filter((_, j) => j !== i))}
                     title="Remove"
-                    style={{ background: "transparent", border: "none", color: t.mutedLight, cursor: "pointer", fontSize: 13, padding: 0, lineHeight: 1 }}
+                    style={{ background: "transparent", border: "none", color: t.mutedLight, cursor: "pointer", fontSize: 15, padding: 0, lineHeight: 1 }}
                   >
                     ✕
                   </button>
@@ -252,18 +252,18 @@ export function RoomsList({
         <button style={{ ...ctaButton(t), opacity: busy || !name.trim() ? 0.5 : 1 }} onClick={create} disabled={busy || !name.trim()}>
           {busy ? (docs.length ? "Creating & uploading…" : "Creating…") : "Create"}
         </button>
-        {error && <p style={{ color: "#f87171", marginTop: 8, fontSize: 12.5 }}>{error}</p>}
+        {error && <p style={{ color: "#f87171", marginTop: 8, fontSize: 15 }}>{error}</p>}
       </div>
 
       <div style={{ marginTop: 24 }}>
         <div style={sectionLabel}>Your rooms ({mine.length})</div>
-        {mine.length === 0 && <p style={{ color: t.muted, marginTop: 12, fontSize: 12.5 }}>You haven&apos;t joined any rooms yet.</p>}
+        {mine.length === 0 && <p style={{ color: t.muted, marginTop: 12, fontSize: 15 }}>You haven&apos;t joined any rooms yet.</p>}
         {mine.map(roomCard)}
       </div>
 
       <div style={{ marginTop: 24 }}>
         <div style={sectionLabel}>Discover</div>
-        {discover.length === 0 && <p style={{ color: t.muted, marginTop: 12, fontSize: 12.5 }}>No other public rooms.</p>}
+        {discover.length === 0 && <p style={{ color: t.muted, marginTop: 12, fontSize: 15 }}>No other public rooms.</p>}
         {discover.map(roomCard)}
       </div>
     </div>

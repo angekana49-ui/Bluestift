@@ -49,11 +49,11 @@ export default async function CheckoutReturnPage({
           boxShadow: "0 24px 60px rgba(15,23,42,0.10)",
         }}
       >
-        <div style={{ fontSize: 44 }}>{view.emoji}</div>
+        <div style={{ fontSize: 49 }}>{view.emoji}</div>
         <h1 style={{ fontSize: "1.4rem", fontWeight: 900, color: "#0b1220", margin: "12px 0 8px", letterSpacing: "-0.02em" }}>
           {view.title}
         </h1>
-        <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.7, margin: "0 0 22px" }}>{view.body}</p>
+        <p style={{ fontSize: 15, color: "#64748b", lineHeight: 1.7, margin: "0 0 22px" }}>{view.body}</p>
         <Link
           href={view.cta.href}
           style={{
@@ -62,7 +62,7 @@ export default async function CheckoutReturnPage({
             color: "#fff",
             borderRadius: 999,
             padding: "11px 28px",
-            fontSize: 13,
+            fontSize: 15,
             fontWeight: 600,
             textDecoration: "none",
           }}

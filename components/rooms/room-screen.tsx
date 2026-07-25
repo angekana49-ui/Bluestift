@@ -13,7 +13,7 @@ export function RoomScreen(props: RoomScreenProps) {
   return (
     <div style={{ border: "1px dashed #556", borderRadius: 4, padding: 24, opacity: 0.7 }}>
       <strong>RoomScreen</strong> — stub to design
-      <div style={{ fontSize: 12, opacity: 0.6, marginTop: 4 }}>
+      <div style={{ fontSize: 14, opacity: 0.6, marginTop: 4 }}>
         {props.roomName} · {props.memberCount} membres · {props.isMember ? "membre" : "non-membre"}
       </div>
     </div>

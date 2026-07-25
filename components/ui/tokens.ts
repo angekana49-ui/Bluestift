@@ -140,12 +140,12 @@ export const hand = "var(--font-caveat),'Caveat',cursive";
  * re-scaled from one place.
  */
 export const text = {
-  xs: 12, // micro-labels, status, timestamps — the floor
-  sm: 14, // secondary text, chips, captions, inline errors
-  base: 15, // body copy, message bubbles, inputs
-  lg: 18, // emphasis, sub-headings
-  xl: 22, // card/section headings, KPI values
-  "2xl": 28, // page headings
+  xs: 13, // micro-labels, status, timestamps — the floor
+  sm: 15, // secondary text, chips, captions, inline errors
+  base: 16, // body copy, message bubbles, inputs — the web-standard body size
+  lg: 20, // emphasis, sub-headings
+  xl: 26, // card/section headings, KPI values
+  "2xl": 34, // page headings
 } as const;
 
 /** Shape scale (border-radii). Buttons/pills/badges use `pill`. */

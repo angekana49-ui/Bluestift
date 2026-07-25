@@ -34,7 +34,7 @@ export function ContactView({ signedIn }: { signedIn: boolean }) {
       background: t.inputBg,
       borderRadius: 10,
       padding: "11px 14px",
-      fontSize: 12,
+      fontSize: 14,
       color: t.text,
       outline: "none",
       width: "100%",
@@ -49,15 +49,15 @@ export function ContactView({ signedIn }: { signedIn: boolean }) {
             <h1 style={{ fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "clamp(1.6rem,4vw,2.4rem)", letterSpacing: "-0.02em", margin: "0 0 10px", color: t.text }}>
               Talk to <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", color: t.wordmarkB }}>the team.</em>
             </h1>
-            <p style={{ fontSize: 13, color: t.text, lineHeight: 1.7, margin: "0 0 28px" }}>
+            <p style={{ fontSize: 15, color: t.text, lineHeight: 1.7, margin: "0 0 28px" }}>
               Interested school, researcher, press, or just curious — write to us, we reply fast.
             </p>
 
             {state === "done" ? (
               <div style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: 20, padding: 28, textAlign: "center", boxShadow: t.cardShadow }}>
-                <div style={{ fontSize: 34, marginBottom: 8 }}>✓</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: t.wordmarkB, marginBottom: 6 }}>Message sent.</div>
-                <p style={{ fontSize: 12, color: t.muted, margin: 0 }}>We&apos;ll reply to {form.email} as soon as we can.</p>
+                <div style={{ fontSize: 38, marginBottom: 8 }}>✓</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: t.wordmarkB, marginBottom: 6 }}>Message sent.</div>
+                <p style={{ fontSize: 14, color: t.muted, margin: 0 }}>We&apos;ll reply to {form.email} as soon as we can.</p>
               </div>
             ) : (
               <div style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: 20, padding: 24, display: "flex", flexDirection: "column", gap: 12, boxShadow: t.cardShadow }}>
@@ -79,7 +79,7 @@ export function ContactView({ signedIn }: { signedIn: boolean }) {
                   style={{ ...input(t), height: 100, resize: "vertical", lineHeight: 1.6 }}
                 />
                 <Turnstile ref={turnstileRef} onVerify={setCaptchaToken} onExpire={() => setCaptchaToken(null)} />
-                {state === "error" && <span style={{ fontSize: 11, color: "#ef4444" }}>Couldn&apos;t send — try again.</span>}
+                {state === "error" && <span style={{ fontSize: 13, color: "#ef4444" }}>Couldn&apos;t send — try again.</span>}
                 <button
                   onClick={submit}
                   disabled={!canSend || state === "busy"}
@@ -90,7 +90,7 @@ export function ContactView({ signedIn }: { signedIn: boolean }) {
                     border: "none",
                     borderRadius: 999,
                     padding: "12px 26px",
-                    fontSize: 13,
+                    fontSize: 15,
                     fontWeight: 700,
                     cursor: canSend && state !== "busy" ? "pointer" : "default",
                   }}

@@ -29,14 +29,14 @@ export function ResearchPostView({ post, signedIn }: { post: PostDetail; signedI
     <SitePage active="Research" section="Research" signedIn={signedIn}>
       {(t) => (
         <div style={{ position: "relative", zIndex: 1, maxWidth: 640, margin: "0 auto", padding: "140px 24px 96px" }}>
-          <Link href="/research" style={{ display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 24, fontSize: 12, color: t.muted, textDecoration: "none" }}>
+          <Link href="/research" style={{ display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 24, fontSize: 14, color: t.muted, textDecoration: "none" }}>
             ← Back to publications
           </Link>
 
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, margin: "20px 0 16px" }}>
-            <span style={{ fontSize: 14 }}>{type.icon}</span>
-            <span style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: t.mutedLight }}>{type.label}</span>
-            <span style={{ marginLeft: "auto", fontSize: 11, color: t.mutedLight }}>
+            <span style={{ fontSize: 16 }}>{type.icon}</span>
+            <span style={{ fontSize: 13, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: t.mutedLight }}>{type.label}</span>
+            <span style={{ marginLeft: "auto", fontSize: 13, color: t.mutedLight }}>
               {enMonth(post.published_at ?? post.created_at)} · {readTime(post.content)}
             </span>
           </div>
@@ -53,11 +53,11 @@ export function ResearchPostView({ post, signedIn }: { post: PostDetail; signedI
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={a.avatar_url} alt={a.full_name} style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover" }} />
                   ) : (
-                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: t.greenSolid, color: "white", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{a.full_name[0]}</div>
+                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: t.greenSolid, color: "white", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{a.full_name[0]}</div>
                   )}
                   <div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: t.text }}>{a.full_name}</div>
-                    {a.institution && <div style={{ fontSize: 10, color: t.mutedLight }}>{a.institution}</div>}
+                    <div style={{ fontSize: 14, fontWeight: 700, color: t.text }}>{a.full_name}</div>
+                    {a.institution && <div style={{ fontSize: 13, color: t.mutedLight }}>{a.institution}</div>}
                   </div>
                 </div>
               ))}
@@ -66,12 +66,12 @@ export function ResearchPostView({ post, signedIn }: { post: PostDetail; signedI
 
           {paragraphs.length > 0 && (
             <div style={{ marginBottom: 24, borderRadius: 12, border: `1px solid ${t.greenBorder}`, background: t.greenBg, padding: "16px 18px" }}>
-              <div style={{ marginBottom: 8, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: t.greenText }}>Summary</div>
-              <p style={{ fontSize: 13, lineHeight: 1.7, color: t.greenText, margin: 0 }}>{paragraphs[0]}</p>
+              <div style={{ marginBottom: 8, fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: t.greenText }}>Summary</div>
+              <p style={{ fontSize: 15, lineHeight: 1.7, color: t.greenText, margin: 0 }}>{paragraphs[0]}</p>
             </div>
           )}
 
-          <div style={{ fontSize: 14, lineHeight: 1.9, color: t.text }}>
+          <div style={{ fontSize: 16, lineHeight: 1.9, color: t.text }}>
             {paragraphs.slice(1).map((p, i) => (
               <p key={i} style={{ whiteSpace: "pre-wrap", marginTop: i > 0 ? 16 : 0 }}>{p}</p>
             ))}
@@ -83,7 +83,7 @@ export function ResearchPostView({ post, signedIn }: { post: PostDetail; signedI
                 <figure key={m.id} style={{ margin: 0 }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={m.url!} alt={m.title ?? ""} style={{ maxWidth: "100%", borderRadius: 12, border: `1px solid ${t.cardBorder}` }} />
-                  {m.title && <figcaption style={{ marginTop: 6, fontSize: 11, color: t.mutedLight }}>{m.title}</figcaption>}
+                  {m.title && <figcaption style={{ marginTop: 6, fontSize: 13, color: t.mutedLight }}>{m.title}</figcaption>}
                 </figure>
               ))}
             </div>
@@ -92,7 +92,7 @@ export function ResearchPostView({ post, signedIn }: { post: PostDetail; signedI
           {files.length > 0 && (
             <div style={{ marginTop: 28, display: "flex", flexWrap: "wrap", gap: 8 }}>
               {files.map((m) => (
-                <a key={m.id} href={m.url!} target="_blank" rel="noreferrer" style={{ borderRadius: 8, border: `1px solid ${t.cardBorder}`, background: t.cardBg, padding: "10px 16px", fontSize: 11, fontWeight: 600, color: t.text, textDecoration: "none" }}>
+                <a key={m.id} href={m.url!} target="_blank" rel="noreferrer" style={{ borderRadius: 8, border: `1px solid ${t.cardBorder}`, background: t.cardBg, padding: "10px 16px", fontSize: 13, fontWeight: 600, color: t.text, textDecoration: "none" }}>
                   {m.type === "pdf" ? "📄" : "🎬"} {m.title ?? m.type}
                 </a>
               ))}

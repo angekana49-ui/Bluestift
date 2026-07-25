@@ -17,7 +17,7 @@ export default function FeaturesSection({ theme: t }: { theme: Theme }) {
             <br />
             than <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic" }}>a chatbot.</em>
           </h2>
-          <p style={{ maxWidth: 520, margin: "16px auto 0", fontSize: 14, color: t.text, lineHeight: 1.7 }}>
+          <p style={{ maxWidth: 520, margin: "16px auto 0", fontSize: 16, color: t.text, lineHeight: 1.7 }}>
             Three surfaces that work together. None of them need managing.
           </p>
         </div>
@@ -52,8 +52,8 @@ export default function FeaturesSection({ theme: t }: { theme: Theme }) {
               <div style={{ position: "relative", width: 44, height: 44, borderRadius: 16, background: t.ctaBg, color: t.ctaText, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, marginBottom: 20 }}>
                 {f.icon}
               </div>
-              <div style={{ position: "relative", fontSize: 15, fontWeight: 600, color: t.text }}>{f.title}</div>
-              <p style={{ position: "relative", fontSize: 13, color: t.muted, lineHeight: 1.7, marginTop: 8 }}>{f.desc}</p>
+              <div style={{ position: "relative", fontSize: 17, fontWeight: 600, color: t.text }}>{f.title}</div>
+              <p style={{ position: "relative", fontSize: 15, color: t.muted, lineHeight: 1.7, marginTop: 8 }}>{f.desc}</p>
             </div>
           ))}
         </div>

@@ -40,7 +40,7 @@ const mkBtn = (t: AppTheme): React.CSSProperties => ({
   border: "none",
   borderRadius: 99,
   padding: "9px 16px",
-  fontSize: 12,
+  fontSize: 14,
   fontWeight: 600,
   cursor: "pointer",
 });
@@ -50,7 +50,7 @@ const mkGhost = (t: AppTheme): React.CSSProperties => ({
   border: `1.5px solid ${t.dark ? "rgba(255,255,255,0.22)" : "rgba(15,23,42,0.20)"}`,
   borderRadius: 99,
   padding: "6px 13px",
-  fontSize: 11.5,
+  fontSize: 14,
   fontWeight: 600,
   cursor: "pointer",
 });
@@ -69,7 +69,7 @@ const mkField = (t: AppTheme): React.CSSProperties => ({
   borderRadius: 10,
   padding: "10px 14px",
   marginBottom: 8,
-  fontSize: 12.5,
+  fontSize: 15,
   fontFamily: "inherit",
   boxSizing: "border-box",
   outline: "none",
@@ -80,7 +80,7 @@ const chip = (t: AppTheme, on: boolean): React.CSSProperties => ({
   border: `1px solid ${on ? t.ctaBg : t.cardBorder}`,
   borderRadius: 99,
   padding: "6px 12px",
-  fontSize: 11.5,
+  fontSize: 14,
   fontWeight: 600,
   cursor: "pointer",
 });
@@ -314,15 +314,15 @@ export function RoomChallenges({
     return (
       <div style={box}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
-          <h3 style={{ margin: 0, flex: 1, fontSize: 14, fontWeight: 700, color: t.text }}>🏆 Squad standings</h3>
+          <h3 style={{ margin: 0, flex: 1, fontSize: 16, fontWeight: 700, color: t.text }}>🏆 Squad standings</h3>
           {result && (
-            <span style={{ fontSize: 12.5, color: t.muted }}>
+            <span style={{ fontSize: 15, color: t.muted }}>
               You · {result.correct}/{result.total} · {Math.round(result.score * 100)}%
             </span>
           )}
         </div>
-        <h4 style={{ color: t.text, fontSize: 13, margin: "10px 0 4px" }}>{active?.title ?? "Challenge"}</h4>
-        {leaderboard.length === 0 && <p style={{ color: t.muted, fontSize: 12.5 }}>No scores yet.</p>}
+        <h4 style={{ color: t.text, fontSize: 15, margin: "10px 0 4px" }}>{active?.title ?? "Challenge"}</h4>
+        {leaderboard.length === 0 && <p style={{ color: t.muted, fontSize: 15 }}>No scores yet.</p>}
         {leaderboard
           .slice()
           .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
@@ -340,7 +340,7 @@ export function RoomChallenges({
                   marginTop: 4,
                   background: mine ? t.rowActiveBg : "transparent",
                   color: t.text,
-                  fontSize: 12.5,
+                  fontSize: 15,
                 }}
               >
                 <span style={{ color: t.mutedLight, width: 22, flex: "none", fontWeight: 700 }}>
@@ -366,12 +366,12 @@ export function RoomChallenges({
   return (
     <div>
       {readOnly ? (
-        <div style={{ ...box, color: t.muted, fontSize: 12.5 }}>
+        <div style={{ ...box, color: t.muted, fontSize: 15 }}>
           🔒 This session has ended — challenges are read-only. You can review past scores below.
         </div>
       ) : (
       <div style={box}>
-        <h3 style={{ marginTop: 0, marginBottom: 12, fontSize: 14, fontWeight: 700, color: t.text }}>New challenge</h3>
+        <h3 style={{ marginTop: 0, marginBottom: 12, fontSize: 16, fontWeight: 700, color: t.text }}>New challenge</h3>
         <input style={field} placeholder="Name (optional — e.g. Chapter 3 quiz)" value={name} onChange={(e) => setName(e.target.value)} />
         <input style={field} placeholder="Topic (e.g. Newton's laws)" value={topic} onChange={(e) => setTopic(e.target.value)} />
         <textarea
@@ -382,7 +382,7 @@ export function RoomChallenges({
           onChange={(e) => setGoal(e.target.value)}
         />
         <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 11, color: t.mutedLight, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Type of challenge</div>
+          <div style={{ fontSize: 13, color: t.mutedLight, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Type of challenge</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {TEST_KINDS.map((k) => (
               <button key={k.id} type="button" style={chip(t, kind === k.id)} onClick={() => setKind(k.id)} title={k.hint}>
@@ -392,23 +392,23 @@ export function RoomChallenges({
           </div>
         </div>
         <div style={{ marginBottom: 8 }}>
-          <label style={{ fontSize: 11.5, color: t.muted, marginRight: 8 }}>Source file (optional):</label>
+          <label style={{ fontSize: 14, color: t.muted, marginRight: 8 }}>Source file (optional):</label>
           <input
             type="file"
             accept=".txt,.md,.markdown,.csv,.pdf,.docx,.xlsx,.mp3,.m4a,.wav,.webm,.ogg,.flac,audio/*,application/pdf,text/plain"
             onChange={(e) => setSourceFile(e.target.files?.[0] ?? null)}
-            style={{ fontSize: 12, color: t.muted }}
+            style={{ fontSize: 14, color: t.muted }}
           />
         </div>
         <button style={{ ...btn, opacity: busy || (!topic.trim() && !goal.trim() && !sourceFile) ? 0.5 : 1 }} onClick={create} disabled={busy || (!topic.trim() && !goal.trim() && !sourceFile)}>
           {busy ? "Generating…" : "Generate the challenge"}
         </button>
-        {error && <p style={{ color: "#f87171", fontSize: 12.5 }}>{error}</p>}
+        {error && <p style={{ color: "#f87171", fontSize: 15 }}>{error}</p>}
       </div>
       )}
 
       <div style={{ marginTop: 16 }}>
-        {challenges.length === 0 && <p style={{ color: t.muted, fontSize: 12.5 }}>No challenges — create one.</p>}
+        {challenges.length === 0 && <p style={{ color: t.muted, fontSize: 15 }}>No challenges — create one.</p>}
         {challenges.map((ch) => (
           <div
             key={ch.id}
@@ -424,9 +424,9 @@ export function RoomChallenges({
             }}
           >
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600, color: t.text, fontSize: 13 }}>{ch.title ?? "Challenge"}</div>
-              {ch.description && <div style={{ fontSize: 11.5, color: t.muted }}>{ch.description}</div>}
-              <div style={{ fontSize: 11, color: t.mutedLight }}>
+              <div style={{ fontWeight: 600, color: t.text, fontSize: 15 }}>{ch.title ?? "Challenge"}</div>
+              {ch.description && <div style={{ fontSize: 14, color: t.muted }}>{ch.description}</div>}
+              <div style={{ fontSize: 13, color: t.mutedLight }}>
                 {ch.question_count ?? 0} questions · {kindLabel(ch.format)} · {ch.status}
               </div>
             </div>

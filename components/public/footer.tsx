@@ -54,18 +54,18 @@ export function PublicFooter() {
                   justifyContent: "center",
                   fontFamily: "Georgia, serif",
                   fontStyle: "italic",
-                  fontSize: 13,
+                  fontSize: 15,
                   color: "white",
                   fontWeight: 600,
                 }}
               >
                 B
               </div>
-              <span style={{ fontSize: 13, fontWeight: 800, color: base.ink, letterSpacing: "-0.03em" }}>
+              <span style={{ fontSize: 15, fontWeight: 800, color: base.ink, letterSpacing: "-0.03em" }}>
                 Bluestift
               </span>
             </div>
-            <p style={{ fontSize: 11, color: base.inkMuted, lineHeight: 1.6, maxWidth: 190 }}>
+            <p style={{ fontSize: 13, color: base.inkMuted, lineHeight: 1.6, maxWidth: 190 }}>
               Le tuteur IA qui se souvient de chaque élève. K-12, Cameroun & US.
             </p>
           </div>
@@ -73,7 +73,7 @@ export function PublicFooter() {
             <div key={col.label}>
               <div
                 style={{
-                  fontSize: 10,
+                  fontSize: 13,
                   fontWeight: 700,
                   color: base.ink,
                   letterSpacing: "0.07em",
@@ -85,7 +85,7 @@ export function PublicFooter() {
               </div>
               {col.links.map(([label, href]) => (
                 <div key={label} style={{ marginBottom: 7 }}>
-                  <Link href={href} style={{ fontSize: 11, color: base.inkSub }}>
+                  <Link href={href} style={{ fontSize: 13, color: base.inkSub }}>
                     {label}
                   </Link>
                 </div>
@@ -103,10 +103,10 @@ export function PublicFooter() {
             paddingTop: 20,
           }}
         >
-          <span style={{ fontSize: 10, color: base.inkMuted }}>
+          <span style={{ fontSize: 13, color: base.inkMuted }}>
             © 2026 Bluestift. Tous droits réservés.
           </span>
-          <span style={{ fontSize: 10, color: base.inkMuted }}>
+          <span style={{ fontSize: 13, color: base.inkMuted }}>
             hello@thebluestift.com
           </span>
         </div>

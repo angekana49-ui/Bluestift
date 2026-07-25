@@ -45,7 +45,7 @@ function SandboxInner() {
         <div
           style={{
             display: "inline-block",
-            fontSize: 10.5,
+            fontSize: 13,
             fontWeight: 700,
             letterSpacing: "0.1em",
             color: "#b45309",
@@ -58,7 +58,7 @@ function SandboxInner() {
           Sandbox
         </div>
         <h1 style={{ fontSize: "1.3rem", fontWeight: 900, color: "#0b1220", margin: "16px 0 6px" }}>Simulated checkout</h1>
-        <p style={{ fontSize: 12.5, color: "#64748b", lineHeight: 1.6, margin: "0 0 22px" }}>
+        <p style={{ fontSize: 15, color: "#64748b", lineHeight: 1.6, margin: "0 0 22px" }}>
           No real payment provider is configured. Approve or decline to test the flow end to end (method:{" "}
           <strong>{channel}</strong>).
         </p>
@@ -72,7 +72,7 @@ function SandboxInner() {
               border: "none",
               borderRadius: 12,
               padding: "13px",
-              fontSize: 13,
+              fontSize: 15,
               fontWeight: 700,
               cursor: busy ? "default" : "pointer",
             }}
@@ -88,7 +88,7 @@ function SandboxInner() {
               border: "1px solid #fecaca",
               borderRadius: 12,
               padding: "13px",
-              fontSize: 13,
+              fontSize: 15,
               fontWeight: 600,
               cursor: busy ? "default" : "pointer",
             }}

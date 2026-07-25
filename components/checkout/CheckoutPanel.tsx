@@ -77,12 +77,12 @@ export function CheckoutPanel({
               transition: "all 0.15s ease",
             }}
           >
-            <span style={{ fontSize: 22, width: 26, textAlign: "center" }}>{m.emoji}</span>
+            <span style={{ fontSize: 25, width: 26, textAlign: "center" }}>{m.emoji}</span>
             <span style={{ flex: 1 }}>
-              <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "#0b1220" }}>{m.label}</span>
-              <span style={{ display: "block", fontSize: 11.5, color: "#64748b", marginTop: 1 }}>{m.sub}</span>
+              <span style={{ display: "block", fontSize: 16, fontWeight: 700, color: "#0b1220" }}>{m.label}</span>
+              <span style={{ display: "block", fontSize: 14, color: "#64748b", marginTop: 1 }}>{m.sub}</span>
             </span>
-            <span style={{ fontSize: 12, fontWeight: 600, color: loading ? "#64748b" : "#2563eb" }}>
+            <span style={{ fontSize: 14, fontWeight: 600, color: loading ? "#64748b" : "#2563eb" }}>
               {loading ? "Redirecting…" : "Pay →"}
             </span>
           </button>
@@ -90,7 +90,7 @@ export function CheckoutPanel({
       })}
 
       {error && (
-        <p style={{ fontSize: 12, color: "#dc2626", margin: "4px 2px 0", lineHeight: 1.5 }}>{error}</p>
+        <p style={{ fontSize: 14, color: "#dc2626", margin: "4px 2px 0", lineHeight: 1.5 }}>{error}</p>
       )}
     </div>
   );

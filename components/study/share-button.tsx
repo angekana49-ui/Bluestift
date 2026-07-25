@@ -42,7 +42,7 @@ export function ShareLinkButton({ theme: t, doc }: { theme: AppTheme; doc: Brand
     border: `1.5px solid ${t.dark ? "rgba(255,255,255,0.22)" : "rgba(15,23,42,0.20)"}`,
     borderRadius: 99,
     padding: "6px 13px",
-    fontSize: 11.5,
+    fontSize: 14,
     fontWeight: 600,
     cursor: "pointer",
   };

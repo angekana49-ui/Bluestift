@@ -154,7 +154,7 @@ export function Chat({
           maxWidth: 150,
           overflow: "hidden",
           textOverflow: "ellipsis",
-          fontSize: 11,
+          fontSize: 13,
           border: `1px solid ${t.cardBorder}`,
           borderRadius: 99,
           padding: "6px 13px",
@@ -169,7 +169,7 @@ export function Chat({
         title="Analyze the session (Kernel)"
         style={{
           flex: "none",
-          fontSize: 11,
+          fontSize: 13,
           border: `1px solid ${t.cardBorder}`,
           borderRadius: 99,
           padding: "6px 13px",
@@ -187,12 +187,12 @@ export function Chat({
     <RightPanel theme={t} width={270} title="For you" onCollapse={() => setRightOpen(false)}>
       <div>
         {recommendations.length === 0 && (
-          <div style={{ fontSize: 11, color: t.muted }}>No recommendations yet.</div>
+          <div style={{ fontSize: 13, color: t.muted }}>No recommendations yet.</div>
         )}
         {recommendations.map((r, i) => (
           <div key={i} style={{ background: t.rowActiveBg, borderRadius: 12, padding: 10, marginBottom: 6 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: t.text }}>{r.content}</div>
-            <div style={{ fontSize: 9.5, color: t.muted, marginTop: 2 }}>{r.source}</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: t.text }}>{r.content}</div>
+            <div style={{ fontSize: 13, color: t.muted, marginTop: 2 }}>{r.source}</div>
           </div>
         ))}
       </div>
@@ -200,18 +200,18 @@ export function Chat({
       {analysis && (
         <div style={{ border: `1px solid ${t.cardBorder}`, borderRadius: 16, padding: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: t.text, flex: 1 }}>Kernel analysis</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: t.text, flex: 1 }}>Kernel analysis</span>
             <span onClick={() => downloadBrandedText(analysisDoc(analysis))} style={pillBtn(t)}>TXT</span>
             <span onClick={() => downloadBrandedPdf(analysisDoc(analysis))} style={pillBtn(t)}>PDF</span>
             <span onClick={() => setAnalysis(null)} title="Close" style={pillBtn(t)}>✕</span>
           </div>
-          <div style={{ fontSize: 11.5, color: t.text, marginBottom: 4 }}>
+          <div style={{ fontSize: 14, color: t.text, marginBottom: 4 }}>
             <strong>Root gap:</strong> {analysis.root_gap ?? "—"}
           </div>
-          <div style={{ fontSize: 11.5, color: t.text, marginBottom: 6 }}>
+          <div style={{ fontSize: 14, color: t.text, marginBottom: 6 }}>
             <strong>Summary:</strong> {analysis.summary || "—"}
           </div>
-          <div style={{ fontSize: 10, color: t.muted }}>
+          <div style={{ fontSize: 13, color: t.muted }}>
             Confidence: {analysis.confidence} · KCs: {Object.keys(analysis.mastery_map).length} · Model: {analysis.llm_used}
           </div>
         </div>
@@ -247,7 +247,7 @@ export function Chat({
 }
 
 const pillBtn = (t: AppTheme): React.CSSProperties => ({
-  fontSize: 10,
+  fontSize: 13,
   background: t.cardBg2,
   border: `1px solid ${t.cardBorder}`,
   color: t.mutedLight,

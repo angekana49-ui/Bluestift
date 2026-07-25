@@ -17,10 +17,10 @@ export function PrivacyView({ signedIn }: { signedIn: boolean }) {
     }) as const;
 
   const p = (t: Theme) =>
-    ({ fontSize: 13, color: t.text, lineHeight: 1.75, margin: "0 0 12px" }) as const;
+    ({ fontSize: 15, color: t.text, lineHeight: 1.75, margin: "0 0 12px" }) as const;
 
   const li = (t: Theme) =>
-    ({ fontSize: 13, color: t.text, lineHeight: 1.7, marginBottom: 7 }) as const;
+    ({ fontSize: 15, color: t.text, lineHeight: 1.7, marginBottom: 7 }) as const;
 
   return (
     <SitePage active="Privacy" section="Privacy" signedIn={signedIn}>
@@ -42,7 +42,7 @@ export function PrivacyView({ signedIn }: { signedIn: boolean }) {
                 policy.
               </em>
             </h1>
-            <p style={{ fontSize: 11.5, color: t.muted, margin: "0 0 26px" }}>Last updated {UPDATED}</p>
+            <p style={{ fontSize: 14, color: t.muted, margin: "0 0 26px" }}>Last updated {UPDATED}</p>
 
             <p style={p(t)}>
               BlueStift builds Raya, an AI tutor for students and a companion dashboard for schools. We try to

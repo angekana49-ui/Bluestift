@@ -99,7 +99,7 @@ function PlanCard({
             transform: "translateX(-50%)",
             background: t.greenSolid,
             color: "#04231a",
-            fontSize: 9,
+            fontSize: 13,
             fontWeight: 800,
             padding: "4px 12px",
             borderRadius: 999,
@@ -111,20 +111,20 @@ function PlanCard({
         </span>
       )}
 
-      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", color: muted, textTransform: "uppercase" }}>
+      <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: muted, textTransform: "uppercase" }}>
         {tierName(plan.name)}
       </div>
 
       <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 10 }}>
         <span style={{ fontSize: "2.3rem", fontWeight: 900, letterSpacing: "-0.02em", color: text }}>{big}</span>
-        {unit && <span style={{ fontSize: 12, fontWeight: 500, color: muted }}>{unit}</span>}
+        {unit && <span style={{ fontSize: 14, fontWeight: 500, color: muted }}>{unit}</span>}
       </div>
 
       {/* Annual commitment saves 15% (applies to every paid plan shown per month:
           b2c monthly + per-student school plans). */}
       {!free && !bespoke && plan.price != null &&
         (plan.priceUnit === "per_seat" || plan.billingPeriod !== "yearly") && (
-        <div style={{ fontSize: 11, fontWeight: 500, color: muted, marginTop: 5 }}>
+        <div style={{ fontSize: 13, fontWeight: 500, color: muted, marginTop: 5 }}>
           or {money(annualMonthlyRate(plan.price))}
           {plan.priceUnit === "per_seat" ? " / student" : ""} / mo billed annually{" "}
           <span style={{ color: checkColor, fontWeight: 700 }}>· save 15%</span>
@@ -132,7 +132,7 @@ function PlanCard({
       )}
 
       {plan.description && (
-        <p style={{ fontSize: 12.5, color: muted, margin: "10px 0 0", lineHeight: 1.6, minHeight: 34 }}>
+        <p style={{ fontSize: 15, color: muted, margin: "10px 0 0", lineHeight: 1.6, minHeight: 34 }}>
           {plan.description}
         </p>
       )}
@@ -141,7 +141,7 @@ function PlanCard({
 
       <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10, flex: 1 }}>
         {plan.features.map((f, i) => (
-          <li key={i} style={{ display: "flex", gap: 9, fontSize: 12.5, color: dark ? "rgba(255,255,255,0.82)" : t.text, lineHeight: 1.5 }}>
+          <li key={i} style={{ display: "flex", gap: 9, fontSize: 15, color: dark ? "rgba(255,255,255,0.82)" : t.text, lineHeight: 1.5 }}>
             <Check color={checkColor} />
             <span>{f}</span>
           </li>
@@ -158,7 +158,7 @@ function PlanCard({
           color: dark ? "#0b1220" : t.ctaText,
           borderRadius: 999,
           padding: "12px 20px",
-          fontSize: 12.5,
+          fontSize: 15,
           fontWeight: 600,
           textDecoration: "none",
         }}
@@ -200,7 +200,7 @@ export function PricingView({
                 cursor: "pointer",
                 padding: "8px 22px",
                 borderRadius: 999,
-                fontSize: 12.5,
+                fontSize: 15,
                 fontWeight: on ? 700 : 500,
                 color: on ? t.text : t.muted,
                 background: on ? t.pillActiveBg : "transparent",
@@ -232,7 +232,7 @@ export function PricingView({
                     stays simple.
                   </em>
                 </h1>
-                <p style={{ fontSize: 13.5, color: t.text, lineHeight: 1.7, maxWidth: 520, margin: "0 auto" }}>
+                <p style={{ fontSize: 16, color: t.text, lineHeight: 1.7, maxWidth: 520, margin: "0 auto" }}>
                   Solo starts free and stays free. Schools pay per enrolled student — their effectif, not per active
                   user.
                 </p>
@@ -264,7 +264,7 @@ export function PricingView({
                     border: `1px solid ${t.chipBorder}`,
                     borderRadius: 16,
                     padding: "16px 20px",
-                    fontSize: 12.5,
+                    fontSize: 15,
                     color: t.muted,
                     lineHeight: 1.65,
                     textAlign: "center",
@@ -276,7 +276,7 @@ export function PricingView({
                 </div>
               )}
 
-              <p style={{ textAlign: "center", fontSize: 12, color: t.muted, marginTop: 28 }}>
+              <p style={{ textAlign: "center", fontSize: 14, color: t.muted, marginTop: 28 }}>
                 Questions about a plan?{" "}
                 <Link href="/contact" style={{ color: t.wordmarkB, fontWeight: 600, textDecoration: "none" }}>
                   Talk to the team

@@ -38,10 +38,10 @@ function ArticleCard({ post, large }: { post: PublicResearchPost; large?: boolea
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 14 }}>{type.icon}</span>
+        <span style={{ fontSize: 16 }}>{type.icon}</span>
         <span
           style={{
-            fontSize: 10,
+            fontSize: 13,
             fontWeight: 600,
             color: T.inkMuted,
             letterSpacing: "0.06em",
@@ -50,14 +50,14 @@ function ArticleCard({ post, large }: { post: PublicResearchPost; large?: boolea
         >
           {type.label}
         </span>
-        <span style={{ fontSize: 10, color: T.inkMuted }}>·</span>
-        <span style={{ fontSize: 10, color: T.inkMuted }}>{formatMonth(post.published_at ?? post.created_at)}</span>
-        <span style={{ fontSize: 10, color: T.inkMuted }}>·</span>
-        <span style={{ fontSize: 10, color: T.inkMuted }}>{readTime(post.content)}</span>
+        <span style={{ fontSize: 13, color: T.inkMuted }}>·</span>
+        <span style={{ fontSize: 13, color: T.inkMuted }}>{formatMonth(post.published_at ?? post.created_at)}</span>
+        <span style={{ fontSize: 13, color: T.inkMuted }}>·</span>
+        <span style={{ fontSize: 13, color: T.inkMuted }}>{readTime(post.content)}</span>
         <span
           style={{
             marginLeft: "auto",
-            fontSize: 10,
+            fontSize: 13,
             fontWeight: 600,
             padding: "2px 8px",
             borderRadius: 99,
@@ -86,7 +86,7 @@ function ArticleCard({ post, large }: { post: PublicResearchPost; large?: boolea
       {post.content && (
         <p
           style={{
-            fontSize: 12,
+            fontSize: 14,
             color: T.sub,
             lineHeight: 1.65,
             margin: "0 0 14px",
@@ -113,19 +113,19 @@ function ArticleCard({ post, large }: { post: PublicResearchPost; large?: boolea
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: 8,
+                  fontSize: 13,
                   fontWeight: 700,
                   color: "white",
                 }}
               >
                 {a.full_name[0]}
               </div>
-              <span style={{ fontSize: 11, color: T.sub }}>{a.full_name}</span>
-              {a.institution && <span style={{ fontSize: 10, color: T.inkMuted }}>· {a.institution}</span>}
+              <span style={{ fontSize: 13, color: T.sub }}>{a.full_name}</span>
+              {a.institution && <span style={{ fontSize: 13, color: T.inkMuted }}>· {a.institution}</span>}
             </div>
           ))}
         </div>
-        <span style={{ marginLeft: "auto", fontSize: 11, color: T.green, fontWeight: 600 }}>Lire →</span>
+        <span style={{ marginLeft: "auto", fontSize: 13, color: T.green, fontWeight: 600 }}>Lire →</span>
       </div>
     </Link>
   );
@@ -165,7 +165,7 @@ function NewsletterBox() {
         <div style={{ flex: 1, minWidth: 220 }}>
           <div
             style={{
-              fontSize: 10,
+              fontSize: 13,
               fontWeight: 700,
               color: T.green,
               letterSpacing: "0.08em",
@@ -177,7 +177,7 @@ function NewsletterBox() {
           </div>
           <h3
             style={{
-              fontSize: 16,
+              fontSize: 18,
               fontWeight: 800,
               fontFamily: serif,
               color: T.greenDk,
@@ -187,7 +187,7 @@ function NewsletterBox() {
           >
             Bluestift Research Digest
           </h3>
-          <p style={{ fontSize: 12, color: T.green, lineHeight: 1.6, margin: 0 }}>
+          <p style={{ fontSize: 14, color: T.green, lineHeight: 1.6, margin: 0 }}>
             Avancées du Kernel, résultats terrain, lectures recommandées. Une fois par mois, pas de spam.
           </p>
         </div>
@@ -204,7 +204,7 @@ function NewsletterBox() {
                   border: `1px solid ${T.greenBd}`,
                   borderRadius: 8,
                   padding: "9px 14px",
-                  fontSize: 12,
+                  fontSize: 14,
                   color: T.ink,
                   outline: "none",
                   width: 200,
@@ -219,7 +219,7 @@ function NewsletterBox() {
                   border: "none",
                   borderRadius: 8,
                   padding: "9px 16px",
-                  fontSize: 12,
+                  fontSize: 14,
                   fontWeight: 700,
                   cursor: "pointer",
                 }}
@@ -229,13 +229,13 @@ function NewsletterBox() {
             </div>
             <Turnstile ref={turnstileRef} onVerify={setCaptchaToken} onExpire={() => setCaptchaToken(null)} />
             {state === "error" && (
-              <span style={{ fontSize: 11, color: "#dc2626" }}>Échec de l&apos;inscription — réessaie.</span>
+              <span style={{ fontSize: 13, color: "#dc2626" }}>Échec de l&apos;inscription — réessaie.</span>
             )}
           </div>
         ) : (
           <div style={{ display: "flex", alignItems: "center", gap: 8, color: T.green }}>
-            <span style={{ fontSize: 18 }}>✓</span>
-            <span style={{ fontSize: 12, fontWeight: 600 }}>Inscrit ! Vérifie ta boîte mail.</span>
+            <span style={{ fontSize: 21 }}>✓</span>
+            <span style={{ fontSize: 14, fontWeight: 600 }}>Inscrit ! Vérifie ta boîte mail.</span>
           </div>
         )}
       </div>
@@ -257,7 +257,7 @@ function ProposeForm({ onClose }: { onClose: () => void }) {
     border: `1px solid ${T.border}`,
     borderRadius: 10,
     padding: "10px 14px",
-    fontSize: 13,
+    fontSize: 15,
     color: T.ink,
     outline: "none",
     boxSizing: "border-box",
@@ -284,9 +284,9 @@ function ProposeForm({ onClose }: { onClose: () => void }) {
   if (state === "done") {
     return (
       <div style={{ maxWidth: 560, margin: "0 auto", padding: "60px 24px", textAlign: "center" }}>
-        <div style={{ fontSize: 42, marginBottom: 16 }}>🙏</div>
-        <h2 style={{ fontSize: 20, fontWeight: 800, color: T.ink, margin: "0 0 10px" }}>Proposition reçue.</h2>
-        <p style={{ fontSize: 13, color: T.sub, lineHeight: 1.6, marginBottom: 24 }}>
+        <div style={{ fontSize: 47, marginBottom: 16 }}>🙏</div>
+        <h2 style={{ fontSize: 23, fontWeight: 800, color: T.ink, margin: "0 0 10px" }}>Proposition reçue.</h2>
+        <p style={{ fontSize: 15, color: T.sub, lineHeight: 1.6, marginBottom: 24 }}>
           On la relit et on te répond par email. Merci de contribuer à la recherche Bluestift.
         </p>
         <button
@@ -297,7 +297,7 @@ function ProposeForm({ onClose }: { onClose: () => void }) {
             border: "none",
             borderRadius: 10,
             padding: "10px 24px",
-            fontSize: 12,
+            fontSize: 14,
             fontWeight: 700,
             cursor: "pointer",
           }}
@@ -312,14 +312,14 @@ function ProposeForm({ onClose }: { onClose: () => void }) {
     <div style={{ maxWidth: 560, margin: "0 auto", padding: "28px 24px" }}>
       <button
         onClick={onClose}
-        style={{ background: "none", border: "none", cursor: "pointer", color: T.sub, fontSize: 12, marginBottom: 20, padding: 0 }}
+        style={{ background: "none", border: "none", cursor: "pointer", color: T.sub, fontSize: 14, marginBottom: 20, padding: 0 }}
       >
         ← Retour
       </button>
-      <h2 style={{ fontSize: 20, fontWeight: 800, fontFamily: serif, color: T.ink, margin: "0 0 8px" }}>
+      <h2 style={{ fontSize: 23, fontWeight: 800, fontFamily: serif, color: T.ink, margin: "0 0 8px" }}>
         Proposer une contribution
       </h2>
-      <p style={{ fontSize: 12, color: T.sub, lineHeight: 1.6, marginBottom: 20 }}>
+      <p style={{ fontSize: 14, color: T.sub, lineHeight: 1.6, marginBottom: 20 }}>
         Paper, expérience terrain, article ou jeu de données — décris ta proposition, l&apos;équipe research te
         recontacte.
       </p>
@@ -363,23 +363,23 @@ function ProposeForm({ onClose }: { onClose: () => void }) {
           onChange={(e) => setForm({ ...form, description: e.target.value })}
           style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }}
         />
-        <label style={{ fontSize: 12, color: T.sub }}>
+        <label style={{ fontSize: 14, color: T.sub }}>
           Document (optionnel) — paper, dataset, slides… (PDF, Word, Excel, images ; 15 Mo max)
           <input
             type="file"
             accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.md,.png,.jpg,.jpeg,.zip"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            style={{ display: "block", marginTop: 6, fontSize: 12, color: T.ink }}
+            style={{ display: "block", marginTop: 6, fontSize: 14, color: T.ink }}
           />
           {file && (
-            <span style={{ fontSize: 11, color: T.inkMuted }}>
+            <span style={{ fontSize: 13, color: T.inkMuted }}>
               {file.name} · {(file.size / 1024 / 1024).toFixed(1)} Mo
             </span>
           )}
         </label>
         <Turnstile ref={turnstileRef} onVerify={setCaptchaToken} onExpire={() => setCaptchaToken(null)} />
         {state === "error" && (
-          <span style={{ fontSize: 11, color: "#dc2626" }}>Échec de l&apos;envoi — réessaie.</span>
+          <span style={{ fontSize: 13, color: "#dc2626" }}>Échec de l&apos;envoi — réessaie.</span>
         )}
         <button
           onClick={submit}
@@ -391,7 +391,7 @@ function ProposeForm({ onClose }: { onClose: () => void }) {
             border: "none",
             borderRadius: 10,
             padding: "11px 24px",
-            fontSize: 12,
+            fontSize: 14,
             fontWeight: 700,
             cursor: "pointer",
           }}
@@ -408,10 +408,10 @@ function Collaborations() {
   return (
     <div style={{ maxWidth: 680, margin: "0 auto", padding: "28px 24px" }}>
       <div style={{ marginBottom: 24 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 800, fontFamily: serif, color: T.ink, margin: "0 0 8px" }}>
+        <h2 style={{ fontSize: 21, fontWeight: 800, fontFamily: serif, color: T.ink, margin: "0 0 8px" }}>
           Collaborations académiques
         </h2>
-        <p style={{ fontSize: 12, color: T.sub, lineHeight: 1.6 }}>
+        <p style={{ fontSize: 14, color: T.sub, lineHeight: 1.6 }}>
           Bluestift souhaite collaborer avec des chercheurs en éducation pour valider le Cognitive Kernel.
           Ce chantier s&apos;ouvre : si le sujet vous intéresse, écrivez-nous.
         </p>
@@ -429,12 +429,12 @@ function Collaborations() {
           alignItems: "flex-start",
         }}
       >
-        <span style={{ fontSize: 20, flexShrink: 0 }}>🤝</span>
+        <span style={{ fontSize: 23, flexShrink: 0 }}>🤝</span>
         <div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: T.violet, marginBottom: 4 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: T.violet, marginBottom: 4 }}>
             Tu es chercheur en éducation ?
           </div>
-          <p style={{ fontSize: 11, color: "#4a3d8f", lineHeight: 1.6, margin: "0 0 10px" }}>
+          <p style={{ fontSize: 13, color: "#4a3d8f", lineHeight: 1.6, margin: "0 0 10px" }}>
             Nous partageons nos données anonymisées et notre code source avec les chercheurs intéressés par le
             Cognitive Kernel.
           </p>
@@ -446,7 +446,7 @@ function Collaborations() {
               color: "white",
               borderRadius: 8,
               padding: "8px 16px",
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: 700,
             }}
           >
@@ -500,7 +500,7 @@ export function ResearchView({ posts, issues, signedIn, initialTab }: Props) {
           style={{
             padding: "5px 14px",
             borderRadius: 99,
-            fontSize: 11,
+            fontSize: 13,
             fontWeight: 500,
             background: tab === k && !proposing ? "white" : "transparent",
             color: tab === k && !proposing ? T.ink : T.sub,
@@ -520,7 +520,7 @@ export function ResearchView({ posts, issues, signedIn, initialTab }: Props) {
       <button
         onClick={() => setProposing(true)}
         style={{
-          fontSize: 11,
+          fontSize: 13,
           padding: "6px 14px",
           borderRadius: 99,
           background: T.green,
@@ -564,7 +564,7 @@ export function ResearchView({ posts, issues, signedIn, initialTab }: Props) {
           >
             <span
               style={{
-                fontSize: 10,
+                fontSize: 13,
                 fontWeight: 700,
                 color: T.green,
                 letterSpacing: "0.1em",
@@ -575,12 +575,12 @@ export function ResearchView({ posts, issues, signedIn, initialTab }: Props) {
             </span>
             {range && (
               <>
-                <span style={{ fontSize: 10, color: T.inkMuted }}>·</span>
-                <span style={{ fontSize: 10, color: T.inkMuted }}>{range}</span>
+                <span style={{ fontSize: 13, color: T.inkMuted }}>·</span>
+                <span style={{ fontSize: 13, color: T.inkMuted }}>{range}</span>
               </>
             )}
-            <span style={{ fontSize: 10, color: T.inkMuted }}>·</span>
-            <span style={{ fontSize: 10, color: T.inkMuted }}>
+            <span style={{ fontSize: 13, color: T.inkMuted }}>·</span>
+            <span style={{ fontSize: 13, color: T.inkMuted }}>
               {posts.length} publication{posts.length > 1 ? "s" : ""}
             </span>
             {typesPresent.length > 1 && (
@@ -590,7 +590,7 @@ export function ResearchView({ posts, issues, signedIn, initialTab }: Props) {
                     key={k}
                     onClick={() => setFilter(k)}
                     style={{
-                      fontSize: 10,
+                      fontSize: 13,
                       padding: "3px 9px",
                       borderRadius: 99,
                       border: `1px solid ${filter === k ? T.green : T.border}`,
@@ -607,7 +607,7 @@ export function ResearchView({ posts, issues, signedIn, initialTab }: Props) {
           </div>
 
           {posts.length === 0 && (
-            <div style={{ textAlign: "center", padding: "60px 0", color: T.inkMuted, fontSize: 13 }}>
+            <div style={{ textAlign: "center", padding: "60px 0", color: T.inkMuted, fontSize: 15 }}>
               Les premières publications arrivent bientôt. Abonne-toi à la newsletter pour être prévenu.
             </div>
           )}
@@ -616,7 +616,7 @@ export function ResearchView({ posts, issues, signedIn, initialTab }: Props) {
             <div style={{ marginBottom: 16 }}>
               <div
                 style={{
-                  fontSize: 10,
+                  fontSize: 13,
                   fontWeight: 600,
                   color: T.green,
                   letterSpacing: "0.07em",
@@ -634,7 +634,7 @@ export function ResearchView({ posts, issues, signedIn, initialTab }: Props) {
             <>
               <div
                 style={{
-                  fontSize: 10,
+                  fontSize: 13,
                   fontWeight: 600,
                   color: T.inkMuted,
                   letterSpacing: "0.07em",
@@ -658,7 +658,7 @@ export function ResearchView({ posts, issues, signedIn, initialTab }: Props) {
           <NewsletterBox />
           <div
             style={{
-              fontSize: 10,
+              fontSize: 13,
               fontWeight: 600,
               color: T.inkMuted,
               letterSpacing: "0.07em",
@@ -669,7 +669,7 @@ export function ResearchView({ posts, issues, signedIn, initialTab }: Props) {
             Archives
           </div>
           {issues.length === 0 && (
-            <p style={{ fontSize: 12, color: T.inkMuted }}>Pas encore de numéro publié — le premier arrive.</p>
+            <p style={{ fontSize: 14, color: T.inkMuted }}>Pas encore de numéro publié — le premier arrive.</p>
           )}
           {issues.map((issue) => {
             const inner = (
@@ -687,7 +687,7 @@ export function ResearchView({ posts, issues, signedIn, initialTab }: Props) {
               >
                 <div
                   style={{
-                    fontSize: 11,
+                    fontSize: 13,
                     fontWeight: 700,
                     color: T.green,
                     background: T.greenBg,
@@ -699,10 +699,10 @@ export function ResearchView({ posts, issues, signedIn, initialTab }: Props) {
                   #{issue.issue_number.replace(/^#/, "")}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: T.ink }}>{issue.title}</div>
-                  <div style={{ fontSize: 10, color: T.inkMuted, marginTop: 2 }}>{formatMonth(issue.published_at)}</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: T.ink }}>{issue.title}</div>
+                  <div style={{ fontSize: 13, color: T.inkMuted, marginTop: 2 }}>{formatMonth(issue.published_at)}</div>
                 </div>
-                {issue.content_url && <span style={{ fontSize: 11, color: T.green }}>Lire →</span>}
+                {issue.content_url && <span style={{ fontSize: 13, color: T.green }}>Lire →</span>}
               </div>
             );
             return issue.content_url ? (

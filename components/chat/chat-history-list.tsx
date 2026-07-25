@@ -38,7 +38,7 @@ export function ChatHistoryList({
           color: t.sidebarText,
           borderRadius: 9,
           padding: "8px 10px",
-          fontSize: 11,
+          fontSize: 13,
           fontWeight: 600,
           textAlign: "center",
           marginBottom: 2,
@@ -48,7 +48,7 @@ export function ChatHistoryList({
         + New session
       </div>
       {conversations.length === 0 && (
-        <div style={{ fontSize: 10.5, color: t.sidebarMuted, padding: "6px 10px" }}>
+        <div style={{ fontSize: 13, color: t.sidebarMuted, padding: "6px 10px" }}>
           No conversations yet.
         </div>
       )}
@@ -76,7 +76,7 @@ export function ChatHistoryList({
                 flex: 1,
                 minWidth: 0,
                 cursor: "pointer",
-                fontSize: 11,
+                fontSize: 13,
                 fontWeight: active ? 700 : 500,
                 color: active ? t.sidebarText : t.sidebarMuted,
                 whiteSpace: "nowrap",
@@ -92,7 +92,7 @@ export function ChatHistoryList({
                 onDelete(c.id);
               }}
               title="Delete"
-              style={{ cursor: "pointer", color: t.mutedLight, fontSize: 11, flex: "none" }}
+              style={{ cursor: "pointer", color: t.mutedLight, fontSize: 13, flex: "none" }}
             >
               ✕
             </span>

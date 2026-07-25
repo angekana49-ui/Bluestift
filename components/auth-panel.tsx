@@ -170,14 +170,14 @@ export function AuthPanel({ user, profile }: Props) {
 
   const infoRow = (label: string, value: React.ReactNode) => (
     <div style={{ borderTop: `1px solid ${t.cardBorder}`, paddingTop: 12 }}>
-      <div style={{ fontSize: 11, color: t.muted, marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 12.5, color: t.text }}>{value}</div>
+      <div style={{ fontSize: 13, color: t.muted, marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 15, color: t.text }}>{value}</div>
     </div>
   );
 
   // ---- Signed out (/login) ----
   if (!user) {
-    const label: React.CSSProperties = { fontSize: 12.5, fontWeight: 600, color: t.text, margin: "0 0 8px" };
+    const label: React.CSSProperties = { fontSize: 15, fontWeight: 600, color: t.text, margin: "0 0 8px" };
     return (
       <div style={{ ...card, maxWidth: 560 }}>
         <h2 style={cardTitle(t)}>Sign in or get started</h2>
@@ -212,7 +212,7 @@ export function AuthPanel({ user, profile }: Props) {
           Start anonymously
         </button>
 
-        {msg && <p style={{ marginTop: 12, color: t.muted, fontSize: 12.5 }}>{msg}</p>}
+        {msg && <p style={{ marginTop: 12, color: t.muted, fontSize: 15 }}>{msg}</p>}
       </div>
     );
   }
@@ -231,7 +231,7 @@ export function AuthPanel({ user, profile }: Props) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: 18,
+            fontSize: 21,
             fontWeight: 700,
             color: "white",
             flexShrink: 0,
@@ -245,8 +245,8 @@ export function AuthPanel({ user, profile }: Props) {
           )}
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: t.text }}>{profile?.display_name ?? "—"}</div>
-          <div style={{ fontSize: 11.5, color: t.muted }}>@{profile?.username ?? "—"}</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: t.text }}>{profile?.display_name ?? "—"}</div>
+          <div style={{ fontSize: 14, color: t.muted }}>@{profile?.username ?? "—"}</div>
         </div>
         <label style={{ ...ghost, display: "inline-block" }}>
           Change photo
@@ -276,15 +276,15 @@ export function AuthPanel({ user, profile }: Props) {
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <span style={{ fontSize: 15 }} aria-hidden>
+              <span style={{ fontSize: 17 }} aria-hidden>
                 ⚠️
               </span>
-              <div style={{ fontSize: 12.5, fontWeight: 700, color: t.text }}>Your progress isn&apos;t safe yet</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: t.text }}>Your progress isn&apos;t safe yet</div>
             </div>
             {/* Loss aversion, honestly framed — this is literally true for an
                 anonymous account: no linked email means one cleared browser or
                 one lost recovery key wipes everything. */}
-            <p style={{ fontSize: 11.5, color: t.muted, lineHeight: 1.6, margin: "0 0 12px" }}>
+            <p style={{ fontSize: 14, color: t.muted, lineHeight: 1.6, margin: "0 0 12px" }}>
               This account lives only on this device. If you clear your browser or lose your recovery key,
               your <strong style={{ color: t.text }}>conversations, self-tests and Kernel profile disappear for good</strong>.
               Link an email now to keep them.
@@ -305,13 +305,13 @@ export function AuthPanel({ user, profile }: Props) {
         <button
           onClick={signOut}
           disabled={busy}
-          style={{ marginTop: 4, alignSelf: "flex-start", background: "none", border: "none", padding: 0, fontSize: 11.5, color: status.danger, cursor: "pointer" }}
+          style={{ marginTop: 4, alignSelf: "flex-start", background: "none", border: "none", padding: 0, fontSize: 14, color: status.danger, cursor: "pointer" }}
         >
           Sign out
         </button>
       </div>
 
-      {msg && <p style={{ marginTop: 12, color: t.muted, fontSize: 12.5 }}>{msg}</p>}
+      {msg && <p style={{ marginTop: 12, color: t.muted, fontSize: 15 }}>{msg}</p>}
     </div>
   );
 }
@@ -344,7 +344,7 @@ function RecoveryKeyCard({ code }: { code: string | null }) {
     border: `1px solid ${t.cardBorder}`,
     borderRadius: 99,
     padding: "5px 12px",
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: 600,
     cursor: "pointer",
   };
@@ -362,12 +362,12 @@ function RecoveryKeyCard({ code }: { code: string | null }) {
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-        <span style={{ fontSize: 15 }} aria-hidden>
+        <span style={{ fontSize: 17 }} aria-hidden>
           🔑
         </span>
-        <div style={{ fontSize: 12.5, fontWeight: 700, color: t.text, flex: 1 }}>Recovery key</div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: t.text, flex: 1 }}>Recovery key</div>
       </div>
-      <p style={{ fontSize: 11.5, color: t.muted, lineHeight: 1.6, margin: "0 0 12px" }}>
+      <p style={{ fontSize: 14, color: t.muted, lineHeight: 1.6, margin: "0 0 12px" }}>
         This key is the <strong style={{ color: t.text }}>only way back into this account</strong> if you
         lose access. Copy it somewhere safe (a password manager), then hide it. We can&apos;t recover it for you.
       </p>
@@ -380,7 +380,7 @@ function RecoveryKeyCard({ code }: { code: string | null }) {
             border: `1px solid ${t.inputBorder}`,
             borderRadius: 8,
             padding: "9px 12px",
-            fontSize: 13,
+            fontSize: 15,
             letterSpacing: shown ? "0.12em" : "0.24em",
             color: t.text,
             fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",

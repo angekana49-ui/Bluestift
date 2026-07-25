@@ -74,18 +74,18 @@ export function PublicNav({
             justifyContent: "center",
             fontFamily: "Georgia, serif",
             fontStyle: "italic",
-            fontSize: 15,
+            fontSize: 17,
             color: "white",
             fontWeight: 600,
           }}
         >
           B
         </div>
-        <span style={{ fontSize: 14, fontWeight: 800, color: base.ink, letterSpacing: "-0.03em" }}>
+        <span style={{ fontSize: 16, fontWeight: 800, color: base.ink, letterSpacing: "-0.03em" }}>
           Bluestift
         </span>
         {section && (
-          <span style={{ fontSize: 11, color: base.inkMuted, marginLeft: 2 }}>· {section}</span>
+          <span style={{ fontSize: 13, color: base.inkMuted, marginLeft: 2 }}>· {section}</span>
         )}
       </Link>
 
@@ -108,7 +108,7 @@ export function PublicNav({
               style={{
                 padding: "6px 14px",
                 borderRadius: 99,
-                fontSize: 11,
+                fontSize: 13,
                 fontWeight: 500,
                 background: active === label ? "white" : "transparent",
                 color: active === label ? base.ink : base.inkSub,
@@ -129,7 +129,7 @@ export function PublicNav({
               <Link
                 href="/account"
                 className="pub-hide-sm"
-                style={{ fontSize: 12, color: base.inkSub, padding: "6px 10px" }}
+                style={{ fontSize: 14, color: base.inkSub, padding: "6px 10px" }}
               >
                 Mon compte
               </Link>
@@ -140,7 +140,7 @@ export function PublicNav({
                   color: "white",
                   borderRadius: 99,
                   padding: "8px 18px",
-                  fontSize: 12,
+                  fontSize: 14,
                   fontWeight: 600,
                   display: "flex",
                   alignItems: "center",
@@ -164,7 +164,7 @@ export function PublicNav({
               <Link
                 href="/login"
                 className="pub-hide-sm"
-                style={{ fontSize: 12, color: base.inkSub, padding: "6px 10px" }}
+                style={{ fontSize: 14, color: base.inkSub, padding: "6px 10px" }}
               >
                 Se connecter
               </Link>
@@ -175,7 +175,7 @@ export function PublicNav({
                   color: "white",
                   borderRadius: 99,
                   padding: "8px 18px",
-                  fontSize: 12,
+                  fontSize: 14,
                   fontWeight: 600,
                   display: "flex",
                   alignItems: "center",

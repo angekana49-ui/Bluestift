@@ -163,7 +163,7 @@ function SurveyFlow({
             style={{ height: "100%", width: `${progress}%`, background: T.amber, borderRadius: 99, transition: "width 0.3s" }}
           />
         </div>
-        <span style={{ fontSize: 11, color: T.inkMuted, flexShrink: 0 }}>
+        <span style={{ fontSize: 13, color: T.inkMuted, flexShrink: 0 }}>
           {step + 1} / {total}
         </span>
       </div>
@@ -171,7 +171,7 @@ function SurveyFlow({
       <div style={{ marginBottom: 32 }}>
         <div
           style={{
-            fontSize: 11,
+            fontSize: 13,
             fontWeight: 600,
             color: T.amber,
             letterSpacing: "0.06em",
@@ -204,7 +204,7 @@ function SurveyFlow({
                 style={{
                   padding: "14px 18px",
                   borderRadius: 12,
-                  fontSize: 13,
+                  fontSize: 15,
                   fontWeight: 500,
                   border: `1px solid ${T.border}`,
                   background: T.white,
@@ -230,7 +230,7 @@ function SurveyFlow({
                 border: `1px solid ${T.border}`,
                 borderRadius: 12,
                 padding: "14px 16px",
-                fontSize: 13,
+                fontSize: 15,
                 color: T.ink,
                 fontFamily: "inherit",
                 lineHeight: 1.6,
@@ -249,7 +249,7 @@ function SurveyFlow({
                 border: "none",
                 borderRadius: 10,
                 padding: "11px 24px",
-                fontSize: 12,
+                fontSize: 14,
                 fontWeight: 700,
                 cursor: "pointer",
               }}
@@ -266,7 +266,7 @@ function SurveyFlow({
         </div>
       )}
       {error && (
-        <p style={{ fontSize: 12, color: "#dc2626", marginBottom: 12 }}>
+        <p style={{ fontSize: 14, color: "#dc2626", marginBottom: 12 }}>
           Échec de l&apos;envoi — vérifie le CAPTCHA et réessaie.
         </p>
       )}
@@ -274,7 +274,7 @@ function SurveyFlow({
       <button
         onClick={() => answer(null)}
         disabled={submitting}
-        style={{ background: "none", border: "none", fontSize: 11, color: T.inkMuted, cursor: "pointer", padding: 0 }}
+        style={{ background: "none", border: "none", fontSize: 13, color: T.inkMuted, cursor: "pointer", padding: 0 }}
       >
         Passer cette question →
       </button>
@@ -303,11 +303,11 @@ function DoneScreen({ responseId, onFreeWall }: { responseId: string | null; onF
 
   return (
     <div style={{ maxWidth: 480, margin: "0 auto", padding: "60px 24px", textAlign: "center" }}>
-      <div style={{ fontSize: 48, marginBottom: 20 }}>🙏</div>
+      <div style={{ fontSize: 54, marginBottom: 20 }}>🙏</div>
       <h2 style={{ fontSize: "1.8rem", fontWeight: 800, color: T.ink, letterSpacing: "-0.02em", margin: "0 0 12px" }}>
         Merci.
       </h2>
-      <p style={{ fontSize: 13, color: T.sub, lineHeight: 1.7, marginBottom: 24 }}>
+      <p style={{ fontSize: 15, color: T.sub, lineHeight: 1.7, marginBottom: 24 }}>
         Tes réponses vont directement alimenter le développement de Raya. Laisse ton email si tu veux un accès
         anticipé quand la beta sera prête.
       </p>
@@ -333,7 +333,7 @@ function DoneScreen({ responseId, onFreeWall }: { responseId: string | null; onF
                 border: `1px solid ${T.border}`,
                 borderRadius: 10,
                 padding: "10px 14px",
-                fontSize: 12,
+                fontSize: 14,
                 color: T.ink,
                 outline: "none",
                 width: 200,
@@ -348,7 +348,7 @@ function DoneScreen({ responseId, onFreeWall }: { responseId: string | null; onF
                 border: "none",
                 borderRadius: 10,
                 padding: "10px 18px",
-                fontSize: 12,
+                fontSize: 14,
                 fontWeight: 700,
                 cursor: captchaToken ? "pointer" : "not-allowed",
                 opacity: captchaToken ? 1 : 0.6,
@@ -361,7 +361,7 @@ function DoneScreen({ responseId, onFreeWall }: { responseId: string | null; onF
         </div>
       )}
       {saved && (
-        <p style={{ fontSize: 12, color: "#16a34a", fontWeight: 600, marginBottom: 24 }}>✓ Noté — à bientôt !</p>
+        <p style={{ fontSize: 14, color: "#16a34a", fontWeight: 600, marginBottom: 24 }}>✓ Noté — à bientôt !</p>
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
@@ -373,7 +373,7 @@ function DoneScreen({ responseId, onFreeWall }: { responseId: string | null; onF
             border: "none",
             borderRadius: 10,
             padding: "12px 28px",
-            fontSize: 13,
+            fontSize: 15,
             fontWeight: 700,
             cursor: "pointer",
           }}
@@ -386,7 +386,7 @@ function DoneScreen({ responseId, onFreeWall }: { responseId: string | null; onF
             border: `1px solid ${T.border}`,
             borderRadius: 10,
             padding: "11px 28px",
-            fontSize: 13,
+            fontSize: 15,
             color: T.sub,
           }}
         >
@@ -447,7 +447,7 @@ function FreeWall({ initialPosts }: { initialPosts: WallPost[] }) {
         <h2 style={{ fontSize: "clamp(1.3rem,3vw,1.8rem)", fontWeight: 800, color: T.ink, letterSpacing: "-0.02em", margin: "0 0 8px" }}>
           Dis-nous ce que tu penses.
         </h2>
-        <p style={{ fontSize: 13, color: T.sub, lineHeight: 1.6 }}>
+        <p style={{ fontSize: 15, color: T.sub, lineHeight: 1.6 }}>
           Pas de questions, pas de formulaire. Juste un espace pour t&apos;exprimer librement. Ce que tu écris ici
           alimente directement le produit.
         </p>
@@ -467,7 +467,7 @@ function FreeWall({ initialPosts }: { initialPosts: WallPost[] }) {
               style={{
                 padding: "5px 12px",
                 borderRadius: 99,
-                fontSize: 11,
+                fontSize: 13,
                 fontWeight: 600,
                 border: `1px solid ${profile === k ? T.amber : T.border}`,
                 background: profile === k ? T.amberBg : "transparent",
@@ -490,7 +490,7 @@ function FreeWall({ initialPosts }: { initialPosts: WallPost[] }) {
             border: "none",
             borderRadius: 10,
             padding: "12px 14px",
-            fontSize: 13,
+            fontSize: 15,
             color: T.ink,
             fontFamily: "inherit",
             lineHeight: 1.6,
@@ -511,7 +511,7 @@ function FreeWall({ initialPosts }: { initialPosts: WallPost[] }) {
               border: "none",
               borderRadius: 8,
               padding: "9px 20px",
-              fontSize: 12,
+              fontSize: 14,
               fontWeight: 700,
               cursor: text.trim() ? "pointer" : "default",
             }}
@@ -520,7 +520,7 @@ function FreeWall({ initialPosts }: { initialPosts: WallPost[] }) {
           </button>
         </div>
         {error && (
-          <p style={{ fontSize: 11, color: "#dc2626", margin: "8px 0 0" }}>
+          <p style={{ fontSize: 13, color: "#dc2626", margin: "8px 0 0" }}>
             Échec de la publication — vérifie le CAPTCHA et réessaie.
           </p>
         )}
@@ -529,7 +529,7 @@ function FreeWall({ initialPosts }: { initialPosts: WallPost[] }) {
       {/* Posts */}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {posts.length === 0 && (
-          <p style={{ fontSize: 12, color: T.inkMuted, textAlign: "center", padding: "24px 0" }}>
+          <p style={{ fontSize: 14, color: T.inkMuted, textAlign: "center", padding: "24px 0" }}>
             Personne n&apos;a encore posté — sois le premier.
           </p>
         )}
@@ -544,19 +544,19 @@ function FreeWall({ initialPosts }: { initialPosts: WallPost[] }) {
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-              <span style={{ fontSize: 14 }}>
+              <span style={{ fontSize: 16 }}>
                 {post.profile === "teacher" ? "👩‍🏫" : post.profile === "student" ? "🎓" : "👤"}
               </span>
-              <span style={{ fontSize: 11, fontWeight: 600, color: T.sub }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: T.sub }}>
                 {post.profile === "teacher" ? "Enseignant" : post.profile === "student" ? "Élève" : "Anonyme"}
               </span>
-              <span style={{ fontSize: 10, color: T.inkMuted, marginLeft: "auto" }}>
+              <span style={{ fontSize: 13, color: T.inkMuted, marginLeft: "auto" }}>
                 {post.language === "en" ? "🇬🇧" : "🇫🇷"}
               </span>
             </div>
             <p
               style={{
-                fontSize: 13,
+                fontSize: 15,
                 color: T.ink,
                 lineHeight: 1.65,
                 margin: "0 0 14px",
@@ -577,7 +577,7 @@ function FreeWall({ initialPosts }: { initialPosts: WallPost[] }) {
                   borderRadius: 99,
                   border: `1px solid ${reacted.has(`${post.id}:resonates`) ? T.amber : T.border}`,
                   background: "transparent",
-                  fontSize: 11,
+                  fontSize: 13,
                   color: reacted.has(`${post.id}:resonates`) ? T.amber : T.sub,
                   cursor: "pointer",
                 }}
@@ -594,7 +594,7 @@ function FreeWall({ initialPosts }: { initialPosts: WallPost[] }) {
                   borderRadius: 99,
                   border: `1px solid ${reacted.has(`${post.id}:important`) ? T.amber : T.border}`,
                   background: "transparent",
-                  fontSize: 11,
+                  fontSize: 13,
                   color: reacted.has(`${post.id}:important`) ? T.amber : T.sub,
                   cursor: "pointer",
                 }}
@@ -632,7 +632,7 @@ export function SurveyView({ signedIn, initialPosts, stats }: Props) {
             key={k}
             onClick={() => setView(k as "landing" | "free")}
             style={{
-              fontSize: 11,
+              fontSize: 13,
               padding: "4px 12px",
               borderRadius: 99,
               border: `1px solid ${activeGroup ? T.amber : T.border}`,
@@ -673,7 +673,7 @@ export function SurveyView({ signedIn, initialPosts, stats }: Props) {
             }}
           >
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: T.amber, flexShrink: 0 }} />
-            <span style={{ fontSize: 11, fontWeight: 600, color: T.amber }}>R&D · 5 minutes · Anonyme</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: T.amber }}>R&D · 5 minutes · Anonyme</span>
           </div>
 
           <h1
@@ -691,7 +691,7 @@ export function SurveyView({ signedIn, initialPosts, stats }: Props) {
               Dis-nous ce qui bloque vraiment.
             </em>
           </h1>
-          <p style={{ fontSize: 13, color: T.sub, lineHeight: 1.65, maxWidth: 400, margin: "0 auto 36px" }}>
+          <p style={{ fontSize: 15, color: T.sub, lineHeight: 1.65, maxWidth: 400, margin: "0 auto 36px" }}>
             6 questions. Pas de compte requis. Tes réponses alimentent directement le développement de Raya et du
             Cognitive Kernel.
           </p>
@@ -705,7 +705,7 @@ export function SurveyView({ signedIn, initialPosts, stats }: Props) {
                 border: "none",
                 borderRadius: 12,
                 padding: "14px 28px",
-                fontSize: 13,
+                fontSize: 15,
                 fontWeight: 700,
                 cursor: "pointer",
                 display: "flex",
@@ -723,7 +723,7 @@ export function SurveyView({ signedIn, initialPosts, stats }: Props) {
                 border: "none",
                 borderRadius: 12,
                 padding: "14px 28px",
-                fontSize: 13,
+                fontSize: 15,
                 fontWeight: 700,
                 cursor: "pointer",
                 display: "flex",
@@ -741,7 +741,7 @@ export function SurveyView({ signedIn, initialPosts, stats }: Props) {
               marginTop: 20,
               background: "none",
               border: "none",
-              fontSize: 12,
+              fontSize: 14,
               color: T.inkMuted,
               cursor: "pointer",
               textDecoration: "underline",
@@ -757,8 +757,8 @@ export function SurveyView({ signedIn, initialPosts, stats }: Props) {
                 { v: String(stats.posts), l: "témoignages partagés" },
               ].map((s) => (
                 <div key={s.l} style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: T.amber }}>{s.v}</div>
-                  <div style={{ fontSize: 10, color: T.inkMuted }}>{s.l}</div>
+                  <div style={{ fontSize: 25, fontWeight: 800, color: T.amber }}>{s.v}</div>
+                  <div style={{ fontSize: 13, color: T.inkMuted }}>{s.l}</div>
                 </div>
               ))}
             </div>

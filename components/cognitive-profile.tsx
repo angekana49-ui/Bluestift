@@ -24,7 +24,7 @@ function pct(v: number): string {
 
 function Bar({ theme: t, label, value, color }: { theme: AppTheme; label: string; value: number; color: string }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>
       <span style={{ width: 118, color: t.muted }}>{label}</span>
       <div style={{ flex: 1, height: 8, background: t.gaugeTrack, borderRadius: 99, overflow: "hidden" }}>
         <div style={{ width: pct(value), height: "100%", background: color }} />
@@ -39,8 +39,8 @@ function ConceptCard({ theme: t, c }: { theme: AppTheme; c: ConceptStateOut }) {
   return (
     <div style={{ ...panelCard(t) }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-        <strong style={{ flex: 1, color: t.text, fontSize: 13 }}>{c.label || c.concept_id}</strong>
-        <span style={{ background: st.color, color: "#0b1020", borderRadius: 999, padding: "2px 10px", fontSize: 10.5, fontWeight: 600 }}>
+        <strong style={{ flex: 1, color: t.text, fontSize: 15 }}>{c.label || c.concept_id}</strong>
+        <span style={{ background: st.color, color: "#0b1020", borderRadius: 999, padding: "2px 10px", fontSize: 13, fontWeight: 600 }}>
           {st.label}
         </span>
       </div>
@@ -50,7 +50,7 @@ function ConceptCard({ theme: t, c }: { theme: AppTheme; c: ConceptStateOut }) {
         <Bar theme={t} label="Application (P)" value={c.p_score} color="#06b6d4" />
       </div>
       {c.last_interaction_at && (
-        <p style={{ color: t.mutedLight, fontSize: 10.5, margin: "12px 0 0" }}>
+        <p style={{ color: t.mutedLight, fontSize: 13, margin: "12px 0 0" }}>
           Last practiced on {new Date(c.last_interaction_at).toLocaleDateString()}
         </p>
       )}
@@ -87,13 +87,13 @@ export function CognitiveProfile() {
   }, []);
 
   if (state === "loading") {
-    return <p style={{ color: t.muted, fontSize: 12.5 }}>Loading your profile…</p>;
+    return <p style={{ color: t.muted, fontSize: 15 }}>Loading your profile…</p>;
   }
 
   if (state === "error") {
     return (
       <div style={panelCard(t)}>
-        <p style={{ margin: 0, color: t.text, fontSize: 12.5 }}>
+        <p style={{ margin: 0, color: t.text, fontSize: 15 }}>
           Your profile isn&apos;t available right now. It&apos;s built by Raya&apos;s cognitive
           engine — try again in a moment.
         </p>
@@ -113,14 +113,14 @@ export function CognitiveProfile() {
       {globalMastery != null && (
         <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 16, marginBottom: 16 }}>
           <div style={panelCard(t)}>
-            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, color: t.text }}>Overall mastery</div>
+            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 10, color: t.text }}>Overall mastery</div>
             <MasteryGauge theme={t} valueLabel={pct(globalMastery)} caption="all concepts" dashoffset={188 * (1 - globalMastery)} />
           </div>
           {mindset && (
             <div style={panelCard(t)}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                <strong style={{ flex: 1, color: t.text, fontSize: 13 }}>Mindset (M)</strong>
-                <span style={{ color: t.muted, textTransform: "capitalize", fontSize: 11.5 }}>{mindset.detected_mindset || "—"}</span>
+                <strong style={{ flex: 1, color: t.text, fontSize: 15 }}>Mindset (M)</strong>
+                <span style={{ color: t.muted, textTransform: "capitalize", fontSize: 14 }}>{mindset.detected_mindset || "—"}</span>
               </div>
               <Bar theme={t} label="Growth" value={mindset.m_score} color="#22c55e" />
             </div>
@@ -130,7 +130,7 @@ export function CognitiveProfile() {
 
       {concepts.length === 0 ? (
         <div style={panelCard(t)}>
-          <p style={{ margin: 0, color: t.text, fontSize: 12.5 }}>
+          <p style={{ margin: 0, color: t.text, fontSize: 15 }}>
             No concepts tracked yet. Keep working with Raya and your strengths and gaps will
             show up here.
           </p>
@@ -140,7 +140,7 @@ export function CognitiveProfile() {
       )}
 
       {profile?.last_kernel_update && (
-        <p style={{ color: t.mutedLight, fontSize: 11 }}>
+        <p style={{ color: t.mutedLight, fontSize: 13 }}>
           Updated on {new Date(profile.last_kernel_update).toLocaleString()}
         </p>
       )}

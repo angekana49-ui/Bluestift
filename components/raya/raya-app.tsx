@@ -131,7 +131,7 @@ export function RayaApp() {
             <NewRow theme={t} label="+ Créer une room" onClick={() => setView("rooms")} />
             <div style={{ background: t.rowActiveBg, borderRadius: 9, padding: "8px 10px" }}>
               <div style={ellipsis(11, 700, t.sidebarText)}>6e-A · Maths</div>
-              <div style={{ fontSize: 9.5, color: t.sidebarMuted, marginTop: 1 }}>4 participants · live</div>
+              <div style={{ fontSize: 13, color: t.sidebarMuted, marginTop: 1 }}>4 participants · live</div>
             </div>
             <MutedHistRow theme={t} label="Révisions BAC — Physique" />
           </HistoryList>
@@ -211,7 +211,7 @@ function NewRow({ theme: t, label, onClick, onActivate }: { theme: AppTheme; lab
         color: t.sidebarText,
         borderRadius: 9,
         padding: "8px 10px",
-        fontSize: 11,
+        fontSize: 13,
         fontWeight: 600,
         textAlign: "center",
         marginBottom: 2,
@@ -265,7 +265,7 @@ function ChatView({
           borderBottom: `1px solid ${t.cardBorder}`,
         }}
       >
-        <Avatar initials="AI" size={32} bg={status.aiIndigo} style={{ fontSize: 11.5 }} />
+        <Avatar initials="AI" size={32} bg={status.aiIndigo} style={{ fontSize: 14 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={ellipsis(13.5, 700, t.text)}>Raya · Fractions — Ch.4</div>
           <div style={{ ...ellipsis(10.5, 400, status.positive) }}>● en session</div>
@@ -278,7 +278,7 @@ function ChatView({
             overflow: "hidden",
             textOverflow: "ellipsis",
             maxWidth: 150,
-            fontSize: 11,
+            fontSize: 13,
             border: `1px solid ${t.cardBorder}`,
             borderRadius: 99,
             padding: "6px 13px",
@@ -309,7 +309,7 @@ function ChatView({
               padding: 12,
             }}
           >
-            <div style={{ fontSize: 11, fontWeight: 700, color: t.text, marginBottom: 8 }}>Documents de la session</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: t.text, marginBottom: 8 }}>Documents de la session</div>
             <FileRow theme={t} icon={<IconFile size={13} style={{ color: t.muted }} />} name="Exercice_fractions.pdf" meta="envoyé par Raya · il y a 3 min" active />
             <FileRow theme={t} icon={<IconImage size={13} style={{ color: t.muted }} />} name="Photo_devoir.jpg" meta="envoyé par toi · hier" />
           </div>
@@ -329,8 +329,8 @@ function ChatView({
           <Bubble theme={t} maxWidth="62%">
             Bonne question — imagine deux pizzas coupées différemment...
             <div className="shine" style={{ marginTop: 10, background: t.cardBg2, border: `1px solid ${t.cardBorder}`, borderRadius: 12, padding: 12 }}>
-              <div style={{ fontSize: 10.5, color: t.muted }}>Exercice généré</div>
-              <div style={{ fontSize: 12.5, fontWeight: 600, marginTop: 2, color: t.text }}>1/3 + 1/4 = ?</div>
+              <div style={{ fontSize: 13, color: t.muted }}>Exercice généré</div>
+              <div style={{ fontSize: 15, fontWeight: 600, marginTop: 2, color: t.text }}>1/3 + 1/4 = ?</div>
             </div>
           </Bubble>
         </div>
@@ -352,7 +352,7 @@ function ChatView({
             border: `1px solid ${t.inputBorder}`,
             borderRadius: 99,
             padding: "12px 18px",
-            fontSize: 12.5,
+            fontSize: 15,
             color: t.mutedLight,
           }}
         >
@@ -374,7 +374,7 @@ function ChatView({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: 14,
+            fontSize: 16,
             flex: "none",
           }}
         >
@@ -395,7 +395,7 @@ function Bubble({ theme: t, maxWidth, me, children }: { theme: AppTheme; maxWidt
         color: me ? t.ctaText : t.text,
         borderRadius: me ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
         padding: "13px 16px",
-        fontSize: 13.5,
+        fontSize: 16,
         lineHeight: 1.65,
       }}
     >
@@ -420,7 +420,7 @@ function FileRow({ theme: t, icon, name, meta, active }: { theme: AppTheme; icon
       {icon}
       <div style={{ minWidth: 0, flex: 1 }}>
         <div style={ellipsis(10.5, 600, t.text)}>{name}</div>
-        <div style={{ fontSize: 9, color: t.muted }}>{meta}</div>
+        <div style={{ fontSize: 13, color: t.muted }}>{meta}</div>
       </div>
     </div>
   );
@@ -446,7 +446,7 @@ function NewSessionWelcome({ theme: t }: { theme: AppTheme }) {
         <Bird variant={1} fill={status.aiIndigo} />
         <Bird variant={2} fill={t.mutedLight} />
       </div>
-      <p style={{ maxWidth: 380, margin: "14px 0 26px", fontSize: 13, lineHeight: 1.7, color: t.muted }}>
+      <p style={{ maxWidth: 380, margin: "14px 0 26px", fontSize: 15, lineHeight: 1.7, color: t.muted }}>
         Dis-moi ce que tu veux travailler aujourd&apos;hui, ou choisis une reprise rapide.
       </p>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center", maxWidth: 460 }}>
@@ -463,7 +463,7 @@ function NewSessionWelcome({ theme: t }: { theme: AppTheme }) {
               border: `1px solid ${t.cardBorder}`,
               borderRadius: 14,
               padding: "12px 16px",
-              fontSize: 12,
+              fontSize: 14,
               fontWeight: 600,
               color: t.text,
               animation: `floatSm ${c.dur} ease-in-out infinite`,
@@ -483,7 +483,7 @@ function RoomsView({ theme: t, roomTab, onRoomTab, onToggleRight }: { theme: App
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
       <div style={{ padding: "16px 24px", borderBottom: `1px solid ${t.cardBorder}`, display: "flex", alignItems: "center", gap: 12 }}>
-        <span style={{ fontSize: 13.5, fontWeight: 700, color: t.text, flex: "none" }}>Room · 6e-A Maths</span>
+        <span style={{ fontSize: 16, fontWeight: 700, color: t.text, flex: "none" }}>Room · 6e-A Maths</span>
         <div style={{ marginLeft: 6 }}>
           <SegTabs
             theme={t}
@@ -495,7 +495,7 @@ function RoomsView({ theme: t, roomTab, onRoomTab, onToggleRight }: { theme: App
             ]}
           />
         </div>
-        <span style={{ marginLeft: "auto", fontSize: 11, color: status.positive, flex: "none" }}>● live</span>
+        <span style={{ marginLeft: "auto", fontSize: 13, color: status.positive, flex: "none" }}>● live</span>
         <IconButton theme={t} onClick={onToggleRight}>
           <IconPanel size={14} />
         </IconButton>
@@ -505,11 +505,11 @@ function RoomsView({ theme: t, roomTab, onRoomTab, onToggleRight }: { theme: App
         <>
           <div style={{ flex: 1, padding: "26px 30px", display: "flex", flexDirection: "column", gap: 14, overflow: "auto" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-              <Avatar initials="AI" size={26} bg={status.aiIndigo} style={{ fontSize: 10 }} />
-              <span style={{ fontSize: 12, fontWeight: 700, color: t.text }}>Raya modère la session</span>
+              <Avatar initials="AI" size={26} bg={status.aiIndigo} style={{ fontSize: 13 }} />
+              <span style={{ fontSize: 14, fontWeight: 700, color: t.text }}>Raya modère la session</span>
             </div>
             <Bubble theme={t} maxWidth="60%">Léo, tu peux expliquer à Sami comment tu as trouvé le dénominateur commun ?</Bubble>
-            <div style={{ maxWidth: "52%", background: t.bubbleAccentBg, color: t.text, borderRadius: "16px 16px 16px 4px", padding: "13px 16px", fontSize: 13, lineHeight: 1.65 }}>
+            <div style={{ maxWidth: "52%", background: t.bubbleAccentBg, color: t.text, borderRadius: "16px 16px 16px 4px", padding: "13px 16px", fontSize: 15, lineHeight: 1.65 }}>
               Léo: on multiplie les deux dénominateurs entre eux
             </div>
             <Bubble theme={t} maxWidth="60%">Exactement. Sami, essaie sur 1/4 + 1/6 →</Bubble>
@@ -519,7 +519,7 @@ function RoomsView({ theme: t, roomTab, onRoomTab, onToggleRight }: { theme: App
       ) : (
         <>
           <div style={{ flex: 1, padding: "26px 30px", display: "flex", flexDirection: "column", gap: 14, overflow: "auto" }}>
-            <div style={{ fontSize: 10.5, color: t.mutedLight, textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <div style={{ fontSize: 13, color: t.mutedLight, textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
               <IconLock size={12} />
               Cette conversation n&apos;est visible que par toi et Raya
             </div>
@@ -537,8 +537,8 @@ function RoomComposer({ theme: t, placeholder }: { theme: AppTheme; placeholder:
   return (
     <div style={{ borderTop: `1px solid ${t.cardBorder}`, padding: "14px 24px" }}>
       <div style={{ display: "flex", gap: 10, alignItems: "center", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: 99, padding: "7px 7px 7px 18px" }}>
-        <span style={{ flex: 1, fontSize: 12.5, color: t.mutedLight }}>{placeholder}</span>
-        <span style={{ width: 34, height: 34, borderRadius: "50%", background: t.ctaBg, color: t.ctaText, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>↑</span>
+        <span style={{ flex: 1, fontSize: 15, color: t.mutedLight }}>{placeholder}</span>
+        <span style={{ width: 34, height: 34, borderRadius: "50%", background: t.ctaBg, color: t.ctaText, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>↑</span>
       </div>
     </div>
   );
@@ -553,18 +553,18 @@ function ToolsView({ theme: t }: { theme: AppTheme }) {
   ];
   return (
     <div style={{ flex: 1, padding: "36px 44px", overflow: "auto" }}>
-      <div style={{ fontSize: 20, fontWeight: 800, fontFamily: display, marginBottom: 4, color: t.text }}>Tools Studio</div>
-      <div style={{ fontSize: 12.5, color: t.muted, marginBottom: 26 }}>Génère des quiz, résumés et flashcards depuis n&apos;importe quel cours.</div>
+      <div style={{ fontSize: 23, fontWeight: 800, fontFamily: display, marginBottom: 4, color: t.text }}>Tools Studio</div>
+      <div style={{ fontSize: 15, color: t.muted, marginBottom: 26 }}>Génère des quiz, résumés et flashcards depuis n&apos;importe quel cours.</div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, maxWidth: 900 }}>
         {cards.map((c) => (
           <div key={c.title} style={{ background: t.cardBg2, border: `1px solid ${t.cardBorder}`, borderRadius: 18, padding: 20 }}>
             <div style={{ width: 38, height: 38, borderRadius: 12, background: t.ctaBg, color: t.ctaText, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>{c.icon}</div>
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: t.text }}>{c.title}</div>
-            <div style={{ fontSize: 11.5, color: t.muted, marginTop: 6, lineHeight: 1.6 }}>{c.desc}</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: t.text }}>{c.title}</div>
+            <div style={{ fontSize: 14, color: t.muted, marginTop: 6, lineHeight: 1.6 }}>{c.desc}</div>
           </div>
         ))}
       </div>
-      <div style={{ marginTop: 20, border: `1px dashed ${t.cardBorder}`, borderRadius: 18, padding: 22, maxWidth: 900, textAlign: "center", color: t.mutedLight, fontSize: 12 }}>
+      <div style={{ marginTop: 20, border: `1px dashed ${t.cardBorder}`, borderRadius: 18, padding: 22, maxWidth: 900, textAlign: "center", color: t.mutedLight, fontSize: 14 }}>
         Dépose un PDF, une photo de cours ou un lien pour générer un outil
       </div>
     </div>
@@ -575,15 +575,15 @@ function ToolsView({ theme: t }: { theme: AppTheme }) {
 function KernelView({ theme: t }: { theme: AppTheme }) {
   return (
     <div style={{ flex: 1, padding: "36px 44px", overflow: "auto" }}>
-      <div style={{ fontSize: 20, fontWeight: 800, fontFamily: display, marginBottom: 4, color: t.text }}>Mon Kernel</div>
-      <div style={{ fontSize: 12.5, color: t.muted, marginBottom: 26 }}>Ta maîtrise, concept par concept — pas une note globale.</div>
+      <div style={{ fontSize: 23, fontWeight: 800, fontFamily: display, marginBottom: 4, color: t.text }}>Mon Kernel</div>
+      <div style={{ fontSize: 15, color: t.muted, marginBottom: 26 }}>Ta maîtrise, concept par concept — pas une note globale.</div>
       <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 20, maxWidth: 1100 }}>
         <div style={{ background: t.cardBg2, border: `1px solid ${t.cardBorder}`, borderRadius: 20, padding: 20 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, color: t.text }}>Maîtrise globale</div>
+          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 10, color: t.text }}>Maîtrise globale</div>
           <MasteryGauge theme={t} valueLabel="79%" caption="tous sujets" dashoffset={60} />
         </div>
         <div style={{ background: t.cardBg2, border: `1px solid ${t.cardBorder}`, borderRadius: 20, padding: 20 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14, color: t.text }}>Par concept</div>
+          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 14, color: t.text }}>Par concept</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <ConceptLine theme={t} label="Fractions" pct={61} color={status.warn} />
             <ConceptLine theme={t} label="Accords grammaticaux" pct={88} color={status.ok} />
@@ -597,7 +597,7 @@ function KernelView({ theme: t }: { theme: AppTheme }) {
 function ConceptLine({ theme: t, label, pct, color }: { theme: AppTheme; label: string; pct: number; color: string }) {
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, marginBottom: 6, color: t.text }}>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, marginBottom: 6, color: t.text }}>
         <span>{label}</span>
         <span style={{ color: t.muted }}>{pct}%</span>
       </div>
@@ -612,13 +612,13 @@ function ConceptLine({ theme: t, label, pct, color }: { theme: AppTheme; label: 
 function SettingsView({ theme: t, dark, onToggleDark }: { theme: AppTheme; dark: boolean; onToggleDark: () => void }) {
   return (
     <div style={{ flex: 1, padding: "36px 44px", overflow: "auto" }}>
-      <div style={{ fontSize: 20, fontWeight: 800, fontFamily: display, marginBottom: 26, color: t.text }}>Réglages</div>
+      <div style={{ fontSize: 23, fontWeight: 800, fontFamily: display, marginBottom: 26, color: t.text }}>Réglages</div>
 
       <SettingsCard theme={t}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: t.text }}>Thème</div>
-            <div style={{ fontSize: 11, color: t.muted, marginTop: 2 }}>Basculer entre mode clair et sombre</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: t.text }}>Thème</div>
+            <div style={{ fontSize: 13, color: t.muted, marginTop: 2 }}>Basculer entre mode clair et sombre</div>
           </div>
           <ThemeToggle dark={dark} theme={t} onToggle={onToggleDark} />
         </div>
@@ -626,10 +626,10 @@ function SettingsView({ theme: t, dark, onToggleDark }: { theme: AppTheme; dark:
 
       <SettingsCard theme={t}>
         <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
-          <Avatar initials="EM" size={52} bg={status.aiIndigo} style={{ fontSize: 16 }} />
+          <Avatar initials="EM" size={52} bg={status.aiIndigo} style={{ fontSize: 18 }} />
           <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: t.text }}>Emma M.</div>
-            <div style={{ fontSize: 11.5, color: t.muted }}>6e-A · Lycée Voltaire</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: t.text }}>Emma M.</div>
+            <div style={{ fontSize: 14, color: t.muted }}>6e-A · Lycée Voltaire</div>
           </div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -637,23 +637,23 @@ function SettingsView({ theme: t, dark, onToggleDark }: { theme: AppTheme; dark:
           <Field theme={t} label="Email" value="emma.m@voltaire.edu" />
           <ToggleRow theme={t} label="Notifications de session" on />
           <ToggleRow theme={t} label="Rappels de révision" />
-          <span style={{ marginTop: 6, alignSelf: "flex-start", fontSize: 11.5, color: status.danger, cursor: "pointer" }}>Se déconnecter</span>
+          <span style={{ marginTop: 6, alignSelf: "flex-start", fontSize: 14, color: status.danger, cursor: "pointer" }}>Se déconnecter</span>
         </div>
       </SettingsCard>
 
       <SettingsCard theme={t} mt>
-        <div style={{ fontSize: 13.5, fontWeight: 700, marginBottom: 16, color: t.text }}>Facturation</div>
+        <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: t.text }}>Facturation</div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: t.rowActiveBg, borderRadius: 12, padding: "14px 16px", marginBottom: 14 }}>
           <div>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: t.text }}>Plan Étudiant — Gratuit</div>
-            <div style={{ fontSize: 10.5, color: t.muted, marginTop: 2 }}>Sessions Raya solo illimitées</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: t.text }}>Plan Étudiant — Gratuit</div>
+            <div style={{ fontSize: 13, color: t.muted, marginTop: 2 }}>Sessions Raya solo illimitées</div>
           </div>
-          <span style={{ fontSize: 11, background: t.ctaBg, color: t.ctaText, borderRadius: 99, padding: "8px 14px", fontWeight: 600, whiteSpace: "nowrap" }}>Passer à Classroom</span>
+          <span style={{ fontSize: 13, background: t.ctaBg, color: t.ctaText, borderRadius: 99, padding: "8px 14px", fontWeight: 600, whiteSpace: "nowrap" }}>Passer à Classroom</span>
         </div>
-        <div style={{ fontSize: 11, color: t.muted, marginBottom: 8 }}>Moyen de paiement</div>
-        <div style={{ border: `1px solid ${t.inputBorder}`, background: t.inputBg, borderRadius: 10, padding: "10px 14px", fontSize: 12.5, color: t.text, marginBottom: 14 }}>Aucun moyen de paiement enregistré</div>
-        <div style={{ fontSize: 11, color: t.muted, marginBottom: 8 }}>Historique</div>
-        <div style={{ fontSize: 11.5, color: t.mutedLight }}>Aucune facture — le plan gratuit ne génère pas de facturation.</div>
+        <div style={{ fontSize: 13, color: t.muted, marginBottom: 8 }}>Moyen de paiement</div>
+        <div style={{ border: `1px solid ${t.inputBorder}`, background: t.inputBg, borderRadius: 10, padding: "10px 14px", fontSize: 15, color: t.text, marginBottom: 14 }}>Aucun moyen de paiement enregistré</div>
+        <div style={{ fontSize: 13, color: t.muted, marginBottom: 8 }}>Historique</div>
+        <div style={{ fontSize: 14, color: t.mutedLight }}>Aucune facture — le plan gratuit ne génère pas de facturation.</div>
       </SettingsCard>
     </div>
   );
@@ -680,15 +680,15 @@ export function SettingsCard({ theme: t, mt, children }: { theme: AppTheme; mt?:
 export function Field({ theme: t, label, value, letterSpacing }: { theme: AppTheme; label: string; value: string; letterSpacing?: string }) {
   return (
     <div>
-      <div style={{ fontSize: 11, color: t.muted, marginBottom: 6 }}>{label}</div>
-      <div style={{ border: `1px solid ${t.inputBorder}`, background: t.inputBg, borderRadius: 10, padding: "10px 14px", fontSize: 12.5, color: t.text, letterSpacing }}>{value}</div>
+      <div style={{ fontSize: 13, color: t.muted, marginBottom: 6 }}>{label}</div>
+      <div style={{ border: `1px solid ${t.inputBorder}`, background: t.inputBg, borderRadius: 10, padding: "10px 14px", fontSize: 15, color: t.text, letterSpacing }}>{value}</div>
     </div>
   );
 }
 export function ToggleRow({ theme: t, label, on }: { theme: AppTheme; label: string; on?: boolean }) {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: `1px solid ${t.cardBorder}`, paddingTop: 14 }}>
-      <span style={{ fontSize: 12.5, color: t.text }}>{label}</span>
+      <span style={{ fontSize: 15, color: t.text }}>{label}</span>
       <span style={{ width: 38, height: 22, borderRadius: 99, background: on ? t.ctaBg : t.gaugeTrack, position: "relative" }}>
         <span style={{ position: "absolute", [on ? "right" : "left"]: 3, top: 3, width: 16, height: 16, borderRadius: "50%", background: "#fff" } as React.CSSProperties} />
       </span>
@@ -701,12 +701,12 @@ function ChatRightPanel({ theme: t, onGoTools }: { theme: AppTheme; onGoTools: (
   return (
     <RightPanel theme={t} width={270}>
       <div>
-        <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 10, color: t.text }}>Notifications</div>
+        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 10, color: t.text }}>Notifications</div>
         <NotifCard theme={t} title="Léo t'a invité·e dans une room" meta="Il y a 12 min" mb />
         <NotifCard theme={t} title="Nouveau quiz disponible sur les fractions" meta="Hier" />
       </div>
       <div style={{ border: `1px solid ${t.cardBorder}`, borderRadius: 16, padding: 16 }}>
-        <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 8, color: t.text }}>Maîtrise — Fractions</div>
+        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8, color: t.text }}>Maîtrise — Fractions</div>
         <MasteryGauge
           theme={t}
           valueLabel="61%"
@@ -722,15 +722,15 @@ function ChatRightPanel({ theme: t, onGoTools }: { theme: AppTheme; onGoTools: (
       </div>
       <div style={{ border: `1px solid ${t.cardBorder}`, borderRadius: 16, padding: 16 }}>
         <div style={{ background: t.cardBg2, borderRadius: 12, padding: 11, marginBottom: 10 }}>
-          <div style={{ fontSize: 11, color: t.muted }}>Encore bloqué·e ?</div>
-          <div style={{ fontSize: 12, fontWeight: 700, marginTop: 3, color: t.text }}>Raya propose 3 exercices ciblés</div>
+          <div style={{ fontSize: 13, color: t.muted }}>Encore bloqué·e ?</div>
+          <div style={{ fontSize: 14, fontWeight: 700, marginTop: 3, color: t.text }}>Raya propose 3 exercices ciblés</div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <div onClick={onGoTools} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", background: t.ctaBg, color: t.ctaText, borderRadius: 10, padding: "9px 12px", fontSize: 11.5, fontWeight: 600 }}>
+          <div onClick={onGoTools} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", background: t.ctaBg, color: t.ctaText, borderRadius: 10, padding: "9px 12px", fontSize: 14, fontWeight: 600 }}>
             <span>Flashcards</span>
             <span>→</span>
           </div>
-          <div onClick={onGoTools} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", background: t.cardBg2, color: t.text, border: `1px solid ${t.cardBorder}`, borderRadius: 10, padding: "9px 12px", fontSize: 11.5, fontWeight: 600 }}>
+          <div onClick={onGoTools} style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", background: t.cardBg2, color: t.text, border: `1px solid ${t.cardBorder}`, borderRadius: 10, padding: "9px 12px", fontSize: 14, fontWeight: 600 }}>
             <span>Quiz express</span>
             <span>→</span>
           </div>
@@ -743,8 +743,8 @@ function ChatRightPanel({ theme: t, onGoTools }: { theme: AppTheme; onGoTools: (
 function NotifCard({ theme: t, title, meta, mb }: { theme: AppTheme; title: string; meta: string; mb?: boolean }) {
   return (
     <div style={{ background: t.rowActiveBg, borderRadius: 12, padding: 10, marginBottom: mb ? 6 : 0 }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: t.text }}>{title}</div>
-      <div style={{ fontSize: 9.5, color: t.muted, marginTop: 2 }}>{meta}</div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: t.text }}>{title}</div>
+      <div style={{ fontSize: 13, color: t.muted, marginTop: 2 }}>{meta}</div>
     </div>
   );
 }
@@ -754,24 +754,24 @@ function RoomsRightPanel({ theme: t }: { theme: AppTheme }) {
   return (
     <RightPanel theme={t} width={250} padding={16}>
       <div>
-        <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 10, color: t.text }}>Notifications</div>
+        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 10, color: t.text }}>Notifications</div>
         <NotifCard theme={t} title="Sami a rejoint la room" meta="À l'instant" />
       </div>
       <div>
-        <div style={{ fontSize: 11, color: t.muted, marginBottom: 10 }}>Fichiers partagés</div>
+        <div style={{ fontSize: 13, color: t.muted, marginBottom: 10 }}>Fichiers partagés</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <SharedFile theme={t} icon={<IconFile size={14} style={{ color: t.muted }} />} name="Exercices_fractions.pdf" meta="par Léo · il y a 8 min" />
           <SharedFile theme={t} icon={<IconImage size={14} style={{ color: t.muted }} />} name="Photo_tableau.jpg" meta="par Emma · toi · hier" />
         </div>
       </div>
       <div>
-        <div style={{ fontSize: 11, color: t.muted, marginBottom: 10 }}>Participants (4)</div>
+        <div style={{ fontSize: 13, color: t.muted, marginBottom: 10 }}>Participants (4)</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <Participant theme={t} online avatar="EM" avatarBg="#c7d2fe" name="Emma · toi" />
           <Participant theme={t} online avatar="LT" avatarBg="#fde68a" name="Léo" badge="bloqué" />
           <Participant theme={t} avatar="SA" avatarBg="#a7f3d0" name="Sami" offlineLabel="hors ligne" />
         </div>
-        <div style={{ marginTop: 16, fontSize: 11.5, background: t.cardBg2, color: t.text, borderRadius: 99, padding: "9px 12px", textAlign: "center", fontWeight: 600 }}>+ Inviter</div>
+        <div style={{ marginTop: 16, fontSize: 14, background: t.cardBg2, color: t.text, borderRadius: 99, padding: "9px 12px", textAlign: "center", fontWeight: 600 }}>+ Inviter</div>
       </div>
     </RightPanel>
   );
@@ -782,7 +782,7 @@ function SharedFile({ theme: t, icon, name, meta }: { theme: AppTheme; icon: Rea
       {icon}
       <div style={{ minWidth: 0, flex: 1 }}>
         <div style={ellipsis(11, 600, t.text)}>{name}</div>
-        <div style={{ fontSize: 9.5, color: t.muted }}>{meta}</div>
+        <div style={{ fontSize: 13, color: t.muted }}>{meta}</div>
       </div>
     </div>
   );
@@ -791,10 +791,10 @@ function Participant({ theme: t, online, avatar, avatarBg, name, badge, offlineL
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
       <span className={online ? "online-dot" : "offline-dot"} />
-      <span style={{ width: 26, height: 26, borderRadius: "50%", background: avatarBg, fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}>{avatar}</span>
-      <span style={{ fontSize: 12.5, color: t.text }}>{name}</span>
-      {badge && <span style={{ marginLeft: "auto", fontSize: 9, background: "#fee2e2", color: "#dc2626", borderRadius: 99, padding: "2px 8px", fontWeight: 600 }}>{badge}</span>}
-      {offlineLabel && <span style={{ marginLeft: "auto", fontSize: 9, color: t.mutedLight }}>{offlineLabel}</span>}
+      <span style={{ width: 26, height: 26, borderRadius: "50%", background: avatarBg, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}>{avatar}</span>
+      <span style={{ fontSize: 15, color: t.text }}>{name}</span>
+      {badge && <span style={{ marginLeft: "auto", fontSize: 13, background: "#fee2e2", color: "#dc2626", borderRadius: 99, padding: "2px 8px", fontWeight: 600 }}>{badge}</span>}
+      {offlineLabel && <span style={{ marginLeft: "auto", fontSize: 13, color: t.mutedLight }}>{offlineLabel}</span>}
     </div>
   );
 }

@@ -43,7 +43,7 @@ export function StudentBillingCard() {
 
   return (
     <SettingsCard theme={t} mt>
-      <div style={{ fontSize: 13.5, fontWeight: 700, marginBottom: 16, color: t.text }}>Billing</div>
+      <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: t.text }}>Billing</div>
       <div
         style={{
           display: "flex",
@@ -56,13 +56,13 @@ export function StudentBillingCard() {
         }}
       >
         <div>
-          <div style={{ fontSize: 12.5, fontWeight: 700, color: t.text }}>{planName}</div>
-          <div style={{ fontSize: 10.5, color: t.muted, marginTop: 2 }}>{subtitle}</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: t.text }}>{planName}</div>
+          <div style={{ fontSize: 13, color: t.muted, marginTop: 2 }}>{subtitle}</div>
         </div>
         {paid && (
           <span
             style={{
-              fontSize: 11,
+              fontSize: 13,
               background: t.inputBg,
               color: t.muted,
               border: `1px solid ${t.inputBorder}`,
@@ -83,7 +83,7 @@ export function StudentBillingCard() {
           background: t.inputBg,
           borderRadius: 10,
           padding: "10px 14px",
-          fontSize: 11.5,
+          fontSize: 14,
           lineHeight: 1.5,
           color: t.muted,
         }}

@@ -20,7 +20,7 @@ const inputStyle: React.CSSProperties = {
   border: `1px solid ${T.border}`,
   borderRadius: 10,
   padding: "11px 14px",
-  fontSize: 13,
+  fontSize: 15,
   color: T.ink,
   outline: "none",
   boxSizing: "border-box",
@@ -66,7 +66,7 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
         <h1 style={{ fontSize: "clamp(1.6rem,4vw,2.4rem)", fontWeight: 900, letterSpacing: "-0.03em", margin: "0 0 10px" }}>
           Ton <em style={{ fontFamily: serif, fontStyle: "italic", color: T.teal }}>feedback.</em>
         </h1>
-        <p style={{ fontSize: 13, color: T.inkSub, lineHeight: 1.6, marginBottom: 28 }}>
+        <p style={{ fontSize: 15, color: T.inkSub, lineHeight: 1.6, marginBottom: 28 }}>
           Un bug, une idée, un truc qui t&apos;a plu ou agacé — tout nous intéresse, tout est lu.
         </p>
 
@@ -80,9 +80,9 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
               textAlign: "center",
             }}
           >
-            <div style={{ fontSize: 36, marginBottom: 10 }}>🙏</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: T.teal, marginBottom: 6 }}>Merci !</div>
-            <p style={{ fontSize: 12, color: T.inkSub, margin: 0 }}>
+            <div style={{ fontSize: 40, marginBottom: 10 }}>🙏</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: T.teal, marginBottom: 6 }}>Merci !</div>
+            <p style={{ fontSize: 14, color: T.inkSub, margin: 0 }}>
               Ton feedback est transmis à l&apos;équipe.
             </p>
           </div>
@@ -106,7 +106,7 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
                   style={{
                     padding: "6px 13px",
                     borderRadius: 99,
-                    fontSize: 11,
+                    fontSize: 13,
                     fontWeight: 600,
                     border: `1px solid ${type === k ? T.teal : T.border}`,
                     background: type === k ? T.tealLight : "transparent",
@@ -120,7 +120,7 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ fontSize: 12, color: T.inkSub, marginRight: 4 }}>Note :</span>
+              <span style={{ fontSize: 14, color: T.inkSub, marginRight: 4 }}>Note :</span>
               {[1, 2, 3, 4, 5].map((n) => (
                 <button
                   key={n}
@@ -129,7 +129,7 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
                   style={{
                     background: "none",
                     border: "none",
-                    fontSize: 20,
+                    fontSize: 23,
                     cursor: "pointer",
                     padding: 2,
                     filter: n <= rating ? "none" : "grayscale(1) opacity(0.4)",
@@ -156,7 +156,7 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
             />
             <Turnstile ref={turnstileRef} onVerify={setCaptchaToken} onExpire={() => setCaptchaToken(null)} />
             {state === "error" && (
-              <span style={{ fontSize: 11, color: "#dc2626" }}>Échec de l&apos;envoi — réessaie.</span>
+              <span style={{ fontSize: 13, color: "#dc2626" }}>Échec de l&apos;envoi — réessaie.</span>
             )}
             <button
               onClick={submit}
@@ -168,7 +168,7 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
                 border: "none",
                 borderRadius: 99,
                 padding: "12px 26px",
-                fontSize: 13,
+                fontSize: 15,
                 fontWeight: 700,
                 cursor: canSend ? "pointer" : "default",
               }}

@@ -97,7 +97,7 @@ export function ChatComposer({
               bg={voice.recording ? "#e0245e" : t.cardBg2}
               color={voice.recording ? "#fff" : t.mutedLight}
             >
-              {voice.recording ? <span style={{ fontSize: 12 }}>■</span> : <IconMic size={16} />}
+              {voice.recording ? <span style={{ fontSize: 14 }}>■</span> : <IconMic size={16} />}
             </IconButton>
           )}
           <input
@@ -163,7 +163,7 @@ export function ChatComposer({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: 14,
+              fontSize: 16,
               flex: "none",
               cursor: sendIdle ? "default" : "pointer",
               opacity: sendIdle ? 0.5 : 1,

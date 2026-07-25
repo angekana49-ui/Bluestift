@@ -175,7 +175,7 @@ export function SchoolsShell({
                 background: headerLogoUrl ? "transparent" : "#2f7fe0",
                 color: "#fff",
                 fontWeight: 700,
-                fontSize: 13,
+                fontSize: 15,
               }}
             >
               {headerLogoUrl ? (
@@ -190,11 +190,11 @@ export function SchoolsShell({
             </span>
           )}
           <span style={{ display: "flex", flexDirection: "column", minWidth: 0, lineHeight: 1.25 }}>
-            <span style={{ fontSize: 16, fontWeight: 800, fontFamily: display, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: 18, fontWeight: 800, fontFamily: display, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {headerTitle ?? brandName}
             </span>
             {headerSubtitle && (
-              <span style={{ fontSize: 11.5, color: t.muted, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{headerSubtitle}</span>
+              <span style={{ fontSize: 14, color: t.muted, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{headerSubtitle}</span>
             )}
           </span>
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>

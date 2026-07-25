@@ -73,7 +73,7 @@ export function MobileHeader({
           flex: 1,
           minWidth: 0,
           textAlign: "center",
-          fontSize: 14,
+          fontSize: 16,
           fontWeight: 700,
           color: t.text,
           overflow: "hidden",
@@ -259,7 +259,7 @@ export function SidebarBrand({
             <span
               className="app-rail-hide"
               style={{
-                fontSize: 12.5,
+                fontSize: 15,
                 fontWeight: 800,
                 color: t.sidebarText,
                 fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
@@ -450,11 +450,11 @@ export function SidebarProfile({
                   </span>
                 )}
                 <span style={{ display: "flex", flexDirection: "column", minWidth: 0, lineHeight: 1.3 }}>
-                  <span style={{ fontSize: 12.5, fontWeight: accent ? 700 : 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <span style={{ fontSize: 15, fontWeight: accent ? 700 : 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {item.label}
                   </span>
                   {item.sublabel && (
-                    <span style={{ fontSize: 10.5, color: accent ? accentInk : t.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <span style={{ fontSize: 13, color: accent ? accentInk : t.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {item.sublabel}
                     </span>
                   )}
@@ -491,7 +491,7 @@ export function SidebarProfile({
           overflow: "hidden",
           background: avatarUrl ? "transparent" : avatarBg,
           color: "#fff",
-          fontSize: 11,
+          fontSize: 13,
           fontWeight: 700,
           display: "flex",
           alignItems: "center",
@@ -514,7 +514,7 @@ export function SidebarProfile({
         <span className="app-rail-hide" style={{ display: "flex", flexDirection: "column", minWidth: 0, lineHeight: 1.25 }}>
           <span
             style={{
-              fontSize: 11.5,
+              fontSize: 14,
               color: t.sidebarText,
               fontWeight: subtitle ? 600 : 400,
               overflow: "hidden",
@@ -527,7 +527,7 @@ export function SidebarProfile({
           {subtitle && (
             <span
               style={{
-                fontSize: 9.5,
+                fontSize: 13,
                 color: t.sidebarMuted,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -640,7 +640,7 @@ export function RightPanel({
             borderBottom: `1px solid ${t.rightBorder}`,
           }}
         >
-          <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 700, color: t.text }}>
+          <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 700, color: t.text }}>
             {title}
           </span>
           {onCollapse && (

@@ -146,7 +146,7 @@ export function LoginView({
 
   const back = (
     <div style={{ marginBottom: 8 }}>
-      <Link href="/" style={{ fontSize: 12, color: "#64748b", textDecoration: "none" }}>
+      <Link href="/" style={{ fontSize: 14, color: "#64748b", textDecoration: "none" }}>
         ← Back to bluestift.com
       </Link>
     </div>
@@ -170,19 +170,19 @@ export function LoginView({
             marginBottom: 20,
           }}
         >
-          <p style={{ margin: "0 0 10px", fontSize: 12.5, lineHeight: 1.6, color: "#7c5b16" }}>
+          <p style={{ margin: "0 0 10px", fontSize: 15, lineHeight: 1.6, color: "#7c5b16" }}>
             You have an unfinished setup on this device. Pick up where you left off, or
             sign out and choose a different way in.
           </p>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <Link
               href="/onboarding"
-              style={{ ...secondaryBtn, padding: "9px 14px", fontSize: 12, textDecoration: "none", display: "inline-block" }}
+              style={{ ...secondaryBtn, padding: "9px 14px", fontSize: 14, textDecoration: "none", display: "inline-block" }}
             >
               Continue setup
             </Link>
             <button
-              style={{ ...secondaryBtn, padding: "9px 14px", fontSize: 12, opacity: busy ? 0.5 : 1 }}
+              style={{ ...secondaryBtn, padding: "9px 14px", fontSize: 14, opacity: busy ? 0.5 : 1 }}
               onClick={leaveSetup}
               disabled={busy}
             >
@@ -236,7 +236,7 @@ export function LoginView({
 
       <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "22px 0 16px" }}>
         <span style={{ flex: 1, height: 1, background: "#e6ecf3" }} />
-        <span style={{ fontSize: 11, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em" }}>New here</span>
+        <span style={{ fontSize: 13, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em" }}>New here</span>
         <span style={{ flex: 1, height: 1, background: "#e6ecf3" }} />
       </div>
 
@@ -248,7 +248,7 @@ export function LoginView({
         Start anonymously — no email needed
       </button>
 
-      {msg && <p style={{ marginTop: 14, color: "#475569", fontSize: 12.5, textAlign: "center" }}>{msg}</p>}
+      {msg && <p style={{ marginTop: 14, color: "#475569", fontSize: 15, textAlign: "center" }}>{msg}</p>}
     </AuthSplit>
   );
 }

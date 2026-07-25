@@ -95,14 +95,14 @@ export default async function CheckoutPage({
   return (
     <main style={shell}>
       <div style={card}>
-        <Link href="/pricing" style={{ fontSize: 12, color: "#64748b", textDecoration: "none" }}>
+        <Link href="/pricing" style={{ fontSize: 14, color: "#64748b", textDecoration: "none" }}>
           ← Plans
         </Link>
 
         <h1 style={{ fontSize: "1.4rem", fontWeight: 900, letterSpacing: "-0.02em", color: "#0b1220", margin: "14px 0 4px" }}>
           Checkout
         </h1>
-        <p style={{ fontSize: 12.5, color: "#64748b", margin: 0 }}>{plan!.name}</p>
+        <p style={{ fontSize: 15, color: "#64748b", margin: 0 }}>{plan!.name}</p>
 
         {/* Order summary */}
         <div style={{ background: "#f6f8fc", border: "1px solid #eef2f8", borderRadius: 14, padding: "14px 16px", margin: "18px 0 20px" }}>
@@ -111,7 +111,7 @@ export default async function CheckoutPage({
           <Row label="Term" value={`${months} month${months > 1 ? "s" : ""}`} />
           <div style={{ height: 1, background: "#e6ebf3", margin: "10px 0" }} />
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: "#0b1220" }}>Total</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: "#0b1220" }}>Total</span>
             <span style={{ fontSize: "1.35rem", fontWeight: 900, color: "#0b1220", letterSpacing: "-0.02em" }}>
               {total != null ? formatMoney(total, currency) : "—"}
             </span>
@@ -120,7 +120,7 @@ export default async function CheckoutPage({
 
         {!user ? (
           <div style={{ textAlign: "center" }}>
-            <p style={{ fontSize: 13, color: "#334155", lineHeight: 1.6, margin: "0 0 14px" }}>
+            <p style={{ fontSize: 15, color: "#334155", lineHeight: 1.6, margin: "0 0 14px" }}>
               Sign in to complete your purchase.
             </p>
             <Link
@@ -131,7 +131,7 @@ export default async function CheckoutPage({
                 color: "#fff",
                 borderRadius: 999,
                 padding: "11px 26px",
-                fontSize: 13,
+                fontSize: 15,
                 fontWeight: 600,
                 textDecoration: "none",
               }}
@@ -140,19 +140,19 @@ export default async function CheckoutPage({
             </Link>
           </div>
         ) : perSeat && !seats ? (
-          <p style={{ fontSize: 12.5, color: "#dc2626", lineHeight: 1.6, textAlign: "center" }}>
+          <p style={{ fontSize: 15, color: "#dc2626", lineHeight: 1.6, textAlign: "center" }}>
             No seat count set. Start this checkout from your school&apos;s Billing tab so the number of students is included.
           </p>
         ) : (
           <>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", color: "#94a3b8", textTransform: "uppercase", marginBottom: 10 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.08em", color: "#94a3b8", textTransform: "uppercase", marginBottom: 10 }}>
               Choose how to pay
             </div>
             <CheckoutPanel planId={plan!.id} audience={audience} channels={channels} months={months} seats={seats} />
           </>
         )}
 
-        <p style={{ fontSize: 10.5, color: "#94a3b8", textAlign: "center", marginTop: 18, lineHeight: 1.6 }}>
+        <p style={{ fontSize: 13, color: "#94a3b8", textAlign: "center", marginTop: 18, lineHeight: 1.6 }}>
           Payments are processed by our provider. You&apos;ll be redirected to a secure checkout.
         </p>
       </div>
@@ -162,7 +162,7 @@ export default async function CheckoutPage({
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, padding: "3px 0" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 15, padding: "3px 0" }}>
       <span style={{ color: "#64748b" }}>{label}</span>
       <span style={{ color: "#0b1220", fontWeight: 600 }}>{value}</span>
     </div>

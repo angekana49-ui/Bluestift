@@ -68,7 +68,7 @@ export function DocumentView({
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={b.logo} alt="" style={{ height: 22, width: "auto", flex: "none" }} />
-        <span style={{ fontSize: 12, fontWeight: 700, color: b.accent, letterSpacing: "0.01em" }}>{b.name}</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: b.accent, letterSpacing: "0.01em" }}>{b.name}</span>
         <span style={{ flex: 1 }} />
         {onTxt && <DocButton t={t} onClick={onTxt} label="TXT" />}
         {onPdf && <DocButton t={t} onClick={onPdf} label="PDF" />}
@@ -77,10 +77,10 @@ export function DocumentView({
 
       {/* Title + meta + accent rule */}
       <div style={{ padding: "18px 22px 0" }}>
-        <div style={{ fontSize: 19, fontWeight: 800, fontFamily: display, color: t.text, lineHeight: 1.25 }}>
+        <div style={{ fontSize: 22, fontWeight: 800, fontFamily: display, color: t.text, lineHeight: 1.25 }}>
           {title}
         </div>
-        {meta && <div style={{ fontSize: 12, color: t.muted, marginTop: 3 }}>{meta}</div>}
+        {meta && <div style={{ fontSize: 14, color: t.muted, marginTop: 3 }}>{meta}</div>}
         <div style={{ width: 40, height: 3, borderRadius: 2, background: b.accent, margin: "12px 0 4px" }} />
       </div>
 
@@ -97,7 +97,7 @@ export function DocumentView({
           padding: "12px 22px 16px",
           marginTop: 8,
           borderTop: `1px solid ${t.cardBorder}`,
-          fontSize: 10.5,
+          fontSize: 13,
           color: t.mutedLight,
           display: "flex",
           gap: 6,
@@ -126,19 +126,19 @@ function Block({ block, t, accent }: { block: DocBlock; t: AppTheme; accent: str
   );
 
   if (block.type === "h1")
-    return <div style={{ fontSize: 15.5, fontWeight: 800, color: t.text, margin: "16px 0 6px", fontFamily: display }}>{content}</div>;
+    return <div style={{ fontSize: 18, fontWeight: 800, color: t.text, margin: "16px 0 6px", fontFamily: display }}>{content}</div>;
   if (block.type === "h2")
-    return <div style={{ fontSize: 13.5, fontWeight: 700, color: accent, margin: "16px 0 5px" }}>{content}</div>;
+    return <div style={{ fontSize: 16, fontWeight: 700, color: accent, margin: "16px 0 5px" }}>{content}</div>;
   if (block.type === "h3")
-    return <div style={{ fontSize: 12.5, fontWeight: 700, color: t.text, margin: "12px 0 4px" }}>{content}</div>;
+    return <div style={{ fontSize: 15, fontWeight: 700, color: t.text, margin: "12px 0 4px" }}>{content}</div>;
   if (block.type === "li")
     return (
-      <div style={{ display: "flex", gap: 8, margin: "3px 0", fontSize: 13, color: t.text, lineHeight: 1.55 }}>
+      <div style={{ display: "flex", gap: 8, margin: "3px 0", fontSize: 15, color: t.text, lineHeight: 1.55 }}>
         <span style={{ color: accent, flex: "none" }}>•</span>
         <span>{content}</span>
       </div>
     );
-  return <p style={{ fontSize: 13, color: t.text, lineHeight: 1.6, margin: "6px 0" }}>{content}</p>;
+  return <p style={{ fontSize: 15, color: t.text, lineHeight: 1.6, margin: "6px 0" }}>{content}</p>;
 }
 
 function DocButton({ t, onClick, label, title }: { t: AppTheme; onClick: () => void; label: string; title?: string }) {
@@ -152,7 +152,7 @@ function DocButton({ t, onClick, label, title }: { t: AppTheme; onClick: () => v
         border: `1px solid ${t.cardBorder}`,
         borderRadius: 99,
         padding: "5px 12px",
-        fontSize: 11,
+        fontSize: 13,
         fontWeight: 600,
         cursor: "pointer",
       }}
