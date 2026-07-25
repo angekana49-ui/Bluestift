@@ -42,9 +42,9 @@ describe("tier normalization", () => {
     expect(normalizeRayaTier("User — Free standard")).toBe("free");
     expect(normalizeRayaTier("User — Plus pro")).toBe("plus");
     expect(normalizeRayaTier("User — Max custom")).toBe("max");
-    expect(normalizeSchoolTier("École — Standard standard")).toBe("standard");
-    expect(normalizeSchoolTier("École — Plus pro")).toBe("plus");
-    expect(normalizeSchoolTier("École — Custom custom")).toBe("custom");
+    expect(normalizeSchoolTier("Schools — Standard standard")).toBe("standard");
+    expect(normalizeSchoolTier("Schools — Plus pro")).toBe("plus");
+    expect(normalizeSchoolTier("Schools — Custom custom")).toBe("custom");
   });
 });
 

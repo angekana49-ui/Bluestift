@@ -258,9 +258,9 @@ export function normalizeRayaTier(planTierOrName: string | null | undefined): Ra
 
 export function normalizeSchoolTier(planTierOrName: string | null | undefined): SchoolTier {
   const s = (planTierOrName ?? "").toLowerCase();
-  // NB: no "école"/"ecole" keyword — every school plan is named "École — …", so
-  // matching that would flag ALL of them as custom. "devis" (quote) is the safe
-  // French signal for a bespoke plan.
+  // NB: the school-plan name prefix ("Schools — …") is NOT a tier signal, so we
+  // only match real tier keywords — never an audience label. "devis" (quote)
+  // covers a bespoke plan named in French.
   if (s.includes("custom") || s.includes("enterprise") || s.includes("devis")) return "custom";
   if (s.includes("plus") || s.includes("pro")) return "plus";
   return "standard";

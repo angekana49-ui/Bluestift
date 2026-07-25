@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { joinRoom, postRoomMessage } from "@/app/rooms/actions";
+import { dispatchUpgrade } from "@/lib/upgrade";
 import { useVoiceRecorder } from "@/lib/use-voice-recorder";
 import { RoomChallenges } from "@/components/room-challenges";
 import { RoomFiles } from "@/components/room-files";
@@ -344,7 +345,12 @@ export function RoomView({
     setBusy(true);
     setError(null);
     try {
-      await joinRoom(roomId);
+      const result = await joinRoom(roomId);
+      if (result && "error" in result) {
+        dispatchUpgrade({ code: result.code, message: result.error });
+        setBusy(false);
+        return;
+      }
       setJoined(true);
       router.refresh();
     } catch (e) {

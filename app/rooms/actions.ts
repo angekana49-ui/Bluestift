@@ -9,8 +9,12 @@ import {
   assertQuota,
   startOfMonthIso,
   ENTITLEMENTS_ENFORCE,
+  EntitlementError,
 } from "@/lib/entitlements";
 import { captureServer } from "@/lib/analytics/server";
+
+/** Shape returned by a room action when a plan gate blocks it (enforcing only). */
+export type RoomGateError = { error: string; code: "feature_locked" | "quota_reached" };
 
 /**
  * Create a room and add the creator as its first member. An optional
@@ -22,7 +26,7 @@ export async function createRoom(input: {
   subject?: string;
   visibility?: "public" | "private";
   durationMinutes?: number | null;
-}): Promise<{ roomId: string }> {
+}): Promise<{ roomId: string } | RoomGateError> {
   const name = input.name.trim();
   if (!name) throw new Error("Room name is required.");
 
@@ -42,19 +46,25 @@ export async function createRoom(input: {
     .select("id", { count: "exact", head: true })
     .eq("created_by", user.id)
     .gte("created_at", startOfMonthIso());
-  assertQuota(roomsUsed ?? 0, ent.roomsPerMonth, {
-    metric: "rooms",
-    period: "month",
-    upgradeTo: "Plus",
-    scope: "rooms",
-    userId: user.id,
-    tier,
-  });
-
   // Private rooms are Plus+.
   const visibility = input.visibility ?? "public";
-  if (visibility === "private") {
-    assertFeature(ent.privateRooms, { feature: "private_room", upgradeTo: "Plus", scope: "rooms", userId: user.id, tier });
+  // Gates throw EntitlementError when enforcing; surface it as a structured result
+  // (a thrown error would be masked in prod, so the client couldn't show the modal).
+  try {
+    assertQuota(roomsUsed ?? 0, ent.roomsPerMonth, {
+      metric: "rooms",
+      period: "month",
+      upgradeTo: "Plus",
+      scope: "rooms",
+      userId: user.id,
+      tier,
+    });
+    if (visibility === "private") {
+      assertFeature(ent.privateRooms, { feature: "private_room", upgradeTo: "Plus", scope: "rooms", userId: user.id, tier });
+    }
+  } catch (e) {
+    if (e instanceof EntitlementError) return { error: e.message, code: e.code };
+    throw e;
   }
 
   // Free: the session timer is mandatory (the room auto-closes) — if none was
@@ -108,7 +118,7 @@ export async function createRoom(input: {
  * room's id is sufficient. The membership row is written with the service role so
  * a not-yet-member can join a private room without tripping its RLS.
  */
-export async function joinRoom(roomId: string): Promise<void> {
+export async function joinRoom(roomId: string): Promise<void | RoomGateError> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -140,13 +150,18 @@ export async function joinRoom(roomId: string): Promise<void> {
       .from("room_members")
       .select("user_id", { count: "exact", head: true })
       .eq("room_id", roomId);
-    assertQuota(members ?? 0, ent.roomMaxParticipants, {
-      metric: "room participants",
-      upgradeTo: "Plus",
-      scope: "rooms",
-      userId: user.id,
-      tier,
-    });
+    try {
+      assertQuota(members ?? 0, ent.roomMaxParticipants, {
+        metric: "room participants",
+        upgradeTo: "Plus",
+        scope: "rooms",
+        userId: user.id,
+        tier,
+      });
+    } catch (e) {
+      if (e instanceof EntitlementError) return { error: e.message, code: e.code };
+      throw e;
+    }
   }
 
   const { error } = await admin

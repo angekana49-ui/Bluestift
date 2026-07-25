@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createRoom } from "@/app/rooms/actions";
+import { dispatchUpgrade } from "@/lib/upgrade";
 import { useAppTheme } from "@/components/ui/theme";
 import { panelCard, cardTitle, textInput, ctaButton } from "@/components/ui/forms";
 
@@ -85,12 +86,18 @@ export function RoomsList({
     setBusy(true);
     setError(null);
     try {
-      const { roomId } = await createRoom({
+      const result = await createRoom({
         name,
         subject,
         visibility,
         durationMinutes: duration || null,
       });
+      if ("error" in result) {
+        dispatchUpgrade({ code: result.code, message: result.error });
+        setBusy(false);
+        return;
+      }
+      const { roomId } = result;
       // Upload the context documents so RAYA has them from the very first turn.
       // Best-effort per file — the room exists regardless of a failed upload.
       for (const f of docs) {
