@@ -3,6 +3,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { assertRoomOpen, ROOM_TIMER_MIN, ROOM_TIMER_MAX } from "@/lib/rooms";
+import {
+  resolveRayaEntitlements,
+  assertFeature,
+  assertQuota,
+  startOfMonthIso,
+  ENTITLEMENTS_ENFORCE,
+} from "@/lib/entitlements";
+import { captureServer } from "@/lib/analytics/server";
 
 /**
  * Create a room and add the creator as its first member. An optional
@@ -24,8 +32,40 @@ export async function createRoom(input: {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not signed in.");
 
+  // --- Entitlements: rooms/month quota, private rooms, mandatory timer -------
+  const { ent, tier } = await resolveRayaEntitlements(user.id);
+
+  // Rooms created this month (derived from learning.rooms, no counter table).
+  const { count: roomsUsed } = await supabase
+    .schema("learning")
+    .from("rooms")
+    .select("id", { count: "exact", head: true })
+    .eq("created_by", user.id)
+    .gte("created_at", startOfMonthIso());
+  assertQuota(roomsUsed ?? 0, ent.roomsPerMonth, {
+    metric: "rooms",
+    period: "month",
+    upgradeTo: "Plus",
+    scope: "rooms",
+    userId: user.id,
+    tier,
+  });
+
+  // Private rooms are Plus+.
+  const visibility = input.visibility ?? "public";
+  if (visibility === "private") {
+    assertFeature(ent.privateRooms, { feature: "private_room", upgradeTo: "Plus", scope: "rooms", userId: user.id, tier });
+  }
+
+  // Free: the session timer is mandatory (the room auto-closes) — if none was
+  // requested, force the 60-min max. Only shapes behaviour once enforcing.
+  let requestedDuration = input.durationMinutes;
+  if (!ent.roomTimerOptional && ENTITLEMENTS_ENFORCE && (requestedDuration == null || requestedDuration <= 0)) {
+    requestedDuration = ROOM_TIMER_MAX;
+  }
+
   // Optional session timer: null/0/absent → no timer; otherwise clamp to 10–60.
-  const raw = input.durationMinutes;
+  const raw = requestedDuration;
   let timer: { timer_status: string; timer_started_at: string; timer_ends_at: string } | null = null;
   if (raw != null && raw > 0) {
     const minutes = Math.min(ROOM_TIMER_MAX, Math.max(ROOM_TIMER_MIN, Math.round(raw)));
@@ -44,7 +84,7 @@ export async function createRoom(input: {
       name,
       created_by: user.id,
       subject: input.subject?.trim() || null,
-      visibility: input.visibility ?? "public",
+      visibility,
       ai_mode: "active",
       ...(timer ?? {}),
     })
@@ -58,6 +98,7 @@ export async function createRoom(input: {
     .insert({ room_id: room.id, user_id: user.id, role: "creator", is_online: true });
   if (memErr) throw new Error(memErr.message);
 
+  void captureServer(user.id, "room_created", { visibility, timed: timer != null, tier });
   return { roomId: room.id };
 }
 
@@ -78,10 +119,35 @@ export async function joinRoom(roomId: string): Promise<void> {
   const { data: room } = await admin
     .schema("learning")
     .from("rooms")
-    .select("id")
+    .select("id, created_by")
     .eq("id", roomId)
     .maybeSingle();
   if (!room) throw new Error("Room not found.");
+
+  // Participant cap is set by the ROOM's plan (its creator's), not the joiner's.
+  // A member re-joining (already counted) is fine; the cap bites new members.
+  const { data: already } = await admin
+    .schema("learning")
+    .from("room_members")
+    .select("user_id")
+    .eq("room_id", roomId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!already && room.created_by) {
+    const { ent, tier } = await resolveRayaEntitlements(room.created_by);
+    const { count: members } = await admin
+      .schema("learning")
+      .from("room_members")
+      .select("user_id", { count: "exact", head: true })
+      .eq("room_id", roomId);
+    assertQuota(members ?? 0, ent.roomMaxParticipants, {
+      metric: "room participants",
+      upgradeTo: "Plus",
+      scope: "rooms",
+      userId: user.id,
+      tier,
+    });
+  }
 
   const { error } = await admin
     .schema("learning")

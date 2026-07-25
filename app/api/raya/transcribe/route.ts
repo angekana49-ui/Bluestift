@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { transcribeAudio } from "@/lib/raya/llm";
 import { contentLengthExceeds, tooLarge, MAX_AUDIO_BYTES } from "@/lib/upload-limits";
+import { resolveRayaEntitlements, gateFeature } from "@/lib/entitlements";
 
 /**
  * Speech-to-text for voice messages (OpenAI Whisper served by Groq).
@@ -13,6 +14,11 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  // Voice input is a Plus+ feature.
+  const { ent, tier } = await resolveRayaEntitlements(user.id);
+  const denied = gateFeature(ent.voiceInput, { feature: "voice_input", upgradeTo: "Plus", scope: "raya", userId: user.id, tier });
+  if (denied) return denied;
 
   const oversized = contentLengthExceeds(request, MAX_AUDIO_BYTES);
   if (oversized) return oversized;

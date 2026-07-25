@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Inter_Tight, Caveat, Instrument_Serif } from "next/font/google";
 import "./globals.css";
+import { PostHogProvider } from "@/components/analytics/PostHogProvider";
 
 // One source of truth for the product typeface (see components/ui/tokens.ts).
 // Inter = body/UI, Inter Tight = headings/nav/wordmark, Caveat = handwritten greeting.
@@ -45,7 +46,9 @@ export default function RootLayout({
       data-theme="day"
       className={`${inter.variable} ${interTight.variable} ${caveat.variable} ${instrumentSerif.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        <PostHogProvider>{children}</PostHogProvider>
+      </body>
     </html>
   );
 }

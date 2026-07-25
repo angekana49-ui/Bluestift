@@ -1,5 +1,6 @@
 import "server-only";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
+import { invalidateEntitlements } from "@/lib/entitlements";
 import type { PaymentChannel } from "./payments";
 
 /**
@@ -213,6 +214,7 @@ async function activateSchoolSubscription(p: PaymentRow): Promise<string | null>
     .from("schools")
     .update({ subscription_tier: tier ?? p.plan_id, subscription_expires_at: endIso, updated_at: startIso })
     .eq("id", p.school_id);
+  if (p.school_id) invalidateEntitlements({ schoolId: p.school_id });
   return (ins as { id: string }).id;
 }
 
@@ -245,5 +247,6 @@ async function activateUserSubscription(p: PaymentRow): Promise<string | null> {
     .select("id")
     .single();
   if (error || !ins) return null;
+  if (p.user_id) invalidateEntitlements({ userId: p.user_id });
   return (ins as { id: string }).id;
 }

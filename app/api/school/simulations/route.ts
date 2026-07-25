@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { assertClassAccess, buildInsightsBaseline, getAdminMembership, getSimulations } from "@/lib/school-admin";
 import { generateJson } from "@/lib/raya/llm";
+import { resolveSchoolEntitlements, gateQuota, sinceDaysIso } from "@/lib/entitlements";
 
 /**
  * NOTE: the Kernel has no simulation endpoint yet, so the projection is computed
@@ -38,6 +39,24 @@ export async function POST(request: Request) {
   if (!membership || membership.role !== "admin_master") {
     return NextResponse.json({ error: "Admin only." }, { status: 403 });
   }
+
+  // Prof simulations are quota-metered per week (Standard 3 / Plus+ ∞). Counted
+  // from the last 7 days of this staff member's own runs (rolling window).
+  const { ent, tier } = await resolveSchoolEntitlements(membership.schoolId);
+  const { count: simUsed } = await createSchoolsAdminClient()
+    .from("simulations")
+    .select("id", { count: "exact", head: true })
+    .eq("created_by", membership.adminId)
+    .gte("created_at", sinceDaysIso(7));
+  const overSim = gateQuota(simUsed ?? 0, ent.simulationsPerWeekPerProf, {
+    metric: "simulations",
+    period: "week",
+    upgradeTo: "Plus",
+    scope: "school",
+    userId: membership.adminId,
+    tier,
+  });
+  if (overSim) return overSim;
 
   let body: { subjectId?: string; classId?: string | null; addHours?: number; focus?: string };
   try {
@@ -87,7 +106,7 @@ export async function POST(request: Request) {
   let id: string | null = null;
   try {
     const schools = createSchoolsAdminClient();
-    const { data } = await schools
+    const { data, error } = await schools
       .from("simulations")
       .insert({
         school_id: membership.schoolId,
@@ -99,9 +118,10 @@ export async function POST(request: Request) {
       })
       .select("id")
       .single();
+    if (error) console.warn(`[simulations] persistence failed (usage under-counted): ${error.message}`);
     id = (data as { id: string } | null)?.id ?? null;
-  } catch {
-    // not persisted — still return the projection
+  } catch (e) {
+    console.warn(`[simulations] persistence threw (usage under-counted): ${e instanceof Error ? e.message : e}`);
   }
 
   return NextResponse.json({ id, parameters, result, status: "done", createdAt: new Date().toISOString() });

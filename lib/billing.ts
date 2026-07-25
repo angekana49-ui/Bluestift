@@ -2,6 +2,8 @@ import "server-only";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { getAdminMembership } from "@/lib/school-admin";
 import { detectZone, type Zone } from "@/lib/billing/regions";
+import { MIN_B2B_SEATS, termTotal } from "@/lib/billing/terms";
+import { invalidateEntitlements } from "@/lib/entitlements";
 
 /**
  * Billing data layer (schools schema, service_role — untyped like the rest of
@@ -450,17 +452,20 @@ export async function activateSubscription(
     if (seatLimit == null || seatLimit <= 0) {
       return { ok: false, error: "Enter the number of students to contract." };
     }
-    // Floor: never contract fewer seats than students already enrolled.
+    // Floor: at least MIN_B2B_SEATS (minimum deal size), and never fewer than the
+    // students already enrolled (the no-leak floor).
     const { count } = await schools
       .from("student_identities")
       .select("user_id", { count: "exact", head: true })
       .eq("school_id", m.schoolId);
     const headcount = count ?? 0;
-    if (seatLimit < headcount) {
-      return {
-        ok: false,
-        error: `Your school already has ${headcount} students enrolled — contract at least ${headcount} seats.`,
-      };
+    const floor = Math.max(MIN_B2B_SEATS, headcount);
+    if (seatLimit < floor) {
+      const why =
+        headcount > MIN_B2B_SEATS
+          ? `your school already has ${headcount} students enrolled`
+          : `the minimum contract is ${MIN_B2B_SEATS} students`;
+      return { ok: false, error: `Contract at least ${floor} seats — ${why}.` };
     }
   }
 
@@ -472,10 +477,11 @@ export async function activateSubscription(
   const endIso = end.toISOString();
 
   // Amount actually owed for the term. Per-seat: rate × students × months.
-  // Flat: monthly price × months. An explicit override wins (negotiated deals).
+  // Flat: monthly price × months. Annual terms get the 15% discount. An explicit
+  // override wins (negotiated deals).
   const rate = plan.price == null ? null : Number(plan.price);
-  const computed =
-    rate == null ? null : perSeat ? rate * (seatLimit as number) * months : rate * months;
+  const base = rate == null ? null : perSeat ? rate * (seatLimit as number) * months : rate * months;
+  const computed = base == null ? null : termTotal(base, months);
   const amount = input.amount ?? computed;
 
   // Retire any current active/trial subscription so history reads cleanly.
@@ -512,6 +518,10 @@ export async function activateSubscription(
       updated_at: startIso,
     })
     .eq("id", m.schoolId);
+
+  // The plan changed — drop any cached entitlements for this school so the new
+  // tier takes effect immediately on this instance (the TTL covers the rest).
+  invalidateEntitlements({ schoolId: m.schoolId });
 
   return { ok: true, subscriptionId: (ins as { id: string }).id, expiresAt: endIso };
 }

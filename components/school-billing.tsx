@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAppTheme } from "@/components/ui/theme";
 import { panelCard, cardTitle, textInput, ctaButton } from "@/components/ui/forms";
+import { MIN_B2B_SEATS, termTotal, isAnnualTerm } from "@/lib/billing/terms";
 
 /** Mirror of the billing JSON returned by /api/school/billing (see lib/billing.ts). */
 type Plan = {
@@ -191,8 +192,8 @@ export function SchoolBilling() {
               key={p.id}
               plan={p}
               current={p.id === billing.planId && billing.status === "active"}
-              defaultSeats={Math.max(billing.seats.used, billing.declaredEffectif ?? 0)}
-              floorSeats={billing.seats.used}
+              defaultSeats={Math.max(MIN_B2B_SEATS, billing.seats.used, billing.declaredEffectif ?? 0)}
+              floorSeats={Math.max(MIN_B2B_SEATS, billing.seats.used)}
               onActivated={setBilling}
             />
           ))}
@@ -268,12 +269,16 @@ function PlanCard({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Per-student plans: rate × students × months. The server recomputes and stores
-  // the authoritative amount — this is just the admin-facing estimate.
+  // Per-student plans: rate × students × months, less the 15% annual discount for
+  // 12-month terms. The server recomputes and stores the authoritative amount —
+  // this is just the admin-facing estimate.
   const seatCount = Number(students);
   const monthCount = Number(months) || 12;
   const estimated =
-    isPerSeat && plan.price != null && seatCount > 0 ? plan.price * seatCount * monthCount : null;
+    isPerSeat && plan.price != null && seatCount > 0
+      ? termTotal(plan.price * seatCount * monthCount, monthCount)
+      : null;
+  const annualSaving = estimated != null && isAnnualTerm(monthCount);
 
   async function activate() {
     if (busy) return;
@@ -282,7 +287,7 @@ function PlanCard({
       return;
     }
     if (isPerSeat && seatCount < floorSeats) {
-      setError(`Your school has ${floorSeats} students enrolled — contract at least that many.`);
+      setError(`Contract at least ${floorSeats} seats (minimum ${MIN_B2B_SEATS} students, or your current headcount).`);
       return;
     }
     setBusy(true);
@@ -387,6 +392,9 @@ function PlanCard({
             <div style={{ fontSize: 11.5, color: t.text }}>
               Total for {seatCount} students × {monthCount} mo:{" "}
               <strong>${estimated.toLocaleString(undefined, { maximumFractionDigits: 2 })}</strong>
+              {annualSaving && (
+                <span style={{ color: "#22c55e", fontWeight: 700 }}> · 15% annual discount applied</span>
+              )}
             </div>
           )}
           {error && <span style={{ color: "#f87171", fontSize: 11 }}>{error}</span>}

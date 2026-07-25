@@ -6,6 +6,7 @@ import { resolveSeatGate, resolvePlanPriceForRequest } from "@/lib/billing";
 import { ipCountryFromHeaders } from "@/lib/billing/regions";
 import { getPaymentProvider, sandboxBlockedInProd, type PaymentChannel } from "@/lib/billing/payments";
 import { createPayment, setPaymentProviderRef } from "@/lib/billing/payments-data";
+import { MIN_B2B_SEATS, termTotal } from "@/lib/billing/terms";
 
 /**
  * Start a self-serve online checkout (card / mobile money / PayPal via the active
@@ -106,21 +107,24 @@ export async function POST(request: Request) {
     if (resolved.priceUnit === "per_seat") {
       seatLimit = clampInt(body.seats);
       if (!seatLimit) return NextResponse.json({ error: "Enter the number of students to contract." }, { status: 400 });
-      // Never contract below the real enrolled headcount (the no-leak floor).
+      // Floor: at least MIN_B2B_SEATS (minimum deal size), and never below the real
+      // enrolled headcount (the no-leak floor).
       const gate = await resolveSeatGate(schoolId as string);
-      if (seatLimit < gate.used) {
-        return NextResponse.json(
-          { error: `Your school has ${gate.used} students enrolled — contract at least ${gate.used} seats.` },
-          { status: 400 },
-        );
+      const floor = Math.max(MIN_B2B_SEATS, gate.used);
+      if (seatLimit < floor) {
+        const why =
+          gate.used > MIN_B2B_SEATS
+            ? `your school has ${gate.used} students enrolled`
+            : `the minimum contract is ${MIN_B2B_SEATS} students`;
+        return NextResponse.json({ error: `Contract at least ${floor} seats — ${why}.` }, { status: 400 });
       }
-      amount = rate * seatLimit * months;
+      amount = termTotal(rate * seatLimit * months, months);
     } else {
-      amount = rate * months;
+      amount = termTotal(rate * months, months);
     }
   } else {
     months = clampInt(body.months) ?? 1; // B2C self-serve defaults to a one-month term
-    amount = rate * months;
+    amount = termTotal(rate * months, months);
   }
 
   const paymentId = await createPayment({

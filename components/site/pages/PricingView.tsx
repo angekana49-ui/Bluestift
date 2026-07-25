@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import SitePage from "@/components/site/SitePage";
 import type { Theme } from "@/components/site/theme";
+import { annualMonthlyRate } from "@/lib/billing/terms";
 
 /** Local shape (structurally a subset of lib/billing's BillingPlan — kept local
  * so this client component never imports the server-only billing module). */
@@ -118,6 +119,17 @@ function PlanCard({
         <span style={{ fontSize: "2.3rem", fontWeight: 900, letterSpacing: "-0.02em", color: text }}>{big}</span>
         {unit && <span style={{ fontSize: 12, fontWeight: 500, color: muted }}>{unit}</span>}
       </div>
+
+      {/* Annual commitment saves 15% (applies to every paid plan shown per month:
+          b2c monthly + per-student school plans). */}
+      {!free && !bespoke && plan.price != null &&
+        (plan.priceUnit === "per_seat" || plan.billingPeriod !== "yearly") && (
+        <div style={{ fontSize: 11, fontWeight: 500, color: muted, marginTop: 5 }}>
+          or {money(annualMonthlyRate(plan.price))}
+          {plan.priceUnit === "per_seat" ? " / student" : ""} / mo billed annually{" "}
+          <span style={{ color: checkColor, fontWeight: 700 }}>· save 15%</span>
+        </div>
+      )}
 
       {plan.description && (
         <p style={{ fontSize: 12.5, color: muted, margin: "10px 0 0", lineHeight: 1.6, minHeight: 34 }}>

@@ -4,6 +4,20 @@
 // PDF via jsPDF (dynamically imported so a missing package never breaks the build).
 
 import { DOC_BRANDS, footerLine, parseDoc, stripInline, type DocBrand } from "@/lib/doc-format";
+import { getClientEntitlements } from "@/lib/entitlements-client";
+
+/**
+ * The two export decisions, derived from the user's entitlements. Fail-open and
+ * monitor-mode-safe: while enforcement is off (or entitlements can't be read)
+ * everything is allowed and the attribution footer stays on for everyone — i.e.
+ * no visible change until launch. Once enforcing: Free can't export PDF, and
+ * paid tiers (removeWatermark) drop the footer attribution.
+ */
+async function exportGate(): Promise<{ pdfAllowed: boolean; watermark: boolean }> {
+  const e = await getClientEntitlements();
+  if (!e || !e.enforce) return { pdfAllowed: true, watermark: true };
+  return { pdfAllowed: e.ent.pdfExport, watermark: !e.ent.removeWatermark };
+}
 
 export type BrandedDoc = {
   brand: DocBrand;
@@ -33,16 +47,15 @@ function triggerDownload(blob: Blob, name: string) {
 }
 
 /** Branded plain-text export: a titled header, the (de-marked) body, and the footer. */
-export function downloadBrandedText(doc: BrandedDoc) {
+export async function downloadBrandedText(doc: BrandedDoc) {
+  const { watermark } = await exportGate();
   const b = DOC_BRANDS[doc.brand];
   const lines = [
     doc.title,
     doc.meta ? doc.meta : null,
     "",
     stripInline(doc.body).trim(),
-    "",
-    "—",
-    `${footerLine(doc.brand, doc.audience)} · ${b.url}`,
+    ...(watermark ? ["", "—", `${footerLine(doc.brand, doc.audience)} · ${b.url}`] : []),
   ].filter((l) => l !== null);
   triggerDownload(
     new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" }),
@@ -103,6 +116,15 @@ async function loadLogo(src: string): Promise<{ dataUrl: string; w: number; h: n
  * with the site as a clickable link.
  */
 export async function downloadBrandedPdf(doc: BrandedDoc) {
+  const { pdfAllowed, watermark } = await exportGate();
+  if (!pdfAllowed) {
+    if (typeof window !== "undefined") {
+      window.alert(
+        "Branded PDF export is a Plus feature. You can still export as TXT — or upgrade at /pricing to unlock PDF.",
+      );
+    }
+    return;
+  }
   const brand = DOC_BRANDS[doc.brand];
   const accent = hexToRgb(brand.accent);
   const ink: RGB = [24, 32, 46];
@@ -202,25 +224,30 @@ export async function downloadBrandedPdf(doc: BrandedDoc) {
     y += cfg.gapAfter;
   }
 
-  // ── Footer on every page ──
+  // ── Footer on every page ── (attribution only when watermarked; paid tiers
+  // drop it. Page numbers stay regardless — they're navigation, not branding.)
   const foot = footerLine(doc.brand, doc.audience);
   const pages = pdf.getNumberOfPages();
   for (let p = 1; p <= pages; p++) {
     pdf.setPage(p);
-    pdf.setDrawColor(230, 234, 240);
-    pdf.setLineWidth(0.75);
-    pdf.line(margin, footerY - 10, pageW - margin, footerY - 10);
-    const prefix = `${foot} · `;
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(8.5);
-    pdf.setTextColor(...muted);
-    pdf.text(prefix, margin, footerY);
-    // The site URL, drawn right after the attribution text, as a real link.
-    const prefixW = pdf.getTextWidth(prefix);
-    pdf.setTextColor(...accent);
-    pdf.textWithLink(brand.url, margin + prefixW, footerY, { url: `https://${brand.url}` });
+    if (watermark) {
+      pdf.setDrawColor(230, 234, 240);
+      pdf.setLineWidth(0.75);
+      pdf.line(margin, footerY - 10, pageW - margin, footerY - 10);
+      const prefix = `${foot} · `;
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8.5);
+      pdf.setTextColor(...muted);
+      pdf.text(prefix, margin, footerY);
+      // The site URL, drawn right after the attribution text, as a real link.
+      const prefixW = pdf.getTextWidth(prefix);
+      pdf.setTextColor(...accent);
+      pdf.textWithLink(brand.url, margin + prefixW, footerY, { url: `https://${brand.url}` });
+    }
     // Page number, right-aligned, on multi-page documents.
     if (pages > 1) {
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8.5);
       pdf.setTextColor(...muted);
       pdf.text(`${p} / ${pages}`, pageW - margin - 24, footerY);
     }

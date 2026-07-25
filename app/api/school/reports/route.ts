@@ -11,6 +11,7 @@ import {
   getStaffPreferences,
 } from "@/lib/school-admin";
 import { rayaComplete, type ChatMsg } from "@/lib/raya/llm";
+import { resolveSchoolEntitlements, gateQuota, sinceDaysIso } from "@/lib/entitlements";
 
 const SYSTEM = `You are RAYA for Schools. Write a concise performance report for a school
 administrator, in the administrator's language, using ONLY the DATA below — never invent
@@ -71,6 +72,24 @@ export async function POST(request: Request) {
   if (!membership) {
     return NextResponse.json({ error: "School staff only." }, { status: 403 });
   }
+
+  // Report generation is quota-metered per prof per week (Standard 1 / Plus+ ∞).
+  // Counted from the last 7 days of reports authored by this staff member.
+  const { ent, tier } = await resolveSchoolEntitlements(membership.schoolId);
+  const { count: repUsed } = await createSchoolsAdminClient()
+    .from("reports")
+    .select("id", { count: "exact", head: true })
+    .eq("created_by", membership.adminId)
+    .gte("created_at", sinceDaysIso(7));
+  const overRep = gateQuota(repUsed ?? 0, ent.reportsPerWeekPerProf, {
+    metric: "reports",
+    period: "week",
+    upgradeTo: "Plus",
+    scope: "school",
+    userId: membership.adminId,
+    tier,
+  });
+  if (overRep) return overRep;
 
   let body: { scope?: string; classId?: string; subjectId?: string };
   try {
@@ -135,7 +154,7 @@ export async function POST(request: Request) {
   let reportId: string | null = null;
   try {
     const schools = createSchoolsAdminClient();
-    const { data } = await schools
+    const { data, error } = await schools
       .from("reports")
       .insert({
         school_id: membership.schoolId,
@@ -148,9 +167,12 @@ export async function POST(request: Request) {
       })
       .select("id")
       .single();
+    // A rejected insert (e.g. a CHECK) returns an error rather than throwing;
+    // log it so this doesn't silently under-count the reports quota.
+    if (error) console.warn(`[reports] persistence failed (usage under-counted): ${error.message}`);
     reportId = (data as { id: string } | null)?.id ?? null;
-  } catch {
-    // not persisted — the report is still returned to the client
+  } catch (e) {
+    console.warn(`[reports] persistence threw (usage under-counted): ${e instanceof Error ? e.message : e}`);
   }
 
   return NextResponse.json({ id: reportId, title, content, scope, createdAt: new Date().toISOString() });

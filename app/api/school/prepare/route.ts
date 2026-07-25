@@ -10,6 +10,7 @@ import {
   getTeacherResources,
 } from "@/lib/school-admin";
 import { generateJson } from "@/lib/raya/llm";
+import { resolveSchoolEntitlements, gateQuota, startOfMonthIso } from "@/lib/entitlements";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -44,6 +45,24 @@ export async function GET() {
 export async function POST(request: Request) {
   const { user, membership, error } = await authStaff();
   if (error) return error;
+
+  // Prepare is quota-metered per prof per month (Standard 30 / Plus 150 / Custom ∞).
+  // Counted from teacher_resources authored by this staff member this month.
+  const { ent, tier } = await resolveSchoolEntitlements(membership.schoolId);
+  const { count: prepUsed } = await createSchoolsAdminClient()
+    .from("teacher_resources")
+    .select("id", { count: "exact", head: true })
+    .eq("created_by", membership.adminId)
+    .gte("created_at", startOfMonthIso());
+  const overPrep = gateQuota(prepUsed ?? 0, ent.preparePerMonthPerProf, {
+    metric: "Prepare generations",
+    period: "month",
+    upgradeTo: "Plus",
+    scope: "school",
+    userId: membership.adminId,
+    tier,
+  });
+  if (overPrep) return overPrep;
 
   let body: { classId?: string; subjectId?: string; kind?: string; topic?: string; count?: number };
   try {
@@ -130,7 +149,7 @@ export async function POST(request: Request) {
   let id: string | null = null;
   try {
     const schools = createSchoolsAdminClient();
-    const { data } = await schools
+    const { data, error } = await schools
       .from("teacher_resources")
       .insert({
         school_id: membership.schoolId,
@@ -146,9 +165,10 @@ export async function POST(request: Request) {
       })
       .select("id")
       .single();
+    if (error) console.warn(`[prepare] persistence failed (usage under-counted): ${error.message}`);
     id = (data as { id: string } | null)?.id ?? null;
-  } catch {
-    // not persisted — still return the generated resource
+  } catch (e) {
+    console.warn(`[prepare] persistence threw (usage under-counted): ${e instanceof Error ? e.message : e}`);
   }
 
   return NextResponse.json({
