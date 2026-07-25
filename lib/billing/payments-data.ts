@@ -1,7 +1,7 @@
 import "server-only";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { invalidateEntitlements } from "@/lib/entitlements";
-import { sendEmail, renderEmail, getUserEmail, siteUrl } from "@/lib/email";
+import { sendBrandedEmail, getUserEmail, siteUrl } from "@/lib/email";
 import type { PaymentChannel } from "./payments";
 
 /**
@@ -220,21 +220,24 @@ async function sendPaymentReceipt(p: PaymentRow): Promise<void> {
   if (recipientIds.length === 0) return;
 
   const amount = p.amount == null ? null : Number(p.amount);
+  const isB2b = p.audience === "b2b";
   const lines = [
     `Thank you — your payment for ${planName} was received and your subscription is now active.`,
     amount != null ? `Amount: $${amount.toFixed(2)}.` : "",
     "You can manage your subscription any time from your dashboard.",
   ].filter(Boolean);
-  const { html, text } = renderEmail({
+  const email = {
+    brand: (isB2b ? "schools" : "raya") as "schools" | "raya",
+    subject: `Payment received — ${planName}`,
     heading: `Payment received — ${planName}`,
     lines,
-    cta: { label: "Open dashboard", url: `${siteUrl()}/${p.audience === "b2b" ? "school" : ""}` },
-  });
+    cta: { label: "Open dashboard", url: `${siteUrl()}/${isB2b ? "school" : ""}` },
+  };
 
   await Promise.all(
     recipientIds.map(async (id) => {
       const to = await getUserEmail(id);
-      if (to) await sendEmail({ to, subject: `Payment received — ${planName}`, html, text });
+      if (to) await sendBrandedEmail({ ...email, to });
     }),
   );
 }

@@ -9,7 +9,7 @@ import {
   type ActivateInput,
   type SchoolBilling,
 } from "@/lib/billing";
-import { sendEmail, renderEmail, getUserEmail, siteUrl } from "@/lib/email";
+import { sendBrandedEmail, getUserEmail, siteUrl } from "@/lib/email";
 
 /** Receipt to the admin confirming a plan is now active (best-effort, non-blocking). */
 async function sendActivationReceipt(
@@ -25,16 +25,18 @@ async function sendActivationReceipt(
   const amount = billing?.history.find((h) => h.id === subscriptionId)?.amount ?? null;
   const until = new Date(expiresAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
   const lines = [
-    `${planName} is now active for ${schoolName} on RAYA for Schools.`,
+    `${planName} is now active for ${schoolName} on Bluestift Schools.`,
     amount != null ? `Amount recorded: $${amount.toFixed(2)}.` : "",
     `Your subscription runs until ${until}.`,
   ].filter(Boolean);
-  const { html, text } = renderEmail({
+  await sendBrandedEmail({
+    brand: "schools",
+    to,
+    subject: `${planName} is active — ${schoolName}`,
     heading: `${planName} is active`,
     lines,
     cta: { label: "View billing", url: `${siteUrl()}/school` },
   });
-  await sendEmail({ to, subject: `${planName} is active — ${schoolName}`, html, text });
 }
 
 const PAYMENT_METHOD_SET: readonly string[] = PAYMENT_METHODS;

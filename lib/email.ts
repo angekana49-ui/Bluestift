@@ -14,6 +14,31 @@ import { hasRealEmail } from "@/lib/auth";
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
 
+/**
+ * One Resend account, one verified sending domain, but three product identities.
+ * Bluestift is the parent brand; Raya (personal) and Schools (B2B) are the two
+ * products. The sending code always knows which product an email belongs to (a
+ * join-request mail is always Schools; a B2C receipt is always Raya), so it passes
+ * the brand and we stamp it consistently — same address, product-specific display
+ * name + in-email wordmark. `bluestift` is the neutral parent default for anything
+ * identity-level or cross-product.
+ */
+export type EmailBrand = "bluestift" | "raya" | "schools";
+
+const BRANDS: Record<EmailBrand, { fromName: string; product: string | null }> = {
+  bluestift: { fromName: "Bluestift", product: null },
+  raya: { fromName: "Bluestift Raya", product: "Raya" },
+  schools: { fromName: "Bluestift Schools", product: "Schools" },
+};
+
+/** Build the From header for a brand: the verified ADDRESS from EMAIL_FROM (its
+ *  display name, if any, is ignored) with the product-specific display name. */
+function fromHeader(brand: EmailBrand): string {
+  const raw = process.env.EMAIL_FROM ?? "no-reply@bluestift.local";
+  const address = raw.match(/<([^>]+)>/)?.[1] ?? raw.trim();
+  return `${BRANDS[brand].fromName} <${address}>`;
+}
+
 export function emailConfigured(): boolean {
   return !!process.env.RESEND_API_KEY;
 }
@@ -25,12 +50,14 @@ export async function sendEmail(opts: {
   subject: string;
   html: string;
   text?: string;
+  /** Product identity for the From header. Defaults to the parent brand. */
+  brand?: EmailBrand;
 }): Promise<SendResult> {
   const key = process.env.RESEND_API_KEY;
   if (!key) return { ok: false, skipped: true };
   // Guard against sending to the synthetic recovery address of email-less accounts.
   if (!hasRealEmail(opts.to)) return { ok: false, skipped: true };
-  const from = process.env.EMAIL_FROM ?? "RAYA <no-reply@bluestift.local>";
+  const from = fromHeader(opts.brand ?? "bluestift");
   try {
     const res = await fetch(RESEND_ENDPOINT, {
       method: "POST",
@@ -56,6 +83,8 @@ export function renderEmail(opts: {
   heading: string;
   lines: string[];
   cta?: { label: string; url: string };
+  /** Which product's wordmark to show. Defaults to the parent brand. */
+  brand?: EmailBrand;
 }): { html: string; text: string } {
   const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const paras = opts.lines
@@ -64,14 +93,36 @@ export function renderEmail(opts: {
   const button = opts.cta
     ? `<p style="margin:22px 0 0;"><a href="${opts.cta.url}" style="display:inline-block;background:#2f7fe0;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:11px 20px;border-radius:10px;">${esc(opts.cta.label)}</a></p>`
     : "";
+  // Parent wordmark "Bluestift" + an optional product tag ("Raya" / "Schools").
+  const product = BRANDS[opts.brand ?? "bluestift"].product;
+  const productTag = product
+    ? `<span style="font-size:13px;font-weight:600;color:#2f7fe0;margin-left:8px;">${product}</span>`
+    : "";
   const html = `<div style="max-width:520px;margin:0 auto;padding:28px 24px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
-  <div style="font-size:20px;font-weight:800;color:#0b1220;margin-bottom:18px;">RAYA</div>
+  <div style="margin-bottom:18px;"><span style="font-size:20px;font-weight:800;color:#0b1220;">Bluestift</span>${productTag}</div>
   <h1 style="font-size:18px;font-weight:700;color:#0b1220;margin:0 0 16px;">${esc(opts.heading)}</h1>
   ${paras}${button}
-  <p style="margin:28px 0 0;font-size:11.5px;color:#94a3b8;">You're receiving this because you have a RAYA account.</p>
+  <p style="margin:28px 0 0;font-size:11.5px;color:#94a3b8;">You're receiving this because you have a Bluestift account.</p>
 </div>`;
   const text = [opts.heading, "", ...opts.lines, opts.cta ? `\n${opts.cta.label}: ${opts.cta.url}` : ""].join("\n");
   return { html, text };
+}
+
+/**
+ * Compose + send a product-branded transactional email in one call. The `brand`
+ * flows to both the wordmark (renderEmail) and the From header (sendEmail) so they
+ * can never drift. This is the preferred entry point for our own mail.
+ */
+export async function sendBrandedEmail(opts: {
+  brand: EmailBrand;
+  to: string;
+  subject: string;
+  heading: string;
+  lines: string[];
+  cta?: { label: string; url: string };
+}): Promise<SendResult> {
+  const { html, text } = renderEmail({ brand: opts.brand, heading: opts.heading, lines: opts.lines, cta: opts.cta });
+  return sendEmail({ to: opts.to, subject: opts.subject, html, text, brand: opts.brand });
 }
 
 /** Resolve a user's real (deliverable) email, or null for email-less accounts. */

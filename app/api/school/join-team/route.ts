@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { setActiveSchoolCookie } from "@/lib/school-active";
 import { hasRealEmail } from "@/lib/auth";
-import { sendEmail, renderEmail, getUserEmail, siteUrl } from "@/lib/email";
+import { sendBrandedEmail, getUserEmail, siteUrl } from "@/lib/email";
 
 // Local shapes for the untyped `schools` schema.
 type CodeRow = { id: string; school_id: string; auto_approve: boolean };
@@ -29,18 +29,19 @@ async function notifyAdminsOfRequest(
   const adminIds = ((data as { user_id: string }[] | null) ?? []).map((r) => r.user_id);
   const name = schoolName ?? "your school";
   const who = requesterEmail ? `${requesterEmail} ` : "A teacher ";
-  const { html, text } = renderEmail({
+  const email = {
+    subject: `New request to join ${name}`,
     heading: `New request to join ${name}`,
     lines: [
-      `${who}asked to join ${name} on RAYA for Schools and is waiting for your approval.`,
+      `${who}asked to join ${name} on Bluestift Schools and is waiting for your approval.`,
       "Open the Team page to approve or decline the request.",
     ],
     cta: { label: "Review requests", url: `${siteUrl()}/school` },
-  });
+  };
   await Promise.all(
     adminIds.map(async (id) => {
       const to = await getUserEmail(id);
-      if (to) await sendEmail({ to, subject: `New request to join ${name}`, html, text });
+      if (to) await sendBrandedEmail({ brand: "schools", to, ...email });
     }),
   );
 }

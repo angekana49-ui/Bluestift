@@ -24,15 +24,31 @@ describe("renderEmail", () => {
     expect(html).toContain("&lt;script&gt;");
     expect(html).toContain("&amp;");
   });
+
+  it("carries the parent Bluestift wordmark (not the old RAYA), plus a product tag", () => {
+    const parent = renderEmail({ heading: "Hi", lines: ["x"] });
+    expect(parent.html).toContain("Bluestift");
+    expect(parent.html).not.toContain("RAYA");
+
+    const schools = renderEmail({ brand: "schools", heading: "Hi", lines: ["x"] });
+    expect(schools.html).toContain("Bluestift");
+    expect(schools.html).toContain("Schools");
+
+    const raya = renderEmail({ brand: "raya", heading: "Hi", lines: ["x"] });
+    expect(raya.html).toContain("Raya");
+  });
 });
 
 describe("sendEmail safety", () => {
   const OLD = process.env.RESEND_API_KEY;
+  const OLD_FROM = process.env.EMAIL_FROM;
   beforeEach(() => vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(new Response("{}", { status: 200 })))));
   afterEach(() => {
     vi.unstubAllGlobals();
     if (OLD === undefined) delete process.env.RESEND_API_KEY;
     else process.env.RESEND_API_KEY = OLD;
+    if (OLD_FROM === undefined) delete process.env.EMAIL_FROM;
+    else process.env.EMAIL_FROM = OLD_FROM;
   });
 
   it("is a no-op (skipped) when RESEND_API_KEY is unset — never calls the network", async () => {
@@ -57,5 +73,14 @@ describe("sendEmail safety", () => {
     expect(fetch).toHaveBeenCalledTimes(1);
     const [url] = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(url).toBe("https://api.resend.com/emails");
+  });
+
+  it("stamps the product-specific From display name (same verified address)", async () => {
+    process.env.RESEND_API_KEY = "test-key";
+    process.env.EMAIL_FROM = "Whatever <no-reply@bluestift.com>";
+    await sendEmail({ to: "teacher@school.com", subject: "hi", html: "<p>hi</p>", brand: "schools" });
+    const [, init] = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0];
+    const body = JSON.parse((init as RequestInit).body as string);
+    expect(body.from).toBe("Bluestift Schools <no-reply@bluestift.com>");
   });
 });
