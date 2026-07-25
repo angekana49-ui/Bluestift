@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminMembership } from "@/lib/school-admin";
 import {
@@ -6,7 +7,35 @@ import {
   activateSubscription,
   PAYMENT_METHODS,
   type ActivateInput,
+  type SchoolBilling,
 } from "@/lib/billing";
+import { sendEmail, renderEmail, getUserEmail, siteUrl } from "@/lib/email";
+
+/** Receipt to the admin confirming a plan is now active (best-effort, non-blocking). */
+async function sendActivationReceipt(
+  adminUserId: string,
+  schoolName: string,
+  subscriptionId: string,
+  expiresAt: string,
+  billing: SchoolBilling | null,
+) {
+  const to = await getUserEmail(adminUserId);
+  if (!to) return;
+  const planName = billing?.planName ?? "Your plan";
+  const amount = billing?.history.find((h) => h.id === subscriptionId)?.amount ?? null;
+  const until = new Date(expiresAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  const lines = [
+    `${planName} is now active for ${schoolName} on RAYA for Schools.`,
+    amount != null ? `Amount recorded: $${amount.toFixed(2)}.` : "",
+    `Your subscription runs until ${until}.`,
+  ].filter(Boolean);
+  const { html, text } = renderEmail({
+    heading: `${planName} is active`,
+    lines,
+    cta: { label: "View billing", url: `${siteUrl()}/school` },
+  });
+  await sendEmail({ to, subject: `${planName} is active — ${schoolName}`, html, text });
+}
 
 const PAYMENT_METHOD_SET: readonly string[] = PAYMENT_METHODS;
 
@@ -86,5 +115,11 @@ export async function POST(request: Request) {
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
 
   const billing = await getSchoolBilling(user.id);
+
+  // Confirm the activation by email, after the response is sent.
+  after(() =>
+    sendActivationReceipt(user.id, membership.schoolName, result.subscriptionId, result.expiresAt, billing),
+  );
+
   return NextResponse.json({ subscriptionId: result.subscriptionId, expiresAt: result.expiresAt, billing });
 }

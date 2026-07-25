@@ -1,6 +1,7 @@
 import "server-only";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { invalidateEntitlements } from "@/lib/entitlements";
+import { sendEmail, renderEmail, getUserEmail, siteUrl } from "@/lib/email";
 import type { PaymentChannel } from "./payments";
 
 /**
@@ -154,6 +155,13 @@ export async function markPaymentPaid(
         : await activateUserSubscription(p);
     if (!subId) throw new Error("activation write failed");
     await schools.from("payments").update({ subscription_id: subId, updated_at: nowIso }).eq("id", p.id);
+    // Receipt is isolated in its own try/catch so a mail hiccup can never roll
+    // back the (already-committed) activation.
+    try {
+      await sendPaymentReceipt(p);
+    } catch {
+      /* best-effort */
+    }
     return { ok: true, subscriptionId: subId };
   } catch {
     // Roll back the claim so a retry can complete activation.
@@ -177,6 +185,58 @@ async function loadPlanTier(planId: string): Promise<string | null> {
   const schools = createSchoolsAdminClient();
   const { data } = await schools.from("subscription_plans").select("tier").eq("id", planId).maybeSingle();
   return (data as { tier: string | null } | null)?.tier ?? null;
+}
+
+async function loadPlanName(planId: string): Promise<string | null> {
+  const schools = createSchoolsAdminClient();
+  const { data } = await schools.from("subscription_plans").select("name").eq("id", planId).maybeSingle();
+  return (data as { name: string | null } | null)?.name ?? null;
+}
+
+/**
+ * Email a receipt for a self-serve (online) payment once it's activated. B2C goes
+ * to the buyer; B2B goes to the school's admin_master(s). Best-effort and isolated
+ * by the caller so it can never affect the payment write.
+ */
+async function sendPaymentReceipt(p: PaymentRow): Promise<void> {
+  const schools = createSchoolsAdminClient();
+  const planName = (await loadPlanName(p.plan_id)) ?? "Your plan";
+
+  // Resolve recipients.
+  let recipientIds: string[] = [];
+  if (p.audience === "b2b" && p.school_id) {
+    const { data } = await schools
+      .from("school_admins")
+      .select("user_id")
+      .eq("school_id", p.school_id)
+      .eq("role", "admin_master");
+    recipientIds = ((data as { user_id: string }[] | null) ?? []).map((r) => r.user_id);
+    if (p.created_by) recipientIds.push(p.created_by);
+  } else if (p.user_id) {
+    recipientIds = [p.user_id];
+  }
+  // De-dupe.
+  recipientIds = [...new Set(recipientIds)];
+  if (recipientIds.length === 0) return;
+
+  const amount = p.amount == null ? null : Number(p.amount);
+  const lines = [
+    `Thank you — your payment for ${planName} was received and your subscription is now active.`,
+    amount != null ? `Amount: $${amount.toFixed(2)}.` : "",
+    "You can manage your subscription any time from your dashboard.",
+  ].filter(Boolean);
+  const { html, text } = renderEmail({
+    heading: `Payment received — ${planName}`,
+    lines,
+    cta: { label: "Open dashboard", url: `${siteUrl()}/${p.audience === "b2b" ? "school" : ""}` },
+  });
+
+  await Promise.all(
+    recipientIds.map(async (id) => {
+      const to = await getUserEmail(id);
+      if (to) await sendEmail({ to, subject: `Payment received — ${planName}`, html, text });
+    }),
+  );
 }
 
 /** B2B: cancel prior active school sub, insert active row, repoint the school. */

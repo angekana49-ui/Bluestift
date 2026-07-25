@@ -13,10 +13,12 @@ const KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
 const HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://eu.i.posthog.com";
 
 // posthog-node is imported lazily and only once analytics is configured, so the
-// dependency never loads in tests or before setup. flushAt:1 sends each event
-// promptly (best-effort on serverless — good enough for pre-launch telemetry).
+// dependency never loads in tests or before setup. flushAt:1 queues each event to
+// send immediately; the actual network delivery is drained via `flush()` inside an
+// `after()` callback (see captureServer) so a frozen serverless function can't drop it.
 type PostHogNode = {
   capture: (m: { distinctId: string; event: string; properties?: Record<string, unknown> }) => void;
+  flush: () => Promise<void>;
 };
 let clientPromise: Promise<PostHogNode | null> | null = null;
 
@@ -57,6 +59,22 @@ export async function captureServer(
     const client = await getClient();
     if (!client) return;
     client.capture({ distinctId: userId, event, properties });
+    // Drain the send AFTER the response is flushed to the user: `after()` keeps the
+    // serverless function alive until the network delivery resolves, so events aren't
+    // lost when the function would otherwise freeze. Outside a request scope (or on any
+    // failure) we fall back silently — flushAt:1 already made a best-effort attempt.
+    try {
+      const { after } = await import("next/server");
+      after(async () => {
+        try {
+          await client.flush();
+        } catch {
+          /* delivery is best-effort */
+        }
+      });
+    } catch {
+      /* not in a request scope — nothing more to do */
+    }
   } catch {
     // swallow — analytics must not affect the request
   }

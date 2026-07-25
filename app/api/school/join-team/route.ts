@@ -1,12 +1,49 @@
 import { NextResponse } from "next/server";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { setActiveSchoolCookie } from "@/lib/school-active";
 import { hasRealEmail } from "@/lib/auth";
+import { sendEmail, renderEmail, getUserEmail, siteUrl } from "@/lib/email";
 
 // Local shapes for the untyped `schools` schema.
 type CodeRow = { id: string; school_id: string; auto_approve: boolean };
 type SchoolRow = { name: string };
+
+/**
+ * Tell the school's admin(s) a teacher is waiting for approval — otherwise the
+ * request sits invisible until someone happens to open the dashboard. Best-effort:
+ * fans out to every admin_master with a real email; sendEmail never throws.
+ */
+async function notifyAdminsOfRequest(
+  schools: ReturnType<typeof createSchoolsAdminClient>,
+  schoolId: string,
+  schoolName: string | null,
+  requesterEmail: string | null,
+) {
+  const { data } = await schools
+    .from("school_admins")
+    .select("user_id")
+    .eq("school_id", schoolId)
+    .eq("role", "admin_master");
+  const adminIds = ((data as { user_id: string }[] | null) ?? []).map((r) => r.user_id);
+  const name = schoolName ?? "your school";
+  const who = requesterEmail ? `${requesterEmail} ` : "A teacher ";
+  const { html, text } = renderEmail({
+    heading: `New request to join ${name}`,
+    lines: [
+      `${who}asked to join ${name} on RAYA for Schools and is waiting for your approval.`,
+      "Open the Team page to approve or decline the request.",
+    ],
+    cta: { label: "Review requests", url: `${siteUrl()}/school` },
+  });
+  await Promise.all(
+    adminIds.map(async (id) => {
+      const to = await getUserEmail(id);
+      if (to) await sendEmail({ to, subject: `New request to join ${name}`, html, text });
+    }),
+  );
+}
 
 /**
  * A signed-in teacher redeems a staff invite code.
@@ -109,6 +146,10 @@ export async function POST(request: Request) {
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  // Fresh request — let the admins know, after the response is sent.
+  after(() => notifyAdminsOfRequest(schools, codeRow.school_id, schoolName, user.email ?? null));
+
   return NextResponse.json({ status: "requested", schoolName });
 }
 
