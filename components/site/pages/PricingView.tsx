@@ -271,7 +271,7 @@ export function PricingView({
                   }}
                 >
                   Billed <strong style={{ color: t.text }}>annually, per enrolled student</strong> (your declared
-                  effectif) — a school of 800 pays for 800, whether 250 or all of them use RAYA that month. Quarterly and
+                  effectif) — a school of 800 pays for 800, whether 250 or all of them use Raya that month. Quarterly and
                   monthly terms available. Every school starts with a free pilot; talk to us for a quote.
                 </div>
               )}

@@ -238,6 +238,88 @@ export const SCHOOL_ENTITLEMENTS: Record<SchoolTier, SchoolEntitlements> = {
   },
 };
 
+// ---- Marketing copy (pricing cards) ----------------------------------------
+// The public pricing cards must never drift from what each forfait actually
+// unlocks, so their bullet lists are DERIVED from the entitlements above rather
+// than hand-authored (and re-authored) in the DB `features` column. The prose is
+// templated, but every number and flag is read straight from RAYA_ENTITLEMENTS /
+// SCHOOL_ENTITLEMENTS — change a quota in one place and the card follows. Used by
+// the /pricing page (a server component), so living in this server-only module is
+// fine. `null` quota renders as "Unlimited".
+
+/** "10 uploads" / "Unlimited uploads" from a nullable quota (null = unlimited). */
+function quota(n: number | null, noun: string): string {
+  return n == null ? `Unlimited ${noun}` : `${n} ${noun}`;
+}
+
+/** Pricing-card bullets for a Raya (b2c) tier, derived from RAYA_ENTITLEMENTS. */
+export function rayaFeatureBullets(tier: RayaTier): string[] {
+  const e = RAYA_ENTITLEMENTS[tier];
+  switch (tier) {
+    case "free":
+      return [
+        "Unlimited AI tutor chat — the core, always free",
+        `${quota(e.generationsPerMonth, "study generations")} & ${quota(e.uploadsPerMonth, "uploads")} / month`,
+        `${e.roomsPerMonth} study rooms / month · up to ${e.roomMaxParticipants} peers`,
+        `${e.convHistoryDays}-day conversation history`,
+        `${e.kernelAnalysisPerWeek} Kernel deep-dive per week`,
+      ];
+    case "plus":
+      return [
+        "Everything in Free, plus:",
+        "Voice input & every AI tutor mode",
+        `${quota(e.generationsPerMonth, "generations")} & ${quota(e.uploadsPerMonth, "uploads")} / month`,
+        "Mind maps, PDF export, no watermark",
+        `Unlimited private rooms · up to ${e.roomMaxParticipants} peers`,
+        "Unlimited chat history & Kernel analysis",
+        "AI feedback on self-tests",
+      ];
+    case "max":
+      return [
+        "Everything in Plus, plus:",
+        "Unlimited generations & uploads",
+        "Audio summaries & infographics",
+        `Study rooms up to ${e.roomMaxParticipants} participants`,
+        `${e.attachmentMaxMb} MB attachments & study packets`,
+        "Priority, fully unmetered",
+      ];
+  }
+}
+
+/** Pricing-card bullets for a Schools (b2b) tier, derived from SCHOOL_ENTITLEMENTS. */
+export function schoolFeatureBullets(tier: SchoolTier): string[] {
+  const e = SCHOOL_ENTITLEMENTS[tier];
+  switch (tier) {
+    case "standard":
+      return [
+        `${e.preparePerMonthPerProf} lesson preps & ${e.aiGradingPerMonthPerProf} AI gradings / teacher / month`,
+        `${e.simulationsPerWeekPerProf} student simulations / teacher / week`,
+        `${e.reportsPerWeekPerProf} report / teacher / week`,
+        `${e.exportsPerMonth} document exports / month`,
+        "Teacher dashboards & per-class insights",
+        `${e.archiveYears}-year data archive`,
+      ];
+    case "plus":
+      return [
+        "Everything in Standard, plus:",
+        `${quota(e.preparePerMonthPerProf, "preps")} & ${quota(e.aiGradingPerMonthPerProf, "AI gradings")} / teacher / month`,
+        "Unlimited student simulations & reports",
+        "Advanced insights & automatic daily reports",
+        "Your school logo on every document",
+        `${e.archiveYears}-year data archive`,
+      ];
+    case "custom":
+      return [
+        "Everything in Plus, plus:",
+        "Unlimited preps, gradings & exports",
+        "Consolidated multi-class monitoring",
+        "LMS sync, SSO & multi-school administration",
+        "Insights export & unlimited data archive",
+        "Bespoke deployment, tuned to your school",
+      ];
+  }
+}
+
 // ---- Tier normalization -----------------------------------------------------
 
 /**

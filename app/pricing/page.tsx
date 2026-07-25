@@ -1,6 +1,29 @@
 import { createClient } from "@/lib/supabase/server";
-import { listPlans } from "@/lib/billing";
+import { listPlans, type BillingPlan } from "@/lib/billing";
+import {
+  normalizeRayaTier,
+  normalizeSchoolTier,
+  rayaFeatureBullets,
+  schoolFeatureBullets,
+} from "@/lib/entitlements";
 import { PricingView } from "@/components/site/pages/PricingView";
+
+/**
+ * Replace each plan's seeded `features` with the bullets DERIVED from the
+ * entitlements matrix, so the public cards can never drift from what the tier
+ * actually unlocks (and enforces). The plan's name+tier is the tier signal —
+ * matching how the entitlements resolver reads a plan at runtime.
+ */
+function withDerivedFeatures(plans: BillingPlan[], audience: "b2c" | "b2b"): BillingPlan[] {
+  return plans.map((p) => {
+    const signal = [p.name, p.tier].filter(Boolean).join(" ");
+    const features =
+      audience === "b2c"
+        ? rayaFeatureBullets(normalizeRayaTier(signal))
+        : schoolFeatureBullets(normalizeSchoolTier(signal));
+    return { ...p, features };
+  });
+}
 
 export const metadata = {
   title: "BlueStift · Pricing",
@@ -30,5 +53,12 @@ export default async function PricingPage({
 
   const initialAudience = forParam === "schools" ? "schools" : "solo";
 
-  return <PricingView signedIn={!!user} b2c={b2c} b2b={b2b} initialAudience={initialAudience} />;
+  return (
+    <PricingView
+      signedIn={!!user}
+      b2c={withDerivedFeatures(b2c, "b2c")}
+      b2b={withDerivedFeatures(b2b, "b2b")}
+      initialAudience={initialAudience}
+    />
+  );
 }

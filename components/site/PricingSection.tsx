@@ -54,7 +54,7 @@ export default function PricingSection({ theme: t }: { theme: Theme }) {
           {gatewayCard({
             title: "Solo",
             lines: [
-              "Solo learning, RAYA in your corner",
+              "Solo learning, Raya in your corner",
               "Remembers every concept",
               "Study Rooms, live",
               "Quizzes, summaries, flashcards",
@@ -79,7 +79,7 @@ export default function PricingSection({ theme: t }: { theme: Theme }) {
               [
                 "A class, a grade, or a whole school",
                 "Teacher dashboards + per-class insights",
-                "LMS sync + RAYA for Schools",
+                "LMS sync + Raya for Schools",
                 "Billed per enrolled student",
               ],
               "rgba(255,255,255,0.78)",

@@ -4,6 +4,8 @@ import {
   normalizeSchoolTier,
   RAYA_ENTITLEMENTS,
   SCHOOL_ENTITLEMENTS,
+  rayaFeatureBullets,
+  schoolFeatureBullets,
   overQuota,
   gateFeature,
   gateQuota,
@@ -70,6 +72,43 @@ describe("entitlement grid matches the frozen Forfaits pricing", () => {
     expect(SCHOOL_ENTITLEMENTS.standard.lms).toBe(false);
     expect(SCHOOL_ENTITLEMENTS.custom.lms).toBe(true);
     expect(SCHOOL_ENTITLEMENTS.standard.reportsPerWeekPerProf).toBe(1);
+  });
+});
+
+// The public pricing cards read their bullets from these builders, so pin that
+// the numbers/flags shown are the SAME source of truth the gates enforce — a
+// quota change in the matrix must flow to the card, never drift from it.
+describe("pricing-card bullets are derived from the entitlement matrix", () => {
+  it("Raya cards echo the real quotas (Free capped, higher tiers unlimited)", () => {
+    const free = rayaFeatureBullets("free").join(" | ");
+    // Free's monthly generation/upload cap is shown verbatim from the matrix.
+    expect(free).toContain(`${RAYA_ENTITLEMENTS.free.generationsPerMonth} study generations`);
+    expect(free).toContain(`${RAYA_ENTITLEMENTS.free.uploadsPerMonth} uploads`);
+    expect(free).toContain(`${RAYA_ENTITLEMENTS.free.roomsPerMonth} study rooms`);
+
+    // Max's null (unlimited) quotas surface as "Unlimited", never a number.
+    const max = rayaFeatureBullets("max").join(" | ");
+    expect(max).toContain("Unlimited generations & uploads");
+    expect(max).toContain(`${RAYA_ENTITLEMENTS.max.roomMaxParticipants} participants`);
+  });
+
+  it("School cards echo the ladder (Standard capped, Custom unlimited + LMS/SSO)", () => {
+    const standard = schoolFeatureBullets("standard").join(" | ");
+    expect(standard).toContain(`${SCHOOL_ENTITLEMENTS.standard.preparePerMonthPerProf} lesson preps`);
+    expect(standard).toContain(`${SCHOOL_ENTITLEMENTS.standard.aiGradingPerMonthPerProf} AI gradings`);
+
+    const custom = schoolFeatureBullets("custom").join(" | ");
+    expect(custom).toContain("Unlimited preps, gradings & exports");
+    expect(custom).toContain("LMS sync, SSO & multi-school administration");
+  });
+
+  it("every tier renders a non-empty bullet list", () => {
+    for (const tier of ["free", "plus", "max"] as const) {
+      expect(rayaFeatureBullets(tier).length).toBeGreaterThan(0);
+    }
+    for (const tier of ["standard", "plus", "custom"] as const) {
+      expect(schoolFeatureBullets(tier).length).toBeGreaterThan(0);
+    }
   });
 });
 
