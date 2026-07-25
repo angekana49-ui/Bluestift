@@ -1331,7 +1331,7 @@ function SchoolSettings({
             // eslint-disable-next-line @next/next/no-img-element
             <img src={school.logoUrl} alt="logo" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           ) : (
-            (school.name || "?").charAt(0).toUpperCase()
+            school.name ? initialsOf(school.name) : "?"
           )}
         </div>
         <label style={{ ...ghost, display: "inline-block" }}>

@@ -7,6 +7,7 @@ import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
 import { useResolvedTheme } from "@/components/ui/theme";
 import { panelCard, cardTitle, textInput, ctaButton } from "@/components/ui/forms";
 import { status } from "@/components/ui/tokens";
+import { avatarInitials } from "@/lib/name";
 
 type Profile = {
   username: string | null;
@@ -240,7 +241,7 @@ export function AuthPanel({ user, profile }: Props) {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={profile.profile_picture_url} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           ) : (
-            (profile?.display_name || profile?.username || "?").charAt(0).toUpperCase()
+            avatarInitials(profile?.display_name || profile?.username)
           )}
         </div>
         <div style={{ flex: 1 }}>
