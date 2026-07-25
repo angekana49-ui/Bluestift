@@ -3,7 +3,7 @@
 import { useAppTheme } from "@/components/ui/theme";
 import { display } from "@/components/ui/tokens";
 
-/** Themed page-section header (Inter Tight title + muted subtitle). */
+/** Themed page-section header (IBM Plex Sans display title + muted subtitle). */
 export function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   const { theme: t } = useAppTheme();
   return (

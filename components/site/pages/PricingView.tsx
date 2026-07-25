@@ -219,7 +219,7 @@ export function PricingView({
               <div style={{ textAlign: "center", marginBottom: 30 }}>
                 <h1
                   style={{
-                    fontFamily: "'Inter Tight',sans-serif",
+                    fontFamily: "'IBM Plex Sans',sans-serif",
                     fontWeight: 900,
                     fontSize: "clamp(1.9rem,4.5vw,3rem)",
                     letterSpacing: "-0.02em",

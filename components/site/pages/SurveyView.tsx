@@ -188,7 +188,7 @@ function DoneScreen({ t, responseId, onFreeWall }: { t: Theme; responseId: strin
       <div style={{ display: "flex", justifyContent: "center", marginBottom: 20, color: t.orange }}>
         <IconHeart size={44} filled />
       </div>
-      <h2 style={{ fontFamily: "'Inter Tight',sans-serif", fontWeight: 900, fontSize: "1.9rem", letterSpacing: "-0.02em", margin: "0 0 12px", color: t.text }}>Thank you.</h2>
+      <h2 style={{ fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "1.9rem", letterSpacing: "-0.02em", margin: "0 0 12px", color: t.text }}>Thank you.</h2>
       <p style={{ fontSize: 13, lineHeight: 1.7, color: t.text, marginBottom: 24 }}>
         Your answers feed straight into Raya&apos;s development. Leave your email if you want early access when the beta is ready.
       </p>
@@ -271,7 +271,7 @@ function FreeWall({ t, initialPosts }: { t: Theme; initialPosts: WallPost[] }) {
   return (
     <div style={{ maxWidth: 580, margin: "0 auto", padding: "8px 24px 32px" }}>
       <div style={{ marginBottom: 28 }}>
-        <h2 style={{ fontFamily: "'Inter Tight',sans-serif", fontWeight: 900, fontSize: "clamp(1.3rem,3vw,1.8rem)", letterSpacing: "-0.02em", margin: "0 0 8px", color: t.text }}>Tell us what you think.</h2>
+        <h2 style={{ fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "clamp(1.3rem,3vw,1.8rem)", letterSpacing: "-0.02em", margin: "0 0 8px", color: t.text }}>Tell us what you think.</h2>
         <p style={{ fontSize: 13, lineHeight: 1.7, color: t.text, margin: 0 }}>
           No questions, no form. Just a space to express yourself freely. What you write here feeds straight into the product.
         </p>
@@ -386,7 +386,7 @@ export function SurveyView({ signedIn, initialPosts, stats }: Props) {
                 <span style={{ fontSize: 11, fontWeight: 600, color: t.orangeText }}>R&amp;D · 5 minutes · Anonymous</span>
               </div>
 
-              <h1 style={{ fontFamily: "'Inter Tight',sans-serif", fontWeight: 900, fontSize: "clamp(1.6rem,4vw,2.4rem)", letterSpacing: "-0.02em", lineHeight: 1.2, margin: "0 0 14px", color: t.text }}>
+              <h1 style={{ fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "clamp(1.6rem,4vw,2.4rem)", letterSpacing: "-0.02em", lineHeight: 1.2, margin: "0 0 14px", color: t.text }}>
                 Do you teach or do you learn?
                 <br />
                 <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", color: t.orange }}>Tell us what&apos;s really getting in the way.</em>

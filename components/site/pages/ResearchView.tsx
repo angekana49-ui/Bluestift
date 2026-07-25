@@ -264,7 +264,7 @@ export function ResearchView({ posts, issues, signedIn, initialTab }: Props) {
                   <span style={{ width: 6, height: 6, borderRadius: "50%", background: t.greenDot }} />
                   <span style={{ fontSize: 11, fontWeight: 600, color: t.greenText }}>Volume 1 · Open research</span>
                 </div>
-                <h1 style={{ fontFamily: "'Inter Tight',sans-serif", fontWeight: 900, fontSize: "clamp(1.8rem,4vw,2.6rem)", letterSpacing: "-0.02em", margin: 0, color: t.text }}>
+                <h1 style={{ fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "clamp(1.8rem,4vw,2.6rem)", letterSpacing: "-0.02em", margin: 0, color: t.text }}>
                   What we&apos;re learning by <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", color: t.greenText }}>building Raya.</em>
                 </h1>
                 <p style={{ maxWidth: 440, margin: "14px auto 0", fontSize: 14, color: t.text, lineHeight: 1.7 }}>

@@ -11,7 +11,7 @@ import React from "react";
 
 export const WORDMARK_A = "#173d8a";
 export const WORDMARK_B = "#2f7fe0";
-export const HEAD_FONT = "var(--font-inter-tight), 'Inter Tight', sans-serif";
+export const HEAD_FONT = "var(--font-plex), 'IBM Plex Sans', sans-serif";
 export const HAND_FONT = "var(--font-caveat), 'Caveat', cursive";
 // Raya is written "Raya" in a bold serif (Cambria Math / Times New Roman) — a
 // softer, less clinical wordmark. See <RayaName/>.

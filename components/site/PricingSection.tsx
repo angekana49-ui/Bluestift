@@ -41,7 +41,7 @@ export default function PricingSection({ theme: t }: { theme: Theme }) {
       <div style={{ position: "absolute", inset: "0 0 auto 0", height: 140, background: `linear-gradient(180deg, ${t.cardBg} 0%, transparent 100%)`, pointerEvents: "none" }} />
       <div style={{ position: "relative", maxWidth: 1080, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 52 }}>
-          <h2 style={{ fontFamily: "'Inter Tight',sans-serif", fontWeight: 900, fontSize: "clamp(1.9rem,4vw,2.9rem)", letterSpacing: "-0.02em", color: t.text }}>
+          <h2 style={{ fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "clamp(1.9rem,4vw,2.9rem)", letterSpacing: "-0.02em", color: t.text }}>
             Pricing that <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic" }}>stays simple.</em>
           </h2>
           <p style={{ fontSize: 13.5, color: t.muted, marginTop: 12, maxWidth: 520, marginLeft: "auto", marginRight: "auto", lineHeight: 1.7 }}>

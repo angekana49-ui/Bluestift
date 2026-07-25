@@ -33,7 +33,7 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["var(--font-inter)", "Inter", "Helvetica Neue", "-apple-system", "sans-serif"],
-        display: ["var(--font-inter-tight)", "Inter Tight", "Helvetica Neue", "-apple-system", "sans-serif"],
+        display: ["var(--font-plex)", "IBM Plex Sans", "Helvetica Neue", "-apple-system", "sans-serif"],
         hand: ["var(--font-caveat)", "Caveat", "cursive"],
         accent: ["var(--font-instrument-serif)", "Instrument Serif", "Georgia", "serif"],
       },

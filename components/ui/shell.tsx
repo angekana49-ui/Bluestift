@@ -262,7 +262,7 @@ export function SidebarBrand({
                 fontSize: 12.5,
                 fontWeight: 800,
                 color: t.sidebarText,
-                fontFamily: "var(--font-inter-tight),'Inter Tight',sans-serif",
+                fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
               }}
             >
               {name}

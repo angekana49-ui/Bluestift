@@ -83,7 +83,7 @@ export default function Navbar({
             style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
           />
           <div>
-            <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: "-0.02em", fontFamily: "'Inter Tight',sans-serif" }}>
+            <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: "-0.02em", fontFamily: "'IBM Plex Sans',sans-serif" }}>
               <span style={{ color: t.wordmarkA }}>Blue</span>
               <span style={{ color: t.wordmarkB }}>Stift</span>
               {section && <span style={{ fontWeight: 400, opacity: 0.6, marginLeft: 4, color: t.text }}>· {section}</span>}

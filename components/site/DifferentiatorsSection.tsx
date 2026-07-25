@@ -14,7 +14,7 @@ export default function DifferentiatorsSection({ theme: t }: { theme: Theme }) {
       <div style={{ position: "absolute", inset: "0 0 auto 0", height: 140, background: `linear-gradient(180deg, ${t.sectionAltBg} 0%, transparent 100%)`, pointerEvents: "none" }} />
       <div style={{ position: "relative", maxWidth: 720, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 44 }}>
-          <h2 style={{ fontFamily: "'Inter Tight',sans-serif", fontWeight: 900, fontSize: "clamp(1.7rem,3.6vw,2.6rem)", letterSpacing: "-0.02em", color: t.text }}>
+          <h2 style={{ fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "clamp(1.7rem,3.6vw,2.6rem)", letterSpacing: "-0.02em", color: t.text }}>
             Why not the <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic" }}>others?</em>
           </h2>
           <p style={{ fontSize: 14, color: t.text, marginTop: 12 }}>The difference isn&apos;t the AI. It&apos;s the memory.</p>

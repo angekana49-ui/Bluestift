@@ -460,7 +460,7 @@ export function RoomView({
       }}
     >
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
-        <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0, color: t.text, fontFamily: "var(--font-inter-tight),'Inter Tight',sans-serif" }}>{roomName}</h1>
+        <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0, color: t.text, fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif" }}>{roomName}</h1>
         <span style={{ color: t.muted, fontSize: 12.5 }}>
           {subject ?? "—"} · {memberCount} member{memberCount === 1 ? "" : "s"}
         </span>

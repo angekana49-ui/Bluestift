@@ -12,7 +12,7 @@ export default function FeaturesSection({ theme: t }: { theme: Theme }) {
       <div style={{ position: "absolute", inset: "0 0 auto 0", height: 140, background: `linear-gradient(180deg, ${t.heroEndSolid} 0%, transparent 100%)`, pointerEvents: "none" }} />
       <div style={{ position: "relative", maxWidth: 1080, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 52 }}>
-          <h2 style={{ fontFamily: "'Inter Tight',sans-serif", fontWeight: 900, fontSize: "clamp(1.8rem,4vw,2.8rem)", letterSpacing: "-0.02em", maxWidth: 640, margin: "0 auto", color: t.text }}>
+          <h2 style={{ fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "clamp(1.8rem,4vw,2.8rem)", letterSpacing: "-0.02em", maxWidth: 640, margin: "0 auto", color: t.text }}>
             Built for students who need <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic" }}>more</em>
             <br />
             than <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic" }}>a chatbot.</em>

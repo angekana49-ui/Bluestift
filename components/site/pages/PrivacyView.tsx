@@ -8,7 +8,7 @@ const UPDATED = "25 July 2026";
 export function PrivacyView({ signedIn }: { signedIn: boolean }) {
   const h2 = (t: Theme) =>
     ({
-      fontFamily: "'Inter Tight',sans-serif",
+      fontFamily: "'IBM Plex Sans',sans-serif",
       fontWeight: 800,
       fontSize: "1.05rem",
       letterSpacing: "-0.01em",
@@ -29,7 +29,7 @@ export function PrivacyView({ signedIn }: { signedIn: boolean }) {
           <div style={{ maxWidth: 720, margin: "0 auto", width: "100%", boxSizing: "border-box", paddingBottom: 96 }}>
             <h1
               style={{
-                fontFamily: "'Inter Tight',sans-serif",
+                fontFamily: "'IBM Plex Sans',sans-serif",
                 fontWeight: 900,
                 fontSize: "clamp(1.6rem,4vw,2.4rem)",
                 letterSpacing: "-0.02em",

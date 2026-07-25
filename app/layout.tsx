@@ -1,21 +1,23 @@
 import type { Metadata } from "next";
-import { Inter, Inter_Tight, Caveat, Instrument_Serif } from "next/font/google";
+import { Inter, IBM_Plex_Sans, Caveat, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import { PostHogProvider } from "@/components/analytics/PostHogProvider";
 import { UpgradeModal } from "@/components/upgrade/UpgradeModal";
 
 // One source of truth for the product typeface (see components/ui/tokens.ts).
-// Inter = body/UI, Inter Tight = headings/nav/wordmark, Caveat = handwritten greeting.
+// Inter = body/UI, IBM Plex Sans = headings/nav (the display face, à la PostHog),
+// Caveat = handwritten greeting. Plex tops out at 700, so headings that ask for
+// 800/900 render at Bold — intentional (that's the Plex look).
 const inter = Inter({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
   variable: "--font-inter",
   display: "swap",
 });
-const interTight = Inter_Tight({
+const plex = IBM_Plex_Sans({
   subsets: ["latin"],
-  weight: ["700", "800", "900"],
-  variable: "--font-inter-tight",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-plex",
   display: "swap",
 });
 const caveat = Caveat({
@@ -45,7 +47,7 @@ export default function RootLayout({
     <html
       lang="en"
       data-theme="day"
-      className={`${inter.variable} ${interTight.variable} ${caveat.variable} ${instrumentSerif.variable}`}
+      className={`${inter.variable} ${plex.variable} ${caveat.variable} ${instrumentSerif.variable}`}
     >
       <body>
         <PostHogProvider>{children}</PostHogProvider>

@@ -128,7 +128,7 @@ export function getTheme(isDark: boolean): AppTheme {
 /** Font stacks — back the `--font-*` CSS variables set in app/layout.tsx. */
 export const sans = "var(--font-inter),'Inter',ui-sans-serif,system-ui,sans-serif";
 export const display =
-  "var(--font-inter-tight),'Inter Tight',ui-sans-serif,system-ui,sans-serif";
+  "var(--font-plex),'IBM Plex Sans',ui-sans-serif,system-ui,sans-serif";
 export const hand = "var(--font-caveat),'Caveat',cursive";
 
 /**
@@ -141,11 +141,11 @@ export const hand = "var(--font-caveat),'Caveat',cursive";
  */
 export const text = {
   xs: 12, // micro-labels, status, timestamps — the floor
-  sm: 13, // secondary text, chips, captions, inline errors
-  base: 14, // body copy, message bubbles, inputs
-  lg: 16, // emphasis, sub-headings
-  xl: 20, // card/section headings, KPI values
-  "2xl": 24, // page headings
+  sm: 14, // secondary text, chips, captions, inline errors
+  base: 15, // body copy, message bubbles, inputs
+  lg: 18, // emphasis, sub-headings
+  xl: 22, // card/section headings, KPI values
+  "2xl": 28, // page headings
 } as const;
 
 /** Shape scale (border-radii). Buttons/pills/badges use `pill`. */

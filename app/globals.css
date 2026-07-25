@@ -1,8 +1,9 @@
 /* Public marketing site fonts (BlueStift landing handoff). Loaded by literal
-   family name so the inline style={{ fontFamily: "'Inter Tight'..." }} used by
+   family name so the inline style={{ fontFamily: "'IBM Plex Sans'..." }} used by
    components/site/* resolves. Harmless to the connected app, which sets its own
-   font stacks explicitly. */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Inter+Tight:wght@700;800;900&family=Caveat:wght@600;700&family=Instrument+Serif:ital@1&display=swap');
+   font stacks explicitly. IBM Plex Sans (à la PostHog) is the display face; Inter
+   is the body. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Caveat:wght@600;700&family=Instrument+Serif:ital@1&display=swap');
 
 /* Tailwind — used ONLY by the public marketing site (components/site/*). Preflight
    is disabled in tailwind.config.ts so these directives add no global reset; the
@@ -550,7 +551,7 @@ a {
    (NavbarControls), independent of the app's `bluestift-dark`.
    ============================================================ */
 :root {
-  --font-site-display: var(--font-inter-tight), "Inter Tight", "Helvetica Neue", -apple-system, sans-serif;
+  --font-site-display: var(--font-plex), "IBM Plex Sans", "Helvetica Neue", -apple-system, sans-serif;
   --font-site-body: var(--font-inter), "Inter", "Helvetica Neue", -apple-system, sans-serif;
   --font-site-hand: var(--font-caveat), "Caveat", cursive;
   --font-site-accent: var(--font-instrument-serif), "Instrument Serif", Georgia, serif;
