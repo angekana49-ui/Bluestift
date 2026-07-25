@@ -145,10 +145,37 @@ export function useChatEngine({
     }
   }
 
+  /**
+   * Auto-name the conversation once, around the 2nd exchange: Raya distils the
+   * thread into a one-sentence title. Best-effort and fire-and-forget — a failure
+   * just leaves the first-message seed title. Off when no `summarize` endpoint is
+   * configured (e.g. room channels keep the room's name).
+   */
+  async function maybeAutoRename(turnNow: number, cid: string | null) {
+    if (turnNow !== 2 || !cid || !config.endpoints.summarize) return;
+    try {
+      const res = await fetch(config.endpoints.summarize, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ...config.extraBody, conversationId: cid }),
+      });
+      if (!res.ok) return;
+      const data = await res.json().catch(() => null);
+      const title = typeof data?.title === "string" ? data.title : null;
+      if (title) {
+        setConversations((list) => list.map((c) => (c.id === cid ? { ...c, title } : c)));
+      }
+    } catch {
+      // best-effort
+    }
+  }
+
   async function onSend(textArg?: string) {
     const text = (textArg ?? input).trim();
     if (!text || busy || uploading) return;
     const wasNew = conversationId == null;
+    // User turns so far (this send makes it +1) — drives the one-shot auto-rename.
+    const turnNow = messages.filter((m) => m.role === "user").length + 1;
     const responseTimeMs =
       lastReplyRef.current != null ? Date.now() - lastReplyRef.current : null;
     // The staged files leave the composer with this message.
@@ -226,6 +253,8 @@ export function useChatEngine({
       }
       // The reply finished — start the think-time clock for the next turn.
       lastReplyRef.current = Date.now();
+      // Around the 2nd exchange, let Raya name the conversation.
+      void maybeAutoRename(turnNow, convId ?? conversationId);
     } catch {
       setError("Could not reach Raya.");
     } finally {

@@ -24,6 +24,7 @@ const RAYA_CONFIG: ChatConfig = {
     chat: "/api/raya/chat",
     conversations: "/api/raya/conversations",
     files: "/api/raya/files",
+    summarize: "/api/raya/conversations",
   },
   capabilities: { voice: true, files: true },
   greeting: (name) => (name ? `What are we cracking today, ${name}?` : "What are we cracking today?"),

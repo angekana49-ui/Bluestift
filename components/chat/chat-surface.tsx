@@ -67,6 +67,7 @@ export function ChatSurface({
   userAvatarUrl?: string | null;
 }) {
   const {
+    conversationId,
     messages,
     pending,
     filesByMessage,
@@ -86,6 +87,27 @@ export function ChatSurface({
   } = engine;
 
   const [filesOpen, setFilesOpen] = useState(false);
+
+  // Auto-scroll: keep the thread pinned to the newest message (including while a
+  // reply streams in), but only when the user is already near the bottom — if
+  // they scrolled up to re-read, we don't yank them back down. `stick` tracks
+  // that intent; the scroll handler refreshes it as the user scrolls.
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const stick = useRef(true);
+  const onThreadScroll = () => {
+    const el = scrollerRef.current;
+    if (el) stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+  };
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (el && stick.current) el.scrollTop = el.scrollHeight;
+  }, [messages]);
+  useEffect(() => {
+    // A freshly opened conversation always starts at its latest message.
+    stick.current = true;
+    const el = scrollerRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [conversationId]);
   const { voice: voiceEnabled, files: filesEnabled } = config.capabilities;
 
   // Hybrid new-conversation hooks: try the config's personalized resolver once
@@ -272,7 +294,7 @@ export function ChatSurface({
             </div>
           </div>
         ) : (
-          <div style={{ flex: 1, minHeight: 0, overflow: "auto", padding: "28px 24px" }}>
+          <div ref={scrollerRef} onScroll={onThreadScroll} style={{ flex: 1, minHeight: 0, overflow: "auto", padding: "28px 24px" }}>
             {/* Centred reading column — full width until the zone is narrower
                 than THREAD_MAX_W, capped beyond it. */}
             <div style={{ maxWidth: THREAD_MAX_W, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>

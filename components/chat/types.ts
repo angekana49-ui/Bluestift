@@ -18,7 +18,18 @@ export type ConversationFile = Attachment & { message_id: string | null };
  *  - `files`         POST (multipart) → {file, conversationId}; DELETE ?id
  */
 export type ChatConfig = {
-  endpoints: { chat: string; conversations: string; files: string };
+  endpoints: {
+    chat: string;
+    conversations: string;
+    files: string;
+    /**
+     * Optional auto-rename endpoint. `POST {conversationId}` → `{title}`: Raya
+     * distils the exchange into a one-sentence title. When set, the engine calls
+     * it once, around the 2nd exchange. Omit it and auto-rename is simply off
+     * (e.g. room channels, which keep the room's name).
+     */
+    summarize?: string;
+  };
   capabilities: { voice: boolean; files: boolean };
   /** Greeting on the empty (new-conversation) screen, given the user's first name. */
   greeting: (firstName: string) => string;
