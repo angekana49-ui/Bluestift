@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useAppTheme } from "@/components/ui/theme";
 import { panelCard, textInput, ctaButton, ghostButton } from "@/components/ui/forms";
 import { DocumentView } from "@/components/ui/document";
+import { Modal } from "@/components/ui/modal";
 import { downloadBrandedPdf, downloadBrandedText, type BrandedDoc } from "@/lib/document";
 
 type ClassOpt = { id: string; name: string };
@@ -111,16 +112,6 @@ export function PrepareView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Close the open resource with Escape.
-  useEffect(() => {
-    if (!current) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setCurrent(null);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [current]);
-
   async function generate() {
     if (busy) return;
     setBusy(true);
@@ -222,35 +213,17 @@ export function PrepareView({
         {error && <p style={{ color: "#f87171", margin: "0.75rem 0 0" }}>{error}</p>}
       </div>
 
-      {/* Open the resource in a centred modal (see school-reports for rationale):
-          clear open, consistent size, TXT/PDF/close visible in the header. */}
+      {/* Portalled modal — see school-reports: escapes the shell, centres over
+          the viewport, TXT/PDF/close visible in the header. */}
       {current && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label={current.title}
-          onClick={() => setCurrent(null)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 5000,
-            background: "rgba(4,10,24,0.5)",
-            overflowY: "auto",
-            padding: "40px 16px",
-            display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "center",
-          }}
-        >
-          <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 900 }}>
-            <DocumentView
-              {...docFor(current)}
-              onTxt={() => downloadBrandedText(docFor(current))}
-              onPdf={() => downloadBrandedPdf(docFor(current))}
-              onClose={() => setCurrent(null)}
-            />
-          </div>
-        </div>
+        <Modal onClose={() => setCurrent(null)} label={current.title}>
+          <DocumentView
+            {...docFor(current)}
+            onTxt={() => downloadBrandedText(docFor(current))}
+            onPdf={() => downloadBrandedPdf(docFor(current))}
+            onClose={() => setCurrent(null)}
+          />
+        </Modal>
       )}
 
       {library.length > 0 && (
