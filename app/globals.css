@@ -21,16 +21,6 @@
   box-sizing: border-box;
 }
 
-/* Chat composer textarea: scroll a long message with the caret or a drag, but
-   without any scrollbar chrome (the little arrows read as clutter in the pill). */
-.no-scrollbar-arrows {
-  scrollbar-width: none; /* Firefox */
-}
-.no-scrollbar-arrows::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-}
-
 html,
 body {
   max-width: 100vw;

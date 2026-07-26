@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { rayaComplete } from "@/lib/raya/llm";
-import { LANGUAGES, normalizeLang } from "@/lib/languages";
 
 /**
  * Conversation history for the solo /chat surface.
@@ -57,7 +56,7 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  let body: { conversationId?: string; language?: string };
+  let body: { conversationId?: string };
   try {
     body = await request.json();
   } catch {
@@ -91,8 +90,6 @@ export async function POST(request: Request) {
     .slice(0, 2500);
   if (!transcript) return NextResponse.json({ error: "empty" }, { status: 400 });
 
-  // Title in the picked reply language, so it matches the thread it labels.
-  const lang = LANGUAGES.find((l) => l.code === normalizeLang(body.language)) ?? LANGUAGES[0];
   let title: string;
   try {
     const { text } = await rayaComplete([
@@ -100,8 +97,8 @@ export async function POST(request: Request) {
         role: "system",
         content:
           "You title tutoring conversations. Read the exchange and reply with a single, " +
-          `short sentence that captures what it is about — max 8 words, in ${lang.englishName} ` +
-          `(${lang.nativeName}). Plain text only: no quotes, no trailing period, no preamble.`,
+          "short sentence that captures what it is about — max 8 words, in the student's " +
+          "own language. Plain text only: no quotes, no trailing period, no preamble.",
       },
       { role: "user", content: transcript },
     ]);

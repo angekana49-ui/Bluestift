@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase/client";
 import { joinRoom, postRoomMessage } from "@/app/rooms/actions";
 import { dispatchUpgrade } from "@/lib/upgrade";
 import { useVoiceRecorder } from "@/lib/use-voice-recorder";
-import { useReplyLanguage } from "@/lib/use-reply-language";
 import { RoomChallenges } from "@/components/room-challenges";
 import { RoomFiles } from "@/components/room-files";
 import { FilePreview, type Attachment } from "@/components/attachment";
@@ -294,10 +293,6 @@ export function RoomView({
   // private channel gets its own voice from the shared engine.
   const groupVoice = useVoiceRecorder((text) => send(text));
 
-  // Reply language for the group channel's "Ask Raya" (the private channel gets
-  // its own picker from the shared chat engine). Same shared preference.
-  const [groupLang, setGroupLang] = useReplyLanguage();
-
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -434,7 +429,7 @@ export function RoomView({
       const res = await fetch("/api/rooms/raya", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ roomId, language: groupLang }),
+        body: JSON.stringify({ roomId }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
@@ -652,8 +647,6 @@ export function RoomView({
         error={error}
         endRef={endRef}
         subject={subject}
-        language={groupLang}
-        onLanguage={setGroupLang}
       />
     );
   } else if (channel === "private") {

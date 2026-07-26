@@ -4,7 +4,6 @@ import { createAdminClient, createSchoolsAdminClient } from "@/lib/supabase/admi
 import { buildProfContext, buildSchoolContext, getAdminMembership } from "@/lib/school-admin";
 import { rayaStream, type ChatMsg } from "@/lib/raya/llm";
 import { checkUserRateLimit } from "@/lib/rate-limit";
-import { languageDirective } from "@/lib/languages";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -38,7 +37,7 @@ export async function POST(request: Request) {
     );
   }
 
-  let body: { conversationId?: string | null; content?: string; fileIds?: string[]; language?: string };
+  let body: { conversationId?: string | null; content?: string; fileIds?: string[] };
   try {
     body = await request.json();
   } catch {
@@ -154,9 +153,6 @@ export async function POST(request: Request) {
     `=== DATA SNAPSHOT ===\n${context}`,
     directives ? `=== STANDING INSTRUCTIONS ===\n${directives}` : "",
     docs ? `=== ATTACHED DOCUMENTS ===\n${docs}` : "",
-    // The staffer's explicit language pick overrides SYSTEM's "reply in the
-    // user's language" default.
-    languageDirective(body.language),
   ]
     .filter(Boolean)
     .join("\n\n");

@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { rayaComplete, type ChatMsg } from "@/lib/raya/llm";
 import { assertRoomOpen } from "@/lib/rooms";
-import { languageDirective } from "@/lib/languages";
 
 const ROOM_SYSTEM = `You are Raya, the Socratic tutor inside a Bluestift study room with several students.
 
@@ -21,7 +20,7 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  let body: { roomId?: string; language?: string };
+  let body: { roomId?: string };
   try {
     body = await request.json();
   } catch {
@@ -62,12 +61,9 @@ export async function POST(request: Request) {
     .map((f) => `# ${f.file_name}\n${f.content}`)
     .join("\n\n")
     .slice(0, 8000);
-  const base = docs
+  const system = docs
     ? `${ROOM_SYSTEM}\n\n# Room documents (shared context — use them when relevant)\n${docs}`
     : ROOM_SYSTEM;
-  // The group's language pick overrides ROOM_SYSTEM's "reply in the students'
-  // language" default.
-  const system = `${base}\n\n${languageDirective(body.language)}`;
 
   const messages: ChatMsg[] = [
     { role: "system", content: system },

@@ -5,8 +5,6 @@ import { AttachmentChip, type Attachment } from "@/components/attachment";
 import { IconButton, THREAD_MAX_W } from "@/components/ui/shell";
 import { IconMic, IconAttach, IconAiMode } from "@/components/ui/icons";
 import { text, type AppTheme } from "@/components/ui/tokens";
-import { LanguageMenu } from "./language-menu";
-import type { LangCode } from "@/lib/languages";
 
 /** The minimal voice-recorder shape the composer needs (see useVoiceRecorder). */
 export type ComposerVoice = {
@@ -44,8 +42,6 @@ export function ChatComposer({
   error,
   extraAction,
   disabled = false,
-  language,
-  onLanguage,
 }: {
   theme: AppTheme;
   centered: boolean;
@@ -62,9 +58,6 @@ export function ChatComposer({
   error?: string | null;
   extraAction?: ReactNode;
   disabled?: boolean;
-  /** Reply-language picker — rendered only when both are supplied. */
-  language?: LangCode;
-  onLanguage?: (l: LangCode) => void;
 }) {
   const sendIdle = busy || uploading || disabled || !input.trim();
 
@@ -134,10 +127,6 @@ export function ChatComposer({
             disabled={busy || disabled}
             placeholder={placeholder}
             rows={1}
-            // `no-scrollbar-arrows` hides the native scrollbar (Firefox +
-            // WebKit) so a long message has no chrome — the caret and drag still
-            // scroll it. See globals.css.
-            className="no-scrollbar-arrows"
             style={{
               flex: 1,
               minWidth: 100,
@@ -183,9 +172,6 @@ export function ChatComposer({
                 disabled={busy || uploading}
               />
             </label>
-          )}
-          {language && onLanguage && (
-            <LanguageMenu theme={t} value={language} onChange={onLanguage} disabled={disabled} />
           )}
           <IconButton theme={t} size={38} radius={999} title="AI mode — Encouraging" color={t.text}>
             <IconAiMode size={16} />

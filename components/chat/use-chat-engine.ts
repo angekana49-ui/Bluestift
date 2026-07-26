@@ -2,7 +2,6 @@
 
 import { useRef, useState } from "react";
 import { useVoiceRecorder } from "@/lib/use-voice-recorder";
-import { useReplyLanguage } from "@/lib/use-reply-language";
 import { splitByMessage, type Attachment } from "@/components/attachment";
 import { type ChatConfig, type Msg, type Conversation, type ConversationFile, titleFrom } from "./types";
 
@@ -43,10 +42,6 @@ export function useChatEngine({
 
   // Voice input: record → transcribe → send as a message.
   const voice = useVoiceRecorder((text) => onSend(text));
-
-  // Reply language (shared across every chat surface). Rides along in each chat
-  // request so the backend can pin Raya's output language.
-  const [language, setLanguage] = useReplyLanguage();
 
   // When the last reply finished rendering — used to measure user think-time.
   const lastReplyRef = useRef<number | null>(initialMessages.length ? Date.now() : null);
@@ -162,7 +157,7 @@ export function useChatEngine({
       const res = await fetch(config.endpoints.summarize, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...config.extraBody, conversationId: cid, language }),
+        body: JSON.stringify({ ...config.extraBody, conversationId: cid }),
       });
       if (!res.ok) return;
       const data = await res.json().catch(() => null);
@@ -204,7 +199,6 @@ export function useChatEngine({
           content: text,
           responseTimeMs,
           fileIds: sentFiles.map((f) => f.id),
-          language,
         }),
       });
       if (!res.ok || !res.body) {
@@ -286,12 +280,10 @@ export function useChatEngine({
     uploading,
     error,
     voice,
-    language,
     // derived
     activeTitle,
     sessionFiles,
     // setters/actions
-    setLanguage,
     setInput,
     setPreview,
     setError,

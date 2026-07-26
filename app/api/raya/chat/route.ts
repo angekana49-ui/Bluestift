@@ -66,7 +66,6 @@ export async function POST(request: Request) {
     roomId?: string | null;
     responseTimeMs?: number | null;
     fileIds?: string[];
-    language?: string;
   };
   try {
     body = await request.json();
@@ -211,9 +210,7 @@ export async function POST(request: Request) {
   let model: string;
   let deltas: AsyncGenerator<string>;
   try {
-    const out = await rayaStream(
-      buildRayaMessages(hist ?? [], profile, alerts, docs, instructions, body.language),
-    );
+    const out = await rayaStream(buildRayaMessages(hist ?? [], profile, alerts, docs, instructions));
     model = out.model;
     deltas = out.stream;
   } catch (e) {
