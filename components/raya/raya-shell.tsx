@@ -22,6 +22,9 @@ import {
   IconKernel,
   IconSettings,
   IconChevron,
+  IconMail,
+  IconLogout,
+  IconUpgrade,
 } from "@/components/ui/icons";
 import type { AppTheme } from "@/components/ui/tokens";
 
@@ -115,22 +118,31 @@ export function RayaShell({
   };
 
   // The profile chip opens this menu instead of jumping straight to Settings:
-  // coherent options + a gentle incentive to secure an anonymous account. The
-  // "Upgrade your plan" item is withheld while paid billing is unavailable.
+  // coherent options, a gentle incentive to secure an anonymous account, and an
+  // always-present door to a higher plan. Real line-icons throughout (no emoji)
+  // so the rows align in the narrow popover.
   const profileMenu: ProfileMenuItem[] = [
     ...(isAnon
       ? [{
           key: "email",
           label: "Add your email",
           sublabel: "Secure your progress",
-          icon: <span style={{ fontSize: 17 }}>✉️</span>,
+          icon: <IconMail />,
           tone: "accent" as const,
           onSelect: () => go("/account"),
         }]
       : []),
     { key: "settings", label: "Settings", icon: <IconSettings />, onSelect: () => go("/account") },
     { key: "kernel", label: "My Kernel", icon: <IconKernel />, onSelect: () => go("/profile") },
-    { key: "signout", label: "Sign out", tone: "danger", icon: <span style={{ fontSize: 16 }}>⏻</span>, onSelect: signOut },
+    {
+      key: "upgrade",
+      label: "Upgrade plan",
+      sublabel: "Unlock more features",
+      icon: <IconUpgrade />,
+      tone: "accent",
+      onSelect: () => go("/pricing"),
+    },
+    { key: "signout", label: "Sign out", tone: "danger", icon: <IconLogout />, onSelect: signOut },
   ];
 
   return (

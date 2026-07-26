@@ -36,6 +36,8 @@ import {
   IconFile,
   IconSummary,
   IconBilling,
+  IconLogout,
+  IconUpgrade,
 } from "@/components/ui/icons";
 import { initialsOf } from "@/lib/name";
 import type { AppTheme } from "@/components/ui/tokens";
@@ -290,7 +292,15 @@ function SchoolChrome({
       onSelect: () => router.push("/chat"),
     },
     { key: "settings", label: "Settings", icon: <IconSettings />, onSelect: settingsAction },
-    { key: "signout", label: "Sign out", tone: "danger", icon: <span style={{ fontSize: 16 }}>⏻</span>, onSelect: signOut },
+    {
+      key: "upgrade",
+      label: "Upgrade plan",
+      sublabel: "Unlock more features",
+      icon: <IconUpgrade />,
+      tone: "accent",
+      onSelect: () => router.push("/pricing"),
+    },
+    { key: "signout", label: "Sign out", tone: "danger", icon: <IconLogout />, onSelect: signOut },
   ];
 
   return (

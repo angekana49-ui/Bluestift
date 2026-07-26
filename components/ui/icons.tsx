@@ -172,3 +172,26 @@ export const IconCheck = (p: IconProps) => (
     <path d="M5 12.5l4.5 4.5L19 7.5" />
   </Svg>
 );
+
+/** Sign out — door with an out-arrow. */
+export const IconLogout = (p: IconProps) => (
+  <Svg strokeWidth={1.8} {...p}>
+    <path d="M15 4.5H6.5A1.5 1.5 0 0 0 5 6v12a1.5 1.5 0 0 0 1.5 1.5H15" />
+    <path d="M18.5 12H10M15.5 8.5 19 12l-3.5 3.5" />
+  </Svg>
+);
+
+/** Email — envelope. */
+export const IconMail = (p: IconProps) => (
+  <Svg strokeWidth={1.8} {...p}>
+    <rect x="3.5" y="5.5" width="17" height="13" rx="2" />
+    <path d="m4 7 8 6 8-6" />
+  </Svg>
+);
+
+/** Upgrade plan — an upward chevron stacked over a bar (level up). */
+export const IconUpgrade = (p: IconProps) => (
+  <Svg strokeWidth={1.9} {...p}>
+    <path d="m6 11 6-6 6 6M6 17l6-6 6 6" />
+  </Svg>
+);
