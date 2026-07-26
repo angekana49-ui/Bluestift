@@ -152,7 +152,7 @@ export function RayaShell({
       <Sidebar
         theme={t}
         collapsed={effectiveCollapsed}
-        expandedWidth={212}
+        expandedWidth={236}
         open={navOpen}
         // Clicking the sidebar background toggles the icon rail, but only when
         // it's a real sidebar — inside an open drawer that gesture is a no-op.

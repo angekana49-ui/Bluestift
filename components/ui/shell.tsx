@@ -405,13 +405,13 @@ export function SidebarProfile({
             position: "absolute",
             bottom: "calc(100% + 8px)",
             left: 0,
-            width: 246,
+            width: 208,
             maxWidth: "calc(100vw - 24px)",
             background: t.cardBg,
             border: `1px solid ${t.cardBorder}`,
-            borderRadius: 14,
+            borderRadius: 13,
             boxShadow: t.cardShadow,
-            padding: 6,
+            padding: 5,
             zIndex: 50,
             display: "flex",
             flexDirection: "column",
@@ -433,13 +433,13 @@ export function SidebarProfile({
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 10,
+                  gap: 8,
                   width: "100%",
                   textAlign: "left",
                   background: accent ? accentBg : "transparent",
                   border: `1px solid ${accent ? accentBorder : "transparent"}`,
-                  borderRadius: 10,
-                  padding: "8px 10px",
+                  borderRadius: 9,
+                  padding: "6px 9px",
                   cursor: "pointer",
                   color: danger ? "#ef4444" : t.text,
                 }}
@@ -449,12 +449,12 @@ export function SidebarProfile({
                     {item.icon}
                   </span>
                 )}
-                <span style={{ display: "flex", flexDirection: "column", minWidth: 0, lineHeight: 1.3 }}>
-                  <span style={{ fontSize: 15, fontWeight: accent ? 700 : 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <span style={{ display: "flex", flexDirection: "column", minWidth: 0, lineHeight: 1.25 }}>
+                  <span style={{ fontSize: 13, fontWeight: accent ? 700 : 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {item.label}
                   </span>
                   {item.sublabel && (
-                    <span style={{ fontSize: 13, color: accent ? accentInk : t.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <span style={{ fontSize: 11.5, color: accent ? accentInk : t.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {item.sublabel}
                     </span>
                   )}

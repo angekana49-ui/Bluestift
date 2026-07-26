@@ -103,7 +103,7 @@ export function SchoolsShell({
       <Sidebar
         theme={t}
         collapsed={effectiveCollapsed}
-        expandedWidth={216}
+        expandedWidth={236}
         open={navOpen}
         onBackgroundClick={() => {
           if (!navOpen) setCollapsed((c) => !c);

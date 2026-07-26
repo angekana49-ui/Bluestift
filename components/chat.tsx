@@ -185,7 +185,7 @@ export function Chat({
   );
 
   const rightPanel = rightOpen ? (
-    <RightPanel theme={t} width={270} title="For you" onCollapse={() => setRightOpen(false)}>
+    <RightPanel theme={t} width={300} title="For you" onCollapse={() => setRightOpen(false)}>
       <div>
         {recommendations.length === 0 && (
           <div style={{ fontSize: 13, color: t.muted }}>No recommendations yet.</div>

@@ -756,7 +756,7 @@ export function RoomView({
   };
 
   const roomPanel = joined ? (
-    <RightPanel theme={t} width={288} title={roomName} onCollapse={() => setRightOpen(false)}>
+    <RightPanel theme={t} width={300} title={roomName} onCollapse={() => setRightOpen(false)}>
       {/* Notifications */}
       <div>
         <div style={panelSectionTitle}>Notifications</div>
