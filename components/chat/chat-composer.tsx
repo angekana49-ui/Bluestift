@@ -127,6 +127,10 @@ export function ChatComposer({
             disabled={busy || disabled}
             placeholder={placeholder}
             rows={1}
+            // `no-scrollbar-arrows` hides the native scrollbar (Firefox +
+            // WebKit) so a long message has no chrome — the caret and drag still
+            // scroll it. See globals.css.
+            className="no-scrollbar-arrows"
             style={{
               flex: 1,
               minWidth: 100,
