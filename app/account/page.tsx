@@ -6,6 +6,7 @@ import { AuthPanel } from "@/components/auth-panel";
 import { RayaScaffold } from "@/components/raya/raya-scaffold";
 import { SectionHeader } from "@/components/raya/section-header";
 import { SettingsThemeCard } from "@/components/raya/settings-theme-card";
+import { SettingsLanguageCard } from "@/components/raya/settings-language-card";
 import { StudentBillingCard } from "@/components/raya/settings-billing-card";
 import { initialsOf } from "@/lib/name";
 
@@ -43,6 +44,7 @@ export default async function AccountPage() {
       <div style={{ flex: 1, overflow: "auto", padding: "32px 40px", minWidth: 0 }}>
         <SectionHeader title="Settings" />
         <SettingsThemeCard />
+        <SettingsLanguageCard />
         <AuthPanel
           user={{
             id: user.id,

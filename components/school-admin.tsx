@@ -7,6 +7,7 @@ import { setActiveSchool } from "@/app/school/actions";
 import { SchoolRayaChat } from "@/components/school/school-raya-chat";
 import { AuthPanel } from "@/components/auth-panel";
 import { SettingsThemeCard } from "@/components/raya/settings-theme-card";
+import { SettingsLanguageCard } from "@/components/raya/settings-language-card";
 import { StudentBillingCard } from "@/components/raya/settings-billing-card";
 import { SectionHeader } from "@/components/raya/section-header";
 import { SchoolReports } from "@/components/school-reports";
@@ -890,6 +891,7 @@ function ProfSettings({ account, classes }: { account: StaffAccount | null; clas
     <div style={{ maxWidth: 560 }}>
       <SectionHeader title="Settings" />
       <SettingsThemeCard />
+      <SettingsLanguageCard />
       <TeachingPreferencesCard classes={classes} />
       <AuthPanel user={account.user} profile={account.profile} />
       <WhoPaysNote />
@@ -1307,7 +1309,9 @@ function SchoolSettings({
   }
 
   return (
-    <form style={box} onSubmit={save}>
+    <div style={{ maxWidth: 560 }}>
+      <SettingsLanguageCard />
+      <form style={box} onSubmit={save}>
       <h3 style={{ margin: "0 0 0.85rem", fontSize: "1.05rem" }}>School info</h3>
 
       <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1rem" }}>
@@ -1397,7 +1401,8 @@ function SchoolSettings({
         {msg && <span style={{ color: "#22c55e", fontSize: "0.85rem" }}>{msg}</span>}
         {error && <span style={{ color: "#f87171", fontSize: "0.85rem" }}>{error}</span>}
       </div>
-    </form>
+      </form>
+    </div>
   );
 }
 
