@@ -888,12 +888,12 @@ function ProfSettings({ account, classes }: { account: StaffAccount | null; clas
     );
   }
   return (
-    <div style={{ maxWidth: 560 }}>
+    <div style={{ width: "100%", maxWidth: 700, margin: "0 auto" }}>
       <SectionHeader title="Settings" />
       <SettingsThemeCard />
       <SettingsLanguageCard />
       <TeachingPreferencesCard classes={classes} />
-      <AuthPanel user={account.user} profile={account.profile} />
+      <AuthPanel user={account.user} profile={account.profile} maxWidth={700} />
       <WhoPaysNote />
       <StudentBillingCard />
     </div>
@@ -1309,7 +1309,7 @@ function SchoolSettings({
   }
 
   return (
-    <div style={{ maxWidth: 560 }}>
+    <div style={{ width: "100%", maxWidth: 700, margin: "0 auto" }}>
       <SettingsLanguageCard />
       <form style={box} onSubmit={save}>
       <h3 style={{ margin: "0 0 0.85rem", fontSize: "1.05rem" }}>School info</h3>

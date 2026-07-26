@@ -21,9 +21,12 @@ type Profile = {
 type Props = {
   user: { id: string; email: string | null; isAnonymous: boolean } | null;
   profile: Profile;
+  /** Card width cap. Defaults to 560 (login); the Settings column passes a wider
+   *  value so the card fills its centred column instead of hugging the left. */
+  maxWidth?: number;
 };
 
-export function AuthPanel({ user, profile }: Props) {
+export function AuthPanel({ user, profile, maxWidth = 560 }: Props) {
   const { theme: t } = useResolvedTheme();
   const supabase = createClient();
   const router = useRouter();
@@ -179,7 +182,7 @@ export function AuthPanel({ user, profile }: Props) {
   if (!user) {
     const label: React.CSSProperties = { fontSize: 15, fontWeight: 600, color: t.text, margin: "0 0 8px" };
     return (
-      <div style={{ ...card, maxWidth: 560 }}>
+      <div style={{ ...card, width: "100%", maxWidth }}>
         <h2 style={cardTitle(t)}>Sign in or get started</h2>
 
         <div style={{ margin: "14px 0" }}>
@@ -219,7 +222,7 @@ export function AuthPanel({ user, profile }: Props) {
 
   // ---- Signed in (/account) ----
   return (
-    <div style={{ ...card, maxWidth: 560 }}>
+    <div style={{ ...card, width: "100%", maxWidth }}>
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
         <div
           style={{

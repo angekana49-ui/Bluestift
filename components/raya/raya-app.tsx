@@ -668,7 +668,8 @@ export function SettingsCard({ theme: t, mt, children }: { theme: AppTheme; mt?:
         border: `1px solid ${t.cardBorder}`,
         borderRadius: 20,
         padding: 24,
-        maxWidth: 560,
+        width: "100%",
+        maxWidth: 700,
         marginBottom: 16,
         marginTop: mt ? 16 : 0,
       }}

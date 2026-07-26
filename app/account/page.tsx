@@ -42,18 +42,21 @@ export default async function AccountPage() {
   return (
     <RayaScaffold active="settings" studentName={studentName} studentInitials={initialsOf(studentName)} studentAvatarUrl={profile?.profile_picture_url} studentPlan={studentPlan}>
       <div style={{ flex: 1, overflow: "auto", padding: "32px 40px", minWidth: 0 }}>
-        <SectionHeader title="Settings" />
-        <SettingsThemeCard />
-        <SettingsLanguageCard />
-        <AuthPanel
-          user={{
-            id: user.id,
-            email: realEmail ? user.email ?? null : null,
-            isAnonymous: !realEmail,
-          }}
-          profile={profile}
-        />
-        <StudentBillingCard />
+        <div style={{ width: "100%", maxWidth: 700, margin: "0 auto" }}>
+          <SectionHeader title="Settings" />
+          <SettingsThemeCard />
+          <SettingsLanguageCard />
+          <AuthPanel
+            user={{
+              id: user.id,
+              email: realEmail ? user.email ?? null : null,
+              isAnonymous: !realEmail,
+            }}
+            profile={profile}
+            maxWidth={700}
+          />
+          <StudentBillingCard />
+        </div>
       </div>
     </RayaScaffold>
   );
