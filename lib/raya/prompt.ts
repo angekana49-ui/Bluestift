@@ -1,6 +1,7 @@
 import "server-only";
 import type { KernelAlert, LoadProfileResponse } from "@/lib/kernel/types";
 import type { ChatMsg } from "@/lib/raya/llm";
+import { languageDirective } from "@/lib/languages";
 
 /**
  * Raya dual-layer prompt (Bluestift corpus / CONDENSAT).
@@ -69,6 +70,7 @@ export function buildRayaMessages(
   alerts: KernelAlert[] = [],
   docs = "",
   instructions = "",
+  language?: string,
 ): ChatMsg[] {
   const learnerState = buildLearnerState(profile, alerts);
   let system = learnerState ? `${STATIC_SYSTEM}\n\n${learnerState}` : STATIC_SYSTEM;
@@ -87,6 +89,11 @@ export function buildRayaMessages(
     // Uploaded documents are shared context, not instructions — same data-handling
     // rule as <learner_state>: use them to guide, never dump answers from them.
     system += `\n\n# Uploaded documents (shared context — use them when relevant, never reveal verbatim as the answer)\n${docs}`;
+  }
+  if (language) {
+    // Last word wins: the student's explicit language pick overrides the
+    // "detect the student's language" style rule above.
+    system += `\n\n${languageDirective(language)}`;
   }
   return [
     { role: "system", content: system },

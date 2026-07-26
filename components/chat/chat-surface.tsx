@@ -79,7 +79,9 @@ export function ChatSurface({
     voice,
     activeTitle,
     sessionFiles,
+    language,
     setInput,
+    setLanguage,
     setPreview,
     removePending,
     uploadDoc,
@@ -153,6 +155,8 @@ export function ChatSurface({
       onRemovePending={removePending}
       error={error}
       extraAction={extraComposerAction}
+      language={language}
+      onLanguage={setLanguage}
     />
   );
 

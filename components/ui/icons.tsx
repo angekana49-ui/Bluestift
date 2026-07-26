@@ -138,6 +138,14 @@ export const IconAiMode = (p: IconProps) => (
   </Svg>
 );
 
+/** Language / locale — a globe with meridians. */
+export const IconGlobe = (p: IconProps) => (
+  <Svg strokeWidth={1.8} {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M3 12h18M12 3c2.5 2.5 3.8 5.7 3.8 9s-1.3 6.5-3.8 9c-2.5-2.5-3.8-5.7-3.8-9s1.3-6.5 3.8-9Z" />
+  </Svg>
+);
+
 export const IconLock = (p: IconProps) => (
   <Svg strokeWidth={2} {...p}>
     <rect x="5" y="11" width="14" height="9" rx="2" />

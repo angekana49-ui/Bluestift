@@ -7,6 +7,7 @@ import { ChatAvatar } from "@/components/chat/chat-avatar";
 import { THREAD_MAX_W } from "@/components/ui/shell";
 import { Bird } from "@/components/ui/widgets";
 import { status, hand, type AppTheme } from "@/components/ui/tokens";
+import type { LangCode } from "@/lib/languages";
 
 export type GroupMsg = {
   id: string;
@@ -49,6 +50,8 @@ export function RoomGroupChat({
   error,
   endRef,
   subject,
+  language,
+  onLanguage,
 }: {
   theme: AppTheme;
   myUserId: string;
@@ -74,6 +77,9 @@ export function RoomGroupChat({
   endRef: RefObject<HTMLDivElement | null>;
   /** Room subject — when present it personalizes the welcome chips (hybrid). */
   subject?: string | null;
+  /** Reply-language picker (drives the language Raya answers the group in). */
+  language: LangCode;
+  onLanguage: (l: LangCode) => void;
 }) {
   const bubble = (kind: "me" | "raya" | "other"): React.CSSProperties => ({
     minWidth: 0,
@@ -134,6 +140,8 @@ export function RoomGroupChat({
       error={error}
       extraAction={askRayaAction}
       disabled={expired}
+      language={language}
+      onLanguage={onLanguage}
     />
   );
 
