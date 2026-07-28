@@ -3,6 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { rayaComplete, type ChatMsg } from "@/lib/raya/llm";
 import { assertRoomOpen } from "@/lib/rooms";
 
+// Non-streamed LLM turn: allow the full reply to complete on Vercel.
+export const maxDuration = 60;
+
 const ROOM_SYSTEM = `You are Raya, the Socratic tutor inside a Bluestift study room with several students.
 
 Same core rules: never give the final answer; guide via EMT (pump → hint → assertion → summary) and require an attempt first; praise process not the person; reply in the students' language; keep it short.

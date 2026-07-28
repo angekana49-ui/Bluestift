@@ -15,6 +15,9 @@ import {
 } from "@/lib/kernel/profile-cache";
 import type { KernelMessage } from "@/lib/kernel/types";
 
+// Streaming LLM turn: give the function room to finish long replies on Vercel.
+export const maxDuration = 60;
+
 /**
  * Light EMT classification of a Raya reply (kernel-handoff §7). Heuristic, not a
  * model call: a reply whose final sentence is a question is throwing the ball

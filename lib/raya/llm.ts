@@ -1,4 +1,5 @@
 import "server-only";
+import { withTimeout } from "@/lib/net/timeout";
 
 export type ChatMsg = {
   role: "system" | "user" | "assistant";
@@ -8,10 +9,45 @@ export type ChatMsg = {
 const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-3.1-flash-lite";
 const GROQ_MODEL = process.env.GROQ_MODEL ?? "openai/gpt-oss-120b";
 const GROQ_WHISPER_MODEL = process.env.GROQ_WHISPER_MODEL ?? "whisper-large-v3";
-const GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_STT_URL = "https://api.groq.com/openai/v1/audio/transcriptions";
 const TEMPERATURE = 0.4;
 const MAX_TOKENS = 600;
+
+// Base URLs are env-overridable so tests and outage drills (point Gemini at a
+// blackhole IP) can exercise the fallback path without code edits. Read at
+// call time, not module load, so vi.stubEnv works.
+function geminiUrl(method: "generateContent" | "streamGenerateContent", key: string): string {
+  const base = process.env.GEMINI_BASE_URL ?? "https://generativelanguage.googleapis.com";
+  const sse = method === "streamGenerateContent" ? "?alt=sse&key=" : "?key=";
+  return `${base}/v1beta/models/${GEMINI_MODEL}:${method}${sse}${key}`;
+}
+function groqChatUrl(): string {
+  return `${process.env.GROQ_BASE_URL ?? "https://api.groq.com"}/openai/v1/chat/completions`;
+}
+function groqSttUrl(): string {
+  return `${process.env.GROQ_BASE_URL ?? "https://api.groq.com"}/openai/v1/audio/transcriptions`;
+}
+
+// ── Deadlines ──────────────────────────────────────────────────────────────
+// Every provider call is bounded so a hung provider FAILS FAST into the
+// fallback instead of eating the whole latency budget. Streaming gets a tight
+// first-byte deadline (Groq's TTFB is fast, so falling back early is cheap),
+// then a generous per-chunk stall timeout once tokens are flowing.
+const COMPLETE_TIMEOUT_MS = 10_000;
+const FIRST_BYTE_MS = 1500;
+const STREAM_STALL_MS = 20_000;
+const PDF_TIMEOUT_MS = 45_000;
+const STT_TIMEOUT_MS = 30_000;
+
+/** fetch with a hard deadline: aborts and THROWS so `catch`-fallthroughs engage. */
+async function llmFetch(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 /**
  * Generate a Raya reply. Gemini primary, Groq fallback.
@@ -33,19 +69,22 @@ export async function rayaComplete(
           role: m.role === "assistant" ? "model" : "user",
           parts: [{ text: m.content }],
         }));
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${geminiKey}`;
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: system ? { parts: [{ text: system }] } : undefined,
-          contents,
-          generationConfig: {
-            temperature: TEMPERATURE,
-            maxOutputTokens: MAX_TOKENS,
-          },
-        }),
-      });
+      const res = await llmFetch(
+        geminiUrl("generateContent", geminiKey),
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: system ? { parts: [{ text: system }] } : undefined,
+            contents,
+            generationConfig: {
+              temperature: TEMPERATURE,
+              maxOutputTokens: MAX_TOKENS,
+            },
+          }),
+        },
+        COMPLETE_TIMEOUT_MS,
+      );
       if (res.ok) {
         const data = await res.json();
         const text: string | undefined = data?.candidates?.[0]?.content?.parts
@@ -55,30 +94,38 @@ export async function rayaComplete(
         if (text) return { text, model: `gemini:${GEMINI_MODEL}` };
       }
     } catch {
-      // fall through to Groq
+      // fall through to Groq (includes our deadline abort)
     }
   }
 
   const groqKey = process.env.GROQ_API_KEY;
   if (groqKey) {
-    const res = await fetch(GROQ_CHAT_URL, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${groqKey}`,
-      },
-      body: JSON.stringify({
-        model: GROQ_MODEL,
-        messages,
-        temperature: TEMPERATURE,
-        max_tokens: MAX_TOKENS,
-      }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      const text: string | undefined =
-        data?.choices?.[0]?.message?.content?.trim();
-      if (text) return { text, model: `groq:${GROQ_MODEL}` };
+    try {
+      const res = await llmFetch(
+        groqChatUrl(),
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            authorization: `Bearer ${groqKey}`,
+          },
+          body: JSON.stringify({
+            model: GROQ_MODEL,
+            messages,
+            temperature: TEMPERATURE,
+            max_tokens: MAX_TOKENS,
+          }),
+        },
+        COMPLETE_TIMEOUT_MS,
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const text: string | undefined =
+          data?.choices?.[0]?.message?.content?.trim();
+        if (text) return { text, model: `groq:${GROQ_MODEL}` };
+      }
+    } catch {
+      // fall through to the shared error
     }
   }
 
@@ -87,26 +134,84 @@ export async function rayaComplete(
   );
 }
 
-/** Read a fetch body as SSE `data:` payloads. */
-async function* sseData(res: Response): AsyncGenerator<string> {
-  const reader = res.body!.getReader();
-  const decoder = new TextDecoder();
-  let buf = "";
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buf += decoder.decode(value, { stream: true });
-    let nl: number;
-    while ((nl = buf.indexOf("\n")) >= 0) {
-      const line = buf.slice(0, nl).trim();
-      buf = buf.slice(nl + 1);
-      if (line.startsWith("data:")) yield line.slice(5).trim();
+// ── Streaming ──────────────────────────────────────────────────────────────
+
+type StreamStart = {
+  reader: ReadableStreamDefaultReader<Uint8Array>;
+  firstChunk: Uint8Array;
+};
+
+/**
+ * Start an SSE request under one deadline covering connect + headers + FIRST
+ * body chunk. Returns null on any miss (timeout, HTTP error, empty body) with
+ * the connection aborted — the caller then tries the next provider. The first
+ * chunk is handed back so the delta generator can re-emit it without loss.
+ */
+async function startSse(
+  url: string,
+  init: RequestInit,
+  firstByteMs: number,
+): Promise<StreamStart | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), firstByteMs);
+  const startedAt = Date.now();
+  try {
+    const res = await fetch(url, { ...init, signal: controller.signal });
+    if (!res.ok || !res.body) {
+      controller.abort();
+      return null;
     }
+    // The SAME deadline also covers the first body chunk — bounded explicitly
+    // here (not just via the abort timer) so a body that never produces can't
+    // hold us past it.
+    const reader = res.body.getReader();
+    const remaining = Math.max(1, firstByteMs - (Date.now() - startedAt));
+    const first = await withTimeout(reader.read(), remaining, null);
+    if (!first || first.done || !first.value) {
+      controller.abort();
+      return null;
+    }
+    return { reader, firstChunk: first.value };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
-async function* geminiDeltas(res: Response): AsyncGenerator<string> {
-  for await (const data of sseData(res)) {
+/**
+ * Read an open SSE body as `data:` payloads, starting from the chunk that
+ * satisfied the first-byte deadline. A mid-stream stall (> STREAM_STALL_MS
+ * between chunks) ends the stream quietly — the caller keeps the partial text
+ * (the chat route already persists partials).
+ */
+async function* sseData(start: StreamStart): AsyncGenerator<string> {
+  const decoder = new TextDecoder();
+  let buf = "";
+  let chunk: Uint8Array | undefined = start.firstChunk;
+  for (;;) {
+    if (chunk) {
+      buf += decoder.decode(chunk, { stream: true });
+      let nl: number;
+      while ((nl = buf.indexOf("\n")) >= 0) {
+        const line = buf.slice(0, nl).trim();
+        buf = buf.slice(nl + 1);
+        if (line.startsWith("data:")) yield line.slice(5).trim();
+      }
+    }
+    const next = await withTimeout(start.reader.read(), STREAM_STALL_MS, null);
+    if (!next) {
+      // Stalled: release the connection, keep what we have.
+      void start.reader.cancel().catch(() => {});
+      break;
+    }
+    if (next.done) break;
+    chunk = next.value;
+  }
+}
+
+async function* geminiDeltas(start: StreamStart): AsyncGenerator<string> {
+  for await (const data of sseData(start)) {
     if (!data) continue;
     try {
       const json = JSON.parse(data);
@@ -120,8 +225,8 @@ async function* geminiDeltas(res: Response): AsyncGenerator<string> {
   }
 }
 
-async function* groqDeltas(res: Response): AsyncGenerator<string> {
-  for await (const data of sseData(res)) {
+async function* groqDeltas(start: StreamStart): AsyncGenerator<string> {
+  for await (const data of sseData(start)) {
     if (!data || data === "[DONE]") continue;
     try {
       const json = JSON.parse(data);
@@ -135,26 +240,27 @@ async function* groqDeltas(res: Response): AsyncGenerator<string> {
 
 /**
  * Streaming Raya reply for minimal perceived latency. Gemini primary; if it
- * fails to start, Groq fallback. Returns the chosen model + a delta stream.
+ * fails to produce a first byte within FIRST_BYTE_MS, Groq fallback (same
+ * deadline). Returns the chosen model + a delta stream.
  */
 export async function rayaStream(
   messages: ChatMsg[],
 ): Promise<{ model: string; stream: AsyncGenerator<string> }> {
   const geminiKey = process.env.GEMINI_API_KEY;
   if (geminiKey) {
-    try {
-      const system = messages
-        .filter((m) => m.role === "system")
-        .map((m) => m.content)
-        .join("\n\n");
-      const contents = messages
-        .filter((m) => m.role !== "system")
-        .map((m) => ({
-          role: m.role === "assistant" ? "model" : "user",
-          parts: [{ text: m.content }],
-        }));
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:streamGenerateContent?alt=sse&key=${geminiKey}`;
-      const res = await fetch(url, {
+    const system = messages
+      .filter((m) => m.role === "system")
+      .map((m) => m.content)
+      .join("\n\n");
+    const contents = messages
+      .filter((m) => m.role !== "system")
+      .map((m) => ({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: m.content }],
+      }));
+    const start = await startSse(
+      geminiUrl("streamGenerateContent", geminiKey),
+      {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -165,33 +271,36 @@ export async function rayaStream(
             maxOutputTokens: MAX_TOKENS,
           },
         }),
-      });
-      if (res.ok && res.body) {
-        return { model: `gemini:${GEMINI_MODEL}`, stream: geminiDeltas(res) };
-      }
-    } catch {
-      // fall through to Groq
+      },
+      FIRST_BYTE_MS,
+    );
+    if (start) {
+      return { model: `gemini:${GEMINI_MODEL}`, stream: geminiDeltas(start) };
     }
   }
 
   const groqKey = process.env.GROQ_API_KEY;
   if (groqKey) {
-    const res = await fetch(GROQ_CHAT_URL, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${groqKey}`,
+    const start = await startSse(
+      groqChatUrl(),
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${groqKey}`,
+        },
+        body: JSON.stringify({
+          model: GROQ_MODEL,
+          messages,
+          temperature: TEMPERATURE,
+          max_tokens: MAX_TOKENS,
+          stream: true,
+        }),
       },
-      body: JSON.stringify({
-        model: GROQ_MODEL,
-        messages,
-        temperature: TEMPERATURE,
-        max_tokens: MAX_TOKENS,
-        stream: true,
-      }),
-    });
-    if (res.ok && res.body) {
-      return { model: `groq:${GROQ_MODEL}`, stream: groqDeltas(res) };
+      FIRST_BYTE_MS,
+    );
+    if (start) {
+      return { model: `groq:${GROQ_MODEL}`, stream: groqDeltas(start) };
     }
   }
 
@@ -212,20 +321,23 @@ export async function generateJson(
   const geminiKey = process.env.GEMINI_API_KEY;
   if (geminiKey) {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${geminiKey}`;
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: system }] },
-          contents: [{ role: "user", parts: [{ text: user }] }],
-          generationConfig: {
-            temperature: 0.2,
-            maxOutputTokens: 2048,
-            responseMimeType: "application/json",
-          },
-        }),
-      });
+      const res = await llmFetch(
+        geminiUrl("generateContent", geminiKey),
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: system }] },
+            contents: [{ role: "user", parts: [{ text: user }] }],
+            generationConfig: {
+              temperature: 0.2,
+              maxOutputTokens: 2048,
+              responseMimeType: "application/json",
+            },
+          }),
+        },
+        COMPLETE_TIMEOUT_MS,
+      );
       if (res.ok) {
         const data = await res.json();
         const text: string = (data?.candidates?.[0]?.content?.parts ?? [])
@@ -241,28 +353,36 @@ export async function generateJson(
 
   const groqKey = process.env.GROQ_API_KEY;
   if (groqKey) {
-    const res = await fetch(GROQ_CHAT_URL, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${groqKey}`,
-      },
-      body: JSON.stringify({
-        model: GROQ_MODEL,
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: user },
-        ],
-        temperature: 0.2,
-        max_tokens: 2048,
-        response_format: { type: "json_object" },
-      }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      const text: string | undefined =
-        data?.choices?.[0]?.message?.content?.trim();
-      if (text) return text;
+    try {
+      const res = await llmFetch(
+        groqChatUrl(),
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            authorization: `Bearer ${groqKey}`,
+          },
+          body: JSON.stringify({
+            model: GROQ_MODEL,
+            messages: [
+              { role: "system", content: system },
+              { role: "user", content: user },
+            ],
+            temperature: 0.2,
+            max_tokens: 2048,
+            response_format: { type: "json_object" },
+          }),
+        },
+        COMPLETE_TIMEOUT_MS,
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const text: string | undefined =
+          data?.choices?.[0]?.message?.content?.trim();
+        if (text) return text;
+      }
+    } catch {
+      // fall through to the shared error
     }
   }
 
@@ -279,25 +399,28 @@ export async function extractPdfText(pdf: ArrayBuffer): Promise<string> {
   if (!geminiKey) throw new Error("GEMINI_API_KEY is required to read PDFs.");
 
   const base64 = Buffer.from(pdf).toString("base64");
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${geminiKey}`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      contents: [
-        {
-          role: "user",
-          parts: [
-            { inline_data: { mime_type: "application/pdf", data: base64 } },
-            {
-              text: "Extract all readable text from this document, preserving reading order. Output ONLY the text, with no commentary.",
-            },
-          ],
-        },
-      ],
-      generationConfig: { temperature: 0, maxOutputTokens: 8192 },
-    }),
-  });
+  const res = await llmFetch(
+    geminiUrl("generateContent", geminiKey),
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { inline_data: { mime_type: "application/pdf", data: base64 } },
+              {
+                text: "Extract all readable text from this document, preserving reading order. Output ONLY the text, with no commentary.",
+              },
+            ],
+          },
+        ],
+        generationConfig: { temperature: 0, maxOutputTokens: 8192 },
+      }),
+    },
+    PDF_TIMEOUT_MS,
+  );
   if (!res.ok) throw new Error(`PDF read failed (${res.status}).`);
   const data = await res.json();
   const text: string = (data?.candidates?.[0]?.content?.parts ?? [])
@@ -325,11 +448,15 @@ export async function transcribeAudio(
   form.append("response_format", "json");
   if (language) form.append("language", language);
 
-  const res = await fetch(GROQ_STT_URL, {
-    method: "POST",
-    headers: { authorization: `Bearer ${groqKey}` },
-    body: form,
-  });
+  const res = await llmFetch(
+    groqSttUrl(),
+    {
+      method: "POST",
+      headers: { authorization: `Bearer ${groqKey}` },
+      body: form,
+    },
+    STT_TIMEOUT_MS,
+  );
   if (!res.ok) {
     throw new Error(`Transcription failed (${res.status}).`);
   }
