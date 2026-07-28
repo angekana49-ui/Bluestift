@@ -363,6 +363,13 @@ export function useChatEngine({
     async (clientMsgId: string) => {
       const entry = failedRef.current.get(clientMsgId);
       if (!entry || busy) return false;
+      // `send` posts to whatever conversation is open NOW, so only replay a
+      // message still present in the open thread — switching threads replaces
+      // `messages`, so this is exactly "this failed bubble is on screen".
+      // Otherwise a background flush could drop a message from an abandoned
+      // thread into the current one; it stays queued for when its own thread
+      // is open again.
+      if (!messages.some((m) => m.id === clientMsgId)) return false;
       setMessages((m) => m.map((x) => (x.id === clientMsgId ? { ...x, status: "sending" } : x)));
       return send(entry.text, clientMsgId, entry.files, { fromRetry: true });
     },
