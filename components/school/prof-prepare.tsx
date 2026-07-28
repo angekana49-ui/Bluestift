@@ -7,6 +7,7 @@ import { DocumentView } from "@/components/ui/document";
 import { Modal } from "@/components/ui/modal";
 import { downloadBrandedPdf, downloadBrandedText, type BrandedDoc } from "@/lib/document";
 import { RayaName } from "@/components/ui/brand";
+import { netFetch, getJsonCached, invalidateCached } from "@/lib/net/client-fetch";
 
 type ClassOpt = { id: string; name: string };
 type SubjectOpt = { id: string; name: string };
@@ -79,34 +80,46 @@ export function PrepareView({
   const [assignments, setAssignments] = useState<Assignment[]>([]);
 
   async function loadAssignments() {
-    try {
-      const d = await (await fetch("/api/school/prepare/assignments")).json();
-      if (Array.isArray(d.assignments)) setAssignments(d.assignments as Assignment[]);
-    } catch {
-      // best-effort
-    }
+    const { data } = await getJsonCached<{ assignments?: Assignment[] }>(
+      "/api/school/prepare/assignments",
+      {
+        cacheKey: "school:prepareAssignments",
+        onUpdate: (fresh) => {
+          if (Array.isArray(fresh.assignments)) setAssignments(fresh.assignments);
+        },
+      },
+    );
+    if (Array.isArray(data?.assignments)) setAssignments(data.assignments);
   }
 
   useEffect(() => {
     (async () => {
-      try {
-        const [lib, subs, prefsRes] = await Promise.all([
-          fetch("/api/school/prepare").then((r) => r.json()),
-          fetch("/api/school/subjects").then((r) => r.json()),
-          fetch("/api/school/preferences").then((r) => r.json()),
-        ]);
-        if (Array.isArray(lib.resources)) setLibrary(lib.resources as Resource[]);
-        if (Array.isArray(subs.subjects)) setSubjects(subs.subjects as SubjectOpt[]);
-        // Seed the pickers from the teacher's saved defaults (unless a prop already fixed them).
-        const prefs = prefsRes?.prefs as { defaultClassId?: string | null; defaultSubjectId?: string | null } | undefined;
-        if (prefs) {
-          if (!defaultClassId && prefs.defaultClassId && classes.some((c) => c.id === prefs.defaultClassId)) {
-            setClassId(prefs.defaultClassId);
-          }
-          if (!defaultSubjectId && prefs.defaultSubjectId) setSubjectId(prefs.defaultSubjectId);
+      // Cached-first: re-entering the tab renders the library and pickers from
+      // the last known data instead of three cold round trips every time.
+      const [lib, subs, prefsRes] = await Promise.all([
+        getJsonCached<{ resources?: Resource[] }>("/api/school/prepare", {
+          cacheKey: "school:prepare",
+          onUpdate: (fresh) => {
+            if (Array.isArray(fresh.resources)) setLibrary(fresh.resources);
+          },
+        }),
+        getJsonCached<{ subjects?: SubjectOpt[] }>("/api/school/subjects", {
+          cacheKey: "school:subjects",
+        }),
+        getJsonCached<{ prefs?: { defaultClassId?: string | null; defaultSubjectId?: string | null } }>(
+          "/api/school/preferences",
+          { cacheKey: "school:preferences" },
+        ),
+      ]);
+      if (Array.isArray(lib.data?.resources)) setLibrary(lib.data.resources);
+      if (Array.isArray(subs.data?.subjects)) setSubjects(subs.data.subjects);
+      // Seed the pickers from the teacher's saved defaults (unless a prop already fixed them).
+      const prefs = prefsRes.data?.prefs;
+      if (prefs) {
+        if (!defaultClassId && prefs.defaultClassId && classes.some((c) => c.id === prefs.defaultClassId)) {
+          setClassId(prefs.defaultClassId);
         }
-      } catch {
-        // best-effort
+        if (!defaultSubjectId && prefs.defaultSubjectId) setSubjectId(prefs.defaultSubjectId);
       }
     })();
     void loadAssignments();
@@ -119,17 +132,21 @@ export function PrepareView({
     setError(null);
     try {
       const d = await (
-        await fetch("/api/school/prepare", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            kind,
-            classId: classId || undefined,
-            subjectId: subjectId || undefined,
-            topic: topic || undefined,
-            count,
-          }),
-        })
+        await netFetch(
+          "/api/school/prepare",
+          {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              kind,
+              classId: classId || undefined,
+              subjectId: subjectId || undefined,
+              topic: topic || undefined,
+              count,
+            }),
+          },
+          { timeoutMs: 45_000 }, // a full LLM generation, not a plain query
+        )
       ).json();
       if (d.error) {
         setError(d.error);
@@ -138,6 +155,7 @@ export function PrepareView({
       const item = d as Resource;
       setCurrent(item);
       setLibrary((v) => [item, ...v]);
+      invalidateCached("school:prepare");
     } catch {
       setError("Could not generate. The tutoring engine may be busy — try again.");
     } finally {
@@ -286,11 +304,15 @@ function LibraryRow({
     setError(null);
     setMsg(null);
     try {
-      const res = await fetch("/api/school/prepare/assign", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ resourceId: r.id, classId, dueAt: due ? new Date(due).toISOString() : null }),
-      });
+      const res = await netFetch(
+        "/api/school/prepare/assign",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ resourceId: r.id, classId, dueAt: due ? new Date(due).toISOString() : null }),
+        },
+        { timeoutMs: 15_000 },
+      );
       const d = await res.json();
       if (!res.ok) throw new Error(d?.error ?? "Could not assign.");
       setMsg("Assigned ✓");
@@ -369,7 +391,13 @@ function AssignmentRow({ a }: { a: Assignment }) {
     if (next && !results) {
       setLoading(true);
       try {
-        const d = await (await fetch(`/api/school/prepare/results?assignmentId=${encodeURIComponent(a.assignmentId)}`)).json();
+        const d = await (
+          await netFetch(
+            `/api/school/prepare/results?assignmentId=${encodeURIComponent(a.assignmentId)}`,
+            {},
+            { retries: 1 },
+          )
+        ).json();
         setResults((d.students ?? []) as { name: string; done: boolean; score: number | null }[]);
         setAvg(d.summary?.avgScore ?? null);
       } catch {

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { setActiveSchool } from "@/app/school/actions";
 import { clearLocalData } from "@/lib/net/local-data";
+import { netFetch, getJsonCached, invalidateCached } from "@/lib/net/client-fetch";
 import { SchoolRayaChat } from "@/components/school/school-raya-chat";
 import { AuthPanel } from "@/components/auth-panel";
 import { SettingsThemeCard } from "@/components/raya/settings-theme-card";
@@ -125,14 +126,41 @@ function useSchoolStyles() {
   return { t, box: mkBox(t), input: mkInput(t), btn: mkBtn(t), ghost: mkGhost(t) };
 }
 
+/**
+ * Every mutation on this dashboard goes through here. netFetch gives it a
+ * deadline (a hung request used to leave a button spinning forever) and reports
+ * connectivity to the degraded banner. Deliberately NOT retried: creating a
+ * class or an invite is not idempotent — the caller keeps the form filled and
+ * lets the user decide.
+ */
 async function postJson(url: string, body: unknown, method = "POST") {
-  const res = await fetch(url, {
-    method,
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  const res = await netFetch(
+    url,
+    {
+      method,
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    },
+    { timeoutMs: 15_000 },
+  );
   const data = await res.json().catch(() => null);
   if (!res.ok) throw new Error(data?.error ?? `Request failed (${res.status}).`);
+  return data;
+}
+
+/**
+ * Read-only dashboard GET with a stale-first cache: switching tabs on a weak
+ * link renders the last known data immediately and reconciles in the
+ * background, instead of blanking the panel on every mount. Returns null when
+ * there is nothing cached AND the network failed — callers show their error.
+ */
+async function getJson<T>(url: string, cacheKey: string, onFresh?: (data: T) => void): Promise<T | null> {
+  const { data } = await getJsonCached<T>(url, {
+    cacheKey,
+    cacheTtlMs: 30_000,
+    retries: 1,
+    onUpdate: onFresh,
+  });
   return data;
 }
 
@@ -608,22 +636,27 @@ function ProfView({
 
   // School directives aimed at teachers — informational, aligns their own recs.
   useEffect(() => {
-    (async () => {
-      try {
-        const r = await fetch("/api/school/directives");
-        const d = await r.json();
-        if (r.ok) setDirectives(d.directives ?? []);
-      } catch {
-        // ignore
-      }
-    })();
+    void getJson<{ directives?: { id: string; content: string }[] }>(
+      "/api/school/directives",
+      "school:directives",
+      (fresh) => setDirectives(fresh.directives ?? []),
+    ).then((d) => {
+      if (d) setDirectives(d.directives ?? []);
+    });
   }, []);
 
   async function openClass(classId: string) {
     setBusy(true);
     setError(null);
     try {
-      const roster = (await (await fetch(`/api/school/roster?classId=${classId}`)).json()) as ClassRoster;
+      const roster = await getJson<ClassRoster>(
+        `/api/school/roster?classId=${classId}`,
+        `school:roster:${classId}`,
+      );
+      if (!roster) {
+        setError("Could not load the class.");
+        return;
+      }
       setNav({ mode: "class", roster });
     } catch {
       setError("Could not load the class.");
@@ -636,9 +669,14 @@ function ProfView({
     setBusy(true);
     setError(null);
     try {
-      const detail = (await (
-        await fetch(`/api/school/student?classId=${classId}&userId=${userId}`)
-      ).json()) as StudentDetail;
+      const detail = await getJson<StudentDetail>(
+        `/api/school/student?classId=${classId}&userId=${userId}`,
+        `school:student:${classId}:${userId}`,
+      );
+      if (!detail) {
+        setError("Could not load the student.");
+        return;
+      }
       setNav({ mode: "student", detail, classId, onBack });
     } catch {
       setError("Could not load the student.");
@@ -837,7 +875,13 @@ function FocusView({
     setLoading(true);
     (async () => {
       try {
-        const r = (await (await fetch(`/api/school/roster?classId=${classId}`)).json()) as ClassRoster;
+        const r = await getJson<ClassRoster>(
+          `/api/school/roster?classId=${classId}`,
+          `school:roster:${classId}`,
+          (fresh) => {
+            if (alive) setRoster(fresh);
+          },
+        );
         if (alive) setRoster(r);
       } catch {
         if (alive) setRoster(null);
@@ -975,16 +1019,24 @@ function TeachingPreferencesCard({ classes }: { classes: AdminClass[] }) {
 
   useEffect(() => {
     (async () => {
-      try {
-        const [p, s] = await Promise.all([
-          fetch("/api/school/preferences").then((r) => r.json()),
-          fetch("/api/school/subjects").then((r) => r.json()),
-        ]);
-        setPrefs(p.prefs as TeachPrefs);
-        if (Array.isArray(s.subjects)) setSubjects(s.subjects as { id: string; name: string }[]);
-      } catch {
-        setPrefs({ defaultClassId: null, defaultSubjectId: null, reportTone: null, examFocusWeakConcepts: true });
-      }
+      const [p, s] = await Promise.all([
+        getJson<{ prefs: TeachPrefs }>("/api/school/preferences", "school:preferences"),
+        getJson<{ subjects: { id: string; name: string }[] }>(
+          "/api/school/subjects",
+          "school:subjects",
+        ),
+      ]);
+      // Unreachable with nothing cached: fall back to defaults so the card is
+      // usable rather than stuck on a spinner.
+      setPrefs(
+        p?.prefs ?? {
+          defaultClassId: null,
+          defaultSubjectId: null,
+          reportTone: null,
+          examFocusWeakConcepts: true,
+        },
+      );
+      if (Array.isArray(s?.subjects)) setSubjects(s.subjects);
     })();
   }, []);
 
@@ -994,13 +1046,8 @@ function TeachingPreferencesCard({ classes }: { classes: AdminClass[] }) {
     setError(null);
     setMsg(null);
     try {
-      const res = await fetch("/api/school/preferences", {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ prefs }),
-      });
-      const d = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(d?.error ?? "Could not save.");
+      const d = await postJson("/api/school/preferences", { prefs }, "PATCH");
+      invalidateCached("school:preferences");
       setPrefs(d.prefs as TeachPrefs);
       setMsg("Saved ✓");
     } catch (err) {
@@ -1176,16 +1223,14 @@ function ProfInsightsView({ onStudent, schoolName }: { onStudent: (classId: stri
 
   useEffect(() => {
     (async () => {
-      try {
-        const r = await fetch("/api/school/prof-insights");
-        const d = await r.json();
-        if (!r.ok) throw new Error(d?.error ?? "Could not load insights.");
-        setData(d as ProfInsights);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Could not load insights.");
-      } finally {
-        setLoading(false);
-      }
+      const d = await getJson<ProfInsights>(
+        "/api/school/prof-insights",
+        "school:profInsights",
+        (fresh) => setData(fresh),
+      );
+      if (d) setData(d);
+      else setError("Could not load insights.");
+      setLoading(false);
     })();
   }, []);
 
@@ -1315,7 +1360,11 @@ function SchoolSettings({
     try {
       const fd = new FormData();
       fd.append("file", file);
-      const res = await fetch("/api/school/logo", { method: "POST", body: fd });
+      const res = await netFetch(
+        "/api/school/logo",
+        { method: "POST", body: fd },
+        { timeoutMs: 60_000 }, // an image upload on a weak school link
+      );
       const d = await res.json().catch(() => null);
       if (!res.ok) {
         setError(d?.error ?? "Could not upload the logo.");
@@ -1479,7 +1528,13 @@ function Dashboard({
     if (overview || overviewBusy) return;
     setOverviewBusy(true);
     try {
-      setOverview((await (await fetch("/api/school/overview")).json()) as SchoolOverview);
+      const data = await getJson<SchoolOverview>(
+        "/api/school/overview",
+        "school:overview",
+        (fresh) => setOverview(fresh),
+      );
+      if (data) setOverview(data);
+      else setError("Could not load the overview.");
     } catch {
       setError("Could not load the overview.");
     } finally {
@@ -1501,7 +1556,14 @@ function Dashboard({
     setNavBusy(true);
     setError(null);
     try {
-      const roster = (await (await fetch(`/api/school/roster?classId=${classId}`)).json()) as ClassRoster;
+      const roster = await getJson<ClassRoster>(
+        `/api/school/roster?classId=${classId}`,
+        `school:roster:${classId}`,
+      );
+      if (!roster) {
+        setError("Could not load the class.");
+        return;
+      }
       setNav({ mode: "class", roster });
     } catch {
       setError("Could not load the class.");
@@ -1514,9 +1576,14 @@ function Dashboard({
     setNavBusy(true);
     setError(null);
     try {
-      const detail = (await (
-        await fetch(`/api/school/student?classId=${roster.classId}&userId=${userId}`)
-      ).json()) as StudentDetail;
+      const detail = await getJson<StudentDetail>(
+        `/api/school/student?classId=${roster.classId}&userId=${userId}`,
+        `school:student:${roster.classId}:${userId}`,
+      );
+      if (!detail) {
+        setError("Could not load the student.");
+        return;
+      }
       setNav({ mode: "student", detail, roster });
     } catch {
       setError("Could not load the student.");

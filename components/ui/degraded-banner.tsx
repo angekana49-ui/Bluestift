@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useAppTheme } from "@/components/ui/theme";
+import { useResolvedTheme } from "@/components/ui/theme";
 import { useTranslate } from "@/components/ui/locale";
 import { useOnlineStatus } from "@/lib/net/online";
 
@@ -10,9 +10,13 @@ import { useOnlineStatus } from "@/lib/net/online";
  * healthy; a slim banner when the browser is offline or the link is degraded
  * (repeated fetch failures — see lib/net/online.ts); and a brief "back online"
  * confirmation when connectivity returns, so recovery is as visible as loss.
+ *
+ * Uses `useResolvedTheme` (context when inside a scaffold, standalone
+ * otherwise) — the same trick as `useTranslate` — because this renders on
+ * surfaces that sit outside AppThemeProvider, like the chat composer.
  */
 export function DegradedBanner() {
-  const { theme: t } = useAppTheme();
+  const { dark } = useResolvedTheme();
   const tr = useTranslate();
   const { online, degraded } = useOnlineStatus();
   const [justReconnected, setJustReconnected] = useState(false);
@@ -41,8 +45,8 @@ export function DegradedBanner() {
       : tr("net.reconnected");
   // Amber while degraded/offline, muted green once back.
   const tone = bad
-    ? { bg: t.dark ? "rgba(180,120,0,0.18)" : "rgba(180,120,0,0.10)", fg: t.dark ? "#eab308" : "#92600a" }
-    : { bg: t.dark ? "rgba(22,163,74,0.16)" : "rgba(22,163,74,0.10)", fg: t.dark ? "#4ade80" : "#15803d" };
+    ? { bg: dark ? "rgba(180,120,0,0.18)" : "rgba(180,120,0,0.10)", fg: dark ? "#eab308" : "#92600a" }
+    : { bg: dark ? "rgba(22,163,74,0.16)" : "rgba(22,163,74,0.10)", fg: dark ? "#4ade80" : "#15803d" };
 
   return (
     <div

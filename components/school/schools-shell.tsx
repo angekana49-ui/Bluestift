@@ -16,6 +16,7 @@ import {
 import { IconPanel } from "@/components/ui/icons";
 import { display, type AppTheme } from "@/components/ui/tokens";
 import { RayaText, SchoolsName } from "@/components/ui/brand";
+import { DegradedBanner } from "@/components/ui/degraded-banner";
 import { initialsOf } from "@/lib/name";
 
 export type SchoolNavItem = {
@@ -226,6 +227,9 @@ export function SchoolsShell({
               : { flex: 1, overflow: "auto", padding: "24px 26px", minWidth: 0, color: t.text }
           }
         >
+          {/* One honest connectivity strip for every staff tab — each of them
+              loads over the network and would otherwise just look empty. */}
+          <DegradedBanner />
           {children}
         </div>
       </MainCard>
