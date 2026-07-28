@@ -23,12 +23,14 @@ export default function CloudBackground({ theme: t, variant }: { theme: Theme; v
   return (
     <div style={wrapperStyle}>
       <div
+        // The image itself comes from a class: an inline style can only hold ONE
+        // value per property, so it can't carry the WebP/PNG fallback pair (see
+        // .bluestift-cloud-photo in globals.css). Theme-dependent values stay
+        // inline.
+        className="bluestift-cloud-photo"
         style={{
           position: "absolute",
           inset: 0,
-          backgroundImage: "url('/hero-clouds-wide.png')",
-          backgroundSize: "cover",
-          backgroundPosition: "center 30%",
           opacity: t.cloudOpacity,
           filter: t.cloudFilter,
           transition: "filter 0.4s ease",

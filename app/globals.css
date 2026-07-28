@@ -704,12 +704,31 @@ html[data-theme="night"] .site-root a:hover {
   transition: background 500ms ease, border-color 500ms ease;
 }
 
+/* The cloud photo, as a class so it can declare the WebP/PNG fallback pair an
+   inline style cannot (used by components/site/CloudBackground.tsx). */
+.bluestift-cloud-photo {
+  background-image: url("/hero-clouds-wide.png");
+  background-image: image-set(
+    url("/hero-clouds-wide.webp") type("image/webp"),
+    url("/hero-clouds-wide.png") type("image/png")
+  );
+  background-size: cover;
+  background-position: center 30%;
+  background-repeat: no-repeat;
+}
+
 /* Hero cloud photo + day/night crossfade */
 .bluestift-hero-day,
 .bluestift-hero-night {
   position: absolute;
   inset: 0;
+  /* WebP where supported (21KB vs 125KB — this is the single heaviest asset on
+     a first visit); the plain url() above it is the fallback for the rest. */
   background-image: url("/hero-clouds-wide.png");
+  background-image: image-set(
+    url("/hero-clouds-wide.webp") type("image/webp"),
+    url("/hero-clouds-wide.png") type("image/png")
+  );
   background-size: cover;
   background-position: center 30%;
   background-repeat: no-repeat;
