@@ -8,8 +8,7 @@ import { kernel, clampHistory } from "@/lib/kernel/client";
 import { assertRoomOpen } from "@/lib/rooms";
 import { checkUserRateLimit } from "@/lib/rate-limit";
 import {
-  getCachedProfile,
-  getLatestAlerts,
+  getCognitiveContext,
   invalidateProfile,
   setLatestAlerts,
 } from "@/lib/kernel/profile-cache";
@@ -171,9 +170,9 @@ export async function POST(request: Request) {
     .order("created_at", { ascending: true })
     .limit(20);
 
-  // Cognitive profile + latest safety alerts from the cache — never blocks.
-  const profile = getCachedProfile(user.id);
-  const alerts = getLatestAlerts(user.id);
+  // Cognitive profile + latest safety alerts — L1/L2 cache, bounded to 250ms,
+  // never waits on the Kernel. (Phase 3 folds this into the parallel wave.)
+  const { profile, alerts } = await getCognitiveContext(user.id);
 
   // Teacher guidance for the student's class (solo chat only — a room mixes
   // students from different classes). Kicked off here to run in parallel.
