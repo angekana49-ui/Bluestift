@@ -1,53 +1,40 @@
 "use client";
 
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import posthog from "posthog-js";
-import { PostHogProvider as PHProvider, usePostHog } from "posthog-js/react";
+import type { PostHog } from "posthog-js";
 import { createClient } from "@/lib/supabase/client";
-import { getConsent } from "@/lib/analytics/consent";
+import {
+  analyticsAvailable,
+  capturing,
+  onPostHogReady,
+  posthogIfLoaded,
+  restoreAnalyticsConsent,
+} from "@/lib/analytics/posthog-lazy";
 import { ConsentBanner } from "./ConsentBanner";
 
-const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
-const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://eu.i.posthog.com";
-
-let initialized = false;
-
 /**
- * Initialize PostHog once, opted OUT by default so nothing is captured before the
- * user consents. If a prior "granted" decision is stored, we opt back in as soon
- * as the SDK loads. No-ops entirely when NEXT_PUBLIC_POSTHOG_KEY is unset, so the
- * app runs fine before analytics is configured.
+ * App-wide analytics wiring. The SDK itself is NOT imported here — it is
+ * downloaded only once consent is granted (see lib/analytics/posthog-lazy.ts),
+ * so a visitor who declines, or hasn't chosen yet, pays zero bytes for it.
+ * Passes through untouched when analytics is unconfigured.
  */
-function ensureInit(): void {
-  if (initialized || !POSTHOG_KEY || typeof window === "undefined") return;
-  posthog.init(POSTHOG_KEY, {
-    api_host: POSTHOG_HOST,
-    // Only create a person profile once a user is identified (privacy-friendlier;
-    // anonymous visitors stay anonymous until they sign in).
-    person_profiles: "identified_only",
-    // We send $pageview manually on route change (App Router doesn't do full page
-    // loads), so disable the automatic one to avoid duplicates.
-    capture_pageview: false,
-    capture_pageleave: true,
-    autocapture: true,
-    disable_session_recording: true,
-    opt_out_capturing_by_default: true,
-    loaded: (ph) => {
-      if (getConsent() === "granted") ph.opt_in_capturing();
-    },
-  });
-  initialized = true;
+
+/** Re-renders once the SDK is actually available. */
+function useLoadedPostHog(): PostHog | null {
+  const [ph, setPh] = useState<PostHog | null>(() => posthogIfLoaded());
+  useEffect(() => onPostHogReady(setPh), []);
+  return ph;
 }
 
 /** Send a $pageview on every App Router navigation — only while opted in. */
 function PageviewTracker() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const ph = usePostHog();
+  const ph = useLoadedPostHog();
 
   useEffect(() => {
-    if (!ph || !pathname || !ph.has_opted_in_capturing?.()) return;
+    if (!ph || !pathname || !capturing()) return;
     let url = window.location.origin + pathname;
     const q = searchParams?.toString();
     if (q) url += `?${q}`;
@@ -60,10 +47,11 @@ function PageviewTracker() {
 /**
  * Tie PostHog's identity to the Supabase user: identify by user.id on sign-in
  * (including anonymous accounts — that id is stable), reset on sign-out. Guarded
- * by consent so we never identify an opted-out visitor.
+ * by consent so we never identify an opted-out visitor. Only mounts a Supabase
+ * auth listener once the SDK is loaded, i.e. only for consenting visitors.
  */
 function IdentifyBridge() {
-  const ph = usePostHog();
+  const ph = useLoadedPostHog();
 
   useEffect(() => {
     if (!ph) return;
@@ -71,11 +59,11 @@ function IdentifyBridge() {
     let active = true;
 
     supabase.auth.getUser().then(({ data }) => {
-      if (active && data.user && ph.has_opted_in_capturing?.()) ph.identify(data.user.id);
+      if (active && data.user && capturing()) ph.identify(data.user.id);
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!ph.has_opted_in_capturing?.()) return;
+      if (!capturing()) return;
       if (event === "SIGNED_OUT") ph.reset();
       else if (session?.user) ph.identify(session.user.id);
     });
@@ -89,16 +77,17 @@ function IdentifyBridge() {
   return null;
 }
 
-/** App-wide analytics provider. Passes through untouched when analytics is off. */
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
+  // A returning visitor who already accepted gets the SDK back — at idle, so it
+  // never competes with the first paint.
   useEffect(() => {
-    ensureInit();
+    restoreAnalyticsConsent();
   }, []);
 
-  if (!POSTHOG_KEY) return <>{children}</>;
+  if (!analyticsAvailable()) return <>{children}</>;
 
   return (
-    <PHProvider client={posthog}>
+    <>
       {children}
       {/* useSearchParams must sit under a Suspense boundary in the App Router. */}
       <Suspense fallback={null}>
@@ -106,6 +95,6 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
       </Suspense>
       <IdentifyBridge />
       <ConsentBanner />
-    </PHProvider>
+    </>
   );
 }

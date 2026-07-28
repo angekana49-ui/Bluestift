@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import posthog from "posthog-js";
 import { getConsent, setConsent } from "@/lib/analytics/consent";
+import { enableAnalytics, disableAnalytics } from "@/lib/analytics/posthog-lazy";
 import { createClient } from "@/lib/supabase/client";
 
 /**
@@ -26,7 +26,10 @@ export function ConsentBanner() {
   async function accept() {
     setConsent("granted");
     setShow(false);
-    posthog.opt_in_capturing();
+    // Accepting is what downloads the SDK — until this moment the visitor has
+    // paid nothing for analytics.
+    const posthog = await enableAnalytics();
+    if (!posthog) return;
     posthog.capture("$pageview");
     try {
       const { data } = await createClient().auth.getUser();
@@ -39,7 +42,8 @@ export function ConsentBanner() {
   function decline() {
     setConsent("denied");
     setShow(false);
-    posthog.opt_out_capturing();
+    // Nothing to opt out of — the SDK was never loaded.
+    disableAnalytics();
   }
 
   return (
