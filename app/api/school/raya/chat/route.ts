@@ -4,6 +4,7 @@ import { createAdminClient, createSchoolsAdminClient } from "@/lib/supabase/admi
 import { buildProfContext, buildSchoolContext, getAdminMembership } from "@/lib/school-admin";
 import { rayaStream, type ChatMsg } from "@/lib/raya/llm";
 import { checkUserRateLimit } from "@/lib/rate-limit";
+import { persistAndGather, linkAttachments } from "@/lib/raya/chat-context";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -20,6 +21,9 @@ Raya more). Honour any STANDING INSTRUCTIONS from the school. Reply in the user'
  * so the staff member keeps a real, reloadable history. Grounded in the school
  * data snapshot + active directives + any documents attached to the conversation.
  * No Kernel loop (this is analytics, not a per-student tutoring session).
+ *
+ * The pre-LLM Supabase work runs in two parallel waves (this was the app's
+ * worst hot path: ~8 serial round trips before the first token).
  */
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -27,15 +31,6 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
-  // Anti-abuse rate-limit only — staff chat is never quota-metered. Keyed by
-  // user id so a school behind one shared NAT is never collectively throttled.
-  if (!(await checkUserRateLimit("school_raya_chat", user.id, 30, "1 minute"))) {
-    return NextResponse.json(
-      { error: "You're sending messages very fast — give it a second." },
-      { status: 429 },
-    );
-  }
 
   let body: { conversationId?: string | null; content?: string; fileIds?: string[] };
   try {
@@ -46,29 +41,53 @@ export async function POST(request: Request) {
   const content = (body.content ?? "").trim().slice(0, 2000);
   if (!content) return NextResponse.json({ error: "empty message" }, { status: 400 });
 
-  const membership = await getAdminMembership(user.id);
-  if (!membership) {
-    return NextResponse.json({ error: "School staff only." }, { status: 403 });
-  }
-
   const fileIds = Array.isArray(body.fileIds)
     ? body.fileIds.filter((id): id is string => typeof id === "string").slice(0, 10)
     : [];
 
-  // Ensure a conversation scoped to this staff member + school.
   let convId = body.conversationId ?? null;
-  if (convId) {
+
+  // ── Wave 1: rate limit, membership, conversation ownership, and the
+  // membership-dependent grounding (data snapshot + directives), in parallel ──
+  const membershipPromise = getAdminMembership(user.id);
+  const [allowed, membership, convOk, context, directives] = await Promise.all([
+    // Anti-abuse rate-limit only — staff chat is never quota-metered. Keyed by
+    // user id so a school behind one shared NAT is never collectively throttled.
+    checkUserRateLimit("school_raya_chat", user.id, 30, "1 minute"),
+    membershipPromise,
     // Only this user's own school-analytics conversations are writable here.
-    const { data: conv } = await supabase
-      .schema("learning")
-      .from("conversations")
-      .select("id")
-      .eq("id", convId)
-      .eq("user_id", user.id)
-      .eq("context_type", "school_analytics")
-      .maybeSingle();
-    if (!conv) return NextResponse.json({ error: "conversation not found" }, { status: 403 });
-  } else {
+    convId
+      ? supabase
+          .schema("learning")
+          .from("conversations")
+          .select("id")
+          .eq("id", convId)
+          .eq("user_id", user.id)
+          .eq("context_type", "school_analytics")
+          .maybeSingle()
+          .then((r) => r.data != null)
+      : Promise.resolve(true),
+    membershipPromise.then((m) =>
+      m ? (m.role === "admin_master" ? buildSchoolContext(user.id) : buildProfContext(user.id)) : null,
+    ),
+    membershipPromise.then((m) => (m ? activeDirectives(m.schoolId, m.role) : "")),
+  ]);
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "You're sending messages very fast — give it a second." },
+      { status: 429 },
+    );
+  }
+  if (!membership) {
+    return NextResponse.json({ error: "School staff only." }, { status: 403 });
+  }
+  if (!convOk) return NextResponse.json({ error: "conversation not found" }, { status: 403 });
+  if (context == null) {
+    return NextResponse.json({ error: "No school data available for you yet." }, { status: 403 });
+  }
+
+  // Ensure a conversation scoped to this staff member + school (new chats only).
+  if (!convId) {
     const title = content.length > 60 ? `${content.slice(0, 57)}…` : content;
     const { data, error } = await supabase
       .schema("learning")
@@ -85,65 +104,19 @@ export async function POST(request: Request) {
     convId = data.id;
   }
 
-  // Store the staff message.
-  const { data: userMsg, error: umErr } = await supabase
-    .schema("learning")
-    .from("messages")
-    .insert({
-      conversation_id: convId,
-      user_id: user.id,
-      role: "user",
-      content,
-      has_media: fileIds.length > 0,
-    })
-    .select("id")
-    .single();
-  if (umErr) return NextResponse.json({ error: umErr.message }, { status: 500 });
-
-  // Link staged documents to this message (service role — no RLS UPDATE policy).
-  if (fileIds.length > 0) {
-    const { error: linkErr } = await createAdminClient()
-      .schema("learning")
-      .from("conversation_files")
-      .update({ message_id: userMsg.id })
-      .in("id", fileIds)
-      .eq("conversation_id", convId)
-      .is("message_id", null);
-    if (linkErr) console.error("attachment link failed", linkErr.message);
+  // ── Wave 2: store the staff message + gather history/documents, in parallel ──
+  const turn = await persistAndGather(supabase, {
+    conversationId: convId,
+    userId: user.id,
+    content,
+    fileIds,
+  });
+  if (turn.error !== undefined) {
+    return NextResponse.json({ error: turn.error }, { status: 500 });
   }
+  const { userMsgId, hist, docs } = turn;
 
-  // Grounding: the school/prof data snapshot + active directives + doc text.
-  const [context, directives, { data: convFiles }] = await Promise.all([
-    membership.role === "admin_master"
-      ? buildSchoolContext(user.id)
-      : buildProfContext(user.id),
-    activeDirectives(membership.schoolId, membership.role),
-    supabase
-      .schema("learning")
-      .from("conversation_files")
-      .select("file_name, content")
-      .eq("conversation_id", convId)
-      .not("content", "is", null)
-      .limit(10),
-  ]);
-  if (context == null) {
-    return NextResponse.json({ error: "No school data available for you yet." }, { status: 403 });
-  }
-
-  const docs = (convFiles ?? [])
-    .map((f) => `# ${f.file_name}\n${f.content}`)
-    .join("\n\n")
-    .slice(0, 8000);
-
-  // Recent history (chronological), capped.
-  const { data: hist } = await supabase
-    .schema("learning")
-    .from("messages")
-    .select("role, content")
-    .eq("conversation_id", convId)
-    .order("created_at", { ascending: true })
-    .limit(20);
-  const history: ChatMsg[] = (hist ?? []).map((m) => ({
+  const history: ChatMsg[] = hist.map((m) => ({
     role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
     content: String(m.content ?? "").slice(0, 2000),
   }));
@@ -159,6 +132,9 @@ export async function POST(request: Request) {
 
   const messages: ChatMsg[] = [{ role: "system", content: systemBlocks }, ...history];
 
+  // Link staged documents — overlapped with the LLM start, awaited pre-response.
+  const linkPromise = linkAttachments(createAdminClient(), convId, userMsgId, fileIds);
+
   // Start the stream (provider chosen here so we can't set headers later).
   let model: string;
   let deltas: AsyncGenerator<string>;
@@ -167,8 +143,10 @@ export async function POST(request: Request) {
     model = out.model;
     deltas = out.stream;
   } catch (e) {
+    await linkPromise;
     return NextResponse.json({ error: e instanceof Error ? e.message : "llm error" }, { status: 502 });
   }
+  await linkPromise;
 
   const convIdFinal = convId;
   const encoder = new TextEncoder();
@@ -208,7 +186,7 @@ export async function POST(request: Request) {
       "content-type": "text/plain; charset=utf-8",
       "cache-control": "no-store",
       "x-conversation-id": convIdFinal,
-      "x-message-id": userMsg.id,
+      "x-message-id": userMsgId,
       "x-raya-model": model,
     },
   });
