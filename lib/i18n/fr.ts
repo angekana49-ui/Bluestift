@@ -142,6 +142,7 @@ export const fr: Partial<Messages> = {
   "net.degraded": "Connexion instable — certaines actions peuvent prendre un moment.",
   "net.reconnected": "De nouveau en ligne.",
   "net.retry": "Réessayer",
+  "net.roomLiveDown": "Mises à jour en direct suspendues — reconnexion. L'envoi fonctionne toujours.",
   "chat.sendFailed": "Non envoyé — votre message est conservé.",
   "chat.retry": "Réessayer",
 };

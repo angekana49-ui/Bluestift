@@ -88,7 +88,8 @@ export default async function RoomPage({
       supabase
         .schema("learning")
         .from("room_messages")
-        .select("id, user_id, role, content, has_media")
+        // created_at is the client's backfill watermark after a dropped socket.
+        .select("id, user_id, role, content, has_media, created_at")
         .eq("room_id", id)
         .order("created_at", { ascending: true })
         .limit(200),

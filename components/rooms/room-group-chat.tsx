@@ -8,6 +8,7 @@ import { THREAD_MAX_W } from "@/components/ui/shell";
 import { Bird } from "@/components/ui/widgets";
 import { status, hand, type AppTheme } from "@/components/ui/tokens";
 import { RayaName, RayaText } from "@/components/ui/brand";
+import { useTranslate } from "@/components/ui/locale";
 
 export type GroupMsg = {
   id: string;
@@ -15,6 +16,8 @@ export type GroupMsg = {
   role: string;
   content: string | null;
   has_media?: boolean;
+  /** Watermark for backfilling what Realtime missed while disconnected. */
+  created_at?: string;
 };
 
 /**
@@ -48,6 +51,7 @@ export function RoomGroupChat({
   busy,
   expired,
   error,
+  liveDown = false,
   endRef,
   subject,
 }: {
@@ -72,10 +76,13 @@ export function RoomGroupChat({
   busy: boolean;
   expired: boolean;
   error: string | null;
+  /** The live channel dropped — messages arrive on reconnect, not instantly. */
+  liveDown?: boolean;
   endRef: RefObject<HTMLDivElement | null>;
   /** Room subject — when present it personalizes the welcome chips (hybrid). */
   subject?: string | null;
 }) {
+  const tr = useTranslate();
   const bubble = (kind: "me" | "raya" | "other"): React.CSSProperties => ({
     minWidth: 0,
     background: kind === "me" ? t.ctaBg : kind === "raya" ? t.bubbleBg : t.bubbleAccentBg,
@@ -121,6 +128,30 @@ export function RoomGroupChat({
   );
 
   const composer = (centered: boolean) => (
+    <>
+    {/* The room's live channel is down: messages still send and still arrive,
+        just on reconnect rather than instantly. Say so instead of letting the
+        thread look frozen. */}
+    {liveDown && (
+      <div style={{ maxWidth: THREAD_MAX_W, margin: "0 auto", width: "100%", padding: "0 24px" }}>
+        <div
+          role="status"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            padding: "6px 12px",
+            fontSize: 13,
+            borderRadius: 8,
+            background: t.dark ? "rgba(180,120,0,0.18)" : "rgba(180,120,0,0.10)",
+            color: t.dark ? "#eab308" : "#92600a",
+          }}
+        >
+          {tr("net.roomLiveDown")}
+        </div>
+      </div>
+    )}
     <ChatComposer
       theme={t}
       centered={centered}
@@ -136,6 +167,7 @@ export function RoomGroupChat({
       extraAction={askRayaAction}
       disabled={expired}
     />
+    </>
   );
 
   return (

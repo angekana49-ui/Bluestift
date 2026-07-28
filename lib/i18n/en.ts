@@ -166,6 +166,7 @@ export const en = {
   "net.degraded": "Weak connection — things may take a moment.",
   "net.reconnected": "Back online.",
   "net.retry": "Retry",
+  "net.roomLiveDown": "Live updates paused — reconnecting. Messages still send.",
   "chat.sendFailed": "Not sent — your message is saved.",
   "chat.retry": "Retry",
 } as const;

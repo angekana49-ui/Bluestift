@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { netFetch } from "@/lib/net/client-fetch";
 import { joinRoom, postRoomMessage } from "@/app/rooms/actions";
 import { dispatchUpgrade } from "@/lib/upgrade";
 import { useVoiceRecorder } from "@/lib/use-voice-recorder";
@@ -245,6 +246,9 @@ export function RoomView({
   };
   const [roster, setRoster] = useState<Record<string, RosterEntry>>({});
   const [online, setOnline] = useState<Set<string>>(new Set());
+  // The live channel dropped: presence and instant delivery are stale until it
+  // comes back. Surfaced to the student rather than left as a silent divergence.
+  const [realtimeDown, setRealtimeDown] = useState(false);
 
   function nameOf(userId: string | null): string {
     if (!userId) return "Member";
@@ -309,38 +313,115 @@ export function RoomView({
     });
   }, [joined, roomId, supabase]);
 
-  // Live group channel: new messages (postgres_changes) + presence (who's online).
+  /**
+   * Merge messages by id, keeping chronological order. Every arrival path
+   * (Realtime, the ask-Raya response, a reconnect backfill) goes through here,
+   * so a message delivered twice renders once.
+   */
+  const mergeMessages = useCallback((incoming: GroupMsg[]) => {
+    if (incoming.length === 0) return;
+    setMessages((prev) => {
+      const known = new Set(prev.map((m) => m.id));
+      const added = incoming.filter((m) => !known.has(m.id));
+      if (added.length === 0) return prev;
+      return [...prev, ...added].sort((a, b) =>
+        (a.created_at ?? "").localeCompare(b.created_at ?? ""),
+      );
+    });
+  }, []);
+
+  // Everything received so far, as a backfill watermark. A ref, not state, so
+  // the subscription effect doesn't re-run on every message.
+  const lastSeenRef = useRef<string | null>(null);
+  useEffect(() => {
+    for (const m of messages) {
+      if (m.created_at && (!lastSeenRef.current || m.created_at > lastSeenRef.current)) {
+        lastSeenRef.current = m.created_at;
+      }
+    }
+  }, [messages]);
+
+  /** Fetch whatever arrived while we were disconnected. */
+  const backfill = useCallback(async () => {
+    if (!joined) return;
+    let q = supabase
+      .schema("learning")
+      .from("room_messages")
+      .select("id, user_id, role, content, has_media, created_at")
+      .eq("room_id", roomId)
+      .order("created_at", { ascending: true })
+      .limit(200);
+    if (lastSeenRef.current) q = q.gt("created_at", lastSeenRef.current);
+    const { data } = await q;
+    if (data?.length) mergeMessages(data as GroupMsg[]);
+  }, [joined, roomId, supabase, mergeMessages]);
+
+  // Live group channel: new messages (postgres_changes) + presence (who's
+  // online). The socket is the first casualty of a weak link, so a dropped
+  // channel re-subscribes with backoff and every (re)connection backfills what
+  // it missed — otherwise the thread silently diverges from the database.
   useEffect(() => {
     if (!joined) return;
-    const ch = supabase
-      .channel(`room-${roomId}`, { config: { presence: { key: myUserId } } })
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "learning",
-          table: "room_messages",
-          filter: `room_id=eq.${roomId}`,
-        },
-        (payload) => {
-          const m = payload.new as GroupMsg;
-          setMessages((prev) =>
-            prev.some((x) => x.id === m.id) ? prev : [...prev, m],
-          );
-        },
-      )
-      .on("presence", { event: "sync" }, () => {
-        setOnline(new Set(Object.keys(ch.presenceState())));
-      })
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          ch.track({ online_at: new Date().toISOString() });
-        }
-      });
-    return () => {
-      supabase.removeChannel(ch);
+    let cancelled = false;
+    let ch: ReturnType<typeof supabase.channel> | null = null;
+    let retry: ReturnType<typeof setTimeout> | null = null;
+    let attempt = 0;
+
+    const connect = () => {
+      if (cancelled) return;
+      ch = supabase
+        .channel(`room-${roomId}`, { config: { presence: { key: myUserId } } })
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "learning",
+            table: "room_messages",
+            filter: `room_id=eq.${roomId}`,
+          },
+          (payload) => mergeMessages([payload.new as GroupMsg]),
+        )
+        .on("presence", { event: "sync" }, () => {
+          if (ch) setOnline(new Set(Object.keys(ch.presenceState())));
+        })
+        .subscribe((status) => {
+          if (cancelled) return;
+          if (status === "SUBSCRIBED") {
+            attempt = 0;
+            setRealtimeDown(false);
+            ch?.track({ online_at: new Date().toISOString() });
+            void backfill();
+            return;
+          }
+          if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+            setRealtimeDown(true);
+            const current = ch;
+            ch = null;
+            if (current) void supabase.removeChannel(current);
+            // Capped exponential backoff: 1s, 2s, 4s… up to 30s.
+            const delay = Math.min(30_000, 1000 * 2 ** attempt++);
+            retry = setTimeout(connect, delay);
+          }
+        });
     };
-  }, [joined, roomId, myUserId, supabase]);
+    connect();
+
+    // A tab returning to the foreground, or a regained radio, is the cheapest
+    // moment to reconcile.
+    const onWake = () => {
+      if (document.visibilityState === "visible") void backfill();
+    };
+    window.addEventListener("online", onWake);
+    document.addEventListener("visibilitychange", onWake);
+
+    return () => {
+      cancelled = true;
+      if (retry) clearTimeout(retry);
+      window.removeEventListener("online", onWake);
+      document.removeEventListener("visibilitychange", onWake);
+      if (ch) supabase.removeChannel(ch);
+    };
+  }, [joined, roomId, myUserId, supabase, mergeMessages, backfill]);
 
   async function join() {
     setBusy(true);
@@ -390,11 +471,14 @@ export function RoomView({
   async function send(textArg?: string) {
     const text = (textArg ?? input).trim();
     if (!text || expired) return;
-    if (textArg === undefined) setInput("");
     try {
       await postRoomMessage(roomId, text);
+      // Only clear the composer once the message is actually away — clearing
+      // first (as this did) threw the text away on every failed send.
+      if (textArg === undefined) setInput("");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not send.");
+      setError(e instanceof Error ? e.message : "Could not send — your message is still here.");
+      if (textArg === undefined) setInput(text);
     }
   }
 
@@ -427,15 +511,24 @@ export function RoomView({
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/rooms/raya", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ roomId }),
-      });
+      const res = await netFetch(
+        "/api/rooms/raya",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ roomId }),
+        },
+        { timeoutMs: 60_000 }, // a group reply is a full, non-streamed generation
+      );
+      const data = await res.json().catch(() => null);
       if (!res.ok) {
-        const data = await res.json().catch(() => null);
         setError(data?.error ? `Raya: ${data.error}` : "Raya could not reply.");
+        return;
       }
+      // Render the reply straight from the response. Realtime may also deliver
+      // it (deduplicated by id) — but if the socket is down, this is the only
+      // way the student who asked ever sees it.
+      if (data?.message) mergeMessages([data.message as GroupMsg]);
     } catch {
       setError("Could not reach Raya.");
     } finally {
@@ -646,6 +739,7 @@ export function RoomView({
         busy={busy}
         expired={expired}
         error={error}
+        liveDown={realtimeDown}
         endRef={endRef}
         subject={subject}
       />

@@ -86,11 +86,17 @@ export async function POST(request: Request) {
     );
   }
 
-  const { error } = await supabase
+  const { data: row, error } = await supabase
     .schema("learning")
     .from("room_messages")
-    .insert({ room_id: roomId, user_id: null, role: "assistant", content: reply });
+    .insert({ room_id: roomId, user_id: null, role: "assistant", content: reply })
+    .select("id, user_id, role, content, has_media, created_at")
+    .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  return NextResponse.json({ ok: true });
+  // Return the stored row, don't just rely on Realtime fanning it out: on a
+  // flaky network the WebSocket is the FIRST thing to die, and the student who
+  // asked would otherwise never see the reply they waited for. The client
+  // appends this directly; the Realtime echo is deduplicated by id.
+  return NextResponse.json({ ok: true, message: row });
 }
