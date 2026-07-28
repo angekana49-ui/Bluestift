@@ -3,6 +3,7 @@ import { Inter, IBM_Plex_Sans, Caveat, Instrument_Serif } from "next/font/google
 import "./globals.css";
 import { PostHogProvider } from "@/components/analytics/PostHogProvider";
 import { UpgradeModal } from "@/components/upgrade/UpgradeModal";
+import { ServiceWorkerRegistrar } from "@/components/service-worker";
 
 // One source of truth for the product typeface (see components/ui/tokens.ts).
 // Inter = body/UI, IBM Plex Sans = headings/nav (the display face, à la PostHog),
@@ -52,6 +53,7 @@ export default function RootLayout({
       <body>
         <PostHogProvider>{children}</PostHogProvider>
         <UpgradeModal />
+        <ServiceWorkerRegistrar />
       </body>
     </html>
   );

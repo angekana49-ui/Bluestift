@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Offline · Bluestift</title>
+    <style>
+      /* Self-contained on purpose: this page is served with no network, so it
+         can't pull the app's CSS, fonts or logo from anywhere. */
+      :root {
+        color-scheme: light dark;
+        --bg: #f4f7fb;
+        --card: #ffffff;
+        --text: #101828;
+        --muted: #667085;
+        --border: #e4e7ec;
+        --accent: #2f7fe0;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0d1117;
+          --card: #161b22;
+          --text: #e6edf3;
+          --muted: #8b949e;
+          --border: #26303b;
+          --accent: #6ea8f0;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: var(--bg);
+        color: var(--text);
+        font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+      .card {
+        width: 100%;
+        max-width: 440px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 32px 28px;
+        text-align: center;
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #d9931f;
+        display: inline-block;
+        margin-right: 8px;
+        vertical-align: middle;
+      }
+      h1 { margin: 0 0 10px; font-size: 22px; font-weight: 700; }
+      p { margin: 0 0 18px; color: var(--muted); font-size: 15px; }
+      button {
+        appearance: none;
+        border: none;
+        border-radius: 10px;
+        padding: 11px 22px;
+        background: var(--accent);
+        color: #fff;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .note { margin: 16px 0 0; font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <h1><span class="dot"></span><span id="title">You're offline</span></h1>
+      <p id="body">
+        Bluestift needs a connection to reach Raya. Anything you already typed is
+        saved on this device and will send itself once you're back.
+      </p>
+      <button id="retry" type="button">Try again</button>
+      <p class="note" id="note">This page loaded without using any data.</p>
+    </main>
+    <script>
+      // Tiny localisation — the app's message catalogue lives in the bundle,
+      // which by definition isn't available here. Brand names stay untranslated.
+      var COPY = {
+        fr: {
+          title: "Vous êtes hors ligne",
+          body: "Bluestift a besoin d'une connexion pour joindre Raya. Ce que vous avez déjà écrit est conservé sur cet appareil et partira dès le retour du réseau.",
+          retry: "Réessayer",
+          note: "Cette page s'est chargée sans consommer de données.",
+        },
+        es: {
+          title: "Estás sin conexión",
+          body: "Bluestift necesita conexión para contactar con Raya. Lo que ya escribiste está guardado en este dispositivo y se enviará en cuanto vuelvas a tener red.",
+          retry: "Reintentar",
+          note: "Esta página se cargó sin consumir datos.",
+        },
+        de: {
+          title: "Du bist offline",
+          body: "Bluestift braucht eine Verbindung, um Raya zu erreichen. Was du bereits geschrieben hast, ist auf diesem Gerät gespeichert und wird gesendet, sobald du wieder online bist.",
+          retry: "Erneut versuchen",
+          note: "Diese Seite wurde ohne Datenverbrauch geladen.",
+        },
+      };
+      var lang = (navigator.language || "en").slice(0, 2).toLowerCase();
+      var c = COPY[lang];
+      if (c) {
+        document.documentElement.lang = lang;
+        document.getElementById("title").textContent = c.title;
+        document.getElementById("body").textContent = c.body;
+        document.getElementById("retry").textContent = c.retry;
+        document.getElementById("note").textContent = c.note;
+      }
+      document.getElementById("retry").addEventListener("click", function () {
+        location.reload();
+      });
+      // Reload by itself the moment the radio comes back.
+      window.addEventListener("online", function () {
+        location.reload();
+      });
+    </script>
+  </body>
+</html>
