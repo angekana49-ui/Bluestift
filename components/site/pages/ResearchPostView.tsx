@@ -29,7 +29,7 @@ export function ResearchPostView({ post, signedIn }: { post: PostDetail; signedI
     <SitePage active="Research" section="Research" signedIn={signedIn}>
       {(t) => (
         <div style={{ position: "relative", zIndex: 1, maxWidth: 640, margin: "0 auto", padding: "140px 24px 96px" }}>
-          <Link href="/research" style={{ display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 24, fontSize: 14, color: t.muted, textDecoration: "none" }}>
+          <Link href="/research" style={{ display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 24, fontSize: 14, color: t.link, textDecoration: "none" }}>
             ← Back to publications
           </Link>
 

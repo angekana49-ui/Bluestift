@@ -8,6 +8,7 @@ import type { Theme } from "@/components/site/theme";
 import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
 import type { WallPost } from "@/lib/content";
 import { IconTeacher, IconStudent, IconUser, IconHeart, IconFlame, IconPencil, IconCheck } from "@/components/site/icons";
+import { RayaName } from "@/components/ui/brand";
 
 type IconEl = ComponentType<{ size?: number; filled?: boolean }>;
 
@@ -190,7 +191,7 @@ function DoneScreen({ t, responseId, onFreeWall }: { t: Theme; responseId: strin
       </div>
       <h2 style={{ fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "1.9rem", letterSpacing: "-0.02em", margin: "0 0 12px", color: t.text }}>Thank you.</h2>
       <p style={{ fontSize: 15, lineHeight: 1.7, color: t.text, marginBottom: 24 }}>
-        Your answers feed straight into Raya&apos;s development. Leave your email if you want early access when the beta is ready.
+        Your answers feed straight into <RayaName />&apos;s development. Leave your email if you want early access when the beta is ready.
       </p>
 
       {responseId && !saved && (
@@ -213,7 +214,7 @@ function DoneScreen({ t, responseId, onFreeWall }: { t: Theme; responseId: strin
           <IconPencil size={15} />
           Share freely
         </button>
-        <Link href="/" style={{ border: `1px solid ${t.cardBorder}`, borderRadius: 8, padding: "10px 28px", fontSize: 15, color: t.muted, textDecoration: "none" }}>
+        <Link href="/" style={{ border: `1px solid ${t.cardBorder}`, borderRadius: 8, padding: "10px 28px", fontSize: 15, color: t.link, textDecoration: "none" }}>
           Back home
         </Link>
       </div>
@@ -392,7 +393,7 @@ export function SurveyView({ signedIn, initialPosts, stats }: Props) {
                 <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", color: t.orange }}>Tell us what&apos;s really getting in the way.</em>
               </h1>
               <p style={{ maxWidth: 380, margin: "0 auto 32px", fontSize: 15, color: t.text, lineHeight: 1.7 }}>
-                6 questions. No account needed. Your answers feed directly into Raya&apos;s development.
+                6 questions. No account needed. Your answers feed directly into <RayaName />&apos;s development.
               </p>
 
               <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginBottom: 20 }}>
@@ -404,7 +405,7 @@ export function SurveyView({ signedIn, initialPosts, stats }: Props) {
                 </button>
               </div>
 
-              <button onClick={() => setView("free")} style={{ background: "none", border: "none", fontSize: 14, color: t.mutedLight, textDecoration: "underline", cursor: "pointer", marginBottom: 32 }}>
+              <button onClick={() => setView("free")} style={{ background: "none", border: "none", fontSize: 14, color: t.link, textDecoration: "underline", cursor: "pointer", marginBottom: 32 }}>
                 Or share freely →
               </button>
 

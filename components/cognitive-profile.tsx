@@ -10,6 +10,7 @@ import { useAppTheme } from "@/components/ui/theme";
 import { MasteryGauge } from "@/components/ui/widgets";
 import { panelCard } from "@/components/ui/forms";
 import type { AppTheme } from "@/components/ui/tokens";
+import { RayaName } from "@/components/ui/brand";
 
 const STATUS: Record<KCStatus, { label: string; color: string }> = {
   mastered: { label: "Mastered", color: "#22c55e" },
@@ -94,7 +95,7 @@ export function CognitiveProfile() {
     return (
       <div style={panelCard(t)}>
         <p style={{ margin: 0, color: t.text, fontSize: 15 }}>
-          Your profile isn&apos;t available right now. It&apos;s built by Raya&apos;s cognitive
+          Your profile isn&apos;t available right now. It&apos;s built by <RayaName />&apos;s cognitive
           engine — try again in a moment.
         </p>
       </div>
@@ -131,7 +132,7 @@ export function CognitiveProfile() {
       {concepts.length === 0 ? (
         <div style={panelCard(t)}>
           <p style={{ margin: 0, color: t.text, fontSize: 15 }}>
-            No concepts tracked yet. Keep working with Raya and your strengths and gaps will
+            No concepts tracked yet. Keep working with <RayaName /> and your strengths and gaps will
             show up here.
           </p>
         </div>

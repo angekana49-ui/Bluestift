@@ -1,4 +1,4 @@
-# Bluestift — project status
+ # Bluestift — project status
 
 _Last updated: 2026-07-23. Living summary of what's built, how it works, and what's next._
 
@@ -79,8 +79,9 @@ Next.js app  ──HTTP──▶  Kernel (FastAPI, Railway)
   - Shared chrome `components/ui/auth-chrome.tsx` (`AuthSplit`, `Logo`, `RayaName`,
     birds) is consumed by **both** onboarding and login so they stay identical.
 - **Brand**: the tutor is written **"Raya"** (not RAYA) in a bold serif via
-  `<RayaName/>`; Schools matches via `<SchoolsName/>`. Applied in onboarding +
-  login; **not yet swept** across the rest of the app.
+  `<RayaName/>`; Schools matches via `<SchoolsName/>`. Both live in
+  `components/ui/brand.tsx` (server-safe) and are **swept across the whole app +
+  public site** — see §5 for what's deliberately left plain.
 
 ### RAYA chat (solo) — `/chat`
 - **Streamed** replies (Gemini SSE → Groq SSE), dual-layer prompt (Markdown rules
@@ -407,9 +408,27 @@ schema via `createContentAdminClient()` (untyped, like `schools`) — reads/writ
 go through `lib/content.ts` + `app/api/content/*`, all public POSTs are
 **Turnstile-verified server-side** (`lib/turnstile.ts`, `TURNSTILE_SECRET_KEY`;
 skipped when unset in dev).
-- **Landing `/`**: cloud hero, feature strip, how-it-works, differentiators,
-  pricing (Élève gratuit / Classe $29 / École sur devis) — CTAs wired to
-  `/login`, `/survey`, `/contact`.
+- **Landing `/`** — **repitched 2026-07-26**. The old story ("the AI tutor that
+  remembers every student") was retired: memory stopped being a differentiator
+  once frontier models shipped ~1M context and cross-session memory. The thesis
+  is now **dissociation** — a teacher and a student share only a syllabus, and AI
+  widened the gap because both sides have one privately. Homework, the last lossy
+  signal channel, now comes back laundered. Raya is the AI they *share*.
+  Order is the argument: `HeroSection` (the gap — "Everyone has an AI. Nobody
+  shares one.") → new **`ConnectionSection`** (`#how-it-works`: the 3-step loop —
+  teacher intent down via `class_instructions`/`school_directives`, cognitive
+  state back up via the Kernel — plus the **"understanding, not surveillance"**
+  guardrail: derived concept state, never transcripts) → `FeaturesSection`
+  (Kernel · Study Rooms · Challenges & Tools — the collaborative/playful side is
+  a first-class pillar) → `DifferentiatorsSection` (now drawn on *who else can
+  see the learning*: general assistants are invisible to the teacher, teacher
+  toolkits invisible to the student, fixed platforms rigid) → pricing → footer.
+  **No geography or level targeting anywhere** — "K-12 · Cameroon & US" is gone
+  from the hero, navbar, footer, the auth/onboarding chrome and Privacy; the
+  product is open to anyone, anywhere, at any level. Rationale and the unresolved
+  go-to-market risks are in the `bluestift-pitch-dissociation` note.
+  **Dead copy to delete when convenient**: `defaultConfig` + `InboxSection` in
+  `components/site/` still hold the retired pitch verbatim; nothing renders them.
 - **Research `/research`**: published `research_posts` (type ∈ paper/experiment/
   article/update; first = "À la une", type filters), authors via
   `research_post_authors`→`research_authors`; detail at `/research/[slug]`
@@ -577,9 +596,21 @@ activation, online checkout, regional price book). What's genuinely left:
   system (see §2). Remaining polish is optional: the Schools sidebar could show the
   mockup's search/right panel, and a few rarely-seen school views still use
   `opacity` rather than explicit tokens (legible, not pixel-perfect).
-- **"Raya" wordmark sweep**: the bold-serif `<RayaName/>` is applied in onboarding +
-  login only. Still to sweep: HeroSection, Navbar ("RAYA · AI tutor"), the shells,
-  and remaining in-app copy.
+- ~~**"Raya" wordmark sweep**~~ — **done**. The wordmarks moved to a server-safe
+  `components/ui/brand.tsx` (`RayaName`, `SchoolsName`, and `RayaText`, which
+  wordmarks every whole-word "Raya" inside a plain copy *string*);
+  `auth-chrome.tsx` re-exports them so its importers are unchanged. `RayaText` is
+  applied at the shared **render sites** — `NavItem.label`, `MobileHeader.title`,
+  `ProfileMenuItem.label/sublabel`, the SchoolsShell header, `SectionHeader`,
+  the chat empty-hint + suggestion chips, footer links, feature/pricing lines —
+  so whole families of string-typed copy are covered without converting props to
+  `ReactNode`. Direct `<RayaName/>` elsewhere (shells, rooms, Schools, /profile,
+  and the public site). `SidebarBrand.name` is now `ReactNode`.
+  Deliberately left plain: `alt`/`title`/`placeholder` attributes and error
+  strings, the handwritten chat greeting and the Research headline (display faces
+  the Cambria serif would clash with), metadata, billing components, and the dead
+  `defaultConfig`/`InboxSection`/`components/public/*`/`/preview` copy.
+  `splitOnRaya` is covered by `test/brand.test.ts`.
 - No tests / CI (the public content APIs were verified by a throwaway e2e
   script, not committed). No error monitoring.
 - **Nothing is committed yet** — the tree is one initial commit plus ~220 staged/
@@ -632,7 +663,7 @@ progress curve / signal logging~~ (done).
 
 1. **Commit the tree.** ~220 files sit uncommitted on one initial commit — the
    single biggest risk right now.
-2. **"Raya" wordmark sweep** — small, visible, closes an open brand directive.
+2. ~~**"Raya" wordmark sweep**~~ — done (see §5).
 3. **Real payments** — get a merchant account, then exercise the CinetPay path
    end-to-end (the whole loop is written and idempotent; only keys are missing).
 4. **Usage limits / quotas** — `daily_message_count` / `email_usage_windows` are

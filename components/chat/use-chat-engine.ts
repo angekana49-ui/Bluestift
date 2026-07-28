@@ -1,17 +1,30 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useVoiceRecorder } from "@/lib/use-voice-recorder";
 import { splitByMessage, type Attachment } from "@/components/attachment";
+import { netFetch, getJsonCached, invalidateCached } from "@/lib/net/client-fetch";
+import { enqueueOutbox, removeFromOutbox, registerOutboxFlusher } from "@/lib/net/outbox";
 import { type ChatConfig, type Msg, type Conversation, type ConversationFile, titleFrom } from "./types";
 
 /**
  * The full conversation engine shared by the Raya chat and the Raya-for-Schools
  * chat: message/conversation/attachment/voice state and every handler
  * (send [streamed], upload, history switch/delete, new session). Endpoint URLs
- * come from `config` — the logic is lifted verbatim from the original Raya
- * `Chat` so behaviour is byte-for-byte identical on both surfaces.
+ * come from `config`.
+ *
+ * Degraded-network contract:
+ *  - a send that fails at the network level KEEPS the student's message (marked
+ *    `failed`, with its attachments) and queues it in the outbox, so nothing
+ *    typed is ever lost — `retrySend` and the outbox flush replay it;
+ *  - every send carries a `clientMsgId`, so a replay is deduplicated server
+ *    side (and an already-answered turn replays its stored reply);
+ *  - history switches render from cache first and revalidate in the background.
  */
+
+/** How long we wait for response headers before calling a send failed. */
+const SEND_TIMEOUT_MS = 20_000;
+
 export function useChatEngine({
   config,
   initialId,
@@ -45,6 +58,10 @@ export function useChatEngine({
 
   // When the last reply finished rendering — used to measure user think-time.
   const lastReplyRef = useRef<number | null>(initialMessages.length ? Date.now() : null);
+  // Everything a failed send needs to be replayed, keyed by client message id.
+  const failedRef = useRef<Map<string, { text: string; files: Attachment[]; conversationId: string | null }>>(
+    new Map(),
+  );
 
   function newChat() {
     if (busy) return;
@@ -69,7 +86,11 @@ export function useChatEngine({
       if (conversationId) fd.append("conversationId", conversationId);
       for (const [k, v] of Object.entries(config.extraBody ?? {})) fd.append(k, v);
       fd.append("file", file);
-      const res = await fetch(config.endpoints.files, { method: "POST", body: fd });
+      const res = await netFetch(
+        config.endpoints.files,
+        { method: "POST", body: fd },
+        { timeoutMs: 60_000 }, // uploads are slow on a weak link — be patient
+      );
       const data = await res.json().catch(() => null);
       if (!res.ok) {
         setError(data?.error ? `Upload: ${data.error}` : "Upload failed.");
@@ -89,7 +110,9 @@ export function useChatEngine({
       }
       if (data.file) setPending((a) => [...a, data.file as Attachment]);
     } catch {
-      setError("Upload failed.");
+      // The picked File is still in the caller's input element; tell the user
+      // plainly rather than pretending the document is attached.
+      setError("Upload failed — check your connection and try again.");
     } finally {
       setUploading(false);
     }
@@ -98,7 +121,7 @@ export function useChatEngine({
   async function removePending(id: string) {
     setPending((a) => a.filter((f) => f.id !== id));
     try {
-      await fetch(`${config.endpoints.files}?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      await netFetch(`${config.endpoints.files}?id=${encodeURIComponent(id)}`, { method: "DELETE" });
     } catch {
       // The chip is already gone; a stale row costs nothing but storage.
     }
@@ -109,17 +132,26 @@ export function useChatEngine({
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`${config.endpoints.conversations}?id=${encodeURIComponent(id)}`);
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data?.error ? `Could not load: ${data.error}` : "Could not load conversation.");
+      const url = `${config.endpoints.conversations}?id=${encodeURIComponent(id)}`;
+      const apply = (data: { messages?: Msg[]; files?: ConversationFile[] }) => {
+        setMessages((data.messages ?? []) as Msg[]);
+        const split = splitByMessage((data.files ?? []) as ConversationFile[]);
+        setFilesByMessage(split.byMessage);
+        setPending(split.staged);
+      };
+      // Cached first: switching threads on a weak link renders instantly from
+      // the last known state, then reconciles when the refresh lands.
+      const { data } = await getJsonCached<{ messages?: Msg[]; files?: ConversationFile[] }>(url, {
+        cacheKey: `conv:${id}`,
+        cacheTtlMs: 15_000,
+        onUpdate: apply,
+      });
+      if (!data) {
+        setError("Could not load conversation.");
         return;
       }
       setConversationId(id);
-      setMessages((data.messages ?? []) as Msg[]);
-      const split = splitByMessage((data.files ?? []) as ConversationFile[]);
-      setFilesByMessage(split.byMessage);
-      setPending(split.staged);
+      apply(data);
       lastReplyRef.current = Date.now();
     } catch {
       setError("Could not load conversation.");
@@ -132,7 +164,8 @@ export function useChatEngine({
     if (busy) return;
     setBusy(true);
     try {
-      await fetch(`${config.endpoints.conversations}?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      await netFetch(`${config.endpoints.conversations}?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      invalidateCached(`conv:${id}`);
       setConversations((list) => list.filter((c) => c.id !== id));
       if (id === conversationId) {
         setConversationId(null);
@@ -149,12 +182,12 @@ export function useChatEngine({
    * Auto-name the conversation once, around the 2nd exchange: Raya distils the
    * thread into a one-sentence title. Best-effort and fire-and-forget — a failure
    * just leaves the first-message seed title. Off when no `summarize` endpoint is
-   * configured (e.g. room channels keep the room's name).
+   * configured (e.g. room channels, which keep the room's name).
    */
   async function maybeAutoRename(turnNow: number, cid: string | null) {
     if (turnNow !== 2 || !cid || !config.endpoints.summarize) return;
     try {
-      const res = await fetch(config.endpoints.summarize, {
+      const res = await netFetch(config.endpoints.summarize, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ ...config.extraBody, conversationId: cid }),
@@ -170,51 +203,54 @@ export function useChatEngine({
     }
   }
 
-  async function onSend(textArg?: string) {
-    const text = (textArg ?? input).trim();
-    if (!text || busy || uploading) return;
+  /**
+   * One send. `clientMsgId` identifies the turn across retries: the optimistic
+   * bubble carries it as its id until the server hands back the real one, and
+   * the server uses it to deduplicate a replay.
+   */
+  async function send(
+    text: string,
+    clientMsgId: string,
+    sentFiles: Attachment[],
+    opts: { fromRetry?: boolean } = {},
+  ): Promise<boolean> {
     const wasNew = conversationId == null;
-    // User turns so far (this send makes it +1) — drives the one-shot auto-rename.
     const turnNow = messages.filter((m) => m.role === "user").length + 1;
     const responseTimeMs =
       lastReplyRef.current != null ? Date.now() - lastReplyRef.current : null;
-    // The staged files leave the composer with this message.
-    const sentFiles = pending;
-    const tmpId = `tmp-${Date.now()}`;
+
     setBusy(true);
     setError(null);
-    setMessages((m) => [...m, { id: tmpId, role: "user", content: text }]);
-    if (sentFiles.length) {
-      setFilesByMessage((map) => ({ ...map, [tmpId]: sentFiles }));
-      setPending([]);
-    }
-    setInput("");
     try {
-      const res = await fetch(config.endpoints.chat, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          ...config.extraBody,
-          conversationId,
-          content: text,
-          responseTimeMs,
-          fileIds: sentFiles.map((f) => f.id),
-        }),
-      });
+      const res = await netFetch(
+        config.endpoints.chat,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            ...config.extraBody,
+            conversationId,
+            content: text,
+            responseTimeMs,
+            fileIds: sentFiles.map((f) => f.id),
+            clientMsgId,
+          }),
+        },
+        { timeoutMs: SEND_TIMEOUT_MS },
+      );
       if (!res.ok || !res.body) {
         const data = await res.json().catch(() => null);
-        setError(data?.error ? `Raya error: ${data.error}` : `Request failed (${res.status}).`);
-        // Hand the files back to the composer — the turn never happened.
-        if (sentFiles.length) {
-          setFilesByMessage((map) => {
-            const next = { ...map };
-            delete next[tmpId];
-            return next;
-          });
-          setPending(sentFiles);
+        // A 4xx is the server refusing this turn (rate limit, closed room,
+        // empty message): the send will never succeed as-is, so roll it back
+        // and say why. A 5xx is treated like a network failure below.
+        if (res.status >= 400 && res.status < 500) {
+          setError(data?.error ? `Raya error: ${data.error}` : `Request failed (${res.status}).`);
+          rollback(clientMsgId, sentFiles);
+          return true; // handled — not a retryable delivery failure
         }
-        setMessages((m) => m.filter((x) => x.id !== tmpId));
-        return;
+        markFailed(clientMsgId, text, sentFiles);
+        setError(data?.error ? `Raya error: ${data.error}` : `Request failed (${res.status}).`);
+        return false;
       }
       const convId = res.headers.get("x-conversation-id");
       if (convId) {
@@ -226,18 +262,26 @@ export function useChatEngine({
             ...list.filter((c) => c.id !== convId),
           ]);
         }
+        invalidateCached(`conv:${convId}`);
       }
       // Swap the optimistic id for the real one so the bubble keeps its files
-      // when the conversation is reloaded from the server.
+      // when the conversation is reloaded from the server, and clear any
+      // failed marker from a previous attempt.
       const msgId = res.headers.get("x-message-id");
       if (msgId) {
-        setMessages((m) => m.map((x) => (x.id === tmpId ? { ...x, id: msgId } : x)));
+        setMessages((m) =>
+          m.map((x) => (x.id === clientMsgId ? { ...x, id: msgId, status: undefined } : x)),
+        );
         if (sentFiles.length) {
-          setFilesByMessage(({ [tmpId]: moved, ...rest }) =>
+          setFilesByMessage(({ [clientMsgId]: moved, ...rest }) =>
             moved ? { ...rest, [msgId]: moved } : rest,
           );
         }
+      } else {
+        setMessages((m) => m.map((x) => (x.id === clientMsgId ? { ...x, status: undefined } : x)));
       }
+      failedRef.current.delete(clientMsgId);
+      removeFromOutbox(clientMsgId);
 
       const rayaId = `raya-${Date.now()}`;
       setMessages((m) => [...m, { id: rayaId, role: "assistant", content: "" }]);
@@ -253,14 +297,90 @@ export function useChatEngine({
       }
       // The reply finished — start the think-time clock for the next turn.
       lastReplyRef.current = Date.now();
-      // Around the 2nd exchange, let Raya name the conversation.
-      void maybeAutoRename(turnNow, convId ?? conversationId);
+      if (!opts.fromRetry) {
+        // Around the 2nd exchange, let Raya name the conversation.
+        void maybeAutoRename(turnNow, convId ?? conversationId);
+      }
+      return true;
     } catch {
-      setError("Could not reach Raya.");
+      // Network throw or our timeout: the turn may or may not have reached the
+      // server. Keep the message (with its files) and let the retry — which
+      // carries the same clientMsgId — resolve it either way.
+      markFailed(clientMsgId, text, sentFiles);
+      setError("Could not reach Raya — your message is saved.");
+      return false;
     } finally {
       setBusy(false);
     }
   }
+
+  /** Undo the optimistic bubble and hand the files back to the composer. */
+  function rollback(clientMsgId: string, sentFiles: Attachment[]) {
+    if (sentFiles.length) {
+      setFilesByMessage((map) => {
+        const next = { ...map };
+        delete next[clientMsgId];
+        return next;
+      });
+      setPending(sentFiles);
+    }
+    setMessages((m) => m.filter((x) => x.id !== clientMsgId));
+    failedRef.current.delete(clientMsgId);
+    removeFromOutbox(clientMsgId);
+  }
+
+  /** Keep the message visible, marked failed, and queued for a later flush. */
+  function markFailed(clientMsgId: string, text: string, sentFiles: Attachment[]) {
+    setMessages((m) => m.map((x) => (x.id === clientMsgId ? { ...x, status: "failed" } : x)));
+    failedRef.current.set(clientMsgId, { text, files: sentFiles, conversationId });
+    enqueueOutbox({
+      id: clientMsgId,
+      kind: `chat:${config.endpoints.chat}`,
+      body: { text, conversationId, fileIds: sentFiles.map((f) => f.id) },
+    });
+  }
+
+  async function onSend(textArg?: string) {
+    const text = (textArg ?? input).trim();
+    if (!text || busy || uploading) return;
+    const clientMsgId =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `tmp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    // The staged files leave the composer with this message.
+    const sentFiles = pending;
+    setMessages((m) => [...m, { id: clientMsgId, role: "user", content: text, status: "sending" }]);
+    if (sentFiles.length) {
+      setFilesByMessage((map) => ({ ...map, [clientMsgId]: sentFiles }));
+      setPending([]);
+    }
+    setInput("");
+    await send(text, clientMsgId, sentFiles);
+  }
+
+  /** Replay a failed message (user-invoked, or by the outbox flush). */
+  const retrySend = useCallback(
+    async (clientMsgId: string) => {
+      const entry = failedRef.current.get(clientMsgId);
+      if (!entry || busy) return false;
+      setMessages((m) => m.map((x) => (x.id === clientMsgId ? { ...x, status: "sending" } : x)));
+      return send(entry.text, clientMsgId, entry.files, { fromRetry: true });
+    },
+    // `send` closes over current state; re-created each render like the other
+    // handlers here. The callback identity only matters to the effect below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [busy, messages, conversationId, pending],
+  );
+
+  /** Let the outbox replay this surface's failed sends when the link returns. */
+  useEffect(() => {
+    registerOutboxFlusher(`chat:${config.endpoints.chat}`, async (entry) => {
+      // Only replay what this mounted surface still holds — a message queued in
+      // a different conversation is replayed when that thread is open.
+      if (!failedRef.current.has(entry.id)) return false;
+      return retrySend(entry.id);
+    });
+  }, [config.endpoints.chat, retrySend]);
 
   // ── derived view data ──────────────────────────────────────
   const activeTitle =
@@ -295,6 +415,7 @@ export function useChatEngine({
     selectConversation,
     deleteConversation,
     onSend,
+    retrySend,
   };
 }
 

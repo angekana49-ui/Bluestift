@@ -7,6 +7,7 @@ import { ChatAvatar } from "@/components/chat/chat-avatar";
 import { THREAD_MAX_W } from "@/components/ui/shell";
 import { Bird } from "@/components/ui/widgets";
 import { status, hand, type AppTheme } from "@/components/ui/tokens";
+import { RayaName, RayaText } from "@/components/ui/brand";
 
 export type GroupMsg = {
   id: string;
@@ -115,7 +116,7 @@ export function RoomGroupChat({
         whiteSpace: "nowrap",
       }}
     >
-      Ask Raya
+      Ask <RayaName />
     </button>
   );
 
@@ -162,7 +163,7 @@ export function RoomGroupChat({
             <Bird variant={2} fill={t.mutedLight} />
           </div>
           <p style={{ maxWidth: 380, margin: "14px 0 26px", fontSize: 15, lineHeight: 1.7, color: t.muted }}>
-            Study together with your squad, share documents, or bring Raya into the room.
+            Study together with your squad, share documents, or bring <RayaName /> into the room.
           </p>
 
           {composer(true)}
@@ -193,7 +194,7 @@ export function RoomGroupChat({
                   animationDelay: `${i * 0.3}s`,
                 }}
               >
-                {chip.label}
+                <RayaText>{chip.label}</RayaText>
               </span>
             ))}
           </div>
@@ -249,7 +250,7 @@ export function RoomGroupChat({
                   {avatarFor(m)}
                   <div style={{ display: "flex", flexDirection: "column", alignItems: kind === "me" ? "flex-end" : "flex-start", gap: 3, minWidth: 0 }}>
                     <span style={{ fontSize: 13, color: t.mutedLight }}>
-                      {kind === "raya" ? "Raya" : kind === "me" ? "You" : nameOf(m.user_id)}
+                      {kind === "raya" ? <RayaName /> : kind === "me" ? "You" : nameOf(m.user_id)}
                     </span>
                     <div style={bubble(kind)}>{m.content}</div>
                   </div>

@@ -10,6 +10,8 @@ export interface Theme {
   text: string;
   muted: string;
   mutedLight: string;
+  /** Prose/nav link colour. Links must read as links — blue, not body-coloured. */
+  link: string;
 
   navBg: string;
   navBorder: string;
@@ -82,8 +84,15 @@ const light: Theme = {
   dark: false,
   pageBg: "linear-gradient(180deg,#eef3f9 0%,#dde8f3 45%,#c9d9ea 100%)",
   text: "#0b1220",
-  muted: "#64748b",
+  // Was #64748b — ~4.8:1 on white and BELOW AA on the tinted section/pricing
+  // backgrounds this text actually sits on, which is what made body copy look
+  // washed out. Now ~7.7:1 on white, ~6.8:1 on #eef2f8. mutedLight (the dimmer
+  // tier) stays lighter than muted, as the naming implies.
+  muted: "#44546a",
   mutedLight: "#546578",
+  // Darker than wordmarkB (#2f7fe0, only ~3.6:1) so links stay legible as text
+  // rather than only as decoration.
+  link: "#1b5fc1",
 
   navBg: "rgba(255,255,255,0.75)",
   navBorder: "rgba(255,255,255,0.65)",
@@ -111,7 +120,7 @@ const light: Theme = {
   inputBorder: "#dde5ee",
   inputBg: "transparent",
   inputFieldBg: "#f3f6fa",
-  inputPlaceholder: "#94a3b8",
+  inputPlaceholder: "#64748b",
 
   sectionAltBg: "#eef2f8",
   pricingBg: "linear-gradient(180deg,#dde8f3 0px,#cfdfec 30%,#c2d5e5 calc(100% - 160px),#ffffff 100%)",
@@ -159,6 +168,7 @@ const dark: Theme = {
   text: "#eef2f8",
   muted: "#9aa7bd",
   mutedLight: "#d3dbe8",
+  link: "#7ab3f7",
 
   navBg: "rgba(13,20,38,0.72)",
   navBorder: "rgba(255,255,255,0.08)",

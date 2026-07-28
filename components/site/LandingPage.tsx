@@ -4,10 +4,12 @@ import { useThemeMode } from "./useThemeMode";
 import { getTheme } from "./theme";
 import Navbar from "./Navbar";
 import HeroSection from "./HeroSection";
+import ConnectionSection from "./ConnectionSection";
 import FeaturesSection from "./FeaturesSection";
 import DifferentiatorsSection from "./DifferentiatorsSection";
 import PricingSection from "./PricingSection";
 import Footer from "./Footer";
+import { LanguagePrompt } from "./LanguagePrompt";
 
 // NOTE: SiteConfig/defaultConfig below are retained only for the (now unused)
 // InboxSection component. The live landing hardcodes its copy per the design
@@ -242,10 +244,16 @@ export default function LandingPage({ signedIn, homeHref }: { signedIn?: boolean
     >
       <Navbar theme={t} isDark={isDark} onToggleTheme={toggle} active="Product" signedIn={signedIn} homeHref={homeHref} />
       <HeroSection theme={t} />
+      {/* Order is the argument: state the gap (hero), show the loop that closes
+          it (connection), then the surfaces that run on it (features). */}
+      <ConnectionSection theme={t} />
       <FeaturesSection theme={t} />
       <DifferentiatorsSection theme={t} />
       <PricingSection theme={t} />
       <Footer theme={t} variant="full" />
+      {/* First visit only: asks the language instead of hiding a picker in the
+          nav. Renders nothing once answered, and nothing at all server-side. */}
+      <LanguagePrompt theme={t} />
     </div>
   );
 }

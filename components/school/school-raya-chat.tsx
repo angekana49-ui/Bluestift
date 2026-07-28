@@ -9,6 +9,7 @@ import { ChatSurface } from "@/components/chat/chat-surface";
 import { ChatHistoryList } from "@/components/chat/chat-history-list";
 import { fetchHooks, type ChatConfig } from "@/components/chat/types";
 import { avatarInitials } from "@/lib/name";
+import { RayaName } from "@/components/ui/brand";
 
 type Role = "admin_master" | "prof";
 
@@ -217,7 +218,7 @@ function DirectivesPanel({ role }: { role: Role }) {
     <div>
       <div style={{ fontSize: 15, fontWeight: 700, color: t.text, marginBottom: 4 }}>Instructions</div>
       <div style={{ fontSize: 13, color: t.muted, marginBottom: 10 }}>
-        School guidance Raya passes to students and shows teachers. Never overrides Raya&apos;s rules.
+        School guidance <RayaName /> passes to students and shows teachers. Never overrides <RayaName />&apos;s rules.
       </div>
       {error && <div style={{ fontSize: 13, color: "#f87171", marginBottom: 6 }}>{error}</div>}
       {items.length === 0 && <div style={{ fontSize: 13, color: t.muted }}>No directives yet.</div>}

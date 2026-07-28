@@ -129,3 +129,62 @@ describe("persistAndGather", () => {
     expect(turn.error).toBe("insert failed");
   });
 });
+
+/**
+ * Retry safety. The unique index on (conversation_id, client_msg_id) turns a
+ * replayed send into a duplicate-key error; we must recover the original turn
+ * instead of storing the student's message twice — and if the server had
+ * already answered it, replay that answer rather than paying for a new one.
+ */
+describe("persistAndGather — retry deduplication", () => {
+  const duplicate = { data: null, error: { message: "duplicate key", code: "23505" } };
+
+  it("replays the stored reply when the turn was already answered", async () => {
+    const { supabase } = makeSupabase({
+      insertResult: duplicate,
+      // newest first: the reply, then the original user message
+      histRows: [
+        { id: "a1", role: "assistant", content: "Inertia is…", client_msg_id: null },
+        { id: "u1", role: "user", content: "What is inertia?", client_msg_id: "cm-1" },
+      ],
+    });
+    const turn = await persistAndGather(supabase, { ...baseInput, clientMsgId: "cm-1" });
+    if (turn.error !== undefined) throw new Error(turn.error);
+    expect(turn.userMsgId).toBe("u1"); // the original, not a new row
+    expect(turn.existingReply).toBe("Inertia is…");
+  });
+
+  it("recovers the original message and generates when no reply followed", async () => {
+    const { supabase } = makeSupabase({
+      insertResult: duplicate,
+      histRows: [{ id: "u1", role: "user", content: "What is inertia?", client_msg_id: "cm-1" }],
+    });
+    const turn = await persistAndGather(supabase, { ...baseInput, clientMsgId: "cm-1" });
+    if (turn.error !== undefined) throw new Error(turn.error);
+    expect(turn.userMsgId).toBe("u1");
+    expect(turn.existingReply).toBeNull(); // → the caller runs the LLM
+    expect(turn.hist.at(-1)).toEqual({ role: "user", content: "What is inertia?" });
+  });
+
+  it("errors rather than guessing when the duplicate is outside the window", async () => {
+    const { supabase } = makeSupabase({ insertResult: duplicate, histRows: [] });
+    const turn = await persistAndGather(supabase, { ...baseInput, clientMsgId: "cm-1" });
+    expect(turn.error).toBe("duplicate message");
+  });
+
+  it("treats a duplicate error without a clientMsgId as a plain failure", async () => {
+    const { supabase } = makeSupabase({ insertResult: duplicate });
+    const turn = await persistAndGather(supabase, baseInput);
+    expect(turn.error).toBe("duplicate key");
+  });
+
+  it("a first-time send is never mistaken for a retry", async () => {
+    const { supabase } = makeSupabase({
+      histRows: [{ id: "u0", role: "user", content: "earlier", client_msg_id: "cm-0" }],
+    });
+    const turn = await persistAndGather(supabase, { ...baseInput, clientMsgId: "cm-1" });
+    if (turn.error !== undefined) throw new Error(turn.error);
+    expect(turn.userMsgId).toBe("new-msg");
+    expect(turn.existingReply).toBeNull();
+  });
+});

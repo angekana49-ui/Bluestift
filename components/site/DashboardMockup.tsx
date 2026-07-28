@@ -1,4 +1,5 @@
 import type { Theme } from "./theme";
+import { RayaName } from "@/components/ui/brand";
 
 type Bar = { sessions: number; quizzes: number; mastery: number };
 
@@ -149,7 +150,7 @@ export default function DashboardMockup({ theme: t }: { theme: Theme }) {
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
               <span style={{ width: 26, height: 26, borderRadius: "50%", background: "#6366f1", color: "white", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>AI</span>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 600 }}>Raya&apos;s suggestions</div>
+                <div style={{ fontSize: 13, fontWeight: 600 }}><RayaName />&apos;s suggestions</div>
                 <div style={{ fontSize: 13, color: t.muted }}>Tailored explanation in seconds.</div>
               </div>
             </div>

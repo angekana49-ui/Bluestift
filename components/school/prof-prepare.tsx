@@ -6,6 +6,7 @@ import { panelCard, textInput, ctaButton, ghostButton } from "@/components/ui/fo
 import { DocumentView } from "@/components/ui/document";
 import { Modal } from "@/components/ui/modal";
 import { downloadBrandedPdf, downloadBrandedText, type BrandedDoc } from "@/lib/document";
+import { RayaName } from "@/components/ui/brand";
 
 type ClassOpt = { id: string; name: string };
 type SubjectOpt = { id: string; name: string };
@@ -155,10 +156,10 @@ export function PrepareView({
   return (
     <div>
       <div style={box}>
-        <h2 style={{ fontSize: "1.1rem", margin: "0 0 0.25rem" }}>Prepare with Raya</h2>
+        <h2 style={{ fontSize: "1.1rem", margin: "0 0 0.25rem" }}>Prepare with <RayaName /></h2>
         <p style={{ opacity: 0.6, fontSize: "0.85rem", margin: "0 0 0.85rem" }}>
           Generate a {KIND_LABEL[kind]?.toLowerCase()} grounded in your class&apos;s real gaps — the
-          Kernel points Raya at the weakest concepts so the material shores them up.
+          Kernel points <RayaName /> at the weakest concepts so the material shores them up.
         </p>
         <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", alignItems: "center" }}>
           <select style={input} value={kind} onChange={(e) => setKind(e.target.value as Kind)} disabled={busy}>

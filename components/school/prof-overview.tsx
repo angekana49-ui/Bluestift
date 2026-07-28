@@ -5,6 +5,7 @@ import { useAppTheme } from "@/components/ui/theme";
 import { panelCard, ctaButton, ghostButton, textInput } from "@/components/ui/forms";
 import { KpiTile } from "@/components/ui/widgets";
 import { InstructionsPanel } from "@/components/school/class-instructions";
+import { RayaName } from "@/components/ui/brand";
 
 type ClassOpt = { id: string; name: string; studentCount?: number };
 type Alert = {
@@ -131,7 +132,7 @@ export function ProfOverviewView({
 
       <div style={box}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.6rem", flexWrap: "wrap" }}>
-          <h3 style={{ margin: 0, flex: 1 }}>Steer Raya for a class</h3>
+          <h3 style={{ margin: 0, flex: 1 }}>Steer <RayaName /> for a class</h3>
           <select style={input} value={instrClassId} onChange={(e) => setInstrClassId(e.target.value)}>
             {classes.length === 0 && <option value="">No classes</option>}
             {classes.map((c) => (

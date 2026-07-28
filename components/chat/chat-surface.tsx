@@ -11,6 +11,9 @@ import {
 import { Bird } from "@/components/ui/widgets";
 import { IconFile, IconImage, IconPanel } from "@/components/ui/icons";
 import { status, hand, text, type AppTheme } from "@/components/ui/tokens";
+import { RayaText } from "@/components/ui/brand";
+import { useTranslate } from "@/components/ui/locale";
+import { DegradedBanner } from "@/components/ui/degraded-banner";
 import { ChatComposer } from "./chat-composer";
 import { ChatAvatar } from "./chat-avatar";
 import type { ChatConfig } from "./types";
@@ -84,8 +87,10 @@ export function ChatSurface({
     removePending,
     uploadDoc,
     onSend,
+    retrySend,
   } = engine;
 
+  const tr = useTranslate();
   const [filesOpen, setFilesOpen] = useState(false);
 
   // Auto-scroll: keep the thread pinned to the newest message (including while a
@@ -138,6 +143,12 @@ export function ChatSurface({
       : config.suggestions;
 
   const composerBlock = (centered: boolean) => (
+    <>
+    {/* Honest connectivity, right above the composer — where the student is
+        about to type, not buried in a corner. Renders nothing when healthy. */}
+    <div style={{ maxWidth: THREAD_MAX_W, margin: "0 auto", width: "100%", padding: "0 16px" }}>
+      <DegradedBanner />
+    </div>
     <ChatComposer
       theme={t}
       centered={centered}
@@ -154,6 +165,7 @@ export function ChatSurface({
       error={error}
       extraAction={extraComposerAction}
     />
+    </>
   );
 
   return (
@@ -263,8 +275,11 @@ export function ChatSurface({
               <Bird variant={1} fill={status.aiIndigo} />
               <Bird variant={2} fill={t.mutedLight} />
             </div>
+            {/* The greeting <h1> above stays plain: it's set in the handwritten
+                display face, where the brand serif would clash. Body copy and
+                chips below carry the wordmark. */}
             <p style={{ maxWidth: 380, margin: "14px 0 26px", fontSize: text.base, lineHeight: 1.7, color: t.muted }}>
-              {config.emptyHint}
+              <RayaText>{config.emptyHint}</RayaText>
             </p>
 
             {composerBlock(true)}
@@ -288,7 +303,7 @@ export function ChatSurface({
                     animationDelay: `${i * 0.3}s`,
                   }}
                 >
-                  {label}
+                  <RayaText>{label}</RayaText>
                 </span>
               ))}
             </div>
@@ -334,6 +349,39 @@ export function ChatSurface({
                         </div>
                       )}
                       {m.content}
+                      {/* Undelivered: the message stays put with its files —
+                          nothing the student typed is ever thrown away. */}
+                      {m.status === "failed" && (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                            marginTop: 6,
+                            fontSize: 12,
+                            opacity: 0.85,
+                          }}
+                        >
+                          <span>{tr("chat.sendFailed")}</span>
+                          <button
+                            type="button"
+                            onClick={() => void retrySend(m.id)}
+                            disabled={busy}
+                            style={{
+                              background: "transparent",
+                              border: "none",
+                              padding: 0,
+                              color: "inherit",
+                              font: "inherit",
+                              fontWeight: 700,
+                              textDecoration: "underline",
+                              cursor: "pointer",
+                            }}
+                          >
+                            {tr("chat.retry")}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );

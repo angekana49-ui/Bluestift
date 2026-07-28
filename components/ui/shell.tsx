@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import type { AppTheme } from "./tokens";
+import { RayaText } from "./brand";
+import { useTranslate } from "./locale";
 
 /**
  * AppShell — the shared frame for the Raya and Schools apps.
@@ -60,12 +62,13 @@ export function MobileHeader({
   onOpenLeft: () => void;
   onOpenRight?: () => void;
 }) {
+  const tr = useTranslate();
   return (
     <div
       className="app-mobile-header"
       style={{ borderBottom: `1px solid ${t.cardBorder}`, background: t.cardBg }}
     >
-      <IconButton theme={t} onClick={onOpenLeft} title="Open menu" size={34} radius={10}>
+      <IconButton theme={t} onClick={onOpenLeft} title={tr("shell.openMenu")} size={34} radius={10}>
         <IconBurger />
       </IconButton>
       <span
@@ -81,10 +84,10 @@ export function MobileHeader({
           whiteSpace: "nowrap",
         }}
       >
-        {title}
+        <RayaText>{title}</RayaText>
       </span>
       {onOpenRight ? (
-        <IconButton theme={t} onClick={onOpenRight} title="Open panel" size={34} radius={10}>
+        <IconButton theme={t} onClick={onOpenRight} title={tr("shell.openPanel")} size={34} radius={10}>
           <IconPanelRight />
         </IconButton>
       ) : (
@@ -198,17 +201,19 @@ export function SidebarBrand({
   logoSrcDark?: string;
   logoRadius?: number;
   logoSize?: number;
-  name: string;
+  /** ReactNode so a brand can pass its wordmark (e.g. <RayaName/>), not just text. */
+  name: ReactNode;
   /** Toggle the icon-rail collapse. When set, a chevron button is shown. */
   onToggle?: () => void;
 }) {
+  const tr = useTranslate();
   const src = t.dark && logoSrcDark ? logoSrcDark : logoSrc;
   const toggleBtn = onToggle ? (
     <button
       type="button"
       className="app-collapse-toggle"
-      aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-      title={collapsed ? "Expand" : "Collapse"}
+      aria-label={collapsed ? tr("shell.expandSidebar") : tr("shell.collapseSidebar")}
+      title={collapsed ? tr("shell.expand") : tr("shell.collapse")}
       onClick={(e) => {
         e.stopPropagation();
         onToggle();
@@ -323,7 +328,7 @@ export function NavItem({
             flex: 1,
           }}
         >
-          {label}
+          <RayaText>{label}</RayaText>
         </span>
       )}
       {!collapsed && <span className="app-rail-hide">{trailing}</span>}
@@ -451,11 +456,11 @@ export function SidebarProfile({
                 )}
                 <span style={{ display: "flex", flexDirection: "column", minWidth: 0, lineHeight: 1.25 }}>
                   <span style={{ fontSize: 13, fontWeight: accent ? 700 : 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {item.label}
+                    <RayaText>{item.label}</RayaText>
                   </span>
                   {item.sublabel && (
                     <span style={{ fontSize: 11.5, color: accent ? accentInk : t.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {item.sublabel}
+                      <RayaText>{item.sublabel}</RayaText>
                     </span>
                   )}
                 </span>

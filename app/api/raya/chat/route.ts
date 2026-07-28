@@ -7,7 +7,7 @@ import { rayaStream } from "@/lib/raya/llm";
 import { kernel, clampHistory } from "@/lib/kernel/client";
 import { assertRoomOpen } from "@/lib/rooms";
 import { checkUserRateLimit } from "@/lib/rate-limit";
-import { persistAndGather, linkAttachments } from "@/lib/raya/chat-context";
+import { persistAndGather, linkAttachments, replayReply } from "@/lib/raya/chat-context";
 import {
   getCognitiveContext,
   invalidateProfile,
@@ -64,6 +64,7 @@ export async function POST(request: Request) {
     roomId?: string | null;
     responseTimeMs?: number | null;
     fileIds?: string[];
+    clientMsgId?: string | null;
   };
   try {
     body = await request.json();
@@ -91,6 +92,9 @@ export async function POST(request: Request) {
   // When roomId is set, this is the private student<->Raya channel scoped to
   // that room — Raya draws on the room's shared documents.
   const roomId = body.roomId ?? null;
+
+  // Idempotency key for retries (see lib/raya/chat-context.ts).
+  const clientMsgId = typeof body.clientMsgId === "string" ? body.clientMsgId : null;
 
   // ── Wave 1: everything independent of the conversation, in parallel ──
   // Anti-abuse rate-limit (user-keyed, fails open — see lib/rate-limit.ts),
@@ -143,11 +147,18 @@ export async function POST(request: Request) {
     fileIds,
     responseTimeMs,
     roomId,
+    clientMsgId,
   });
   if (turn.error !== undefined) {
     return NextResponse.json({ error: turn.error }, { status: 500 });
   }
-  const { userMsgId, hist, docs } = turn;
+  const { userMsgId, hist, docs, existingReply } = turn;
+
+  // This turn was already answered (a retry after a lost response): replay the
+  // stored reply instead of generating — and paying for — a second one.
+  if (existingReply != null) {
+    return replayReply(existingReply, convId, userMsgId);
+  }
 
   // Attach the staged documents to the message that carried them — overlapped
   // with the LLM start below, awaited before we respond.

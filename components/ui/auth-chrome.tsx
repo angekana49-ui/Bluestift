@@ -1,6 +1,11 @@
 "use client";
 
 import React from "react";
+import { RAYA_FONT, RayaName, SchoolsName } from "@/components/ui/brand";
+
+// The wordmarks live in components/ui/brand.tsx (server-safe, shared with the
+// public site); re-exported here so the auth surfaces keep one import.
+export { RAYA_FONT, RayaName, SchoolsName };
 
 /**
  * Shared visual chrome for the full-screen auth surfaces (onboarding + login),
@@ -13,9 +18,6 @@ export const WORDMARK_A = "#173d8a";
 export const WORDMARK_B = "#2f7fe0";
 export const HEAD_FONT = "var(--font-plex), 'IBM Plex Sans', sans-serif";
 export const HAND_FONT = "var(--font-caveat), 'Caveat', cursive";
-// Raya is written "Raya" in a bold serif (Cambria Math / Times New Roman) — a
-// softer, less clinical wordmark. See <RayaName/>.
-export const RAYA_FONT = "'Cambria Math', 'Cambria', 'Times New Roman', serif";
 
 // A gull-in-flight silhouette (two swept wings meeting at a slightly dipped body)
 // — the universal "bird" mark. Stroked, not filled, so it never reads as a
@@ -34,16 +36,6 @@ export function Logo({ size = 30 }: { size?: number }) {
       </span>
     </span>
   );
-}
-
-/** The Raya wordmark, written "Raya" in a bold serif. Inherits colour. */
-export function RayaName({ style }: { style?: React.CSSProperties }) {
-  return <span style={{ fontFamily: RAYA_FONT, fontWeight: 700, ...style }}>Raya</span>;
-}
-
-/** The Schools wordmark — same bold serif as Raya, so the two products match. */
-export function SchoolsName({ style }: { style?: React.CSSProperties }) {
-  return <span style={{ fontFamily: RAYA_FONT, fontWeight: 700, ...style }}>Schools</span>;
 }
 
 // BlueStift blue — the flock colour (matches the site wordmark accent).
@@ -132,7 +124,7 @@ export function AuthSplit({ children, back }: { children: React.ReactNode; back?
             in a few taps.
           </p>
         </div>
-        <span style={{ fontSize: 14, color: "#64748b" }}>AI tutor · K-12 · Cameroon &amp; US</span>
+        <span style={{ fontSize: 14, color: "#64748b" }}>AI tutor · any level, any subject, anywhere</span>
       </aside>
 
       <main

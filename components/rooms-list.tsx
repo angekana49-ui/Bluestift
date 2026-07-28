@@ -6,6 +6,7 @@ import { createRoom } from "@/app/rooms/actions";
 import { dispatchUpgrade } from "@/lib/upgrade";
 import { useAppTheme } from "@/components/ui/theme";
 import { panelCard, cardTitle, textInput, ctaButton } from "@/components/ui/forms";
+import { RayaName } from "@/components/ui/brand";
 
 type Room = {
   id: string;
@@ -205,7 +206,7 @@ export function RoomsList({
         <div style={{ margin: "2px 0 14px" }}>
           <div style={{ fontSize: 14, color: t.text, fontWeight: 600, marginBottom: 4 }}>📎 Context documents (optional)</div>
           <div style={{ fontSize: 13, color: t.mutedLight, marginBottom: 6 }}>
-            Raya reads these from the start, so it can skip the obvious questions. Max 20 MB total.
+            <RayaName /> reads these from the start, so it can skip the obvious questions. Max 20 MB total.
           </div>
           <input
             type="file"

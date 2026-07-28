@@ -445,7 +445,7 @@ export function OnboardingForm({
               <p style={sub}>A short note helps us tailor your dashboard. (Optional)</p>
               <input
                 style={fieldInput}
-                placeholder={schoolRole === "school" ? "e.g. K-12 science academy, Yaoundé" : "e.g. Maths & Physics, high school"}
+                placeholder={schoolRole === "school" ? "e.g. science academy, 600 students" : "e.g. Maths & Physics, final year"}
                 value={focus}
                 onChange={(e) => setFocus(e.target.value)}
               />

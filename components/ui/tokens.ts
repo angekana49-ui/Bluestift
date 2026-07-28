@@ -34,6 +34,8 @@ export type AppTheme = {
   text: string;
   muted: string;
   mutedLight: string;
+  /** Link colour. Links must read as links, and stay legible as body-size text. */
+  link: string;
   ctaBg: string;
   ctaText: string;
   inputBg: string;
@@ -60,7 +62,7 @@ const light: AppTheme = {
   sidebarBg: "#eef3f9",
   sidebarBorder: "rgba(15,23,42,0.10)",
   sidebarText: "#0b1220",
-  sidebarMuted: "#64748b",
+  sidebarMuted: "#4a5a70",
   sidebarActiveBg: "rgba(15,23,42,0.07)",
   sidebarDivider: "rgba(15,23,42,0.10)",
   rightBg: "#f6f7f9",
@@ -70,8 +72,16 @@ const light: AppTheme = {
   cardBorder: "rgba(15,23,42,0.10)",
   cardShadow: "none",
   text: "#0b1220",
-  muted: "#64748b",
-  mutedLight: "#8a97a8",
+  // Light-mode secondary text used to sit at #64748b (~4.8:1 on white, and it
+  // dropped under AA on the tinted card/section backgrounds), with a tertiary
+  // tier at #8a97a8 that was barely legible (~3:1). Both moved one step darker:
+  // muted is now ~7.7:1 on white and mutedLight ~4.8:1, so secondary copy reads
+  // on every surface it lands on. Dark mode was already fine and is untouched.
+  muted: "#44546a",
+  mutedLight: "#64748b",
+  // Darker than the brand blue #2f7fe0 (only ~3.6:1 on white), which links used
+  // to take and which read as decoration rather than text.
+  link: "#1b5fc1",
   ctaBg: "#0b1220",
   ctaText: "#ffffff",
   inputBg: "#f3f6fa",
@@ -107,6 +117,7 @@ const dark: AppTheme = {
   text: "#eef2f8",
   muted: "#9aa7bd",
   mutedLight: "#7c8aa3",
+  link: "#7ab3f7",
   ctaBg: "#2f7fe0",
   ctaText: "#ffffff",
   inputBg: "#16203a",

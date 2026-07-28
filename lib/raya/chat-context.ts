@@ -29,6 +29,12 @@ export type TurnInput = {
   responseTimeMs?: number | null;
   /** Private-room channel: also pull the room's shared documents. */
   roomId?: string | null;
+  /**
+   * Client-generated id for this send. Makes a retry idempotent: the unique
+   * index on (conversation_id, client_msg_id) rejects the second insert, and
+   * we recover the original message instead of duplicating the student's turn.
+   */
+  clientMsgId?: string | null;
 };
 
 export type TurnData =
@@ -38,15 +44,39 @@ export type TurnData =
       hist: HistMsg[];
       /** Bounded document context ("# name\ncontent" blocks). */
       docs: string;
+      /**
+       * Set only when this send was a RETRY of a turn the server had already
+       * answered (the first reply just never reached the client). Replay it
+       * verbatim — never bill a second LLM call or write a second reply.
+       */
+      existingReply?: string | null;
       error?: undefined;
     }
   | { error: string };
+
+/** Postgres unique-violation — our retry landing on the dedupe index. */
+function isDuplicate(error: { code?: string } | null): boolean {
+  return error?.code === "23505";
+}
+
+/**
+ * `messages.client_msg_id` is newer than the generated Database types (same
+ * situation as adminRpc in lib/supabase/admin.ts). Two cast points — the write
+ * row and the read row — both of which narrow back on the next
+ * `npm run gen:types`.
+ */
+type HistoryRow = {
+  id: string;
+  role: string;
+  content: string | null;
+  client_msg_id: string | null;
+};
 
 export async function persistAndGather(
   supabase: SupabaseClient<Database>,
   input: TurnInput,
 ): Promise<TurnData> {
-  const { conversationId, userId, content, fileIds, responseTimeMs, roomId } = input;
+  const { conversationId, userId, content, fileIds, responseTimeMs, roomId, clientMsgId } = input;
 
   const [insertRes, histRes, ownFilesRes, roomFilesRes] = await Promise.all([
     supabase
@@ -59,7 +89,8 @@ export async function persistAndGather(
         content,
         has_media: fileIds.length > 0,
         ...(responseTimeMs !== undefined ? { response_time_ms: responseTimeMs } : {}),
-      })
+        ...(clientMsgId ? { client_msg_id: clientMsgId } : {}),
+      } as never)
       .select("id")
       .single(),
     // Newest first, +1 so the window stays full even though the parallel
@@ -67,7 +98,7 @@ export async function persistAndGather(
     supabase
       .schema("learning")
       .from("messages")
-      .select("id, role, content")
+      .select("id, role, content, client_msg_id")
       .eq("conversation_id", conversationId)
       .order("created_at", { ascending: false })
       .limit(HISTORY_LIMIT + 1),
@@ -89,12 +120,35 @@ export async function persistAndGather(
       : Promise.resolve({ data: [] as { file_name: string | null; content: string | null }[] }),
   ]);
 
-  if (insertRes.error || !insertRes.data) {
-    return { error: insertRes.error?.message ?? "message insert failed" };
-  }
-  const userMsgId = insertRes.data.id as string;
+  // Newest-first history. Also the lookup table for the duplicate case below,
+  // which is why it carries id + client_msg_id.
+  const rows = (histRes.data ?? []) as unknown as HistoryRow[];
 
-  const prior = ((histRes.data ?? []) as { id: string; role: string; content: string | null }[])
+  let userMsgId: string;
+  let existingReply: string | null = null;
+
+  if (insertRes.error || !insertRes.data) {
+    // A retry of a turn the server already stored. Recover the original message
+    // rather than duplicating it, and — if a reply already followed it — hand
+    // that reply back so the retry costs nothing and says the same thing.
+    if (!isDuplicate(insertRes.error) || !clientMsgId) {
+      return { error: insertRes.error?.message ?? "message insert failed" };
+    }
+    const at = rows.findIndex((m) => m.client_msg_id === clientMsgId);
+    if (at < 0) {
+      // Stored, but pushed out of the recent window — nothing safe to recover.
+      return { error: "duplicate message" };
+    }
+    userMsgId = rows[at].id;
+    // rows are newest-first, so the message immediately AFTER this turn sits
+    // at at-1.
+    const next = at > 0 ? rows[at - 1] : null;
+    if (next?.role === "assistant") existingReply = next.content ?? "";
+  } else {
+    userMsgId = insertRes.data.id as string;
+  }
+
+  const prior = rows
     .filter((m) => m.id !== userMsgId)
     .slice(0, HISTORY_LIMIT - 1)
     .reverse();
@@ -108,7 +162,29 @@ export async function persistAndGather(
     .join("\n\n")
     .slice(0, 8000);
 
-  return { userMsgId, hist, docs };
+  return { userMsgId, hist, docs, existingReply };
+}
+
+/**
+ * Hand back an already-generated reply in the exact wire shape of a live turn
+ * (plain text body + the x-* headers the chat engine reads), so a retry whose
+ * first response was lost resolves identically on the client — no second LLM
+ * call, no second stored reply.
+ */
+export function replayReply(
+  reply: string,
+  conversationId: string,
+  userMsgId: string,
+): Response {
+  return new Response(reply, {
+    headers: {
+      "content-type": "text/plain; charset=utf-8",
+      "cache-control": "no-store",
+      "x-conversation-id": conversationId,
+      "x-message-id": userMsgId,
+      "x-raya-model": "replay",
+    },
+  });
 }
 
 /**

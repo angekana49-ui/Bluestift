@@ -2,33 +2,33 @@
 
 import { useAppTheme } from "@/components/ui/theme";
 import { SettingsCard } from "@/components/raya/raya-app";
-import { useLocale } from "@/lib/use-locale";
-import { LOCALES, translate, normalizeLocale, type Dict } from "@/lib/locale";
+import { useAppLocale, useTranslate } from "@/components/ui/locale";
+import { LOCALES, normalizeLocale } from "@/lib/locale";
 
 /**
  * Settings "Language" card — picks the app's INTERFACE language (English default,
  * plus Français / Español / Deutsch). Shared by the three settings screens
- * (Raya /account, the school admin dashboard, the teacher dashboard). The choice
- * is persisted via `useLocale`; the card localizes its own labels so switching
- * visibly does something. It does NOT change the language Raya replies in — the
- * tutor still answers in the student's own language.
+ * (Raya /account, the school admin dashboard, the teacher dashboard).
+ *
+ * It reads and writes the SHARED locale (via `useAppLocale`, backed by the
+ * scaffold's `LocaleProvider`), so changing it here re-renders the nav and the
+ * rest of the chrome immediately — before the provider existed, each `useLocale`
+ * call was its own island and only this card updated. Its own labels come from
+ * the normal catalogue now, not a private inline dictionary.
+ *
+ * It does NOT change the language Raya replies in — the tutor still answers in
+ * the student's own language.
  */
-const STRINGS: Dict = {
-  en: { title: "Language", desc: "Choose the language of the app interface" },
-  fr: { title: "Langue", desc: "Choisissez la langue de l’interface" },
-  es: { title: "Idioma", desc: "Elige el idioma de la interfaz" },
-  de: { title: "Sprache", desc: "Wählen Sie die Sprache der Oberfläche" },
-};
-
 export function SettingsLanguageCard() {
   const { theme: t } = useAppTheme();
-  const { locale, setLocale } = useLocale();
+  const { locale, setLocale } = useAppLocale();
+  const tr = useTranslate();
   return (
     <SettingsCard theme={t}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
         <div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: t.text }}>{translate(STRINGS, locale, "title")}</div>
-          <div style={{ fontSize: 13, color: t.muted, marginTop: 2 }}>{translate(STRINGS, locale, "desc")}</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: t.text }}>{tr("settings.language.title")}</div>
+          <div style={{ fontSize: 13, color: t.muted, marginTop: 2 }}>{tr("settings.language.desc")}</div>
         </div>
         <select
           value={locale}

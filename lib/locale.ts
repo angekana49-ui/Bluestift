@@ -31,6 +31,28 @@ export const DEFAULT_LOCALE: Locale = "en";
 /** Shared localStorage key (Raya + Schools stay in sync, like the theme). */
 export const LOCALE_KEY = "bluestift-locale";
 
+/**
+ * Set once the visitor has been ASKED which language they want (the public
+ * site's first-visit prompt). Kept separate from `LOCALE_KEY` on purpose:
+ * dismissing the prompt must not be recorded as "chose English", or we could
+ * never tell a real choice from a shrug.
+ */
+export const LOCALE_ASKED_KEY = "bluestift-locale-asked";
+
+/**
+ * Best match between the browser's preferred languages and the four we ship.
+ * Region subtags are ignored ("fr-CA" → "fr"). Returns null when none match, so
+ * the caller can fall back to English rather than guess.
+ */
+export function matchLocale(preferred: readonly string[]): Locale | null {
+  for (const tag of preferred) {
+    const base = String(tag).toLowerCase().split("-")[0];
+    const hit = LOCALES.find((l) => l.code === base);
+    if (hit) return hit.code;
+  }
+  return null;
+}
+
 /** Coerce any stored/supplied value to a known locale (default English). */
 export function normalizeLocale(value: unknown): Locale {
   return LOCALES.some((l) => l.code === value) ? (value as Locale) : DEFAULT_LOCALE;

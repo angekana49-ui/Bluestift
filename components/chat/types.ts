@@ -1,7 +1,17 @@
 import type { Attachment } from "@/components/attachment";
 
-/** A message row as the chat surface renders it. */
-export type Msg = { id: string; role: string; content: string | null };
+/**
+ * A message row as the chat surface renders it. `status` is client-only: an
+ * optimistic bubble is "sending" until the server acknowledges it, and stays
+ * as "failed" (never disappears) when delivery fails, so the student's text is
+ * visibly preserved with a retry affordance. Persisted messages carry none.
+ */
+export type Msg = {
+  id: string;
+  role: string;
+  content: string | null;
+  status?: "sending" | "failed";
+};
 
 /** A conversation as the history list shows it. */
 export type Conversation = { id: string; title: string | null; updated_at: string };

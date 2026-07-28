@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { clearLocalData } from "@/lib/net/local-data";
 import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
 import { useResolvedTheme } from "@/components/ui/theme";
 import { panelCard, cardTitle, textInput, ctaButton } from "@/components/ui/forms";
@@ -133,6 +134,8 @@ export function AuthPanel({ user, profile, maxWidth = 560 }: Props) {
 
   async function signOut() {
     setBusy(true);
+    // Shared machines: wipe locally retained user data before switching users.
+    await clearLocalData();
     await supabase.auth.signOut();
     setBusy(false);
     router.refresh();

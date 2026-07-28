@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { FilePreview, type Attachment } from "@/components/attachment";
 import { useDarkMode } from "@/components/ui/theme";
+import { RayaName, RayaText } from "@/components/ui/brand";
 
 type RoomFile = Attachment & {
   file_type: string | null;
@@ -68,7 +69,7 @@ export function RoomFiles({ roomId, readOnly = false }: { roomId: string; readOn
   return (
     <div style={box}>
       <p style={{ color: t.muted, marginTop: 0, fontSize: 15 }}>
-        Shared documents give the room its context — Raya reads them.
+        Shared documents give the room its context — <RayaName /> reads them.
       </p>
       {readOnly ? (
         <p style={{ color: t.muted, fontSize: 14, margin: 0 }}>
@@ -83,7 +84,7 @@ export function RoomFiles({ roomId, readOnly = false }: { roomId: string; readOn
           style={{ fontSize: 14, color: t.muted }}
         />
       )}
-      {status && <p style={{ color: t.muted, marginTop: 8, fontSize: 14 }}>{status}</p>}
+      {status && <p style={{ color: t.muted, marginTop: 8, fontSize: 14 }}><RayaText>{status}</RayaText></p>}
       {error && <p style={{ color: "#f87171", marginTop: 8, fontSize: 15 }}>{error}</p>}
 
       <div style={{ marginTop: 16 }}>

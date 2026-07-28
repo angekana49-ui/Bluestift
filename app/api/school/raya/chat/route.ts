@@ -4,7 +4,7 @@ import { createAdminClient, createSchoolsAdminClient } from "@/lib/supabase/admi
 import { buildProfContext, buildSchoolContext, getAdminMembership } from "@/lib/school-admin";
 import { rayaStream, type ChatMsg } from "@/lib/raya/llm";
 import { checkUserRateLimit } from "@/lib/rate-limit";
-import { persistAndGather, linkAttachments } from "@/lib/raya/chat-context";
+import { persistAndGather, linkAttachments, replayReply } from "@/lib/raya/chat-context";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -32,7 +32,12 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  let body: { conversationId?: string | null; content?: string; fileIds?: string[] };
+  let body: {
+    conversationId?: string | null;
+    content?: string;
+    fileIds?: string[];
+    clientMsgId?: string | null;
+  };
   try {
     body = await request.json();
   } catch {
@@ -110,11 +115,17 @@ export async function POST(request: Request) {
     userId: user.id,
     content,
     fileIds,
+    clientMsgId: typeof body.clientMsgId === "string" ? body.clientMsgId : null,
   });
   if (turn.error !== undefined) {
     return NextResponse.json({ error: turn.error }, { status: 500 });
   }
-  const { userMsgId, hist, docs } = turn;
+  const { userMsgId, hist, docs, existingReply } = turn;
+
+  // Already answered (retry after a lost response): replay, don't regenerate.
+  if (existingReply != null) {
+    return replayReply(existingReply, convId, userMsgId);
+  }
 
   const history: ChatMsg[] = hist.map((m) => ({
     role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),

@@ -12,6 +12,21 @@ export type ComposerVoice = {
   busy: boolean;
   error: string | null;
   toggle: () => void;
+  /** An un-transcribed recording is being held — offer retry/discard. */
+  hasPending?: boolean;
+  retry?: () => void | Promise<void>;
+  discard?: () => void;
+};
+
+/** An inline action that reads as text, not a button (retry/discard links). */
+const linkButton: React.CSSProperties = {
+  background: "transparent",
+  border: "none",
+  padding: 0,
+  font: "inherit",
+  fontWeight: 700,
+  textDecoration: "underline",
+  cursor: "pointer",
 };
 
 /** Documents the composer accepts — kept in one place so every surface matches. */
@@ -95,7 +110,36 @@ export function ChatComposer({
 
         {/* error */}
         {(error || voice?.error) && (
-          <div style={{ padding: "0 24px 8px", fontSize: text.sm, color: "#f87171" }}>{error || voice?.error}</div>
+          <div style={{ padding: "0 24px 8px", fontSize: text.sm, color: "#f87171" }}>
+            {error || voice?.error}
+            {/* A recording that failed to transcribe is held, not lost — a
+                spoken answer can't be scrolled back to and retyped. */}
+            {voice?.hasPending && voice.retry && (
+              <>
+                {" "}
+                <button
+                  type="button"
+                  onClick={() => void voice.retry?.()}
+                  disabled={voice.busy}
+                  style={{ ...linkButton, color: "inherit" }}
+                >
+                  Retry
+                </button>
+                {voice.discard && (
+                  <>
+                    {" · "}
+                    <button
+                      type="button"
+                      onClick={voice.discard}
+                      style={{ ...linkButton, color: t.mutedLight }}
+                    >
+                      Discard
+                    </button>
+                  </>
+                )}
+              </>
+            )}
+          </div>
         )}
 
         {/* composer */}

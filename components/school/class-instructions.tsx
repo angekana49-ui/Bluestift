@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAppTheme } from "@/components/ui/theme";
 import { panelCard, textInput, ctaButton, ghostButton } from "@/components/ui/forms";
+import { RayaName } from "@/components/ui/brand";
 
 type Instruction = {
   id: string;
@@ -109,9 +110,9 @@ export function InstructionsPanel({ classId }: { classId: string }) {
 
   return (
     <div style={box}>
-      <h3 style={{ marginTop: 0 }}>Instructions to Raya</h3>
+      <h3 style={{ marginTop: 0 }}>Instructions to <RayaName /></h3>
       <p style={{ opacity: 0.6, fontSize: "0.82rem", marginTop: 0 }}>
-        Focus areas Raya applies for this class&apos;s students — guidance only, it never gives
+        Focus areas <RayaName /> applies for this class&apos;s students — guidance only, it never gives
         answers away.
       </p>
       {error && <p style={{ color: "#f87171", fontSize: "0.85rem" }}>{error}</p>}

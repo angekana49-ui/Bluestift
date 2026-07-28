@@ -5,6 +5,7 @@ import { useState } from "react";
 import SitePage from "@/components/site/SitePage";
 import type { Theme } from "@/components/site/theme";
 import { annualMonthlyRate } from "@/lib/billing/terms";
+import { RayaName } from "@/components/ui/brand";
 
 /** Local shape (structurally a subset of lib/billing's BillingPlan — kept local
  * so this client component never imports the server-only billing module). */
@@ -271,14 +272,14 @@ export function PricingView({
                   }}
                 >
                   Billed <strong style={{ color: t.text }}>annually, per enrolled student</strong> (your declared
-                  effectif) — a school of 800 pays for 800, whether 250 or all of them use Raya that month. Quarterly and
+                  effectif) — a school of 800 pays for 800, whether 250 or all of them use <RayaName /> that month. Quarterly and
                   monthly terms available. Every school starts with a free pilot; talk to us for a quote.
                 </div>
               )}
 
               <p style={{ textAlign: "center", fontSize: 14, color: t.muted, marginTop: 28 }}>
                 Questions about a plan?{" "}
-                <Link href="/contact" style={{ color: t.wordmarkB, fontWeight: 600, textDecoration: "none" }}>
+                <Link href="/contact" style={{ color: t.link, fontWeight: 600, textDecoration: "none" }}>
                   Talk to the team
                 </Link>
                 .

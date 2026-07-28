@@ -1,14 +1,19 @@
+"use client";
+
 import type { ReactNode } from "react";
 import type { Theme } from "./theme";
+import { RayaText, SchoolsName } from "@/components/ui/brand";
+import { useTranslate } from "@/components/ui/locale";
 
 export default function PricingSection({ theme: t }: { theme: Theme }) {
+  const tr = useTranslate();
   // Short scannable lines beat a paragraph — one idea per row, small accent dot.
   const lineList = (lines: string[], color: string, dot: string) => (
     <ul style={{ position: "relative", listStyle: "none", margin: "14px 0 0", padding: 0, display: "flex", flexDirection: "column", gap: 9, flex: 1 }}>
       {lines.map((line, i) => (
         <li key={i} style={{ display: "flex", alignItems: "baseline", gap: 9, fontSize: 15, color, lineHeight: 1.45 }}>
           <span style={{ width: 5, height: 5, borderRadius: "50%", background: dot, flexShrink: 0, transform: "translateY(-1px)" }} />
-          <span>{line}</span>
+          <span><RayaText>{line}</RayaText></span>
         </li>
       ))}
     </ul>
@@ -42,25 +47,26 @@ export default function PricingSection({ theme: t }: { theme: Theme }) {
       <div style={{ position: "relative", maxWidth: 1080, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 52 }}>
           <h2 style={{ fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "clamp(1.9rem,4vw,2.9rem)", letterSpacing: "-0.02em", color: t.text }}>
-            Pricing that <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic" }}>stays simple.</em>
+            {tr("site.pricing.title.a")}{" "}
+            <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic" }}>{tr("site.pricing.title.em")}</em>
           </h2>
           <p style={{ fontSize: 16, color: t.muted, marginTop: 12, maxWidth: 520, marginLeft: "auto", marginRight: "auto", lineHeight: 1.7 }}>
-            Three ways in — a solo student, a whole school, or a bespoke deployment. Pick your lane.
+            {tr("site.pricing.sub")}
           </p>
         </div>
 
         <div className="pub-grid-3" style={{ gap: 20, alignItems: "stretch" }}>
           {/* 1 — Solo (individual) */}
           {gatewayCard({
-            title: "Solo",
+            title: tr("site.pricing.solo.title"),
             lines: [
-              "Solo learning, Raya in your corner",
-              "Remembers every concept",
-              "Study Rooms, live",
-              "Quizzes, summaries, flashcards",
+              tr("site.pricing.solo.l1"),
+              tr("site.pricing.solo.l2"),
+              tr("site.pricing.solo.l3"),
+              tr("site.pricing.solo.l4"),
             ],
             meta: "Free · Plus $6.99 · Max $19.99 / mo",
-            cta: "See solo plans",
+            cta: tr("site.pricing.solo.cta"),
             href: "/pricing?for=solo",
             blobDur: "10.5s",
             blobDelay: "0s",
@@ -72,36 +78,36 @@ export default function PricingSection({ theme: t }: { theme: Theme }) {
               <div style={{ position: "absolute", right: "-15%", bottom: "-15%", width: "75%", height: "75%", background: "rgba(255,255,255,0.09)", filter: "blur(30px)", animation: "morphBlob 7.5s ease-in-out infinite", animationDelay: "0.8s" }} />
             </div>
             <span style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: "white", color: "#0b1220", fontSize: 13, fontWeight: 700, padding: "4px 12px", borderRadius: 999, letterSpacing: "0.1em", zIndex: 1 }}>
-              RECOMMENDED
+              {tr("site.pricing.schools.badge")}
             </span>
-            <div style={{ position: "relative", fontSize: "1.5rem", fontWeight: 900, letterSpacing: "-0.02em" }}>Schools</div>
+            <div style={{ position: "relative", fontSize: "1.5rem", fontWeight: 900, letterSpacing: "-0.02em" }}><SchoolsName /></div>
             {lineList(
               [
-                "A class, a grade, or a whole school",
-                "Teacher dashboards + per-class insights",
-                "LMS sync + Raya for Schools",
-                "Billed per enrolled student",
+                tr("site.pricing.schools.l1"),
+                tr("site.pricing.schools.l2"),
+                tr("site.pricing.schools.l3"),
+                tr("site.pricing.schools.l4"),
               ],
               "rgba(255,255,255,0.78)",
               t.greenSolid,
             )}
             <div style={{ position: "relative", fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.9)", marginTop: 16 }}>Standard $1.50 · Plus $2.30 / student / mo</div>
             <a href="/pricing?for=schools" style={{ position: "relative", display: "block", textAlign: "center", marginTop: 18, background: "white", color: "#0b1220", borderRadius: 999, padding: "11px 20px", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
-              See school plans
+              {tr("site.pricing.schools.cta")}
             </a>
           </div>
 
           {/* 3 — Custom (bespoke power) */}
           {gatewayCard({
-            title: "Custom",
+            title: tr("site.pricing.custom.title"),
             lines: [
-              "The full engine, tuned to your school",
-              "Highest performance",
-              "Advanced features",
-              "Your data, your rules, your own AI",
+              tr("site.pricing.custom.l1"),
+              tr("site.pricing.custom.l2"),
+              tr("site.pricing.custom.l3"),
+              tr("site.pricing.custom.l4"),
             ],
-            meta: "For institutions that want it all",
-            cta: "Explore Custom",
+            meta: tr("site.pricing.custom.meta"),
+            cta: tr("site.pricing.custom.cta"),
             href: "/pricing?for=schools",
             blobDur: "9s",
             blobDelay: "1.6s",
@@ -109,8 +115,8 @@ export default function PricingSection({ theme: t }: { theme: Theme }) {
         </div>
 
         <div style={{ textAlign: "center", marginTop: 36 }}>
-          <a href="/pricing" style={{ fontSize: 15, fontWeight: 600, color: t.text, textDecoration: "none", borderBottom: `1px solid ${t.cardBorder}`, paddingBottom: 2 }}>
-            Compare all plans →
+          <a href="/pricing" style={{ fontSize: 15, fontWeight: 600, color: t.link, textDecoration: "none", borderBottom: `1px solid ${t.link}`, paddingBottom: 2 }}>
+            {tr("site.pricing.compare")}
           </a>
         </div>
       </div>

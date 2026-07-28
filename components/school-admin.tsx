@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, useTransition } from "r
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { setActiveSchool } from "@/app/school/actions";
+import { clearLocalData } from "@/lib/net/local-data";
 import { SchoolRayaChat } from "@/components/school/school-raya-chat";
 import { AuthPanel } from "@/components/auth-panel";
 import { SettingsThemeCard } from "@/components/raya/settings-theme-card";
@@ -22,8 +23,11 @@ import { PrepareView } from "@/components/school/prof-prepare";
 import { downloadBrandedPdf, type BrandedDoc } from "@/lib/document";
 import { COUNTRIES, SCHOOL_TYPES } from "@/lib/school-constants";
 import { useDarkMode, useAppTheme, AppThemeProvider } from "@/components/ui/theme";
+import { LocaleProvider, useTranslate } from "@/components/ui/locale";
+import { useLocale } from "@/lib/use-locale";
 import { SchoolsShell, type SchoolNavItem } from "@/components/school/schools-shell";
 import { RightPanel, type ProfileMenuItem } from "@/components/ui/shell";
+import { RayaName, SchoolsName } from "@/components/ui/brand";
 import { createClient } from "@/lib/supabase/client";
 import { KpiTile, MasteryGauge } from "@/components/ui/widgets";
 import {
@@ -211,12 +215,14 @@ export function SchoolAdmin({
   initialJoinCode?: string | null;
 }) {
   const dm = useDarkMode();
+  const localeValue = useLocale();
   const [dash, setDash] = useState<SchoolDashboard | null>(dashboard);
 
   const showNoMembership = role !== "prof" && !(role === "admin_master" && dash);
 
   return (
     <AppThemeProvider value={dm}>
+     <LocaleProvider value={localeValue}>
      <SchoolUserContext.Provider value={{ avatarUrl: userAvatarUrl, memberships, activeSchoolId }}>
       {showNoMembership ? (
         <NoMembership initialJoinCode={initialJoinCode} />
@@ -226,6 +232,7 @@ export function SchoolAdmin({
         <Dashboard dash={dash as SchoolDashboard} setDash={setDash} adminName={userName} planLabel={planLabel} initialTab={initialTab} />
       )}
      </SchoolUserContext.Provider>
+     </LocaleProvider>
     </AppThemeProvider>
   );
 }
@@ -267,6 +274,7 @@ function SchoolChrome({
   children: React.ReactNode;
 }) {
   const { theme } = useAppTheme();
+  const tr = useTranslate();
   const { avatarUrl, memberships, activeSchoolId } = useSchoolUser();
   const router = useRouter();
 
@@ -275,6 +283,8 @@ function SchoolChrome({
   // → in-dashboard settings; admin → /account), plus a sign-out.
   const settingsAction = onProfile ?? (() => router.push("/account"));
   async function signOut() {
+    // Shared machines: wipe locally retained user data before switching users.
+    await clearLocalData();
     await createClient().auth.signOut();
     router.refresh();
     router.push("/login");
@@ -286,21 +296,21 @@ function SchoolChrome({
     // never redirect silently. This is the "want", not a "need".
     {
       key: "personal-raya",
-      label: "Your personal Raya",
-      sublabel: "Your own account · personal use",
+      label: tr("menu.personalRaya"),
+      sublabel: tr("menu.personalRaya.sub"),
       icon: <IconChat />,
       onSelect: () => router.push("/chat"),
     },
-    { key: "settings", label: "Settings", icon: <IconSettings />, onSelect: settingsAction },
+    { key: "settings", label: tr("menu.settings"), icon: <IconSettings />, onSelect: settingsAction },
     {
       key: "upgrade",
-      label: "Upgrade plan",
-      sublabel: "Unlock more features",
+      label: tr("menu.upgrade"),
+      sublabel: tr("menu.upgrade.sub"),
       icon: <IconUpgrade />,
       tone: "accent",
       onSelect: () => router.push("/pricing"),
     },
-    { key: "signout", label: "Sign out", tone: "danger", icon: <IconLogout />, onSelect: signOut },
+    { key: "signout", label: tr("menu.signOut"), tone: "danger", icon: <IconLogout />, onSelect: signOut },
   ];
 
   return (
@@ -423,7 +433,7 @@ function NoMembership({ initialJoinCode }: { initialJoinCode: string | null }) {
       <JoinSchool initialCode={initialJoinCode} />
       <p style={{ fontSize: 15, color: t.muted, marginTop: 16 }}>
         Want to run your own school?{" "}
-        <Link href="/profile" style={{ color: "#2f7fe0", fontWeight: 600 }}>
+        <Link href="/profile" style={{ color: t.link, fontWeight: 600 }}>
           Create one from your profile →
         </Link>
       </p>
@@ -589,6 +599,7 @@ function ProfView({
 }) {
   const { t, box, ghost } = useSchoolStyles();
   const { memberships, activeSchoolId } = useSchoolUser();
+  const tr = useTranslate();
   const [tab, setTab] = useState<ProfTab>("overview");
   const [directives, setDirectives] = useState<{ id: string; content: string }[]>([]);
   const [nav, setNav] = useState<ProfNav>({ mode: "list" });
@@ -652,15 +663,16 @@ function ProfView({
   // Profile chip (like Raya): name + photo, with "Teacher · <forfait>" under it.
   const profileForfait = planLabel ? `Teacher · ${planLabel}` : "Teacher";
 
+  // "Raya" is a brand name — it is never translated (see the brand-names rule).
   const navItems: SchoolNavItem[] = [
-    { key: "overview", label: "Overview", icon: <IconOverview /> },
-    { key: "classes", label: "Classes", icon: <IconClasses /> },
-    { key: "focus", label: "Focus", icon: <IconRooms /> },
-    { key: "prepare", label: "Prepare", icon: <IconFile /> },
-    { key: "insights", label: "Insights", icon: <IconKernel /> },
-    { key: "reports", label: "Reports", icon: <IconSummary /> },
+    { key: "overview", label: tr("nav.overview"), icon: <IconOverview /> },
+    { key: "classes", label: tr("nav.classes"), icon: <IconClasses /> },
+    { key: "focus", label: tr("nav.focus"), icon: <IconRooms /> },
+    { key: "prepare", label: tr("nav.prepare"), icon: <IconFile /> },
+    { key: "insights", label: tr("nav.insights"), icon: <IconKernel /> },
+    { key: "reports", label: tr("nav.reports"), icon: <IconSummary /> },
     { key: "raya", label: "Raya", icon: <IconChat /> },
-    { key: "settings", label: "Settings", icon: <IconSettings /> },
+    { key: "settings", label: tr("nav.settings"), icon: <IconSettings /> },
   ];
   const goTab = (k: string) => {
     setTab(k as ProfTab);
@@ -893,7 +905,7 @@ function ProfSettings({ account, classes }: { account: StaffAccount | null; clas
   if (!account) {
     return (
       <p style={{ color: t.muted, fontSize: 15 }}>
-        <Link href="/account" style={{ color: t.text }}>Open account settings →</Link>
+        <Link href="/account" style={{ color: t.link, fontWeight: 600 }}>Open account settings →</Link>
       </p>
     );
   }
@@ -932,8 +944,8 @@ function WhoPaysNote() {
       }}
     >
       <div style={{ fontWeight: 700, color: t.text, marginBottom: 4 }}>What your school covers</div>
-      Your teaching tools — classes, Focus, Prepare, reports and Raya for Schools — are part of your
-      school&apos;s plan; you never pay for them. Your <strong style={{ color: t.text }}>personal Raya</strong>{" "}
+      Your teaching tools — classes, Focus, Prepare, reports and <RayaName /> for <SchoolsName /> — are part of your
+      school&apos;s plan; you never pay for them. Your <strong style={{ color: t.text }}>personal <RayaName /></strong>{" "}
       (solo chat, Tools, your own Kernel) is your own account, on the free plan unless you choose to
       upgrade it.
     </div>
@@ -1125,7 +1137,7 @@ function TeacherBanner({
           </span>
         </div>
         <div style={{ fontSize: 14, color: t.mutedLight, marginTop: 2 }}>
-          {schoolName} · {classCount} {classCount === 1 ? "class" : "classes"} · your Raya, extended for teaching
+          {schoolName} · {classCount} {classCount === 1 ? "class" : "classes"} · your <RayaName />, extended for teaching
         </div>
       </div>
     </div>
@@ -1440,6 +1452,7 @@ function Dashboard({
 }) {
   const { t, box, input, btn, ghost } = useSchoolStyles();
   const router = useRouter();
+  const tr = useTranslate();
   const [className, setClassName] = useState("");
   const [level, setLevel] = useState("");
   const [effectif, setEffectif] = useState("");
@@ -1597,15 +1610,15 @@ function Dashboard({
   }
 
   const navItems: SchoolNavItem[] = [
-    { key: "overview", label: "Overview", icon: <IconOverview /> },
-    { key: "manage", label: "Classes & codes", icon: <IconClasses /> },
-    { key: "team", label: "Team", icon: <IconRooms /> },
-    { key: "insights", label: "Insights", icon: <IconKernel /> },
+    { key: "overview", label: tr("nav.overview"), icon: <IconOverview /> },
+    { key: "manage", label: tr("nav.classesCodes"), icon: <IconClasses /> },
+    { key: "team", label: tr("nav.team"), icon: <IconRooms /> },
+    { key: "insights", label: tr("nav.insights"), icon: <IconKernel /> },
     // LMS (Google Classroom) hidden until the OAuth integration is provisioned.
     { key: "raya", label: "Raya", icon: <IconChat /> },
-    { key: "reports", label: "Reports", icon: <IconSummary /> },
-    { key: "billing", label: "Billing", icon: <IconBilling /> },
-    { key: "settings", label: "Settings", icon: <IconSettings /> },
+    { key: "reports", label: tr("nav.reports"), icon: <IconSummary /> },
+    { key: "billing", label: tr("nav.billing"), icon: <IconBilling /> },
+    { key: "settings", label: tr("nav.settings"), icon: <IconSettings /> },
   ];
   const goTab = (k: string) => {
     setNav({ mode: "list" });
@@ -2247,7 +2260,7 @@ function StudentDetailView({
       {detail.insight && (
         <div style={{ ...box, borderColor: "#8b5cf655", background: t.cardBg }}>
           <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#a78bfa", marginBottom: "0.35rem" }}>
-            Raya analysis
+            <RayaName /> analysis
           </div>
           <p style={{ margin: 0, lineHeight: 1.55 }}>{detail.insight}</p>
         </div>
@@ -2261,7 +2274,7 @@ function StudentDetailView({
         </div>
         {detail.kcs.length === 0 ? (
           <p style={{ margin: 0, opacity: 0.6 }}>
-            No cognitive data yet — it appears once this student works with Raya.
+            No cognitive data yet — it appears once this student works with <RayaName />.
           </p>
         ) : (
           detail.kcs.map((kc, i) => (

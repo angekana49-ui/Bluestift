@@ -3,17 +3,21 @@
 import Link from "next/link";
 import type { Theme } from "./theme";
 import ThemeToggle from "./ThemeToggle";
+import { useTranslate } from "@/components/ui/locale";
+import type { MessageKey } from "@/lib/i18n";
 
 // "Privacy" is a valid section (for SitePage's `active`) but intentionally not in
 // LINKS below — the privacy page has no nav pill, so nothing highlights for it.
+// NOTE `label` stays the ENGLISH identity (pages pass it as `active`); only
+// `labelKey` is what the visitor actually reads.
 export type NavLink = "Product" | "Research" | "Survey" | "Pricing" | "Contact" | "Privacy";
 
-const LINKS: { label: NavLink; href: string }[] = [
-  { label: "Product", href: "/" },
-  { label: "Research", href: "/research" },
-  { label: "Survey", href: "/survey" },
-  { label: "Pricing", href: "/pricing" },
-  { label: "Contact", href: "/contact" },
+const LINKS: { label: NavLink; labelKey: MessageKey; href: string }[] = [
+  { label: "Product", labelKey: "site.nav.product", href: "/" },
+  { label: "Research", labelKey: "site.nav.research", href: "/research" },
+  { label: "Survey", labelKey: "site.nav.survey", href: "/survey" },
+  { label: "Pricing", labelKey: "site.nav.pricing", href: "/pricing" },
+  { label: "Contact", labelKey: "site.nav.contact", href: "/contact" },
 ];
 
 /**
@@ -41,6 +45,7 @@ export default function Navbar({
    *  (Raya or Schools). Defaults to Raya when the page doesn't resolve it. */
   homeHref?: string;
 }) {
+  const tr = useTranslate();
   const ctaPill = {
     display: "flex",
     alignItems: "center",
@@ -88,7 +93,7 @@ export default function Navbar({
               <span style={{ color: t.wordmarkB }}>Stift</span>
               {section && <span style={{ fontWeight: 400, opacity: 0.6, marginLeft: 4, color: t.text }}>· {section}</span>}
             </div>
-            <div style={{ fontSize: 13, color: t.text }}>Raya · AI tutor K-12</div>
+            <div style={{ fontSize: 13, color: t.text }}>{tr("site.nav.tagline")}</div>
           </div>
         </Link>
 
@@ -111,7 +116,7 @@ export default function Navbar({
                   whiteSpace: "nowrap",
                 }}
               >
-                {link.label}
+                {tr(link.labelKey)}
               </Link>
             );
           })}
@@ -122,16 +127,16 @@ export default function Navbar({
           {signedIn ? (
             <Link href={homeHref} style={ctaPill}>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#34d399" }} />
-              Open app
+              {tr("site.nav.openApp")}
             </Link>
           ) : (
             <>
-              <Link href="/login" className="pub-hide-sm" style={{ fontSize: 14, color: t.text, whiteSpace: "nowrap", textDecoration: "none" }}>
-                Sign in
+              <Link href="/login" className="pub-hide-sm" style={{ fontSize: 14, fontWeight: 500, color: t.link, whiteSpace: "nowrap", textDecoration: "none" }}>
+                {tr("site.nav.signIn")}
               </Link>
               <Link href="/login" style={ctaPill}>
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#34d399" }} />
-                Free trial
+                {tr("site.nav.freeTrial")}
               </Link>
             </>
           )}

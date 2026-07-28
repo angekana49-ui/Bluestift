@@ -53,7 +53,7 @@ export const ghostButton = (t: AppTheme): CSSProperties => ({
 });
 
 export const linkText = (t: AppTheme): CSSProperties => ({
-  color: t.dark ? "#6f9bff" : "#2f7fe0",
+  color: t.link,
   textDecoration: "none",
   fontSize: 15,
   fontWeight: 600,

@@ -1,31 +1,37 @@
+"use client";
+
 import Link from "next/link";
 import type { Theme } from "./theme";
+import { RayaText } from "@/components/ui/brand";
+import { useTranslate } from "@/components/ui/locale";
+import type { MessageKey } from "@/lib/i18n";
 
-const COLUMNS: { label: string; links: [string, string][] }[] = [
+/** `null` in the label slot = a brand name, shown literally in every language. */
+const COLUMNS: { labelKey: MessageKey; links: [MessageKey | null, string, string][] }[] = [
   {
-    label: "PRODUCT",
+    labelKey: "site.footer.col.product",
     links: [
-      ["Raya", "/chat"],
-      ["Study Rooms", "/rooms"],
-      ["Tools Studio", "/tools"],
-      ["Schools", "/school"],
+      [null, "Raya", "/chat"],
+      ["site.footer.link.studyRooms", "Study Rooms", "/rooms"],
+      ["site.footer.link.toolsStudio", "Tools Studio", "/tools"],
+      [null, "Schools", "/school"],
     ],
   },
   {
-    label: "PROJECT",
+    labelKey: "site.footer.col.project",
     links: [
-      ["Research", "/research"],
-      ["Survey", "/survey"],
-      ["Contribute", "/research?tab=collaborations"],
+      ["site.nav.research", "Research", "/research"],
+      ["site.nav.survey", "Survey", "/survey"],
+      ["site.footer.link.contribute", "Contribute", "/research?tab=collaborations"],
     ],
   },
   {
-    label: "RESOURCES",
+    labelKey: "site.footer.col.resources",
     links: [
-      ["Contact", "/contact"],
-      ["Feedback", "/feedback"],
-      ["Privacy", "/privacy"],
-      ["Sign in", "/login"],
+      ["site.nav.contact", "Contact", "/contact"],
+      ["site.footer.link.feedback", "Feedback", "/feedback"],
+      ["site.nav.privacy", "Privacy", "/privacy"],
+      ["site.nav.signIn", "Sign in", "/login"],
     ],
   },
 ];
@@ -37,6 +43,7 @@ const COLUMNS: { label: string; links: [string, string][] }[] = [
  *                    sky, so this needs position:relative + z-index:1).
  */
 export default function Footer({ theme: t, variant = "full" }: { theme: Theme; variant?: "full" | "simple" }) {
+  const tr = useTranslate();
   if (variant === "simple") {
     return (
       <footer
@@ -50,9 +57,9 @@ export default function Footer({ theme: t, variant = "full" }: { theme: Theme; v
         }}
       >
         <span style={{ fontSize: 13, color: t.footerMuted }}>
-          © 2026 BlueStift. All rights reserved. ·{" "}
-          <Link href="/privacy" style={{ color: t.footerMuted, textDecoration: "underline" }}>
-            Privacy
+          © 2026 BlueStift. {tr("site.footer.rights")} ·{" "}
+          <Link href="/privacy" style={{ color: t.link, textDecoration: "underline" }}>
+            {tr("site.nav.privacy")}
           </Link>
         </span>
       </footer>
@@ -80,17 +87,19 @@ export default function Footer({ theme: t, variant = "full" }: { theme: Theme; v
               </span>
             </div>
             <p style={{ maxWidth: 220, fontSize: 13, color: t.footerMuted, lineHeight: 1.7, margin: 0 }}>
-              BlueStift builds Raya, the AI tutor that remembers every student.
+              <RayaText>{tr("site.footer.tagline")}</RayaText>
             </p>
           </div>
 
           {COLUMNS.map((col) => (
-            <div key={col.label}>
-              <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.08em", marginBottom: 12, color: t.text }}>{col.label}</div>
+            <div key={col.labelKey}>
+              <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.08em", marginBottom: 12, color: t.text }}>
+                {tr(col.labelKey)}
+              </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {col.links.map(([label, href]) => (
-                  <Link key={label} href={href} style={{ fontSize: 13, color: t.text, textDecoration: "none" }}>
-                    {label}
+                {col.links.map(([labelKey, fallback, href]) => (
+                  <Link key={href} href={href} style={{ fontSize: 13, color: t.link, textDecoration: "none" }}>
+                    <RayaText>{labelKey ? tr(labelKey) : fallback}</RayaText>
                   </Link>
                 ))}
               </div>

@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { clearLocalData } from "@/lib/net/local-data";
 import {
   AppShell,
   Sidebar,
@@ -27,15 +28,18 @@ import {
   IconUpgrade,
 } from "@/components/ui/icons";
 import type { AppTheme } from "@/components/ui/tokens";
+import { RayaName } from "@/components/ui/brand";
+import { useTranslate } from "@/components/ui/locale";
 
-/** Raya student-app nav → real routes. `key` matches each page's `active` prop. */
+/** Raya student-app nav → real routes. `key` matches each page's `active` prop;
+ *  `labelKey` is resolved through the message catalogue at render time. */
 const NAV = [
-  { key: "chat", label: "Chat", href: "/chat", Icon: IconChat },
-  { key: "rooms", label: "Rooms", href: "/rooms", Icon: IconRooms },
-  { key: "tools", label: "Tools", href: "/tools", Icon: IconTools },
-  { key: "homework", label: "Homework", href: "/homework", Icon: IconQuiz },
-  { key: "kernel", label: "My Kernel", href: "/profile", Icon: IconKernel },
-  { key: "settings", label: "Settings", href: "/account", Icon: IconSettings },
+  { key: "chat", labelKey: "nav.chat", href: "/chat", Icon: IconChat },
+  { key: "rooms", labelKey: "nav.rooms", href: "/rooms", Icon: IconRooms },
+  { key: "tools", labelKey: "nav.tools", href: "/tools", Icon: IconTools },
+  { key: "homework", labelKey: "nav.homework", href: "/homework", Icon: IconQuiz },
+  { key: "kernel", labelKey: "nav.kernel", href: "/profile", Icon: IconKernel },
+  { key: "settings", labelKey: "nav.settings", href: "/account", Icon: IconSettings },
 ] as const;
 
 export type RayaNav = (typeof NAV)[number]["key"];
@@ -78,6 +82,7 @@ export function RayaShell({
   children: ReactNode;
 }) {
   const router = useRouter();
+  const tr = useTranslate();
   const [supabase] = useState(() => createClient());
   const [collapsed, setCollapsed] = useState(false);
   const [chatHistOpen, setChatHistOpen] = useState(true);
@@ -100,6 +105,9 @@ export function RayaShell({
   }, [supabase]);
 
   async function signOut() {
+    // Shared school machines: queued messages / cached data must not survive
+    // into the next student's session.
+    await clearLocalData();
     await supabase.auth.signOut();
     router.refresh();
     router.push("/login");
@@ -125,24 +133,24 @@ export function RayaShell({
     ...(isAnon
       ? [{
           key: "email",
-          label: "Add your email",
-          sublabel: "Secure your progress",
+          label: tr("menu.addEmail"),
+          sublabel: tr("menu.addEmail.sub"),
           icon: <IconMail />,
           tone: "accent" as const,
           onSelect: () => go("/account"),
         }]
       : []),
-    { key: "settings", label: "Settings", icon: <IconSettings />, onSelect: () => go("/account") },
-    { key: "kernel", label: "My Kernel", icon: <IconKernel />, onSelect: () => go("/profile") },
+    { key: "settings", label: tr("menu.settings"), icon: <IconSettings />, onSelect: () => go("/account") },
+    { key: "kernel", label: tr("menu.kernel"), icon: <IconKernel />, onSelect: () => go("/profile") },
     {
       key: "upgrade",
-      label: "Upgrade plan",
-      sublabel: "Unlock more features",
+      label: tr("menu.upgrade"),
+      sublabel: tr("menu.upgrade.sub"),
       icon: <IconUpgrade />,
       tone: "accent",
       onSelect: () => go("/pricing"),
     },
-    { key: "signout", label: "Sign out", tone: "danger", icon: <IconLogout />, onSelect: signOut },
+    { key: "signout", label: tr("menu.signOut"), tone: "danger", icon: <IconLogout />, onSelect: signOut },
   ];
 
   return (
@@ -167,11 +175,11 @@ export function RayaShell({
           logoSrcDark="/raya-mark-violet.png"
           logoRadius={0}
           logoSize={52}
-          name="Raya"
+          name={<RayaName />}
           onToggle={() => setCollapsed((c) => !c)}
         />
 
-        {NAV.map(({ key, label, href, Icon }) => {
+        {NAV.map(({ key, labelKey, href, Icon }) => {
           const isChat = key === "chat";
           return (
             <div key={key}>
@@ -180,7 +188,7 @@ export function RayaShell({
                 active={active === key}
                 collapsed={effectiveCollapsed}
                 icon={<Icon />}
-                label={label}
+                label={tr(labelKey)}
                 onClick={() => go(href)}
                 trailing={
                   isChat && chatHistory != null && !effectiveCollapsed ? (
@@ -232,7 +240,10 @@ export function RayaShell({
       <MainCard theme={t} column>
         <MobileHeader
           theme={t}
-          title={NAV.find((n) => n.key === active)?.label ?? "Raya"}
+          title={(() => {
+            const item = NAV.find((n) => n.key === active);
+            return item ? tr(item.labelKey) : "Raya";
+          })()}
           onOpenLeft={() => setNavOpen(true)}
           onOpenRight={onToggleRight}
         />

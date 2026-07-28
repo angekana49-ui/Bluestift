@@ -16,6 +16,7 @@ import { RayaShell } from "@/components/raya/raya-shell";
 import { RightPanel, IconButton } from "@/components/ui/shell";
 import { IconPanel, IconFile } from "@/components/ui/icons";
 import { status, type AppTheme } from "@/components/ui/tokens";
+import { RayaName } from "@/components/ui/brand";
 import { avatarInitials } from "@/lib/name";
 import { useChatEngine } from "@/components/chat/use-chat-engine";
 import { ChatSurface } from "@/components/chat/chat-surface";
@@ -585,7 +586,7 @@ export function RoomView({
                 {c === "group"
                   ? "Group chat"
                   : c === "private"
-                    ? "Raya (private)"
+                    ? <><RayaName /> (private)</>
                     : c === "challenge"
                       ? "Challenges"
                       : c === "files"
@@ -817,7 +818,7 @@ export function RoomView({
         <div style={panelSectionTitle}>Members</div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 2px" }}>
           <ChatAvatar theme={t} size={26} isRaya />
-          <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: t.text }}>Raya</span>
+          <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: t.text }}><RayaName /></span>
           <span className="online-dot" />
         </div>
         {Object.values(roster).map((r) => {

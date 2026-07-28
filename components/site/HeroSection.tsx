@@ -1,13 +1,18 @@
+"use client";
+
 import type { Theme } from "./theme";
+import { RayaText } from "@/components/ui/brand";
+import { useTranslate } from "@/components/ui/locale";
 import CloudBackground from "./CloudBackground";
 import DashboardMockup from "./DashboardMockup";
 
 const BIRD_PATH =
   "M12 6 C9 2 4 1 0 3 C4 4 7 6 9 8 C7 10 4 12 0 13 C4 15 9 14 12 10 C15 14 20 15 24 13 C20 12 17 10 15 8 C17 6 20 4 24 3 C20 1 15 2 12 6 Z";
 
-const CHIPS = ["14-day trial", "No card required", "Cancel anytime"];
+const CHIP_KEYS = ["site.hero.chip.free", "site.hero.chip.noCard", "site.hero.chip.solo"] as const;
 
 export default function HeroSection({ theme: t }: { theme: Theme }) {
+  const tr = useTranslate();
   return (
     <section
       style={{
@@ -39,7 +44,7 @@ export default function HeroSection({ theme: t }: { theme: Theme }) {
           }}
         >
           <span style={{ width: 7, height: 7, borderRadius: "50%", background: t.text }} />
-          AI tutor · K-12 · Cameroon &amp; US
+          {tr("site.hero.eyebrow")}
         </div>
 
         <div style={{ position: "relative", display: "inline-block", maxWidth: 820 }}>
@@ -54,7 +59,7 @@ export default function HeroSection({ theme: t }: { theme: Theme }) {
               animation: "writeReveal 2.6s cubic-bezier(0.65,0,0.35,1) 0.3s 1 both",
             }}
           >
-            The AI tutor that remembers every student.
+            {tr("site.hero.headline")}
           </h1>
           <span style={{ position: "absolute", width: 22, height: 16, pointerEvents: "none", animation: "birdFly 2.6s cubic-bezier(0.65,0,0.35,1) 0.3s 1 both" }}>
             <svg width="22" height="16" viewBox="0 0 24 16" style={{ display: "block", animation: "wingFlap 0.22s ease-in-out infinite", transformOrigin: "center" }}>
@@ -68,27 +73,26 @@ export default function HeroSection({ theme: t }: { theme: Theme }) {
           </span>
         </div>
 
-        <p style={{ maxWidth: 560, margin: "20px auto 0", fontSize: 18, lineHeight: 1.7, color: t.text }}>
-          Raya adapts every session to each student&apos;s real cognitive profile — solo, in groups, in real time. Not a
-          chatbot. A tutor.
+        <p style={{ maxWidth: 600, margin: "20px auto 0", fontSize: 18, lineHeight: 1.7, color: t.text }}>
+          <RayaText>{tr("site.hero.sub")}</RayaText>
         </p>
 
         <div style={{ display: "flex", gap: 12, justifyContent: "center", marginTop: 28, flexWrap: "wrap" }}>
           <a href="/login" style={{ background: t.ctaBg, color: t.ctaText, borderRadius: 999, padding: "13px 24px", fontSize: 16, fontWeight: 500, textDecoration: "none" }}>
-            Try it free
+            {tr("site.hero.ctaPrimary")}
           </a>
           <a
-            href="#pricing"
+            href="#how-it-works"
             style={{ background: t.chipBg, border: `1px solid ${t.chipBorder}`, borderRadius: 999, padding: "13px 22px", fontSize: 16, fontWeight: 500, color: t.text, textDecoration: "none" }}
           >
-            See how it works
+            {tr("site.hero.ctaSecondary")}
           </a>
         </div>
 
         <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 24, flexWrap: "wrap" }}>
-          {CHIPS.map((c) => (
-            <span key={c} style={{ fontSize: 13, background: t.chipBg, border: `1px solid ${t.chipBorder}`, borderRadius: 999, padding: "5px 12px", color: t.text }}>
-              {c}
+          {CHIP_KEYS.map((k) => (
+            <span key={k} style={{ fontSize: 13, background: t.chipBg, border: `1px solid ${t.chipBorder}`, borderRadius: 999, padding: "5px 12px", color: t.text }}>
+              {tr(k)}
             </span>
           ))}
         </div>

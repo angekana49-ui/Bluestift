@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/shell";
 import { IconPanel } from "@/components/ui/icons";
 import { display, type AppTheme } from "@/components/ui/tokens";
+import { RayaText, SchoolsName } from "@/components/ui/brand";
 import { initialsOf } from "@/lib/name";
 
 export type SchoolNavItem = {
@@ -110,14 +111,16 @@ export function SchoolsShell({
         }}
       >
         {/* The dashboard brand is Schools (the BlueStift bird). Raya for Schools —
-            the assistant — carries the Raya rosette inside its own panel. */}
+            the assistant — carries the Raya rosette inside its own panel.
+            The sidebar always carries the PRODUCT wordmark; `brandName` only
+            feeds the header/mobile titles, which show the school. */}
         <SidebarBrand
           theme={t}
           collapsed={effectiveCollapsed}
           logoSrc="/bluestift-mark.png"
           logoRadius={9}
           logoSize={30}
-          name={brandName}
+          name={<SchoolsName />}
           onToggle={() => setCollapsed((c) => !c)}
         />
 
@@ -191,10 +194,12 @@ export function SchoolsShell({
           )}
           <span style={{ display: "flex", flexDirection: "column", minWidth: 0, lineHeight: 1.25 }}>
             <span style={{ fontSize: 18, fontWeight: 800, fontFamily: display, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {headerTitle ?? brandName}
+              <RayaText>{headerTitle ?? brandName}</RayaText>
             </span>
             {headerSubtitle && (
-              <span style={{ fontSize: 14, color: t.muted, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{headerSubtitle}</span>
+              <span style={{ fontSize: 14, color: t.muted, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <RayaText>{headerSubtitle}</RayaText>
+              </span>
             )}
           </span>
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
