@@ -5,6 +5,7 @@ import { buildProfContext, buildSchoolContext, getAdminMembership } from "@/lib/
 import { rayaStream, type ChatMsg } from "@/lib/raya/llm";
 import { checkUserRateLimit } from "@/lib/rate-limit";
 import { persistAndGather, linkAttachments, replayReply } from "@/lib/raya/chat-context";
+import { FORMATTING_RULES } from "@/lib/raya/prompt";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -13,7 +14,9 @@ const SYSTEM = `You are Raya for Schools, an analytics assistant for a school st
 Answer ONLY from the DATA SNAPSHOT and any attached documents below — never invent
 students, classes, or numbers. Be concise and cite the actual figures. If the data lacks
 the information, say so plainly and suggest what would surface it (e.g. students using
-Raya more). Honour any STANDING INSTRUCTIONS from the school. Reply in the user's language.`;
+Raya more). Honour any STANDING INSTRUCTIONS from the school. Reply in the user's language.
+
+${FORMATTING_RULES}`;
 
 /**
  * One Raya-for-Schools turn, STREAMED — the staff-side mirror of /api/raya/chat.

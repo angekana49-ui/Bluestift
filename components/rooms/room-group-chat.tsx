@@ -4,6 +4,7 @@ import type { RefObject } from "react";
 import { AttachmentCard, type Attachment } from "@/components/attachment";
 import { ChatComposer, type ComposerVoice } from "@/components/chat/chat-composer";
 import { ChatAvatar } from "@/components/chat/chat-avatar";
+import { RichText } from "@/components/chat/rich-text";
 import { THREAD_MAX_W } from "@/components/ui/shell";
 import { Bird } from "@/components/ui/widgets";
 import { status, hand, type AppTheme } from "@/components/ui/tokens";
@@ -91,7 +92,8 @@ export function RoomGroupChat({
     padding: "13px 16px",
     fontSize: 16,
     lineHeight: 1.65,
-    whiteSpace: "pre-wrap",
+    // Raya's bubble renders Markdown blocks and brings its own spacing.
+    whiteSpace: kind === "raya" ? "normal" : "pre-wrap",
   });
 
   // The avatar for a message's author: Raya's logo, my photo/initials, or the
@@ -284,7 +286,14 @@ export function RoomGroupChat({
                     <span style={{ fontSize: 13, color: t.mutedLight }}>
                       {kind === "raya" ? <RayaName /> : kind === "me" ? "You" : nameOf(m.user_id)}
                     </span>
-                    <div style={bubble(kind)}>{m.content}</div>
+                    <div style={bubble(kind)}>
+                      {/* Raya's replies are Markdown; a member's message is literal. */}
+                      {kind === "raya" ? (
+                        <RichText content={m.content ?? ""} theme={t} />
+                      ) : (
+                        m.content
+                      )}
+                    </div>
                   </div>
                 </div>
               );

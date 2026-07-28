@@ -16,6 +16,7 @@ import { useTranslate } from "@/components/ui/locale";
 import { DegradedBanner } from "@/components/ui/degraded-banner";
 import { ChatComposer } from "./chat-composer";
 import { ChatAvatar } from "./chat-avatar";
+import { RichText } from "./rich-text";
 import type { ChatConfig } from "./types";
 import type { ChatEngine } from "./use-chat-engine";
 
@@ -338,7 +339,9 @@ export function ChatSurface({
                         padding: "13px 16px",
                         fontSize: text.base,
                         lineHeight: 1.65,
-                        whiteSpace: "pre-wrap",
+                        // Raya's replies are Markdown and carry their own block
+                        // structure; the student's own text is literal.
+                        whiteSpace: mine ? "pre-wrap" : "normal",
                       }}
                     >
                       {files.length > 0 && (
@@ -348,7 +351,7 @@ export function ChatSurface({
                           ))}
                         </div>
                       )}
-                      {m.content}
+                      {mine ? m.content : <RichText content={m.content ?? ""} theme={t} />}
                       {/* Undelivered: the message stays put with its files —
                           nothing the student typed is ever thrown away. */}
                       {m.status === "failed" && (
