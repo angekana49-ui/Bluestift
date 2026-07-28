@@ -7,6 +7,7 @@ import { rayaStream } from "@/lib/raya/llm";
 import { kernel, clampHistory } from "@/lib/kernel/client";
 import { assertRoomOpen } from "@/lib/rooms";
 import { checkUserRateLimit } from "@/lib/rate-limit";
+import { persistAndGather, linkAttachments } from "@/lib/raya/chat-context";
 import {
   getCognitiveContext,
   invalidateProfile,
@@ -32,17 +33,23 @@ function classifyEmt(reply: string): "pump" | "assertion" | null {
 
 /** School + teacher recommendations for the student, as a bounded prompt block. */
 async function teacherInstructionsFor(userId: string): Promise<string> {
-  const recs = await getStudentRecommendations(userId);
-  return recs
-    .map((r) => `- (${r.source}) ${r.content}`)
-    .join("\n")
-    .slice(0, 1800);
+  try {
+    const recs = await getStudentRecommendations(userId);
+    return recs
+      .map((r) => `- (${r.source}) ${r.content}`)
+      .join("\n")
+      .slice(0, 1800);
+  } catch {
+    // Soft guidance only — a hiccup here must never cost the turn.
+    return "";
+  }
 }
 
 /**
- * One Raya turn, STREAMED for minimal perceived latency:
- * store student message -> read cached cognitive profile (non-blocking) ->
- * stream the guarded reply -> persist the full reply when the stream ends.
+ * One Raya turn, STREAMED for minimal perceived latency. The pre-LLM Supabase
+ * work runs in two parallel waves (independent context first, then everything
+ * keyed on the conversation) instead of the old six serial round trips — under
+ * network latency this is the difference between first token at ~1s and ~3s+.
  */
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -50,17 +57,6 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
-  // Anti-abuse rate-limit. The chat itself is never quota-metered (core learning
-  // loop), but a scripted flood would burn LLM budget — so cap the raw rate.
-  // Keyed by user id, NOT IP, so a whole school behind one shared NAT is never
-  // punished for one abuser. Fails open on any limiter hiccup.
-  if (!(await checkUserRateLimit("raya_chat", user.id, 30, "1 minute"))) {
-    return NextResponse.json(
-      { error: "You're sending messages very fast — give it a second." },
-      { status: 429 },
-    );
-  }
 
   let body: {
     conversationId?: string | null;
@@ -96,15 +92,28 @@ export async function POST(request: Request) {
   // that room — Raya draws on the room's shared documents.
   const roomId = body.roomId ?? null;
 
+  // ── Wave 1: everything independent of the conversation, in parallel ──
+  // Anti-abuse rate-limit (user-keyed, fails open — see lib/rate-limit.ts),
+  // room-open check, cognitive profile + alerts (bounded L1/L2 cache), and
+  // the teacher guidance block (solo chat only — a room mixes classes).
+  const [allowed, roomOpen, { profile, alerts }, instructions] = await Promise.all([
+    checkUserRateLimit("raya_chat", user.id, 30, "1 minute"),
+    roomId ? assertRoomOpen(supabase, roomId).then((r) => r.open) : Promise.resolve(true),
+    getCognitiveContext(user.id),
+    roomId ? Promise.resolve("") : teacherInstructionsFor(user.id),
+  ]);
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "You're sending messages very fast — give it a second." },
+      { status: 429 },
+    );
+  }
   // A timed room turns read-only once it ends — the private Raya channel too.
-  if (roomId) {
-    const { open } = await assertRoomOpen(supabase, roomId);
-    if (!open) {
-      return NextResponse.json({ error: "This room has ended — it's now read-only." }, { status: 403 });
-    }
+  if (!roomOpen) {
+    return NextResponse.json({ error: "This room has ended — it's now read-only." }, { status: 403 });
   }
 
-  // Ensure a conversation.
+  // Ensure a conversation (only a brand-new chat pays this extra round trip).
   let convId = body.conversationId ?? null;
   if (!convId) {
     // Seed a human-readable title from the opening message so the history
@@ -126,101 +135,39 @@ export async function POST(request: Request) {
     convId = data.id;
   }
 
-  // Store the student message.
-  const { data: userMsg, error: umErr } = await supabase
-    .schema("learning")
-    .from("messages")
-    .insert({
-      conversation_id: convId,
-      user_id: user.id,
-      role: "user",
-      content,
-      response_time_ms: responseTimeMs,
-      has_media: fileIds.length > 0,
-    })
-    .select("id")
-    .single();
-  if (umErr) return NextResponse.json({ error: umErr.message }, { status: 500 });
-
-  // Attach the staged documents to the message that carried them, so the client
-  // renders them in its bubble. Scoped to this conversation and to files not yet
-  // sent, so a stolen id can't graft a foreign document onto the thread. Written
-  // with the service role: these tables have no RLS UPDATE policy by design.
-  if (fileIds.length > 0) {
-    const { error: linkErr } = await createAdminClient()
-      .schema("learning")
-      .from("conversation_files")
-      .update({ message_id: userMsg.id })
-      .in("id", fileIds)
-      .eq("conversation_id", convId)
-      .is("message_id", null);
-    if (linkErr) {
-      // Non-fatal: the document still feeds Raya's context, it just floats free
-      // of the bubble. Losing the turn over a cosmetic link would be worse.
-      console.error("attachment link failed", linkErr.message);
-    }
+  // ── Wave 2: store the message + gather history/documents, in parallel ──
+  const turn = await persistAndGather(supabase, {
+    conversationId: convId,
+    userId: user.id,
+    content,
+    fileIds,
+    responseTimeMs,
+    roomId,
+  });
+  if (turn.error !== undefined) {
+    return NextResponse.json({ error: turn.error }, { status: 500 });
   }
+  const { userMsgId, hist, docs } = turn;
 
-  // Recent history (chronological), capped.
-  const { data: hist } = await supabase
-    .schema("learning")
-    .from("messages")
-    .select("role, content")
-    .eq("conversation_id", convId)
-    .order("created_at", { ascending: true })
-    .limit(20);
-
-  // Cognitive profile + latest safety alerts — L1/L2 cache, bounded to 250ms,
-  // never waits on the Kernel. (Phase 3 folds this into the parallel wave.)
-  const { profile, alerts } = await getCognitiveContext(user.id);
-
-  // Teacher guidance for the student's class (solo chat only — a room mixes
-  // students from different classes). Kicked off here to run in parallel.
-  const instructionsPromise = roomId ? Promise.resolve("") : teacherInstructionsFor(user.id);
-
-  // Document context. In the private-room channel Raya draws on BOTH the room's
-  // shared files and the docs the student attached privately to this channel —
-  // otherwise a doc dropped in the private composer would render in the thread
-  // but stay invisible to Raya.
-  const convFiles = supabase
-    .schema("learning")
-    .from("conversation_files")
-    .select("file_name, content")
-    .eq("conversation_id", convId)
-    .not("content", "is", null)
-    .limit(10);
-  const [{ data: ownFiles }, { data: roomDocFiles }] = await Promise.all([
-    convFiles,
-    roomId
-      ? supabase
-          .schema("learning")
-          .from("room_files")
-          .select("file_name, content")
-          .eq("room_id", roomId)
-          .not("content", "is", null)
-          .limit(10)
-      : Promise.resolve({ data: [] as { file_name: string | null; content: string | null }[] }),
-  ]);
-  const docs = [...(roomDocFiles ?? []), ...(ownFiles ?? [])]
-    .map((f) => `# ${f.file_name}\n${f.content}`)
-    .join("\n\n")
-    .slice(0, 8000);
-
-  const instructions = await instructionsPromise;
+  // Attach the staged documents to the message that carried them — overlapped
+  // with the LLM start below, awaited before we respond.
+  const linkPromise = linkAttachments(createAdminClient(), convId, userMsgId, fileIds);
 
   // Start the stream (provider chosen here so we can't set headers later).
   let model: string;
   let deltas: AsyncGenerator<string>;
   try {
-    const out = await rayaStream(buildRayaMessages(hist ?? [], profile, alerts, docs, instructions));
+    const out = await rayaStream(buildRayaMessages(hist, profile, alerts, docs, instructions));
     model = out.model;
     deltas = out.stream;
   } catch (e) {
+    await linkPromise;
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "llm error" },
       { status: 502 },
     );
   }
+  await linkPromise;
 
   const convIdFinal = convId;
   const encoder = new TextEncoder();
@@ -258,10 +205,10 @@ export async function POST(request: Request) {
 
       // Close the cognitive loop: every 3rd student turn, let the Kernel process
       // the exchange and update state. Fire-and-forget — never blocks the reply.
-      const userTurns = (hist ?? []).filter((m) => m.role === "user").length;
+      const userTurns = hist.filter((m) => m.role === "user").length;
       if (full && userTurns > 0 && userTurns % 3 === 0) {
         const convo: KernelMessage[] = [
-          ...(hist ?? []).map((m) => ({
+          ...hist.map((m) => ({
             role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
             content: m.content ?? "",
           })),
@@ -287,7 +234,7 @@ export async function POST(request: Request) {
       "content-type": "text/plain; charset=utf-8",
       "cache-control": "no-store",
       "x-conversation-id": convIdFinal,
-      "x-message-id": userMsg.id,
+      "x-message-id": userMsgId,
       "x-raya-model": model,
     },
   });
