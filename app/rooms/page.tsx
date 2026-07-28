@@ -4,6 +4,7 @@ import { RoomsList } from "@/components/rooms-list";
 import { RayaScaffold } from "@/components/raya/raya-scaffold";
 import { SectionHeader } from "@/components/raya/section-header";
 import { getPlanLabel } from "@/lib/billing";
+import { softValue } from "@/lib/page-data";
 import { initialsOf } from "@/lib/name";
 
 export default async function RoomsPage() {
@@ -12,17 +13,6 @@ export default async function RoomsPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
-
-  const { data: profile } = await supabase
-    .from("users")
-    .select("account_state, display_name, username, profile_picture_url")
-    .eq("id", user.id)
-    .single();
-  if (!profile || profile.account_state === "onboarding_pending") {
-    redirect("/onboarding");
-  }
-  const studentName = profile.display_name || profile.username || "";
-  const studentPlan = await getPlanLabel({ userId: user.id });
 
   // Discover = public rooms only. "Your rooms" = every room I'm a member of,
   // whatever its visibility (so my private rooms still show up for me).
@@ -35,11 +25,22 @@ export default async function RoomsPage() {
     created_at: string;
   };
   const cols = "id, name, subject, visibility, status, created_at";
-  const { data: memberships } = await supabase
-    .schema("learning")
-    .from("room_members")
-    .select("room_id")
-    .eq("user_id", user.id);
+
+  // Wave 1: profile, memberships and the (soft) plan label together — the plan
+  // label used to sit on its own serial round trip.
+  const [{ data: profile }, { data: memberships }, studentPlan] = await Promise.all([
+    supabase
+      .from("users")
+      .select("account_state, display_name, username, profile_picture_url")
+      .eq("id", user.id)
+      .single(),
+    supabase.schema("learning").from("room_members").select("room_id").eq("user_id", user.id),
+    softValue(getPlanLabel({ userId: user.id }), "User — Free"),
+  ]);
+  if (!profile || profile.account_state === "onboarding_pending") {
+    redirect("/onboarding");
+  }
+  const studentName = profile.display_name || profile.username || "";
   const myRoomIds = (memberships ?? []).map((m) => m.room_id);
 
   const [{ data: publicRooms }, { data: myRooms }] = await Promise.all([

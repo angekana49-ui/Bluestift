@@ -4,6 +4,7 @@ import { Tools } from "@/components/tools";
 import { SoloChallenge } from "@/components/solo-challenge";
 import { RayaScaffold } from "@/components/raya/raya-scaffold";
 import { getPlanLabel } from "@/lib/billing";
+import { softValue } from "@/lib/page-data";
 import { initialsOf } from "@/lib/name";
 
 export default async function ToolsPage() {
@@ -13,19 +14,22 @@ export default async function ToolsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("users")
-    .select("account_state, display_name, username, profile_picture_url")
-    .eq("id", user.id)
-    .single();
-  if (!profile || profile.account_state === "onboarding_pending") {
-    redirect("/onboarding");
-  }
-  const studentName = profile.display_name || profile.username || "";
-  const studentPlan = await getPlanLabel({ userId: user.id });
-
-  const [{ data: uploads }, { data: outputs }, { data: myChallenges }, { data: myAttempts }] =
-    await Promise.all([
+  // One wave: the profile gate, the chrome plan label and all four content
+  // queries are mutually independent.
+  const [
+    { data: profile },
+    studentPlan,
+    { data: uploads },
+    { data: outputs },
+    { data: myChallenges },
+    { data: myAttempts },
+  ] = await Promise.all([
+      supabase
+        .from("users")
+        .select("account_state, display_name, username, profile_picture_url")
+        .eq("id", user.id)
+        .single(),
+      softValue(getPlanLabel({ userId: user.id }), "User — Free"),
       supabase
         .schema("rag")
         .from("user_media")
@@ -53,6 +57,11 @@ export default async function ToolsPage() {
         .select("challenge_id, score")
         .eq("user_id", user.id),
     ]);
+  if (!profile || profile.account_state === "onboarding_pending") {
+    redirect("/onboarding");
+  }
+  const studentName = profile.display_name || profile.username || "";
+
   const scoreById = new Map((myAttempts ?? []).map((a) => [a.challenge_id, a.score]));
   const selfTests = (myChallenges ?? []).map((c) => ({
     id: c.id,

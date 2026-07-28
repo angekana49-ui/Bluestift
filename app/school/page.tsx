@@ -10,6 +10,7 @@ import {
 } from "@/lib/school-admin";
 import { getActiveSchoolId } from "@/lib/school-active";
 import { getPlanLabel } from "@/lib/billing";
+import { softValue } from "@/lib/page-data";
 import { ensureRecoveryCode, hasRealEmail } from "@/lib/auth";
 import type { AdminClass, ProfContext, SchoolDashboard } from "@/lib/school-admin";
 import { SchoolAdmin } from "@/components/school-admin";
@@ -26,24 +27,27 @@ export default async function SchoolPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Guarantee a recovery code exists (idempotent, session-safe) so the in-dashboard
-  // Settings panel can surface it — same guarantee /account gives.
-  await ensureRecoveryCode(user.id);
-
-  const { data: profile } = await supabase
-    .from("users")
-    .select("account_state, profile_picture_url, display_name, username, account_type, recovery_code")
-    .eq("id", user.id)
-    .single();
-  if (!profile || profile.account_state === "onboarding_pending") {
+  // Wave 1: five independent lookups that used to run in sequence — this page
+  // was the app's worst blocking path. `ensureRecoveryCode` (idempotent,
+  // session-safe) may CREATE the code the profile select reads, so we take its
+  // return value rather than serialising the two; it gives the in-dashboard
+  // Settings panel the same guarantee /account gives.
+  const [recoveryCode, { data: profileRow }, membership, memberships, activeSchoolId] =
+    await Promise.all([
+      ensureRecoveryCode(user.id),
+      supabase
+        .from("users")
+        .select("account_state, profile_picture_url, display_name, username, account_type, recovery_code")
+        .eq("id", user.id)
+        .single(),
+      getAdminMembership(user.id),
+      getMemberships(user.id),
+      getActiveSchoolId(),
+    ]);
+  if (!profileRow || profileRow.account_state === "onboarding_pending") {
     redirect("/onboarding");
   }
-
-  const [membership, memberships, activeSchoolId] = await Promise.all([
-    getAdminMembership(user.id),
-    getMemberships(user.id),
-    getActiveSchoolId(),
-  ]);
+  const profile = { ...profileRow, recovery_code: profileRow.recovery_code ?? recoveryCode };
   // The resolved active school (may differ from the cookie when stale/absent).
   const resolvedActiveSchoolId = membership?.schoolId ?? activeSchoolId ?? null;
   const role = membership?.role ?? null;
@@ -53,6 +57,9 @@ export default async function SchoolPage({
   let profContext: ProfContext | null = null;
   if (role === "admin_master") {
     // Roll the active school year forward if the previous one has ended.
+    // Deliberately NOT parallelised with the dashboard read: the dashboard
+    // scopes classes to the school's currentYearId, which this may repoint —
+    // racing them would show last year's classes on roll-over day.
     if (membership) await ensureCurrentSchoolYear(membership.schoolId);
     dashboard = await getSchoolDashboard(user.id);
   } else if (role === "prof") {
@@ -71,7 +78,7 @@ export default async function SchoolPage({
   // The plan/forfait line under the name in the profile chip: the active school's
   // subscription (same for admin and teacher — they share the school's plan).
   const planLabel = resolvedActiveSchoolId
-    ? await getPlanLabel({ schoolId: resolvedActiveSchoolId })
+    ? await softValue(getPlanLabel({ schoolId: resolvedActiveSchoolId }), "Free")
     : null;
 
   // The signed-in user's own account, so the prof dashboard can open Settings

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ensureRecoveryCode, hasRealEmail } from "@/lib/auth";
 import { getPlanLabel } from "@/lib/billing";
+import { softValue } from "@/lib/page-data";
 import { AuthPanel } from "@/components/auth-panel";
 import { RayaScaffold } from "@/components/raya/raya-scaffold";
 import { SectionHeader } from "@/components/raya/section-header";
@@ -17,27 +18,36 @@ export default async function AccountPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Guarantee a recovery code exists (idempotent, session-safe). The synthetic
-  // login credential for email-less accounts is attached at sign-in time by
-  // /api/auth/anon — doing it here would revoke the visitor's live session.
-  await ensureRecoveryCode(user.id);
-
-  const { data: profile } = await supabase
-    .from("users")
-    .select("username, display_name, account_type, account_state, recovery_code, profile_picture_url")
-    .eq("id", user.id)
-    .single();
+  // One wave. `ensureRecoveryCode` (idempotent, session-safe) may CREATE the
+  // code the profile select reads, so we take the value it returns rather than
+  // serialising the two — a code minted right now would otherwise render blank
+  // until the next load. The synthetic login credential for email-less accounts
+  // is attached at sign-in time by /api/auth/anon; doing it here would revoke
+  // the visitor's live session.
+  const [recoveryCode, { data: profileRow }, planLabel] = await Promise.all([
+    ensureRecoveryCode(user.id),
+    supabase
+      .from("users")
+      .select("username, display_name, account_type, account_state, recovery_code, profile_picture_url")
+      .eq("id", user.id)
+      .single(),
+    softValue(getPlanLabel({ userId: user.id }), "User — Free"),
+  ]);
 
   // Force first-run onboarding before anything else.
-  if (profile && profile.account_state === "onboarding_pending") {
+  if (profileRow && profileRow.account_state === "onboarding_pending") {
     redirect("/onboarding");
   }
+
+  const profile = profileRow
+    ? { ...profileRow, recovery_code: profileRow.recovery_code ?? recoveryCode }
+    : profileRow;
 
   // Treat the account as anonymous in the UI until a *real* email is linked —
   // the synthetic recovery address must never surface as the user's email.
   const realEmail = hasRealEmail(user.email);
   const studentName = profile?.display_name || profile?.username || "";
-  const studentPlan = await getPlanLabel({ userId: user.id });
+  const studentPlan = planLabel;
 
   return (
     <RayaScaffold active="settings" studentName={studentName} studentInitials={initialsOf(studentName)} studentAvatarUrl={profile?.profile_picture_url} studentPlan={studentPlan}>

@@ -8,6 +8,7 @@ import {
 } from "@/components/room-view";
 import { initialsOf } from "@/lib/name";
 import { getPlanLabel } from "@/lib/billing";
+import { softValue } from "@/lib/page-data";
 
 export default async function RoomPage({
   params,
@@ -21,24 +22,31 @@ export default async function RoomPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("users")
-    .select("account_state, display_name, username, profile_picture_url")
-    .eq("id", user.id)
-    .single();
+  const roomCols = "id, name, subject, ai_mode, visibility, timer_ends_at";
+
+  // Wave 1: the profile gate, the chrome plan label, the room shell and this
+  // user's membership — four round trips that used to run one after another.
+  const [{ data: profile }, studentPlan, roomRes, { data: membership }] = await Promise.all([
+    supabase
+      .from("users")
+      .select("account_state, display_name, username, profile_picture_url")
+      .eq("id", user.id)
+      .single(),
+    softValue(getPlanLabel({ userId: user.id }), "User — Free"),
+    supabase.schema("learning").from("rooms").select(roomCols).eq("id", id).maybeSingle(),
+    supabase
+      .schema("learning")
+      .from("room_members")
+      .select("id")
+      .eq("room_id", id)
+      .eq("user_id", user.id)
+      .maybeSingle(),
+  ]);
   if (!profile || profile.account_state === "onboarding_pending") {
     redirect("/onboarding");
   }
   const studentName = profile.display_name || profile.username || "";
-  const studentPlan = await getPlanLabel({ userId: user.id });
-
-  const roomCols = "id, name, subject, ai_mode, visibility, timer_ends_at";
-  let { data: room } = await supabase
-    .schema("learning")
-    .from("rooms")
-    .select(roomCols)
-    .eq("id", id)
-    .maybeSingle();
+  let room = roomRes.data;
   // Invite-link access: a private room may be hidden from non-members by RLS.
   // Knowing the room's id (an unguessable UUID) IS the invitation, so fall back
   // to a service-role read for the shell — content stays gated on membership.
@@ -53,13 +61,6 @@ export default async function RoomPage({
   }
   if (!room) redirect("/rooms");
 
-  const { data: membership } = await supabase
-    .schema("learning")
-    .from("room_members")
-    .select("id")
-    .eq("room_id", id)
-    .eq("user_id", user.id)
-    .maybeSingle();
   const isMember = !!membership;
 
   let messages: {

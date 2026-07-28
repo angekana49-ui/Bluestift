@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { RayaScaffold } from "@/components/raya/raya-scaffold";
 import { AssignmentsView } from "@/components/assignments-view";
 import { getPlanLabel } from "@/lib/billing";
+import { softValue } from "@/lib/page-data";
 import { initialsOf } from "@/lib/name";
 
 export default async function HomeworkPage() {
@@ -12,16 +13,18 @@ export default async function HomeworkPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("users")
-    .select("account_state, display_name, username, profile_picture_url")
-    .eq("id", user.id)
-    .single();
+  const [{ data: profile }, studentPlan] = await Promise.all([
+    supabase
+      .from("users")
+      .select("account_state, display_name, username, profile_picture_url")
+      .eq("id", user.id)
+      .single(),
+    softValue(getPlanLabel({ userId: user.id }), "User — Free"),
+  ]);
   if (!profile || profile.account_state === "onboarding_pending") {
     redirect("/onboarding");
   }
   const studentName = profile.display_name || profile.username || "";
-  const studentPlan = await getPlanLabel({ userId: user.id });
 
   return (
     <RayaScaffold

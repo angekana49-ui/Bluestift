@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getStudentRecommendations } from "@/lib/school-admin";
 import { getPlanLabel } from "@/lib/billing";
+import { softValue } from "@/lib/page-data";
 import { Chat, type ConversationFile } from "@/components/chat";
 
 export default async function ChatPage() {
@@ -11,24 +12,30 @@ export default async function ChatPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("users")
-    .select("account_state, display_name, username, profile_picture_url")
-    .eq("id", user.id)
-    .single();
+  // One wave: nothing here depends on anything else here. The two soft values
+  // are chrome (sidebar plan label, teacher recommendations) — they degrade
+  // rather than hold the page.
+  const [{ data: profile }, { data: convs }, recommendations, planLabel] = await Promise.all([
+    supabase
+      .from("users")
+      .select("account_state, display_name, username, profile_picture_url")
+      .eq("id", user.id)
+      .single(),
+    // Full solo-chat history (room-private channels are excluded).
+    supabase
+      .schema("learning")
+      .from("conversations")
+      .select("id, title, updated_at")
+      .eq("user_id", user.id)
+      .is("room_id", null)
+      .order("updated_at", { ascending: false }),
+    softValue(getStudentRecommendations(user.id), []),
+    softValue(getPlanLabel({ userId: user.id }), "User — Free"),
+  ]);
   if (!profile || profile.account_state === "onboarding_pending") {
     redirect("/onboarding");
   }
   const studentName = profile.display_name || profile.username || "";
-
-  // Full solo-chat history (room-private channels are excluded).
-  const { data: convs } = await supabase
-    .schema("learning")
-    .from("conversations")
-    .select("id, title, updated_at")
-    .eq("user_id", user.id)
-    .is("room_id", null)
-    .order("updated_at", { ascending: false });
   const conversations = convs ?? [];
   const conversationId = conversations[0]?.id ?? null;
 
@@ -54,13 +61,6 @@ export default async function ChatPage() {
     messages = msgs ?? [];
     files = convFiles ?? [];
   }
-
-  // Soft, visible teacher recommendations for this student's class (if linked).
-  // The plan label ("forfait") sits under the name in the sidebar profile chip.
-  const [recommendations, planLabel] = await Promise.all([
-    getStudentRecommendations(user.id),
-    getPlanLabel({ userId: user.id }),
-  ]);
 
   return (
     <Chat
