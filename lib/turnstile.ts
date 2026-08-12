@@ -3,14 +3,15 @@
  * (survey, wall posts, newsletter, contact, feedback, contributions).
  * Supabase Auth verifies its own captcha tokens; this is for routes we own.
  *
- * If TURNSTILE_SECRET_KEY is not set (local dev), verification is skipped so
- * the public forms stay usable without a configured secret.
+ * Local development may omit TURNSTILE_SECRET_KEY. Production never does: a
+ * missing verifier must close public write endpoints rather than silently
+ * turning a deployment misconfiguration into an anti-spam bypass.
  */
 export async function verifyTurnstile(
   token: string | null | undefined,
 ): Promise<boolean> {
   const secret = process.env.TURNSTILE_SECRET_KEY;
-  if (!secret) return true;
+  if (!secret) return process.env.NODE_ENV !== "production";
   if (!token) return false;
   try {
     const res = await fetch(

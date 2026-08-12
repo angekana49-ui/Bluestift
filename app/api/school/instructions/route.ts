@@ -103,6 +103,21 @@ export async function POST(request: Request) {
     if (!s || (!s.is_global && s.school_id !== membership.schoolId)) {
       return NextResponse.json({ error: "Unknown subject." }, { status: 404 });
     }
+    // A prof may only steer the subject(s) they actually teach for this class.
+    // School membership alone is insufficient: otherwise any assigned prof
+    // could inject instructions into another teacher's subject context.
+    if (membership.role !== "admin_master") {
+      const { data: assignment } = await schools
+        .from("assignments")
+        .select("id")
+        .eq("prof_id", membership.adminId)
+        .eq("class_id", classId)
+        .eq("subject_id", subjectId)
+        .maybeSingle();
+      if (!assignment) {
+        return NextResponse.json({ error: "You are not assigned to this subject." }, { status: 403 });
+      }
+    }
   }
 
   const { data, error: insErr } = await schools

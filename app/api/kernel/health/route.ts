@@ -7,12 +7,9 @@ import { kernel, KernelError } from "@/lib/kernel/client";
  * returns 200 with an `ok` flag so the client can read it easily.
  */
 export async function GET() {
-  const url = process.env.KERNEL_API_URL ?? "http://localhost:8000";
-
-  let health: unknown = null;
   let healthError: string | null = null;
   try {
-    health = await kernel.health();
+    await kernel.health();
   } catch (e) {
     healthError = describe(e);
   }
@@ -33,7 +30,10 @@ export async function GET() {
   const readyStatus = (ready as { status?: string } | null)?.status;
   const ok = !healthError && !readyError && readyStatus !== "degraded";
 
-  return NextResponse.json({ ok, url, health, healthError, ready, readyError });
+  // This endpoint is intentionally public for uptime probes. Do not expose the
+  // internal Kernel URL, dependency payloads, or transport errors to anyone who
+  // can reach it; those belong in server-side observability only.
+  return NextResponse.json({ ok });
 }
 
 function describe(e: unknown): string {

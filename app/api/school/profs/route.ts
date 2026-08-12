@@ -84,8 +84,20 @@ export async function DELETE(request: Request) {
   const adminId = new URL(request.url).searchParams.get("adminId");
   if (!adminId) return NextResponse.json({ error: "adminId is required." }, { status: 400 });
 
-  // Drop the prof's assignments first in case the FK is not ON DELETE CASCADE.
   const schools = createSchoolsAdminClient();
+  // Resolve and scope the membership BEFORE touching assignments. The previous
+  // order let an admin from one school delete assignments belonging to an
+  // arbitrary teacher id at another school.
+  const { data: target } = await schools
+    .from("school_admins")
+    .select("id")
+    .eq("id", adminId)
+    .eq("school_id", membership.schoolId)
+    .eq("role", "prof")
+    .maybeSingle();
+  if (!target) return NextResponse.json({ error: "Teacher not found." }, { status: 404 });
+
+  // Drop the prof's assignments first in case the FK is not ON DELETE CASCADE.
   await schools.from("assignments").delete().eq("prof_id", adminId);
 
   // Scoped to this school and to role=prof so an admin_master can't be removed.

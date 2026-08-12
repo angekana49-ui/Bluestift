@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { rayaComplete, type ChatMsg } from "@/lib/raya/llm";
 import { assertRoomOpen } from "@/lib/rooms";
 import { FORMATTING_RULES } from "@/lib/raya/prompt";
+import { checkStrictUserRateLimit } from "@/lib/rate-limit";
 
 // Non-streamed LLM turn: allow the full reply to complete on Vercel.
 export const maxDuration = 60;
@@ -25,6 +26,9 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!(await checkStrictUserRateLimit("room_raya", user.id, 12, "1 minute"))) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
 
   let body: { roomId?: string };
   try {

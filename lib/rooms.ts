@@ -32,6 +32,9 @@ export async function assertRoomOpen(
     .select("timer_ends_at")
     .eq("id", roomId)
     .maybeSingle();
-  const endsAt = (data as { timer_ends_at?: string | null } | null)?.timer_ends_at ?? null;
+  // RLS returns no row to non-members. Treat that exactly like a missing room:
+  // callers must never interpret an invisible room as an open one.
+  if (!data) return { open: false, timerEndsAt: null };
+  const endsAt = (data as { timer_ends_at?: string | null }).timer_ends_at ?? null;
   return { open: !roomExpired(endsAt), timerEndsAt: endsAt };
 }

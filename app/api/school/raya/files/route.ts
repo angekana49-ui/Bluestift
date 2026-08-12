@@ -52,6 +52,7 @@ export async function POST(request: Request) {
       .eq("id", conversationId)
       .eq("user_id", user.id)
       .eq("context_type", "school_analytics")
+      .eq("school_id", membership.schoolId)
       .maybeSingle();
     if (!conv) return NextResponse.json({ error: "conversation not found" }, { status: 403 });
   } else {

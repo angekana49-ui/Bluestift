@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { classCapacity } from "@/lib/school-admin";
 import { resolveSeatGate } from "@/lib/billing";
+import { checkStrictRateLimit } from "@/lib/rate-limit";
+import { clientIp } from "@/lib/request-ip";
 
 // Local shapes for the untyped `schools` schema (not in generated types).
 type CodeRow = { class_id: string; school_year_id: string | null };
@@ -43,6 +45,9 @@ export async function POST(request: Request) {
   if (!code) return NextResponse.json({ error: "A class code is required." }, { status: 400 });
   if (!firstName || !lastName) {
     return NextResponse.json({ error: "First and last name are required." }, { status: 400 });
+  }
+  if (!(await checkStrictRateLimit("school_class_join", clientIp(request), 30, "10 minutes"))) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }
 
   const schools = createSchoolsAdminClient();

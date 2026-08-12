@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, adminRpc } from "@/lib/supabase/admin";
 import { ensureRecoverable } from "@/lib/auth";
 import { clientIp } from "@/lib/request-ip";
+import { verifyTurnstile } from "@/lib/turnstile";
 
 /**
  * Per-IP anti-burst on account creation. NOT a lifetime cap — a rolling window,
@@ -30,6 +31,9 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "invalid json" }, { status: 400 });
   }
+  if (!(await verifyTurnstile(body.captchaToken))) {
+    return NextResponse.json({ error: "captcha_failed" }, { status: 403 });
+  }
 
   // 0) Per-IP anti-burst (atomic in the DB). An unidentifiable IP ("") is not
   //    blocked here — captcha remains the gate in that case.
@@ -40,10 +44,10 @@ export async function POST(request: Request) {
     p_max: SIGNUP_MAX_PER_HOUR,
     p_window: "60 minutes",
   });
-  if (!ipErr && allowed === false) {
+  if (ipErr || allowed !== true) {
     return NextResponse.json(
-      { error: "Too many accounts created from this network. Please try again later." },
-      { status: 429 },
+      { error: "Account creation is temporarily unavailable. Please try again later." },
+      { status: ipErr ? 503 : 429 },
     );
   }
 

@@ -5,6 +5,7 @@ import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { setActiveSchoolCookie } from "@/lib/school-active";
 import { hasRealEmail } from "@/lib/auth";
 import { sendBrandedEmail, getUserEmail, siteUrl } from "@/lib/email";
+import { checkStrictRateLimit } from "@/lib/rate-limit";
 
 // Local shapes for the untyped `schools` schema.
 type CodeRow = { id: string; school_id: string; auto_approve: boolean };
@@ -71,6 +72,9 @@ export async function POST(request: Request) {
       },
       { status: 403 },
     );
+  }
+  if (!(await checkStrictRateLimit(`school_staff_join:u:${user.id}`, "0.0.0.0", 20))) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }
 
   let body: { code?: string };

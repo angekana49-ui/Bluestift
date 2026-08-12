@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { extractFileText, storageSafeName } from "@/lib/extract";
 import { contentLengthExceeds, tooLarge, MAX_DOC_BYTES } from "@/lib/upload-limits";
+import { assertRoomOpen } from "@/lib/rooms";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -43,6 +44,22 @@ export async function POST(request: Request) {
   }
   const big = tooLarge(file, MAX_DOC_BYTES);
   if (big) return big;
+
+  if (roomId) {
+    const [{ data: membership }, room] = await Promise.all([
+      supabase
+        .schema("learning")
+        .from("room_members")
+        .select("id")
+        .eq("room_id", roomId)
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      assertRoomOpen(supabase, roomId),
+    ]);
+    if (!membership || !room.open) {
+      return NextResponse.json({ error: "This room is unavailable." }, { status: 403 });
+    }
+  }
 
   // Resolve the conversation: verify ownership, or create one. A roomId means
   // the private-room channel, so mirror how /api/raya/chat seeds it.

@@ -7,6 +7,7 @@ import { ipCountryFromHeaders } from "@/lib/billing/regions";
 import { getPaymentProvider, sandboxBlockedInProd, type PaymentChannel } from "@/lib/billing/payments";
 import { createPayment, setPaymentProviderRef } from "@/lib/billing/payments-data";
 import { MIN_B2B_SEATS, termTotal } from "@/lib/billing/terms";
+import { siteUrl } from "@/lib/email";
 
 /**
  * Start a self-serve online checkout (card / mobile money / PayPal via the active
@@ -142,7 +143,7 @@ export async function POST(request: Request) {
   });
   if (!paymentId) return NextResponse.json({ error: "Could not start checkout." }, { status: 500 });
 
-  const origin = new URL(request.url).origin;
+  const origin = siteUrl();
   try {
     const checkout = await provider.createCheckout({
       paymentId,

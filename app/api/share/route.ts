@@ -3,15 +3,9 @@ import { randomBytes } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { resolveRayaEntitlements, gateQuota, sinceDaysIso } from "@/lib/entitlements";
 import { captureServer } from "@/lib/analytics/server";
+import { siteUrl } from "@/lib/email";
 
 export const runtime = "nodejs";
-
-/** Public origin from the proxied request (so the returned link is the real host). */
-function originOf(request: Request): string {
-  const proto = request.headers.get("x-forwarded-proto") ?? "https";
-  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
-  return host ? `${proto}://${host}` : new URL(request.url).origin;
-}
 
 /**
  * Create a public, read-only share of a branded document (notes, a test result,
@@ -66,7 +60,9 @@ export async function POST(request: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   void captureServer(user.id, "doc_shared", { brand, tier });
-  return NextResponse.json({ token, url: `${originOf(request)}/s/${token}` });
+  // Never reflect Host/X-Forwarded-Host into a link: those headers are request
+  // metadata, not an authority for choosing an externally visible origin.
+  return NextResponse.json({ token, url: `${siteUrl()}/s/${token}` });
 }
 
 /** Revoke a share (owner only). */

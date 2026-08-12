@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { buildProfContext, buildSchoolContext, getAdminMembership } from "@/lib/school-admin";
 import { rayaStream, type ChatMsg } from "@/lib/raya/llm";
-import { checkUserRateLimit } from "@/lib/rate-limit";
+import { checkStrictUserRateLimit } from "@/lib/rate-limit";
 import { persistAndGather, linkAttachments, replayReply } from "@/lib/raya/chat-context";
 import { FORMATTING_RULES } from "@/lib/raya/prompt";
 
@@ -54,6 +54,7 @@ export async function POST(request: Request) {
     : [];
 
   let convId = body.conversationId ?? null;
+  const requestedConvId = convId;
 
   // ── Wave 1: rate limit, membership, conversation ownership, and the
   // membership-dependent grounding (data snapshot + directives), in parallel ──
@@ -61,19 +62,23 @@ export async function POST(request: Request) {
   const [allowed, membership, convOk, context, directives] = await Promise.all([
     // Anti-abuse rate-limit only — staff chat is never quota-metered. Keyed by
     // user id so a school behind one shared NAT is never collectively throttled.
-    checkUserRateLimit("school_raya_chat", user.id, 30, "1 minute"),
+    checkStrictUserRateLimit("school_raya_chat", user.id, 30, "1 minute"),
     membershipPromise,
     // Only this user's own school-analytics conversations are writable here.
-    convId
-      ? supabase
-          .schema("learning")
-          .from("conversations")
-          .select("id")
-          .eq("id", convId)
-          .eq("user_id", user.id)
-          .eq("context_type", "school_analytics")
-          .maybeSingle()
-          .then((r) => r.data != null)
+    requestedConvId
+      ? membershipPromise.then(async (m) => {
+          if (!m) return false;
+          const { data } = await supabase
+            .schema("learning")
+            .from("conversations")
+            .select("id")
+            .eq("id", requestedConvId)
+            .eq("user_id", user.id)
+            .eq("context_type", "school_analytics")
+            .eq("school_id", m.schoolId)
+            .maybeSingle();
+          return data != null;
+        })
       : Promise.resolve(true),
     membershipPromise.then((m) =>
       m ? (m.role === "admin_master" ? buildSchoolContext(user.id) : buildProfContext(user.id)) : null,

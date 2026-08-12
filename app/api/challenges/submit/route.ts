@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { generateJson } from "@/lib/raya/llm";
 import { kernel, clampHistory } from "@/lib/kernel/client";
 import { invalidateProfile } from "@/lib/kernel/profile-cache";
+import { assertRoomOpen } from "@/lib/rooms";
 import type { KernelMessage } from "@/lib/kernel/types";
 
 export const runtime = "nodejs";
@@ -78,6 +79,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "challengeId and answers required" }, { status: 400 });
   }
   const answerById = new Map(answers.map((a) => [a.questionId, a]));
+
+  // A timed room turns read-only once its timer elapses — submit is a write
+  // path and must be gated exactly like create/chat/files (lib/rooms.ts).
+  const { data: challengeRow } = await supabase
+    .schema("learning")
+    .from("challenges")
+    .select("room_id")
+    .eq("id", challengeId)
+    .maybeSingle();
+  const roomId = (challengeRow as { room_id: string | null } | null)?.room_id ?? null;
+  if (roomId) {
+    const { open } = await assertRoomOpen(supabase, roomId);
+    if (!open) {
+      return NextResponse.json({ error: "This room has ended — it's now read-only." }, { status: 403 });
+    }
+  }
 
   // Authoritative questions (server-only).
   const { data: questions, error: qErr } = await supabase

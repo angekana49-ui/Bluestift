@@ -6,7 +6,7 @@ import { buildRayaMessages } from "@/lib/raya/prompt";
 import { rayaStream } from "@/lib/raya/llm";
 import { kernel, clampHistory } from "@/lib/kernel/client";
 import { assertRoomOpen } from "@/lib/rooms";
-import { checkUserRateLimit } from "@/lib/rate-limit";
+import { checkStrictUserRateLimit } from "@/lib/rate-limit";
 import { persistAndGather, linkAttachments, replayReply } from "@/lib/raya/chat-context";
 import {
   getCognitiveContext,
@@ -71,7 +71,7 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "invalid json" }, { status: 400 });
   }
-  const content = (body.content ?? "").trim();
+  const content = (body.content ?? "").trim().slice(0, 4000);
   if (!content) {
     return NextResponse.json({ error: "empty message" }, { status: 400 });
   }
@@ -91,17 +91,28 @@ export async function POST(request: Request) {
 
   // When roomId is set, this is the private student<->Raya channel scoped to
   // that room — Raya draws on the room's shared documents.
-  const roomId = body.roomId ?? null;
+  const roomId = typeof body.roomId === "string" && body.roomId ? body.roomId : null;
 
   // Idempotency key for retries (see lib/raya/chat-context.ts).
-  const clientMsgId = typeof body.clientMsgId === "string" ? body.clientMsgId : null;
+  const clientMsgId =
+    typeof body.clientMsgId === "string" ? body.clientMsgId.slice(0, 128) : null;
 
   // ── Wave 1: everything independent of the conversation, in parallel ──
   // Anti-abuse rate-limit (user-keyed, fails open — see lib/rate-limit.ts),
   // room-open check, cognitive profile + alerts (bounded L1/L2 cache), and
   // the teacher guidance block (solo chat only — a room mixes classes).
-  const [allowed, roomOpen, { profile, alerts }, instructions] = await Promise.all([
-    checkUserRateLimit("raya_chat", user.id, 30, "1 minute"),
+  const [allowed, roomMember, roomOpen, { profile, alerts }, instructions] = await Promise.all([
+    checkStrictUserRateLimit("raya_chat", user.id, 30, "1 minute"),
+    roomId
+      ? supabase
+          .schema("learning")
+          .from("room_members")
+          .select("id")
+          .eq("room_id", roomId)
+          .eq("user_id", user.id)
+          .maybeSingle()
+          .then((r) => r.data != null)
+      : Promise.resolve(true),
     roomId ? assertRoomOpen(supabase, roomId).then((r) => r.open) : Promise.resolve(true),
     getCognitiveContext(user.id),
     roomId ? Promise.resolve("") : teacherInstructionsFor(user.id),
@@ -112,6 +123,9 @@ export async function POST(request: Request) {
       { status: 429 },
     );
   }
+  if (!roomMember) {
+    return NextResponse.json({ error: "You are not a member of this room." }, { status: 403 });
+  }
   // A timed room turns read-only once it ends — the private Raya channel too.
   if (!roomOpen) {
     return NextResponse.json({ error: "This room has ended — it's now read-only." }, { status: 403 });
@@ -119,6 +133,24 @@ export async function POST(request: Request) {
 
   // Ensure a conversation (only a brand-new chat pays this extra round trip).
   let convId = body.conversationId ?? null;
+  if (convId) {
+    // The room scope is immutable. Without this check, an owned solo
+    // conversation could be paired with an arbitrary room id in a later turn.
+    const { data: conversation } = await supabase
+      .schema("learning")
+      .from("conversations")
+      .select("id, room_id, is_private_room_channel")
+      .eq("id", convId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (
+      !conversation ||
+      (conversation.room_id ?? null) !== roomId ||
+      Boolean(conversation.is_private_room_channel) !== (roomId != null)
+    ) {
+      return NextResponse.json({ error: "conversation not found" }, { status: 403 });
+    }
+  }
   if (!convId) {
     // Seed a human-readable title from the opening message so the history
     // list is meaningful without a separate LLM call.

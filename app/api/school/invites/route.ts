@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { randomInt } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { getAdminMembership } from "@/lib/school-admin";
@@ -7,7 +8,7 @@ import { getAdminMembership } from "@/lib/school-admin";
 // membership, so more entropy than a 6-char class code.
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const makeCode = (len = 8) =>
-  Array.from({ length: len }, () => ALPHABET[Math.floor(Math.random() * ALPHABET.length)]).join("");
+  Array.from({ length: len }, () => ALPHABET[randomInt(ALPHABET.length)]).join("");
 
 /** Generate a staff invite code for the admin_master's school. */
 export async function POST(request: Request) {

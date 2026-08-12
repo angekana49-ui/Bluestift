@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
+import { randomInt } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { getAdminMembership } from "@/lib/school-admin";
 
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const makeCode = (n = 8) =>
-  Array.from({ length: n }, () => ALPHABET[Math.floor(Math.random() * ALPHABET.length)]).join("");
+  Array.from({ length: n }, () => ALPHABET[randomInt(ALPHABET.length)]).join("");
 
 /** Assign a prof to a class + subject (admin_master only). */
 export async function POST(request: Request) {

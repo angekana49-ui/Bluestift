@@ -3,6 +3,9 @@ import { createClient as createAnonClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ensureRecoverable, hasRealEmail } from "@/lib/auth";
+import { verifyTurnstile } from "@/lib/turnstile";
+import { checkStrictRateLimit } from "@/lib/rate-limit";
+import { clientIp } from "@/lib/request-ip";
 
 /**
  * Reconnect via recovery key. Two paths, chosen by the account's identity:
@@ -23,8 +26,16 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "invalid json" }, { status: 400 });
   }
-  const code = (body.code ?? "").trim();
-  if (!code) return NextResponse.json({ error: "A recovery key is required." }, { status: 400 });
+  const code = (body.code ?? "").trim().toUpperCase();
+  if (!/^[A-HJ-NP-Z2-9]{16}$/.test(code)) {
+    return NextResponse.json({ status: "invalid" });
+  }
+  if (!(await verifyTurnstile(body.captchaToken))) {
+    return NextResponse.json({ error: "captcha_failed" }, { status: 403 });
+  }
+  if (!(await checkStrictRateLimit("auth_recovery", clientIp(request), 10, "15 minutes"))) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
 
   // Look up the account by recovery key (service role).
   const admin = createAdminClient();
