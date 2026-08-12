@@ -388,11 +388,11 @@ Next.js app  ──HTTP──▶  Kernel (FastAPI, Railway)
   but no new messages / Raya calls / challenges / uploads. Enforced **server-side
   on every write path** via `lib/rooms.ts` (`roomExpired`, `assertRoomOpen`):
   `postRoomMessage`, `/api/rooms/raya`, `/api/raya/chat` (when `roomId`),
-  `/api/rooms/files`, `/api/challenges/create`. No migration needed —
-  `learning.rooms` already had `timer_status`/`timer_started_at`/`timer_ends_at`
-  (added by hand to the generated types; don't regenerate). UI: live countdown
-  badge (amber ≤2 min, red "Ended") + read-only banner + disabled composers.
-  Known gap: challenge **submit** isn't server-guarded (UI-only).
+  `/api/rooms/files`, `/api/challenges/create`, `/api/challenges/submit`. No
+  migration needed — `learning.rooms` already had
+  `timer_status`/`timer_started_at`/`timer_ends_at` (added by hand to the
+  generated types; don't regenerate). UI: live countdown badge (amber ≤2 min,
+  red "Ended") + read-only banner + disabled composers.
 - **Shared documents**: every member sees & opens uploaded files. A new upload is
   **livestreamed** to the Group channel as a "📄 shared a document" notice
   (a `room_messages` row flagged `has_media`, fanned out by Realtime). The
@@ -481,7 +481,8 @@ Wired surfaces: `/chat`, `/tools`, `/profile` ("My Kernel"), `/rooms`, `/rooms/[
 `RayaShell`/`RayaScaffold` is the student chrome; `SchoolsShell` the Schools chrome
 (its sidebar nav drives in-page tab state — school-admin stays one big tab component,
 not routes). **UI copy is English** across every real route (owner override of the
-handoff's French); the `/preview` mockup harness stays French and dev-only.
+handoff's French). The `/preview` mockup harness (French, dev-only, mock data) has
+been **removed pre-deployment** — every screen it stubbed is now wired for real.
 - **Logos split**: the Schools dashboard uses the BlueStift bird
   (`/bluestift-mark.png`); the **Raya assistant panel** carries the Raya rosette
   (`/raya-mark.png`, violet in dark). Rule: dashboard = Schools mark, assistant = Raya mark.
@@ -609,7 +610,8 @@ activation, online checkout, regional price book). What's genuinely left:
   Deliberately left plain: `alt`/`title`/`placeholder` attributes and error
   strings, the handwritten chat greeting and the Research headline (display faces
   the Cambria serif would clash with), metadata, billing components, and the dead
-  `defaultConfig`/`InboxSection`/`components/public/*`/`/preview` copy.
+  `defaultConfig`/`InboxSection` copy. (`components/public/*` and `/preview` — the
+  other two dead-copy holders — are gone now, moved to `.archive/` pre-deployment.)
   `splitOnRaya` is covered by `test/brand.test.ts`.
 - No tests / CI (the public content APIs were verified by a throwaway e2e
   script, not committed). No error monitoring.
