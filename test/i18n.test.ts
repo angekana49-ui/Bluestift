@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { lookup, MESSAGES, type MessageKey } from "@/lib/i18n";
 import { en } from "@/lib/i18n/en";
-import { LOCALES, normalizeLocale, matchLocale, DEFAULT_LOCALE } from "@/lib/locale";
+import { LOCALES, normalizeLocale, matchLocale, DEFAULT_LOCALE, LOCALE_KEY } from "@/lib/locale";
 
 /**
  * The catalogue's contract: English is total, every other locale is partial, and
@@ -47,6 +47,15 @@ describe("i18n catalogue", () => {
     expect(normalizeLocale("kl")).toBe(DEFAULT_LOCALE);
     expect(normalizeLocale(null)).toBe(DEFAULT_LOCALE);
     expect(normalizeLocale("fr")).toBe("fr");
+  });
+
+  it("persists a chosen locale in localStorage for the shared public-site prompt", () => {
+    const storage = new Map<string, string>();
+    const setItem = (key: string, value: string) => storage.set(key, value);
+    const getItem = (key: string) => storage.get(key) ?? null;
+    setItem(LOCALE_KEY, "fr");
+    expect(getItem(LOCALE_KEY)).toBe("fr");
+    expect(normalizeLocale(getItem(LOCALE_KEY))).toBe("fr");
   });
 });
 

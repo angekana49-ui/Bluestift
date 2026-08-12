@@ -4,6 +4,7 @@ import "./globals.css";
 import { PostHogProvider } from "@/components/analytics/PostHogProvider";
 import { UpgradeModal } from "@/components/upgrade/UpgradeModal";
 import { ServiceWorkerRegistrar } from "@/components/service-worker";
+import { LocaleRootProvider } from "@/components/ui/LocaleRootProvider";
 
 // One source of truth for the product typeface (see components/ui/tokens.ts).
 // Inter = body/UI, IBM Plex Sans = headings/nav (the display face, à la PostHog),
@@ -51,7 +52,9 @@ export default function RootLayout({
       className={`${inter.variable} ${plex.variable} ${caveat.variable} ${instrumentSerif.variable}`}
     >
       <body>
-        <PostHogProvider>{children}</PostHogProvider>
+        <PostHogProvider>
+          <LocaleRootProvider>{children}</LocaleRootProvider>
+        </PostHogProvider>
         <UpgradeModal />
         <ServiceWorkerRegistrar />
       </body>
