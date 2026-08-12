@@ -28,6 +28,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 
+# graphify knowledge-graph output (regenerable, not source)
+/graphify-out/
+
 # editor / OS
 .vscode/*
 !.vscode/extensions.json
