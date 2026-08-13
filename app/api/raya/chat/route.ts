@@ -102,22 +102,32 @@ export async function POST(request: Request) {
   // Anti-abuse rate-limit (user-keyed, fails open — see lib/rate-limit.ts),
   // room-open check, cognitive profile + alerts (bounded L1/L2 cache), and
   // the teacher guidance block (solo chat only — a room mixes classes).
-  const [allowed, roomMember, roomOpen, { profile, alerts }, instructions] = await Promise.all([
-    checkStrictUserRateLimit("raya_chat", user.id, 30, "1 minute"),
-    roomId
-      ? supabase
-          .schema("learning")
-          .from("room_members")
-          .select("id")
-          .eq("room_id", roomId)
-          .eq("user_id", user.id)
-          .maybeSingle()
-          .then((r) => r.data != null)
-      : Promise.resolve(true),
-    roomId ? assertRoomOpen(supabase, roomId).then((r) => r.open) : Promise.resolve(true),
-    getCognitiveContext(user.id),
-    roomId ? Promise.resolve("") : teacherInstructionsFor(user.id),
-  ]);
+  // Who the student is (age band + school level) rides in this wave rather than
+  // as its own hop, so calibrating Raya to a 12-year-old costs no latency. RLS
+  // scopes the row to its owner; both columns are read-only to the client.
+  const [allowed, roomMember, roomOpen, { profile, alerts }, instructions, learner] =
+    await Promise.all([
+      checkStrictUserRateLimit("raya_chat", user.id, 30, "1 minute"),
+      roomId
+        ? supabase
+            .schema("learning")
+            .from("room_members")
+            .select("id")
+            .eq("room_id", roomId)
+            .eq("user_id", user.id)
+            .maybeSingle()
+            .then((r) => r.data != null)
+        : Promise.resolve(true),
+      roomId ? assertRoomOpen(supabase, roomId).then((r) => r.open) : Promise.resolve(true),
+      getCognitiveContext(user.id),
+      roomId ? Promise.resolve("") : teacherInstructionsFor(user.id),
+      supabase
+        .from("users")
+        .select("birth_year, school_level")
+        .eq("id", user.id)
+        .maybeSingle()
+        .then((r) => r.data),
+    ]);
   if (!allowed) {
     return NextResponse.json(
       { error: "You're sending messages very fast — give it a second." },
@@ -206,7 +216,10 @@ export async function POST(request: Request) {
   let deltas: AsyncGenerator<string>;
   try {
     const out = await rayaStream(
-      buildRayaMessages(hist, profile, alerts, docs, instructions),
+      buildRayaMessages(hist, profile, alerts, docs, instructions, {
+        birthYear: learner?.birth_year ?? null,
+        schoolLevel: learner?.school_level ?? null,
+      }),
       routing.tier,
     );
     model = out.model;

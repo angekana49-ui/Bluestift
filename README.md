@@ -108,10 +108,17 @@ client can only write the handful of fields it's meant to.
 behaviour. Fix a bug once.
 
 **The prompt has a static and a dynamic layer.** `lib/raya/prompt.ts` holds
-permanent teaching rules; the Kernel's read of the learner is injected inside
-`<learner_state>` so the model treats it as data rather than instructions.
-`FORMATTING_RULES` is exported separately because the rooms and Schools routes
-import it directly.
+permanent teaching rules; the Kernel's read of the learner, and who the learner
+is, are injected inside `<learner_state>` so the model treats them as data
+rather than instructions. `FORMATTING_RULES` and `safetyLayer()` are exported
+separately because the rooms and Schools routes build their own system prompts —
+**a new student-facing surface must call `safetyLayer()`**, or it ships without
+safeguarding.
+
+**The age gate also teaches.** `lib/raya/audience.ts` turns the declared birth
+year into a *band* (safety — always from the year) and a *stage* (pitch — the
+declared school level wins). The year itself never reaches the model. An
+estimated stage is a floor, never a ceiling, because the year rounds down.
 
 **Model tier is routed, not fixed.** `lib/raya/routing.ts` sends a settled
 student to the cheap tier and escalates on an active Kernel alert, low mastery,

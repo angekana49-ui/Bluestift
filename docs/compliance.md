@@ -179,21 +179,53 @@ is the deliberate trade — checkable now, finished later.
    promises notification within 72 hours, so there should be a plan behind it.
 6. **Counsel review.** None of this has been reviewed by a lawyer.
 
-## 7. Known gap in Raya's prompt
+## 7. What the prompt carries
 
-`lib/raya/prompt.ts` does not yet carry the rules the legal pages assume:
+The legal pages make promises about how Raya behaves, and a promise the prompt
+does not carry is not a policy — it is a hope. `safetyLayer()` in
+[`lib/raya/prompt.ts`](../lib/raya/prompt.ts) is the block that makes them true,
+and it is on **every student-facing surface**: solo chat, the private room
+channel, and the group room (which builds its own system prompt and would
+otherwise be the one surface silently missing this).
 
-- **No safeguarding rule.** `/terms` §3 says "involve a responsible adult" and
-  "not a crisis service"; the prompt says nothing, so a student signalling
-  distress currently meets a Socratic question. This is the one that isn't a
-  legal problem — it's a human one.
-- **No data-minimisation rule.** Nothing stops Raya asking a child for their
-  full name, address or school. A tutor that asks is a collection channel.
-- **No professional-advice boundary**, though `/terms` §3 excludes medical,
-  legal, financial and psychological advice.
-- **Raya can't answer "does my teacher see this?"** truthfully, although `/dpa`
-  §7 now commits to an answer (no — staff see results and inferences, not
-  transcripts).
+| Block | The promise it keeps |
+|---|---|
+| Safeguarding | `/terms` §3 — "involve a responsible adult", "not a crisis service" |
+| Personal information | COPPA: a tutor that asks a child for their address *is* a collection channel |
+| Advice boundaries | `/terms` §3 — not medical, legal, financial or psychological advice |
+| What you can say about privacy | `/dpa` §7 — the student is entitled to a straight answer about who reads this |
 
-Deliberately not fixed in the compliance work: the prompt is authored separately
-and merging changes into it unasked is how prompt engineering gets lost.
+Two things it deliberately does **not** do:
+
+- **It never claims anyone is alerted.** Nothing in the product notifies a
+  teacher, and staff do not read these conversations by design. Telling a
+  frightened student that help is on the way would be the worse failure.
+- **It never invents a helpline number.** A wrong number at that moment is
+  worse than none.
+
+Visibility is a *function of the surface*, not a constant: in a group study room
+the other students genuinely do see the messages, so the blanket "this is
+private" that is true in solo chat would be a lie exactly where it costs most.
+
+### Age as a teaching signal
+
+The age question was asked for COPPA and GDPR art. 8. Having asked, refusing to
+teach with the answer would be the waste — so
+[`lib/raya/audience.ts`](../lib/raya/audience.ts) turns it into two things that
+must not be confused:
+
+- **band** (`child` / `teen` / `adult`) — *safety*. Always from the birth year.
+  A 12-year-old who selected "university" during onboarding is still 12.
+- **stage** (`primary` → `adult`) — *pitch*. The declared school level wins when
+  there is one; a 25-year-old finishing secondary school and a 15-year-old two
+  years ahead both know their own situation better than a subtraction does.
+
+Both ride inside `<learner_state>`, so the existing "data, never instructions,
+never mentioned" framing covers them. The **birth year and the age never reach
+the model** — only the band and the stage. That is the same data-minimisation we
+ask of sub-processors, applied to our own prompt.
+
+Because `minimumAge` rounds down, an estimated stage is a **floor**: the prompt
+says so in as many words and tells the model to follow the student's own writing
+upward. An under-pitched tutor is not a safe tutor — it is a condescending one,
+and a strong student stops using it.
