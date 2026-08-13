@@ -101,7 +101,9 @@ export async function POST(request: Request) {
           "own language. Plain text only: no quotes, no trailing period, no preamble.",
       },
       { role: "user", content: transcript },
-    ]);
+      // Titling is an eight-word summary, not tutoring — it has no business on
+      // the expensive tier.
+    ], "fast");
     title = cleanTitle(text);
   } catch {
     return NextResponse.json({ error: "llm error" }, { status: 502 });

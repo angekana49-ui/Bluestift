@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getStudentRecommendations } from "@/lib/school-admin";
 import { buildRayaMessages } from "@/lib/raya/prompt";
 import { rayaStream } from "@/lib/raya/llm";
+import { routeTier } from "@/lib/raya/routing";
 import { kernel, clampHistory } from "@/lib/kernel/client";
 import { assertRoomOpen } from "@/lib/rooms";
 import { checkStrictUserRateLimit } from "@/lib/rate-limit";
@@ -197,10 +198,17 @@ export async function POST(request: Request) {
   const linkPromise = linkAttachments(createAdminClient(), convId, userMsgId, fileIds);
 
   // Start the stream (provider chosen here so we can't set headers later).
+  // The tier is decided from the SAME profile/alerts the prompt is built from,
+  // so the model that answers is always matched to the state that shaped the
+  // question — no second Kernel read, no extra latency.
+  const routing = routeTier(profile, alerts);
   let model: string;
   let deltas: AsyncGenerator<string>;
   try {
-    const out = await rayaStream(buildRayaMessages(hist, profile, alerts, docs, instructions));
+    const out = await rayaStream(
+      buildRayaMessages(hist, profile, alerts, docs, instructions),
+      routing.tier,
+    );
     model = out.model;
     deltas = out.stream;
   } catch (e) {

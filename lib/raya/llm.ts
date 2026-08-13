@@ -1,5 +1,6 @@
 import "server-only";
 import { withTimeout } from "@/lib/net/timeout";
+import type { ModelTier } from "@/lib/raya/routing";
 
 export type ChatMsg = {
   role: "system" | "user" | "assistant";
@@ -8,6 +9,23 @@ export type ChatMsg = {
 
 const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-3.1-flash-lite";
 const GROQ_MODEL = process.env.GROQ_MODEL ?? "openai/gpt-oss-120b";
+
+/**
+ * Per-tier model selection (see lib/raya/routing.ts for how a tier is chosen).
+ *
+ * Both tiers fall back to the single configured model, so this is INERT until
+ * the tier env vars are set — deploying it changes nothing, and unsetting them
+ * is the rollback. Read at call time, not module load, so a drill or a test can
+ * stub the env the same way the base-URL overrides already allow.
+ */
+function geminiModel(tier: ModelTier): string {
+  const override = tier === "deep" ? process.env.GEMINI_MODEL_DEEP : process.env.GEMINI_MODEL_FAST;
+  return override || GEMINI_MODEL;
+}
+function groqModel(tier: ModelTier): string {
+  const override = tier === "deep" ? process.env.GROQ_MODEL_DEEP : process.env.GROQ_MODEL_FAST;
+  return override || GROQ_MODEL;
+}
 const GROQ_WHISPER_MODEL = process.env.GROQ_WHISPER_MODEL ?? "whisper-large-v3";
 const TEMPERATURE = 0.4;
 const MAX_TOKENS = 600;
@@ -15,10 +33,14 @@ const MAX_TOKENS = 600;
 // Base URLs are env-overridable so tests and outage drills (point Gemini at a
 // blackhole IP) can exercise the fallback path without code edits. Read at
 // call time, not module load, so vi.stubEnv works.
-function geminiUrl(method: "generateContent" | "streamGenerateContent", key: string): string {
+function geminiUrl(
+  method: "generateContent" | "streamGenerateContent",
+  key: string,
+  model: string = GEMINI_MODEL,
+): string {
   const base = process.env.GEMINI_BASE_URL ?? "https://generativelanguage.googleapis.com";
   const sse = method === "streamGenerateContent" ? "?alt=sse&key=" : "?key=";
-  return `${base}/v1beta/models/${GEMINI_MODEL}:${method}${sse}${key}`;
+  return `${base}/v1beta/models/${model}:${method}${sse}${key}`;
 }
 function groqChatUrl(): string {
   return `${process.env.GROQ_BASE_URL ?? "https://api.groq.com"}/openai/v1/chat/completions`;
@@ -55,7 +77,12 @@ async function llmFetch(url: string, init: RequestInit, timeoutMs: number): Prom
  */
 export async function rayaComplete(
   messages: ChatMsg[],
+  tier: ModelTier = "deep",
 ): Promise<{ text: string; model: string }> {
+  // Defaults to "deep" on purpose: an un-routed caller keeps today's behaviour
+  // rather than being silently downgraded to a cheaper model.
+  const gModel = geminiModel(tier);
+  const qModel = groqModel(tier);
   const geminiKey = process.env.GEMINI_API_KEY;
   if (geminiKey) {
     try {
@@ -70,7 +97,7 @@ export async function rayaComplete(
           parts: [{ text: m.content }],
         }));
       const res = await llmFetch(
-        geminiUrl("generateContent", geminiKey),
+        geminiUrl("generateContent", geminiKey, gModel),
         {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -91,7 +118,7 @@ export async function rayaComplete(
           ?.map((p: { text?: string }) => p.text ?? "")
           .join("")
           .trim();
-        if (text) return { text, model: `gemini:${GEMINI_MODEL}` };
+        if (text) return { text, model: `gemini:${gModel}` };
       }
     } catch {
       // fall through to Groq (includes our deadline abort)
@@ -110,7 +137,7 @@ export async function rayaComplete(
             authorization: `Bearer ${groqKey}`,
           },
           body: JSON.stringify({
-            model: GROQ_MODEL,
+            model: qModel,
             messages,
             temperature: TEMPERATURE,
             max_tokens: MAX_TOKENS,
@@ -122,7 +149,7 @@ export async function rayaComplete(
         const data = await res.json();
         const text: string | undefined =
           data?.choices?.[0]?.message?.content?.trim();
-        if (text) return { text, model: `groq:${GROQ_MODEL}` };
+        if (text) return { text, model: `groq:${qModel}` };
       }
     } catch {
       // fall through to the shared error
@@ -245,7 +272,10 @@ async function* groqDeltas(start: StreamStart): AsyncGenerator<string> {
  */
 export async function rayaStream(
   messages: ChatMsg[],
+  tier: ModelTier = "deep",
 ): Promise<{ model: string; stream: AsyncGenerator<string> }> {
+  const gModel = geminiModel(tier);
+  const qModel = groqModel(tier);
   const geminiKey = process.env.GEMINI_API_KEY;
   if (geminiKey) {
     const system = messages
@@ -259,7 +289,7 @@ export async function rayaStream(
         parts: [{ text: m.content }],
       }));
     const start = await startSse(
-      geminiUrl("streamGenerateContent", geminiKey),
+      geminiUrl("streamGenerateContent", geminiKey, gModel),
       {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -275,7 +305,7 @@ export async function rayaStream(
       FIRST_BYTE_MS,
     );
     if (start) {
-      return { model: `gemini:${GEMINI_MODEL}`, stream: geminiDeltas(start) };
+      return { model: `gemini:${gModel}`, stream: geminiDeltas(start) };
     }
   }
 
@@ -290,7 +320,7 @@ export async function rayaStream(
           authorization: `Bearer ${groqKey}`,
         },
         body: JSON.stringify({
-          model: GROQ_MODEL,
+          model: qModel,
           messages,
           temperature: TEMPERATURE,
           max_tokens: MAX_TOKENS,
@@ -300,7 +330,7 @@ export async function rayaStream(
       FIRST_BYTE_MS,
     );
     if (start) {
-      return { model: `groq:${GROQ_MODEL}`, stream: groqDeltas(start) };
+      return { model: `groq:${qModel}`, stream: groqDeltas(start) };
     }
   }
 
