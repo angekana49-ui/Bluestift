@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import SitePage from "@/components/site/SitePage";
 import type { Theme } from "@/components/site/theme";
-import { annualMonthlyRate } from "@/lib/billing/terms";
+import { ANNUAL_DISCOUNT, annualMonthlyRate, termTotal } from "@/lib/billing/terms";
 import { RayaName } from "@/components/ui/brand";
 
 /** Local shape (structurally a subset of lib/billing's BillingPlan — kept local
@@ -21,6 +21,14 @@ type Plan = {
 };
 
 type Audience = "solo" | "schools";
+/** Chosen per card, Anthropic-style: each plan carries its own billing term, so
+ *  a visitor can weigh Plus-annual against Max-monthly without the page forcing
+ *  one term on every tier at once. */
+type Term = "monthly" | "annual";
+
+/** Months sent to /checkout. The API re-derives the price from this same number
+ *  (termTotal), so the sticker and the charge cannot drift apart. */
+const TERM_MONTHS: Record<Term, number> = { monthly: 1, annual: 12 };
 
 function money(n: number): string {
   return Number.isInteger(n) ? `$${n}` : `$${n.toFixed(2)}`;
@@ -33,11 +41,24 @@ function tierName(name: string): string {
   return (parts.length > 1 ? parts[parts.length - 1] : name).trim();
 }
 
-/** Big headline price + its unit suffix, per plan pricing model. */
-function priceParts(p: Plan): { big: string; unit: string | null } {
+/**
+ * Big headline price + its unit suffix, per plan pricing model and term.
+ *
+ * Both terms are quoted as a PER-MONTH rate on purpose: "$5.94 / mo" against
+ * "$6.99 / mo" is a comparison a reader can make at a glance, where "$71.30 /
+ * yr" against "$6.99 / mo" is arithmetic homework. The real once-a-year charge
+ * is spelled out in the line underneath so nothing is hidden by that choice.
+ *
+ * A plan already seeded as `billingPeriod: "yearly"` carries a yearly sticker
+ * and is left alone — its price is not a monthly rate to re-derive.
+ */
+function priceParts(p: Plan, term: Term): { big: string; unit: string | null } {
   if (p.price == null || p.price === 0) return { big: "Free", unit: null };
-  if (p.priceUnit === "per_seat") return { big: money(p.price), unit: "/ student / mo" };
-  return { big: money(p.price), unit: p.billingPeriod === "yearly" ? "/ yr" : "/ mo" };
+  if (p.billingPeriod === "yearly" && p.priceUnit !== "per_seat") {
+    return { big: money(p.price), unit: "/ yr" };
+  }
+  const rate = term === "annual" ? annualMonthlyRate(p.price) : p.price;
+  return { big: money(rate), unit: p.priceUnit === "per_seat" ? "/ student / mo" : "/ mo" };
 }
 
 function Check({ color }: { color: string }) {
@@ -59,11 +80,20 @@ function PlanCard({
   audience: Audience;
   recommended: boolean;
 }) {
+  // Card-local: switching Plus to annual must not silently re-price Max too.
+  // Defaults to monthly — showing the discounted rate first and only revealing
+  // the real monthly price after a click is the dark pattern, not the default.
+  const [term, setTerm] = useState<Term>("monthly");
   const isSchool = audience === "schools";
   // A bespoke school plan can't carry a fixed sticker — it's quoted, not listed.
   const bespoke = isSchool && plan.tier === "custom";
-  const { big, unit } = bespoke ? { big: "Custom", unit: null } : priceParts(plan);
+  const { big, unit } = bespoke ? { big: "Custom", unit: null } : priceParts(plan, term);
   const free = plan.price == null || plan.price === 0;
+  const annual = term === "annual";
+  /** True when the sticker is a monthly rate the term can actually move. */
+  const ratedMonthly =
+    !free && !bespoke && plan.price != null &&
+    (plan.priceUnit === "per_seat" || plan.billingPeriod !== "yearly");
 
   const cta = isSchool
     ? bespoke
@@ -71,7 +101,12 @@ function PlanCard({
       : { label: "Start free pilot", href: "/login" } // listed plans → free pilot first
     : free
       ? { label: "Create an account", href: "/login" }
-      : { label: `Get ${tierName(plan.name)}`, href: `/checkout?plan=${plan.id}&audience=b2c` };
+      : {
+          label: `Get ${tierName(plan.name)}`,
+          // Carry the term through: without `months` the checkout would fall back
+          // to a 1-month term and charge the monthly price for an annual pick.
+          href: `/checkout?plan=${plan.id}&audience=b2c&months=${TERM_MONTHS[term]}`,
+        };
 
   const dark = recommended;
   const text = dark ? "#eef2f8" : t.text;
@@ -116,19 +151,99 @@ function PlanCard({
         {tierName(plan.name)}
       </div>
 
-      <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 10 }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
         <span style={{ fontSize: "2.3rem", fontWeight: 900, letterSpacing: "-0.02em", color: text }}>{big}</span>
         {unit && <span style={{ fontSize: 14, fontWeight: 500, color: muted }}>{unit}</span>}
+        {/* What the annual rate is a discount FROM — without it, the cheaper
+            number reads as the plan simply being cheap. */}
+        {ratedMonthly && annual && (
+          <span style={{ fontSize: 14, fontWeight: 500, color: muted, textDecoration: "line-through" }}>
+            {money(plan.price!)}
+          </span>
+        )}
       </div>
 
-      {/* Annual commitment saves 15% (applies to every paid plan shown per month:
-          b2c monthly + per-student school plans). */}
-      {!free && !bespoke && plan.price != null &&
-        (plan.priceUnit === "per_seat" || plan.billingPeriod !== "yearly") && (
+      {/* Monthly selected → what switching would save. Annual selected → what is
+          actually debited, since the headline is a per-month rate the customer
+          never sees on their statement. */}
+      {ratedMonthly && !annual && (
         <div style={{ fontSize: 13, fontWeight: 500, color: muted, marginTop: 5 }}>
-          or {money(annualMonthlyRate(plan.price))}
+          or {money(annualMonthlyRate(plan.price!))}
           {plan.priceUnit === "per_seat" ? " / student" : ""} / mo billed annually{" "}
-          <span style={{ color: checkColor, fontWeight: 700 }}>· save 15%</span>
+          <span style={{ color: checkColor, fontWeight: 700 }}>· save {Math.round(ANNUAL_DISCOUNT * 100)}%</span>
+        </div>
+      )}
+      {ratedMonthly && annual && (
+        <div style={{ fontSize: 13, fontWeight: 500, color: muted, marginTop: 5 }}>
+          {plan.priceUnit === "per_seat" ? (
+            <>billed annually, per enrolled student</>
+          ) : (
+            <>{money(termTotal(plan.price! * 12, 12))} billed once a year</>
+          )}{" "}
+          <span style={{ color: checkColor, fontWeight: 700 }}>· save {Math.round(ANNUAL_DISCOUNT * 100)}%</span>
+        </div>
+      )}
+
+      {/* Term switch — only on cards where a term means something. A free plan
+          has nothing to bill, and a bespoke school plan is quoted, not listed. */}
+      {ratedMonthly && (
+        <div
+          role="group"
+          aria-label="Billing term"
+          style={{
+            display: "inline-flex",
+            gap: 3,
+            alignSelf: "flex-start",
+            marginTop: 14,
+            padding: 3,
+            borderRadius: 999,
+            background: dark ? "rgba(255,255,255,0.09)" : t.pillTrackBg,
+          }}
+        >
+          {(["monthly", "annual"] as const).map((key) => {
+            const on = term === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setTerm(key)}
+                aria-pressed={on}
+                style={{
+                  border: "none",
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  padding: "5px 11px",
+                  borderRadius: 999,
+                  fontSize: 13,
+                  fontWeight: on ? 700 : 500,
+                  whiteSpace: "nowrap",
+                  color: on ? (dark ? "#0b1220" : t.text) : muted,
+                  background: on ? (dark ? "#ffffff" : t.pillActiveBg) : "transparent",
+                  boxShadow: on ? t.pillActiveShadow : "none",
+                  transition: "all 0.18s ease",
+                }}
+              >
+                {key === "monthly" ? "Monthly" : "Annual"}
+                {key === "annual" && (
+                  <span
+                    style={{
+                      background: on ? t.greenBg : "transparent",
+                      color: on ? t.greenText : checkColor,
+                      border: `1px solid ${on ? t.greenBorder : "transparent"}`,
+                      borderRadius: 999,
+                      padding: "0 6px",
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                    }}
+                  >
+                    −{Math.round(ANNUAL_DISCOUNT * 100)}%
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       )}
 

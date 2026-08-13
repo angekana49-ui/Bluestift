@@ -65,7 +65,7 @@ export default function PricingSection({ theme: t }: { theme: Theme }) {
               tr("site.pricing.solo.l3"),
               tr("site.pricing.solo.l4"),
             ],
-            meta: "Free · Plus $6.99 · Max $19.99 / mo",
+            meta: "Free · Plus $20 · Max $40 / mo",
             cta: tr("site.pricing.solo.cta"),
             href: "/pricing?for=solo",
             blobDur: "10.5s",
@@ -91,7 +91,7 @@ export default function PricingSection({ theme: t }: { theme: Theme }) {
               "rgba(255,255,255,0.78)",
               t.greenSolid,
             )}
-            <div style={{ position: "relative", fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.9)", marginTop: 16 }}>Standard $1.50 · Plus $2.30 / student / mo</div>
+            <div style={{ position: "relative", fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.9)", marginTop: 16 }}>Standard $2 · Plus $4 / student / mo</div>
             <a href="/pricing?for=schools" style={{ position: "relative", display: "block", textAlign: "center", marginTop: 18, background: "white", color: "#0b1220", borderRadius: 999, padding: "11px 20px", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
               {tr("site.pricing.schools.cta")}
             </a>

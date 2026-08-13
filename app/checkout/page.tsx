@@ -7,6 +7,7 @@ import { getAdminMembership } from "@/lib/school-admin";
 import { resolvePlanPriceForRequest } from "@/lib/billing";
 import { ipCountryFromHeaders, formatMoney } from "@/lib/billing/regions";
 import { getPaymentProvider, type PaymentChannel } from "@/lib/billing/payments";
+import { isAnnualTerm, termTotal } from "@/lib/billing/terms";
 import { CheckoutPanel } from "@/components/checkout/CheckoutPanel";
 
 export const metadata = { title: "BlueStift · Checkout" };
@@ -87,7 +88,15 @@ export default async function CheckoutPage({
   const perSeat = resolved.priceUnit === "per_seat";
   const months = clampInt(monthsParam) ?? (audience === "b2b" ? 12 : 1);
   const seats = perSeat ? clampInt(seatsParam) : null;
-  const total = perSeat ? (seats ? rate * seats * months : null) : rate * months;
+
+  // Must mirror app/api/billing/checkout/route.ts exactly. It charges
+  // termTotal(base, months) — so computing the summary as a plain base would
+  // quote a total ABOVE what actually gets debited on any annual term, and
+  // silently retract the "save 15%" the pricing page just promised.
+  const base = perSeat ? (seats ? rate * seats * months : null) : rate * months;
+  const total = base == null ? null : termTotal(base, months);
+  const annual = isAnnualTerm(months);
+  const saved = base != null && annual ? base - total! : 0;
 
   const provider = getPaymentProvider();
   const channels = [...provider.supportedChannels] as PaymentChannel[];
@@ -108,7 +117,10 @@ export default async function CheckoutPage({
         <div style={{ background: "#f6f8fc", border: "1px solid #eef2f8", borderRadius: 14, padding: "14px 16px", margin: "18px 0 20px" }}>
           <Row label="Plan" value={plan!.name} />
           {perSeat && <Row label="Seats" value={seats ? String(seats) : "—"} />}
-          <Row label="Term" value={`${months} month${months > 1 ? "s" : ""}`} />
+          <Row label="Term" value={annual ? `${months} months · annual` : `${months} month${months > 1 ? "s" : ""}`} />
+          {saved > 0 && (
+            <Row label="Annual discount" value={`−${formatMoney(saved, currency)}`} />
+          )}
           <div style={{ height: 1, background: "#e6ebf3", margin: "10px 0" }} />
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
             <span style={{ fontSize: 15, fontWeight: 700, color: "#0b1220" }}>Total</span>

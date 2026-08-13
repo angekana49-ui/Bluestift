@@ -4,6 +4,7 @@ import { getAdminMembership } from "@/lib/school-admin";
 import { detectZone, type Zone } from "@/lib/billing/regions";
 import { MIN_B2B_SEATS, termTotal } from "@/lib/billing/terms";
 import { invalidateEntitlements } from "@/lib/entitlements";
+import { isPlatformOwner } from "@/lib/ops";
 
 /**
  * Billing data layer (schools schema, service_role — untyped like the rest of
@@ -524,4 +525,191 @@ export async function activateSubscription(
   invalidateEntitlements({ schoolId: m.schoolId });
 
   return { ok: true, subscriptionId: (ins as { id: string }).id, expiresAt: endIso };
+}
+
+// ---- Operator activation (platform owner, ANY user or school) --------------
+// While online payment isn't fully live, this is the real "lock the paywall"
+// lever: the founder collects payment out-of-band (transfer, mobile money,
+// manual card charge) for an individual Raya user or grants a school access
+// directly, then flips the switch here — same DB shape as the self-service
+// paths above, so entitlements/seat-gate resolution can't tell the difference.
+// Kept as separate functions (not a refactor of activateSubscription /
+// payments-data.ts) on purpose — same "duplicate a few lines, never destabilize
+// a proven money path" philosophy already used for the webhook writers.
+//
+// Authorization is NOT "is this the target's own admin" (that's the self-serve
+// checks above) — it's "is the CALLER the platform owner", resolved from a
+// static env allowlist (see lib/ops.ts) via the caller's real auth email
+// (never a client-supplied one). Returns null on any authorization failure,
+// matching activateSubscription's convention.
+
+type ActivatablePlan = {
+  id: string;
+  category: string | null;
+  tier: string | null;
+  price: number | null;
+  price_unit: string | null;
+};
+
+async function loadActivatablePlan(planId: string): Promise<ActivatablePlan | null> {
+  const schools = createSchoolsAdminClient();
+  const { data } = await schools
+    .from("subscription_plans")
+    .select("id, category, tier, price, price_unit, billing_period")
+    .eq("id", planId)
+    .eq("is_active", true)
+    .maybeSingle();
+  return (data as ActivatablePlan | null) ?? null;
+}
+
+function activationTerm(months?: number): { startIso: string; endIso: string; months: number } {
+  const now = new Date();
+  const resolvedMonths = months && months > 0 ? Math.floor(months) : 12;
+  const end = new Date(now);
+  end.setMonth(end.getMonth() + resolvedMonths);
+  return { startIso: now.toISOString(), endIso: end.toISOString(), months: resolvedMonths };
+}
+
+/**
+ * B2C: manually activate an individual Raya plan (Plus/Max) for one user —
+ * the ASAP path for early paying users while self-serve checkout stays
+ * sandbox-only. Returns null when `operatorUserId` isn't the platform owner.
+ */
+export async function operatorActivateUserPlan(
+  operatorUserId: string,
+  targetUserId: string,
+  input: ActivateInput,
+): Promise<ActivateResult | null> {
+  if (!(await isPlatformOwner(operatorUserId))) return null;
+
+  const plan = await loadActivatablePlan(input.planId);
+  if (!plan) return { ok: false, error: "Unknown or inactive plan." };
+  if (plan.category && plan.category !== "b2c") {
+    return { ok: false, error: "That's a school plan — activate it on a school, not a user." };
+  }
+
+  const { startIso, endIso, months } = activationTerm(input.months);
+  const rate = plan.price == null ? null : Number(plan.price);
+  const computed = rate == null ? null : termTotal(rate * months, months);
+  const amount = input.amount ?? computed;
+
+  await schoolsAdminRetireActiveSubs({ userId: targetUserId }, startIso);
+
+  const schools = createSchoolsAdminClient();
+  const { data: ins, error } = await schools
+    .from("subscriptions")
+    .insert({
+      user_id: targetUserId,
+      plan_id: plan.id,
+      status: "active",
+      start_date: startIso,
+      end_date: endIso,
+      auto_renew: false,
+      amount,
+      payment_method: input.paymentMethod ?? "manual",
+      payment_reference: input.paymentReference ?? null,
+      created_by: operatorUserId,
+    })
+    .select("id")
+    .single();
+  if (error || !ins) return { ok: false, error: "Could not activate the plan." };
+
+  invalidateEntitlements({ userId: targetUserId });
+  return { ok: true, subscriptionId: (ins as { id: string }).id, expiresAt: endIso };
+}
+
+/**
+ * B2B: manually activate/upgrade ANY school (bypasses the "must already be
+ * that school's own admin_master" check in `activateSubscription` — this is
+ * the founder onboarding a school directly). Same seat-floor safety as the
+ * self-service path: contracted seats can never undercut real headcount.
+ * Returns null when `operatorUserId` isn't the platform owner.
+ */
+export async function operatorActivateSchoolPlan(
+  operatorUserId: string,
+  schoolId: string,
+  input: ActivateInput,
+): Promise<ActivateResult | null> {
+  if (!(await isPlatformOwner(operatorUserId))) return null;
+
+  const plan = await loadActivatablePlan(input.planId);
+  if (!plan) return { ok: false, error: "Unknown or inactive plan." };
+  if (plan.category && plan.category !== "b2b") {
+    return { ok: false, error: "That's an individual plan — activate it on a user, not a school." };
+  }
+
+  const schools = createSchoolsAdminClient();
+  const perSeat = plan.price_unit === "per_seat";
+  const seatLimit = input.seatLimit ?? null;
+  if (perSeat) {
+    if (seatLimit == null || seatLimit <= 0) {
+      return { ok: false, error: "Enter the number of students to contract." };
+    }
+    const { count } = await schools
+      .from("student_identities")
+      .select("user_id", { count: "exact", head: true })
+      .eq("school_id", schoolId);
+    const headcount = count ?? 0;
+    const floor = Math.max(MIN_B2B_SEATS, headcount);
+    if (seatLimit < floor) {
+      const why =
+        headcount > MIN_B2B_SEATS
+          ? `this school already has ${headcount} students enrolled`
+          : `the minimum contract is ${MIN_B2B_SEATS} students`;
+      return { ok: false, error: `Contract at least ${floor} seats — ${why}.` };
+    }
+  }
+
+  const { startIso, endIso, months } = activationTerm(input.months);
+  const rate = plan.price == null ? null : Number(plan.price);
+  const base = rate == null ? null : perSeat ? rate * (seatLimit as number) * months : rate * months;
+  const computed = base == null ? null : termTotal(base, months);
+  const amount = input.amount ?? computed;
+
+  await schoolsAdminRetireActiveSubs({ schoolId }, startIso);
+
+  const { data: ins, error } = await schools
+    .from("subscriptions")
+    .insert({
+      school_id: schoolId,
+      plan_id: plan.id,
+      status: "active",
+      start_date: startIso,
+      end_date: endIso,
+      auto_renew: false,
+      seat_limit: seatLimit,
+      amount,
+      payment_method: input.paymentMethod ?? "manual",
+      payment_reference: input.paymentReference ?? null,
+      created_by: operatorUserId,
+    })
+    .select("id")
+    .single();
+  if (error || !ins) return { ok: false, error: "Could not activate the plan." };
+
+  await schools
+    .from("schools")
+    .update({
+      subscription_tier: plan.tier ?? plan.id,
+      subscription_expires_at: endIso,
+      updated_at: startIso,
+    })
+    .eq("id", schoolId);
+
+  invalidateEntitlements({ schoolId });
+  return { ok: true, subscriptionId: (ins as { id: string }).id, expiresAt: endIso };
+}
+
+/** Retire any current active/trial subscription for a user or school so history reads cleanly. */
+async function schoolsAdminRetireActiveSubs(
+  target: { userId: string } | { schoolId: string },
+  atIso: string,
+): Promise<void> {
+  const schools = createSchoolsAdminClient();
+  let q = schools
+    .from("subscriptions")
+    .update({ status: "cancelled", end_date: atIso, updated_at: atIso })
+    .in("status", ["active", "trial"]);
+  q = "userId" in target ? q.eq("user_id", target.userId).is("school_id", null) : q.eq("school_id", target.schoolId);
+  await q;
 }
