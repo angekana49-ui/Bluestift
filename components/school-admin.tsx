@@ -2280,9 +2280,23 @@ function StudentDetailView({
   const { t, box, ghost } = useSchoolStyles();
   return (
     <div>
-      <button style={{ ...ghost, marginBottom: "1rem" }} onClick={onBack}>
-        ← Back to class
-      </button>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
+        <button style={ghost} onClick={onBack}>
+          ← Back to class
+        </button>
+        {/* FERPA inspect-and-review: what a parent asks the school for. Downloads
+            the education record — results, inferred understanding and staff
+            notes — but not the student's own conversations with Raya. */}
+        {classId && (
+          <a
+            href={`/api/school/student/record?classId=${classId}&userId=${detail.userId}`}
+            style={{ ...ghost, textDecoration: "none", marginLeft: "auto" }}
+            title="Download this student's education record (for a parent request)"
+          >
+            Download record
+          </a>
+        )}
+      </div>
 
       <div style={box}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>

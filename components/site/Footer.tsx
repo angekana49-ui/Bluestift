@@ -30,8 +30,18 @@ const COLUMNS: { labelKey: MessageKey; links: [MessageKey | null, string, string
     links: [
       ["site.nav.contact", "Contact", "/contact"],
       ["site.footer.link.feedback", "Feedback", "/feedback"],
-      ["site.nav.privacy", "Privacy", "/privacy"],
       ["site.nav.signIn", "Sign in", "/login"],
+    ],
+  },
+  // Kept as its own column rather than tucked under Resources: a school
+  // evaluating us reads all four, and the DPA is the one it needs to find.
+  {
+    labelKey: "site.footer.col.legal",
+    links: [
+      ["site.nav.privacy", "Privacy", "/privacy"],
+      ["site.footer.link.terms", "Terms", "/terms"],
+      ["site.footer.link.dpa", "Schools DPA", "/dpa"],
+      ["site.footer.link.subprocessors", "Sub-processors", "/subprocessors"],
     ],
   },
 ];
