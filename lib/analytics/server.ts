@@ -1,5 +1,6 @@
 import "server-only";
 import { CONSENT_COOKIE } from "@/lib/analytics/consent";
+import { optionalProcessingAllowed } from "@/lib/compliance/optional-processing";
 
 // Server-side product analytics (PostHog). Used for events that only exist on the
 // server — most importantly the entitlement "monitor mode" signals: in monitor
@@ -56,6 +57,10 @@ export async function captureServer(
   try {
     if (!KEY || !userId) return;
     if (!(await hasConsent())) return;
+    // Consent is necessary but not sufficient: a minor cannot validly give it,
+    // so the age band overrides the cookie. Checked here rather than at each
+    // call site so no future event can forget.
+    if (!(await optionalProcessingAllowed(userId))) return;
     const client = await getClient();
     if (!client) return;
     client.capture({ distinctId: userId, event, properties });

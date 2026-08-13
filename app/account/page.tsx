@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { needsAgeGate } from "@/lib/compliance/guard";
 import { ensureRecoveryCode, hasRealEmail } from "@/lib/auth";
 import { getPlanLabel } from "@/lib/billing";
 import { softValue } from "@/lib/page-data";
@@ -8,8 +9,10 @@ import { RayaScaffold } from "@/components/raya/raya-scaffold";
 import { SectionHeader } from "@/components/raya/section-header";
 import { SettingsThemeCard } from "@/components/raya/settings-theme-card";
 import { SettingsLanguageCard } from "@/components/raya/settings-language-card";
+import { SettingsDataCard } from "@/components/raya/settings-data-card";
 import { StudentBillingCard } from "@/components/raya/settings-billing-card";
 import { initialsOf } from "@/lib/name";
+import { ageBand } from "@/lib/compliance/age";
 
 export default async function AccountPage() {
   const supabase = await createClient();
@@ -28,14 +31,15 @@ export default async function AccountPage() {
     ensureRecoveryCode(user.id),
     supabase
       .from("users")
-      .select("username, display_name, account_type, account_state, recovery_code, profile_picture_url")
+      .select("username, display_name, account_type, account_state, recovery_code, profile_picture_url, birth_year, minor_consent_source, school_id, training_consent")
       .eq("id", user.id)
       .single(),
     softValue(getPlanLabel({ userId: user.id }), "User — Free"),
   ]);
 
-  // Force first-run onboarding before anything else.
-  if (profileRow && profileRow.account_state === "onboarding_pending") {
+  // Force first-run onboarding before anything else — which now includes the
+  // age question, so accounts that predate the gate are sent back for it.
+  if (profileRow && (profileRow.account_state === "onboarding_pending" || needsAgeGate(profileRow))) {
     redirect("/onboarding");
   }
 
@@ -66,6 +70,11 @@ export default async function AccountPage() {
             maxWidth={700}
           />
           <StudentBillingCard />
+          <SettingsDataCard
+            band={ageBand(profileRow?.birth_year ?? null)}
+            trainingConsent={Boolean(profileRow?.training_consent)}
+            schoolLinked={Boolean(profileRow?.school_id)}
+          />
         </div>
       </div>
     </RayaScaffold>

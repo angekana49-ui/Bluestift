@@ -7,10 +7,12 @@ import { createClient } from "@/lib/supabase/client";
 import {
   analyticsAvailable,
   capturing,
+  disableAnalytics,
   onPostHogReady,
   posthogIfLoaded,
   restoreAnalyticsConsent,
 } from "@/lib/analytics/posthog-lazy";
+import { setConsent } from "@/lib/analytics/consent";
 import { ConsentBanner } from "./ConsentBanner";
 
 /**
@@ -77,12 +79,52 @@ function IdentifyBridge() {
   return null;
 }
 
+/**
+ * Minors cannot validly consent to product analytics, so for them the banner is
+ * not shown and any consent already on the device is revoked — including one
+ * granted before they signed in, or before they told us their age.
+ *
+ * The server is the authority (lib/compliance/optional-processing.ts gates
+ * server-side events regardless of what the browser does); this exists so the
+ * SDK is never downloaded and no event is captured in the first place.
+ * Signed-out visitors get a 401 and are left alone — we know nothing about
+ * their age, and the banner is the right answer for an unknown visitor.
+ */
+function useMinorLockout(): boolean {
+  const [minor, setMinor] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/account/age");
+        if (!res.ok) return;
+        const { band } = (await res.json()) as { band: string | null };
+        if (!active || band === "adult") return;
+        setMinor(true);
+        setConsent("denied");
+        disableAnalytics();
+      } catch {
+        // Unreachable check → leave the banner alone. The server-side gate
+        // still holds, so this failing can't turn analytics ON for a minor.
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  return minor;
+}
+
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
   // A returning visitor who already accepted gets the SDK back — at idle, so it
   // never competes with the first paint.
   useEffect(() => {
     restoreAnalyticsConsent();
   }, []);
+
+  const minor = useMinorLockout();
 
   if (!analyticsAvailable()) return <>{children}</>;
 
@@ -94,7 +136,7 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
         <PageviewTracker />
       </Suspense>
       <IdentifyBridge />
-      <ConsentBanner />
+      {!minor && <ConsentBanner />}
     </>
   );
 }
