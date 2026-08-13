@@ -246,6 +246,7 @@ export const es: Partial<Messages> = {
   "site.footer.link.studyRooms": "Salas de estudio",
   "site.footer.link.toolsStudio": "Estudio de herramientas",
   "site.footer.link.contribute": "Contribuir",
+  "site.footer.link.progress": "Avances",
   "site.footer.link.terms": "Términos",
   "site.footer.link.dpa": "DPA para centros",
   "site.footer.link.subprocessors": "Subencargados",

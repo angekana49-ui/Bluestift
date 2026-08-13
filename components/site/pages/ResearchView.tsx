@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 import SitePage from "@/components/site/SitePage";
+import RoadmapTimeline from "@/components/site/RoadmapTimeline";
 import type { Theme } from "@/components/site/theme";
+import { useTranslate } from "@/components/ui/locale";
 import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
 import { readTime } from "@/components/public/format";
 import type { PublicNewsletterIssue, PublicResearchPost } from "@/lib/content";
@@ -243,9 +245,13 @@ type Props = {
 };
 
 const TYPE_FILTERS = ["all", "paper", "experiment", "article", "update"] as const;
-const VALID_TABS = ["articles", "newsletter", "collaborations"] as const;
+// "progress" sits second on purpose: after the writing, before the mailing
+// list. It is the one tab a sceptical visitor is looking for, and it is the
+// only one that is never empty.
+const VALID_TABS = ["articles", "progress", "newsletter", "collaborations"] as const;
 
 export function ResearchView({ posts, issues, signedIn, initialTab }: Props) {
+  const tr = useTranslate();
   const [tab, setTab] = useState<string>(VALID_TABS.includes((initialTab ?? "") as (typeof VALID_TABS)[number]) ? (initialTab as string) : "articles");
   const [proposing, setProposing] = useState(false);
   const [filter, setFilter] = useState<(typeof TYPE_FILTERS)[number]>("all");
@@ -338,6 +344,19 @@ export function ResearchView({ posts, issues, signedIn, initialTab }: Props) {
                 ) : (
                   <p style={{ padding: "40px 0", textAlign: "center", fontSize: 15, color: t.mutedLight }}>No publications yet.</p>
                 )}
+              </>
+            ) : tab === "progress" ? (
+              <>
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, borderBottom: `1px solid ${t.cardBorder}`, paddingBottom: 14, marginBottom: 20 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: t.greenDot }}>
+                    {tr("site.roadmap.eyebrow")}
+                  </span>
+                  <span style={{ fontSize: 13, color: t.mutedLight }}>· {tr("site.roadmap.title.em")}</span>
+                </div>
+                <p style={{ fontSize: 15, lineHeight: 1.7, color: t.muted, margin: "0 0 20px" }}>{tr("site.roadmap.sub")}</p>
+                <div style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: 20, padding: "26px 28px", boxShadow: t.cardShadow }}>
+                  <RoadmapTimeline theme={t} ringColor={t.cardBg} />
+                </div>
               </>
             ) : tab === "newsletter" ? (
               <>

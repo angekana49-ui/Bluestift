@@ -9,7 +9,6 @@ import FeaturesSection from "./FeaturesSection";
 import LadderSection from "./LadderSection";
 import KernelSection from "./KernelSection";
 import DifferentiatorsSection from "./DifferentiatorsSection";
-import RoadmapSection from "./RoadmapSection";
 import FaqSection from "./FaqSection";
 import PricingSection from "./PricingSection";
 import FinalCtaSection from "./FinalCtaSection";
@@ -261,9 +260,10 @@ export default function LandingPage({ signedIn, homeHref }: { signedIn?: boolean
       <LadderSection theme={t} />
       <KernelSection theme={t} />
       <DifferentiatorsSection theme={t} />
-      {/* Objection handling, in the order objections arrive: "is any of this
-          real yet?" (roadmap), then the five that come back from every school. */}
-      <RoadmapSection theme={t} />
+      {/* Objection handling: the five that come back from every school. The
+          sixth — "is any of this real yet?" — used to be answered here by the
+          roadmap; it now lives at /research?tab=progress, linked from the
+          footer, because it is a changelog and not part of the argument. */}
       <FaqSection theme={t} />
       <PricingSection theme={t} />
       <FinalCtaSection theme={t} signedIn={signedIn} homeHref={homeHref} />

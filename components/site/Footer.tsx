@@ -21,6 +21,8 @@ const COLUMNS: { labelKey: MessageKey; links: [MessageKey | null, string, string
     labelKey: "site.footer.col.project",
     links: [
       ["site.nav.research", "Research", "/research"],
+      // The roadmap left the landing page; this is now the only route to it.
+      ["site.footer.link.progress", "Progress", "/research?tab=progress"],
       ["site.nav.survey", "Survey", "/survey"],
       ["site.footer.link.contribute", "Contribute", "/research?tab=collaborations"],
     ],

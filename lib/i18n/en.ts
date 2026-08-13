@@ -284,6 +284,7 @@ export const en = {
   "site.footer.link.studyRooms": "Study Rooms",
   "site.footer.link.toolsStudio": "Tools Studio",
   "site.footer.link.contribute": "Contribute",
+  "site.footer.link.progress": "Progress",
   "site.footer.link.terms": "Terms",
   "site.footer.link.dpa": "Schools DPA",
   "site.footer.link.subprocessors": "Sub-processors",

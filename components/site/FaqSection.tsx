@@ -27,8 +27,10 @@ export default function FaqSection({ theme: t }: { theme: Theme }) {
   const tr = useTranslate();
   return (
     <section id="faq" style={{ position: "relative", background: t.cardBg, padding: "96px 24px", scrollMarginTop: 24 }}>
-      {/* Blends down from RoadmapSection (t.sectionAltBg). */}
-      <div style={{ position: "absolute", inset: "0 0 auto 0", height: 140, background: `linear-gradient(180deg, ${t.sectionAltBg} 0%, transparent 100%)`, pointerEvents: "none" }} />
+      {/* No top blend: since the roadmap moved to /research, this section now
+          follows DifferentiatorsSection, which is already t.cardBg. Fading
+          t.sectionAltBg over an identical background would paint a band, not a
+          transition. */}
 
       <div style={{ position: "relative", maxWidth: 820, margin: "0 auto" }}>
         <h2

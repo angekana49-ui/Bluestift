@@ -4,7 +4,7 @@ import { ResearchView } from "@/components/site/pages/ResearchView";
 
 export const metadata = {
   title: "BlueStift · Research",
-  description: "Publications, field experiments and advances in the Cognitive Kernel.",
+  description: "Publications, field experiments, advances in the Cognitive Kernel — and where the product actually stands.",
 };
 
 export default async function ResearchPage({

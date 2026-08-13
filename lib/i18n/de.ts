@@ -246,6 +246,7 @@ export const de: Partial<Messages> = {
   "site.footer.link.studyRooms": "Lernräume",
   "site.footer.link.toolsStudio": "Werkzeug-Studio",
   "site.footer.link.contribute": "Mitwirken",
+  "site.footer.link.progress": "Fortschritt",
   "site.footer.link.terms": "AGB",
   "site.footer.link.dpa": "Schul-AVV",
   "site.footer.link.subprocessors": "Unterauftragsverarbeiter",
