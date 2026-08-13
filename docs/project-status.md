@@ -484,8 +484,23 @@ not routes). **UI copy is English** across every real route (owner override of t
 handoff's French). The `/preview` mockup harness (French, dev-only, mock data) has
 been **removed pre-deployment** — every screen it stubbed is now wired for real.
 - **Logos split**: the Schools dashboard uses the BlueStift bird
-  (`/bluestift-mark.png`); the **Raya assistant panel** carries the Raya rosette
-  (`/raya-mark.png`, violet in dark). Rule: dashboard = Schools mark, assistant = Raya mark.
+  (`/bluestift-mark.png`); the **Raya assistant panel** carries the Raya rosace
+  (`/raya-mark.png`). Rule: dashboard = Schools mark, assistant = Raya mark.
+  Both marks ship in two variants — `-mark.png` (blue artwork, for light surfaces)
+  and `-mark-dark.png` (white artwork, for dark ones) — plus `/raya-mark-black.png`
+  for the light-only auth screens. They are **transparent**, so a dark surface has to
+  ask for the dark variant — `SidebarBrand` does it via `logoSrcDark`, `ChatAvatar`
+  via `t.dark`. **The public site is the deliberate exception**: Navbar, Footer and
+  LanguagePrompt keep the light mark in both themes (owner's call — the blue bird is
+  the brand signature and shouldn't move when the page flips). Don't "fix" it back.
+  The old violet/emerald Raya marks are gone.
+  Sources live in `assets/logos` — **outside `/public` on purpose**, since anything
+  under `/public` is served publicly and shipped in the deploy bundle, and the raw
+  crops are 1.5 MB for zero runtime use. `scripts/process-logos.py` regenerates the
+  shipped marks from them: 256×256, background removed, centred with a 10% margin so
+  circular masks don't bite the artwork. **Regenerating them means bumping `VERSION`
+  in `public/sw.js`** — the marks keep their filenames, and the service worker caches
+  `/public` images forever with no revalidation.
 - **Prof face**: `getProfContext(userId)` gives `{schoolName, subjects[]}`; the prof
   profile chip reads "Teacher · Math, Physics", and the Schools Raya tab is a real
   full-height chat (`fill` prop) rather than the admin's compact card.
@@ -627,18 +642,54 @@ activation, online checkout, regional price book). What's genuinely left:
   `markEmailVerified` (`lib/auth.ts`, service role) → sets `email_verified_at` and
   bumps `account_state` `active_unverified → active_verified` (leaves
   `onboarding_pending` untouched so onboarding still runs).
-- **Recovery keys now work for anonymous (email-less) accounts.** Supabase can't
-  mint a session from a key alone, so an email-less account gets a **synthetic
-  address** (`anon-<id>@anon.bluestift.local`) + a **password = its 16-char
-  `recovery_code`** (`ensureRecoverable`, `lib/auth.ts`, service role).
-  `/api/auth/recover` then branches by identity: a **real** linked email gets a
-  magic link; a **synthetic** account is signed straight back in with the key as
-  password (Supabase verifies the Turnstile token; session cookies set on the
-  response). The synthetic flip sets Supabase `is_anonymous=false` but the UI still
-  treats the account as anonymous until a *real* email is linked (`hasRealEmail`);
-  RLS self-access verified intact after the flip.
+- **Recovery keys now work for anonymous (email-less) accounts.** An email-less
+  account gets a **synthetic address** (`anon-<id>@anon.bluestift.local`) plus a
+  throwaway password it never sees (`ensureRecoverable`, `lib/auth.ts`, service
+  role). `/api/auth/recover` branches by identity: a **real** linked email gets a
+  magic link; a **synthetic** account gets a session minted admin-side
+  (`mintSessionFor` — generateLink + verifyOtp, cookies on the response). The
+  synthetic flip sets Supabase `is_anonymous=false` but the UI still treats the
+  account as anonymous until a *real* email is linked (`hasRealEmail`); RLS
+  self-access verified intact after the flip.
+- **The key is never stored, and is no longer the password** (migration
+  `20260813200000_recovery_key_hash`). It used to be BOTH: `users.recovery_code`
+  held it in cleartext AND it was the synthetic account's Supabase password, so a
+  single read of that column was working sign-in for every anonymous account —
+  and those accounts are disproportionately children's. Now:
+  - only `sha256(normalised key)` is kept, in `users.recovery_code_hash` (unique
+    partial index). The reasoning for a bare SHA-256 with no salt or pepper — 80
+    bits of uniform entropy, nothing to brute-force, and a per-row salt would
+    forbid the O(1) lookup — is written out in the migration;
+  - the key **identifies** the account; the session is issued admin-side. That
+    split is what makes a table read useless;
+  - `recovery_code_issued_at` marks a key as actually *delivered to its owner*.
+    `handle_new_user` still writes a generated key at signup and a BEFORE trigger
+    (`strip_recovery_code`) hashes it — so the presence of a hash proves nothing
+    about whether anyone has seen it;
+  - **existing keys keep working**: the migration hashes them in place before
+    nulling the cleartext, rather than invalidating paper copies.
+- **Show-once, then replace.** `/account` can no longer reveal a key, because the
+  server genuinely cannot read it. `POST /api/account/recovery-key` mints a
+  replacement, returns it once, and rotates the synthetic password — that rotation
+  is not optional: legacy accounts have `password = old key` and Supabase's
+  password sign-in is reachable from the browser, so skipping it would leave the
+  replaced key alive. The rotation revokes the session, so the route re-mints one
+  onto its own response. Rate limited to 5/day per user.
+  - Consequence to know: **reloading /onboarding loses the key** (it is issued on
+    the render that shows it). That screen now says so and points at Settings,
+    instead of the old "your key will be waiting in Settings", which is no longer
+    true.
+- **Shared links are revocable** (`SettingsSharesCard`, `/account`). `POST
+  /api/share` mints a public, never-expiring `/s/<token>` URL for a document; the
+  DELETE route to revoke it existed but **nothing ever called it**, so a student
+  could publish their work with no way to take it back. `GET /api/share` now lists
+  the caller's live shares (no `body` — it is a management list, not a reader) and
+  the card wires revoke. DELETE reports whether a row actually changed, and
+  answers identically for "not yours" and "already revoked" so it can't be used to
+  probe which tokens exist. Shares still have no automatic expiry — deliberate for
+  now, and the revoke UI is what makes that defensible.
 - **Verified status = a REAL email only.** The synthetic address is Supabase-
-  confirmed (needed for the password sign-in), but that must NOT read as "verified".
+  confirmed (needed to mint a session against it), but that must NOT read as "verified".
   So `email_confirmed_at` is ignored for status: onboarding sets `active_verified`
   only when `hasRealEmail(email) && email_confirmed_at`, else `active_unverified`;
   `markEmailVerified` is gated the same way. Net trust levels: **real email → magic
