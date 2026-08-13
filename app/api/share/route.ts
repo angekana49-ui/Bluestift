@@ -65,6 +65,40 @@ export async function POST(request: Request) {
   return NextResponse.json({ token, url: `${siteUrl()}/s/${token}` });
 }
 
+/**
+ * The caller's live shares, newest first. Deliberately WITHOUT `body`: this is a
+ * management list, not a reader, and shipping every shared document's full text
+ * into a settings page is bandwidth nobody asked for. Revoked shares are omitted
+ * — the question the screen answers is "what of mine is public right now".
+ */
+export async function GET() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const { data, error } = await supabase
+    .schema("learning")
+    .from("shares")
+    .select("token, title, brand, created_at")
+    .eq("user_id", user.id)
+    .is("revoked_at", null)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  return NextResponse.json({
+    shares: (data ?? []).map((s) => ({
+      token: s.token,
+      title: s.title,
+      brand: s.brand,
+      createdAt: s.created_at,
+      url: `${siteUrl()}/s/${s.token}`,
+    })),
+  });
+}
+
 /** Revoke a share (owner only). */
 export async function DELETE(request: Request) {
   const supabase = await createClient();
@@ -74,11 +108,21 @@ export async function DELETE(request: Request) {
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const token = new URL(request.url).searchParams.get("token");
   if (!token) return NextResponse.json({ error: "token required" }, { status: 400 });
-  await supabase
+  // Report what actually happened. The previous version answered `ok: true`
+  // unconditionally, so a revocation that matched no row — wrong token, already
+  // revoked, or someone else's share — looked exactly like a successful one. On
+  // a "stop sharing my work" button that is the worst possible lie to tell.
+  const { data: revoked, error } = await supabase
     .schema("learning")
     .from("shares")
     .update({ revoked_at: new Date().toISOString() })
     .eq("token", token)
-    .eq("user_id", user.id);
-  return NextResponse.json({ ok: true });
+    .eq("user_id", user.id)
+    .is("revoked_at", null)
+    .select("token");
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  // Deliberately the same answer for "not yours" and "already revoked": the
+  // caller must not be able to probe which tokens exist. Either way the link is
+  // not live on their behalf.
+  return NextResponse.json({ ok: true, revoked: (revoked?.length ?? 0) > 0 });
 }
