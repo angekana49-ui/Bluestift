@@ -1,5 +1,7 @@
 import "server-only";
 import type { KernelAlert, LoadProfileResponse } from "@/lib/kernel/types";
+import type { LatestAnalysis } from "@/lib/kernel/profile-cache";
+import { learnerSignals, MASTERY_THRESHOLD } from "@/lib/kernel/signals";
 import type { ChatMsg } from "@/lib/raya/llm";
 import { audienceLines, resolveAudience } from "@/lib/raya/audience";
 
@@ -465,8 +467,9 @@ export function buildRayaMessages(
   docs = "",
   instructions = "",
   learner: LearnerFacts | null = null,
+  analysis: LatestAnalysis | null = null,
 ): ChatMsg[] {
-  const learnerState = buildLearnerState(profile, alerts, learner);
+  const learnerState = buildLearnerState(profile, alerts, learner, analysis);
 
   let system = learnerState
     ? `${STATIC_LAYER}\n\n${learnerState}`
@@ -515,15 +518,9 @@ function buildLearnerState(
   profile: LoadProfileResponse | null,
   alerts: KernelAlert[],
   learner: LearnerFacts | null = null,
+  analysis: LatestAnalysis | null = null,
 ): string {
-  const states = profile?.concept_states ?? [];
-
-  const avgK = states.length
-    ? states.reduce((sum, concept) => sum + (concept.k_effective ?? 0), 0) /
-      states.length
-    : null;
-
-  const mindset = profile?.mindset?.detected_mindset;
+  const { focus, mastered, weakestK, weakestP, mindset } = learnerSignals(profile);
 
   // Who they are comes first: it calibrates every line under it, and unlike the
   // Kernel signals it is known from the first message of the first session.
@@ -536,16 +533,64 @@ function buildLearnerState(
       )
     : [];
 
-  if (avgK !== null) {
-    const guidance =
-      avgK < 0.40
-        ? "Low mastery. Prefer worked examples, goal-free prompts and earlier support."
-        : avgK < 0.75
-          ? "Moderate mastery. Begin with retrieval, then provide hints only if needed."
-          : "High mastery. Encourage productive struggle and gentle transfer challenges.";
-
+  // The teaching target, named. This replaced an average over every tracked
+  // concept: a mean puts a learner with one broken prerequisite in the same
+  // bucket as one who is uniformly fine, and tells Raya to push the first
+  // learner harder — the precise failure mastery learning exists to prevent.
+  const target = focus[0];
+  if (target) {
     lines.push(
-      `  <avg_mastery value="${avgK.toFixed(2)}">${guidance}</avg_mastery>`,
+      `  <focus_concept name="${target.label}" k="${target.k.toFixed(2)}" ` +
+        `v="${target.v.toFixed(2)}" p="${target.p.toFixed(2)}" status="${target.status}">` +
+        `Weakest active concept. This is where the session should land, even if ` +
+        `the question is about something further down the chain.</focus_concept>`,
+    );
+    const others = focus.slice(1);
+    if (others.length) {
+      lines.push(
+        `  <also_weak>${others
+          .map((c) => `${c.label} (k=${c.k.toFixed(2)})`)
+          .join(", ")}</also_weak>`,
+      );
+    }
+  }
+
+  if (mastered.length) {
+    lines.push(
+      `  <secure>${mastered.join(", ")}</secure>` +
+        ` <!-- above the mastery bar: safe ground to build a new idea on -->`,
+    );
+  }
+
+  // Entry level, from the weakest concept rather than the average — and from K
+  // *and* P together, per docs/kernel-handoff.md §5. Mindset outranks both: a
+  // learner who reads struggle as proof of failure needs the content reframed
+  // before any retry, whatever their numbers say.
+  const entry =
+    mindset === "fixed"
+      ? "Deflect to the content before asking for another attempt. No retry while confidence is the blocker."
+      : weakestK === null
+        ? profile
+          ? "No active gap tracked. Extend: transfer to an unfamiliar context."
+          : null
+        : weakestK < 0.4 && (weakestP ?? 1) < 0.5
+          ? "Fragile: low mastery AND low retention. Vicarious learning — a worked example first, then have them narrate it back. Do not open with a question they cannot yet answer."
+          : weakestK < 0.4
+            ? "Low mastery. Worked examples and goal-free prompts; support early rather than late."
+            : weakestK < MASTERY_THRESHOLD
+              ? "Partial mastery. Open with retrieval, hint only after a real attempt."
+              : "At the mastery bar. Productive struggle and gentle transfer challenges.";
+  if (entry) lines.push(`  <entry_level>${entry}</entry_level>`);
+
+  // The Kernel's own root-cause finding from the last /analyze. It is the one
+  // signal that crosses concepts — the chain it walked to get there — so it
+  // says *why* the focus concept is the focus.
+  if (analysis?.root_gap) {
+    lines.push(`  <root_cause>${analysis.root_gap}</root_cause>`);
+  }
+  if (analysis?.recommended_path?.length) {
+    lines.push(
+      `  <recommended_path>${analysis.recommended_path.slice(0, 5).join(" → ")}</recommended_path>`,
     );
   }
 

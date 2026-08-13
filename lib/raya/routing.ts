@@ -1,4 +1,5 @@
 import type { KernelAlert, LoadProfileResponse } from "@/lib/kernel/types";
+import { learnerSignals } from "@/lib/kernel/signals";
 
 /**
  * Which model tier a turn deserves.
@@ -28,9 +29,16 @@ export type Routing = {
   reason: string;
 };
 
-/** Below this average mastery the student is struggling, and the prompt asks for
- *  worked examples and goal-free prompts — the moves that most reward a stronger
- *  model, because a clumsy worked example teaches the wrong thing. */
+/** Below this mastery ON THE WEAKEST ACTIVE CONCEPT the student is struggling,
+ *  and the prompt asks for worked examples and goal-free prompts — the moves
+ *  that most reward a stronger model, because a clumsy worked example teaches
+ *  the wrong thing.
+ *
+ *  This used to be read against the MEAN mastery, which made the router blind in
+ *  exactly the case that matters most: a student with one broken prerequisite
+ *  and a dozen solid concepts averages fine, gets routed to the cheap tier, and
+ *  is answered by the weaker model precisely on the turn where the hole shows.
+ *  `learnerSignals` is now the single derivation shared with the prompt. */
 const STRUGGLING_MASTERY = 0.4;
 
 export function routeTier(
@@ -47,18 +55,15 @@ export function routeTier(
     return { tier: "deep", reason: `alert:${active.join(",")}` };
   }
 
-  const states = profile?.concept_states ?? [];
-  if (states.length > 0) {
-    const avgK = states.reduce((s, c) => s + (c.k_effective ?? 0), 0) / states.length;
-    if (avgK < STRUGGLING_MASTERY) {
-      return { tier: "deep", reason: `low_mastery:${avgK.toFixed(2)}` };
-    }
+  const { weakestK, mindset } = learnerSignals(profile);
+  if (weakestK !== null && weakestK < STRUGGLING_MASTERY) {
+    return { tier: "deep", reason: `low_mastery:${weakestK.toFixed(2)}` };
   }
 
   // Tracked per student rather than per concept: a learner who reads struggle as
   // proof of failure needs the careful version of every turn, not just the ones
   // that tripped an alert.
-  if (profile?.mindset?.detected_mindset === "fixed") {
+  if (mindset === "fixed") {
     return { tier: "deep", reason: "mindset:fixed" };
   }
 
