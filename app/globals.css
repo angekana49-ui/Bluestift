@@ -67,8 +67,99 @@ a {
 }
 .pub-footer-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
+  /* Brand block + four link columns (the fourth is Legal). */
+  grid-template-columns: 1.6fr 1fr 1fr 1fr 1fr;
   gap: 32px;
+}
+/* Kernel alert table: name | signal detected | Raya's response. Collapses to a
+   single stacked column on narrow screens — where the column header stops
+   meaning anything and is hidden, so each cell grows its own inline label
+   instead. Without those labels the mobile layout is three unlabelled
+   sentences and the signal/response distinction is lost. */
+.pub-alert-row {
+  display: grid;
+  grid-template-columns: 190px 1fr 1fr;
+  gap: 20px;
+  align-items: baseline;
+}
+.pub-alert-label {
+  display: none;
+}
+
+/* ---- Scroll reveal ----
+   Deliberately NOT applied server-side. The markup ships visible; components/
+   site/Reveal.tsx only adds `.pub-reveal` after mount, and only to elements
+   that are still below the fold — so a JS-off visitor or a crawler gets a
+   fully readable page instead of a blank one, and an element already on screen
+   never flashes hidden-then-shown. The transition lives on the `-in` class so
+   the initial hide is instant (it happens off-screen) while the reveal eases. */
+.pub-reveal {
+  opacity: 0;
+  transform: translateY(20px);
+}
+.pub-reveal-in {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.75s ease,
+    transform 0.75s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* ---- Hover affordances ---- */
+.pub-lift {
+  transition:
+    transform 0.35s cubic-bezier(0.22, 0.61, 0.36, 1),
+    box-shadow 0.35s ease;
+}
+.pub-lift:hover {
+  transform: translateY(-4px);
+}
+/* Slow push-in on the media inside a hovered card. */
+.pub-media {
+  transition: transform 0.85s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.pub-media-wrap:hover .pub-media {
+  transform: scale(1.045);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pub-reveal,
+  .pub-reveal-in {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .pub-lift,
+  .pub-media {
+    transition: none;
+  }
+  .pub-lift:hover,
+  .pub-media-wrap:hover .pub-media {
+    transform: none;
+  }
+}
+
+/* Scroll-stacked cards (the Socratic ladder). Each card sticks a little lower
+   than the one before it, so earlier headers stay pinned and pile up into a
+   visible stack of rungs as you scroll — the section's own metaphor, done with
+   scroll position rather than an animation. The per-card `top`/`z-index` are
+   inline (they're data, one step per rung); this class only carries the
+   positioning mode, so the fallbacks below can switch it off in one place.
+   Short viewports can't show the stack, and a scroll-driven effect is exactly
+   what prefers-reduced-motion asks us to drop, so both fall back to a plain
+   vertical list — `top` and `z-index` are inert once position is static. */
+.pub-stack-card {
+  position: sticky;
+}
+@media (max-width: 860px) {
+  .pub-stack-card {
+    position: static !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pub-stack-card {
+    position: static !important;
+  }
 }
 @media (max-width: 900px) {
   .pub-grid-3,
@@ -96,6 +187,21 @@ a {
 @media (max-width: 760px) {
   .dash-grid {
     grid-template-columns: 1fr !important;
+  }
+  .pub-alert-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .pub-alert-head {
+    display: none !important;
+  }
+  .pub-alert-label {
+    display: block;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 3px;
   }
 }
 

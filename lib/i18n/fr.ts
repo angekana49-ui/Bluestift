@@ -92,6 +92,66 @@ export const fr: Partial<Messages> = {
   "site.features.challenges.desc":
     "Quiz, tests et défis de groupe avec classement en direct, plus des résumés, des cartes mémo et des cartes mentales à partir de n’importe quel cours. Chaque tentative alimente le même profil.",
 
+  "site.ladder.eyebrow": "Modèle pédagogique",
+  "site.ladder.title.a": "Une échelle à gravir, pas un",
+  "site.ladder.title.em": "distributeur de réponses.",
+  "site.ladder.sub":
+    "Raya monte un barreau à la fois et ne commence jamais par le haut. L’objectif n’est pas la bonne réponse dans les trente secondes — c’est un élève capable de refaire seul la semaine suivante.",
+  "site.ladder.r1.name": "Amorce",
+  "site.ladder.r1.title": "Faire remonter ce qui est déjà là",
+  "site.ladder.r1.body":
+    "Chaque échange s’ouvre en demandant à l’élève d’essayer ou de se souvenir. Rien n’est donné avant une vraie tentative — même ratée, elle ancre le concept plus fort.",
+  "site.ladder.r2.name": "Indice",
+  "site.ladder.r2.title": "Réduire l’espace de recherche",
+  "site.ladder.r2.body":
+    "Un indice partiel, et seulement après une tentative. Il désigne le pas suivant sans le franchir ; le raisonnement reste celui de l’élève.",
+  "site.ladder.r3.name": "Assertion",
+  "site.ladder.r3.title": "Énoncer la pièce manquante",
+  "site.ladder.r3.body":
+    "Le fait qui bloque réellement, dit clairement — mais uniquement quand les indices ont échoué. Jamais la solution finie.",
+  "site.ladder.r4.name": "Synthèse",
+  "site.ladder.r4.title": "Boucler la boucle",
+  "site.ladder.r4.body":
+    "Un récapitulatif pour clore la séance, ou pour débloquer un élève vraiment coincé. Ce que l’élève reformule est ce qui est évalué.",
+  "site.ladder.note":
+    "Ce n’est pas une option qu’un établissement active. Raya est construite pour ne pas pouvoir livrer une réponse finie — et son retour vise la méthode, jamais la personne, comme le montrent les travaux de Carol Dweck : « beaucoup butent ici », jamais « tu es doué ».",
+
+  "site.kernel.eyebrow": "Noyau cognitif",
+  "site.kernel.title.a": "Quatre dimensions,",
+  "site.kernel.title.em": "cinq alertes.",
+  "site.kernel.sub":
+    "Le noyau ne stocke pas une note. Chaque concept porte un vecteur à quatre composantes — et dès qu’un signal se dégrade, il nomme la défaillance, pour que Raya change de tactique dès le tour suivant.",
+  "site.kernel.k.name": "K · Connaissance",
+  "site.kernel.k.title": "Ce qui tient sans aide",
+  "site.kernel.k.body": "La maîtrise de ce concept précis, brute et ajustée, recalculée après chaque tentative.",
+  "site.kernel.v.name": "V · Vitesse",
+  "site.kernel.v.title": "À quelle vitesse ça bouge",
+  "site.kernel.v.body": "Le rythme d’apprentissage observé : une montée lente ne se lit pas comme un blocage total.",
+  "site.kernel.p.name": "P · Persistance",
+  "site.kernel.p.title": "Ce qui survit à la semaine",
+  "site.kernel.p.body": "La résistance à l’oubli : un concept acquis lundi qui s’effrite discrètement d’ici vendredi est repéré.",
+  "site.kernel.m.name": "M · État d’esprit",
+  "site.kernel.m.title": "Le rapport à l’erreur",
+  "site.kernel.m.body": "L’effort est-il lu comme une information ou comme une preuve d’échec. Suivi par élève, pas par concept.",
+  "site.kernel.col.alert": "Alerte",
+  "site.kernel.col.signal": "Signal détecté",
+  "site.kernel.col.response": "Réponse de Raya",
+  "site.kernel.a1.name": "Dépendance passive",
+  "site.kernel.a1.signal": "Réponses courtes, aucune tentative — l’élève attend qu’on lui donne la solution.",
+  "site.kernel.a1.response": "Raya refuse de monter d’un cran et exige une vraie tentative, sur une consigne plus ouverte.",
+  "site.kernel.a2.name": "Fausse maîtrise",
+  "site.kernel.a2.signal": "Bonnes réponses, mais raisonnement absent ou récité.",
+  "site.kernel.a2.response": "Nouveau test immédiat dans un contexte plus difficile avant de valider la maîtrise.",
+  "site.kernel.a3.name": "Erreur récurrente",
+  "site.kernel.a3.signal": "Un concept déjà validé s’effondre à nouveau des semaines plus tard.",
+  "site.kernel.a3.response": "Le concept est décomposé en étapes plus fines et reconstruit à partir du prérequis.",
+  "site.kernel.a4.name": "Surcharge cognitive",
+  "site.kernel.a4.signal": "Trop d’éléments à tenir en même temps ; la tâche dépasse la mémoire de travail.",
+  "site.kernel.a4.response": "La complexité est réduite et un exemple résolu remplace l’exercice.",
+  "site.kernel.a5.name": "État d’esprit fixe",
+  "site.kernel.a5.signal": "« Je suis nul en maths » — abandonner avant la première tentative.",
+  "site.kernel.a5.response": "Un recadrage centré sur la méthode d’abord, avant toute nouvelle tentative.",
+
   "site.diff.title.a": "Pourquoi pas",
   "site.diff.title.em": "les autres ?",
   "site.diff.sub": "La différence n’est pas l’IA. Tout le monde en a une désormais. C’est ce qui circule entre vous.",
@@ -102,6 +162,57 @@ export const fr: Partial<Messages> = {
   "site.diff.fixed.label": "Plateformes adaptatives figées",
   "site.diff.fixed.verdict": "Un parcours rigide, sur le programme de quelqu’un d’autre.",
   "site.diff.raya.verdict": "Une IA partagée des deux côtés. Ce qui est compris circule.",
+
+  "site.roadmap.eyebrow": "Feuille de route",
+  "site.roadmap.title.a": "Où en est vraiment",
+  "site.roadmap.title.em": "le produit.",
+  "site.roadmap.sub":
+    "Ce qui tourne, ce qui se construit, ce qui vient. Rien ci-dessus n’est la capture d’une fonctionnalité qui n’existe pas encore.",
+  "site.roadmap.status.shipped": "Livré",
+  "site.roadmap.status.progress": "En cours",
+  "site.roadmap.status.coming": "À venir",
+  "site.roadmap.i1.title": "Séances socratiques et noyau cognitif",
+  "site.roadmap.i1.body":
+    "L’échelle Amorce → Indice → Assertion → Synthèse, le vecteur par concept et les cinq alertes pédagogiques, actifs à chaque séance.",
+  "site.roadmap.i2.title": "Espace établissement",
+  "site.roadmap.i2.body":
+    "Inscription autonome, rôles admin et professeur, classes, codes d’invitation et rattachement d’équipe, analyses par classe et par matière.",
+  "site.roadmap.i3.title": "Salles d’étude, défis et outils",
+  "site.roadmap.i3.body":
+    "Salles de groupe en direct avec documents partagés, défis collectifs avec classement, et quiz, résumés, cartes mémo et cartes mentales générés depuis un cours.",
+  "site.roadmap.i4.title": "Paiements et quotas",
+  "site.roadmap.i4.body":
+    "Carte, mobile money et PayPal via un agrégateur unique, plus l’application des limites d’usage. Le parcours complet tourne en bac à sable ; l’encaissement réel n’est pas encore activé.",
+  "site.roadmap.i5.title": "Courbe de trajectoire par concept",
+  "site.roadmap.i5.body":
+    "Une vraie projection calculée côté noyau, en remplacement de l’estimation guidée par le modèle affichée aujourd’hui sur le profil.",
+  "site.roadmap.i6.title": "Synchronisation LMS",
+  "site.roadmap.i6.body": "Importer classes et listes d’élèves depuis l’environnement déjà en place, au lieu de les ressaisir.",
+
+  "site.faq.title.a": "Questions",
+  "site.faq.title.em": "fréquentes.",
+  "site.faq.q1": "Raya remplace-t-elle le professeur ?",
+  "site.faq.a1":
+    "Non. Elle absorbe la répétition et le diagnostic, et rend au professeur ce qu’il fait mieux que n’importe quel modèle : décider quoi faire de ce qui a été trouvé.",
+  "site.faq.q2": "Que voit réellement un professeur ?",
+  "site.faq.a2":
+    "Quels concepts un élève a solidement acquis, lesquels restent fragiles, et le prérequis qui bloque le reste — jamais ses conversations avec Raya. Un élève qui se sent lu cesse d’avouer ce qu’il ne comprend pas.",
+  "site.faq.q3": "Et si l’élève demande simplement la réponse ?",
+  "site.faq.a3":
+    "Raya ne peut pas la donner — le garde-fou est structurel, pas une option. Et une bonne réponse sans raisonnement derrière n’augmente pas la maîtrise non plus.",
+  "site.faq.q4": "Faut-il importer notre programme ?",
+  "site.faq.a4":
+    "Non. Les concepts sont extraits des documents que vous déposez et rattachés au graphe existant. Un seul cours suffit pour démarrer.",
+  "site.faq.q5": "Est-ce que ça marche avec une connexion faible ?",
+  "site.faq.a5":
+    "Oui. L’interface est légère, l’élève travaille dans sa langue, et le profil vit côté serveur — l’appareil ne stocke ni ne recalcule rien.",
+
+  "site.finalCta.title.a": "Essayez Raya avec",
+  "site.finalCta.title.em": "une classe.",
+  "site.finalCta.sub": "Gratuit pour commencer, sans carte. L’élève démarre ; le noyau fait le reste.",
+  "site.finalCta.ctaPrimary": "Commencer gratuitement",
+  "site.finalCta.ctaSecondary": "Parler à l’équipe",
+  "site.finalCta.note": "Seul, ou avec votre classe. Rien à installer.",
 
   "site.pricing.title.a": "Des tarifs qui",
   "site.pricing.title.em": "restent simples.",
@@ -131,9 +242,13 @@ export const fr: Partial<Messages> = {
   "site.footer.col.product": "PRODUIT",
   "site.footer.col.project": "PROJET",
   "site.footer.col.resources": "RESSOURCES",
+  "site.footer.col.legal": "MENTIONS LÉGALES",
   "site.footer.link.studyRooms": "Salles d’étude",
   "site.footer.link.toolsStudio": "Studio d’outils",
   "site.footer.link.contribute": "Contribuer",
+  "site.footer.link.terms": "Conditions",
+  "site.footer.link.dpa": "DPA écoles",
+  "site.footer.link.subprocessors": "Sous-traitants",
   "site.footer.link.feedback": "Retours",
   "site.footer.rights": "Tous droits réservés.",
 

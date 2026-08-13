@@ -92,7 +92,67 @@ export const es: Partial<Messages> = {
   "site.features.challenges.desc":
     "Cuestionarios, exámenes y retos en grupo con clasificación en vivo, más resúmenes, tarjetas y mapas mentales de cualquier lección. Cada intento alimenta el mismo perfil.",
 
-  "site.diff.title.a": "¿Por qué no",
+  "site.ladder.eyebrow": "Modelo pedagógico",
+  "site.ladder.title.a": "Una escalera que se sube, no un",
+  "site.ladder.title.em": "dispensador de respuestas.",
+  "site.ladder.sub":
+    "Raya sube un peldaño cada vez y nunca empieza por arriba. El objetivo no es la respuesta correcta en treinta segundos: es un alumno capaz de repetirlo solo la semana siguiente.",
+  "site.ladder.r1.name": "Impulso",
+  "site.ladder.r1.title": "Sacar a la luz lo que ya está ahí",
+  "site.ladder.r1.body":
+    "Cada intercambio empieza pidiendo al alumno que intente o recuerde. Nada se entrega antes de un intento real: incluso fallido, fija mejor el concepto.",
+  "site.ladder.r2.name": "Pista",
+  "site.ladder.r2.title": "Reducir el espacio de búsqueda",
+  "site.ladder.r2.body":
+    "Una pista parcial, y solo después de un intento. Señala el siguiente paso sin darlo; el razonamiento sigue siendo del alumno.",
+  "site.ladder.r3.name": "Afirmación",
+  "site.ladder.r3.title": "Enunciar la pieza que falta",
+  "site.ladder.r3.body":
+    "El dato que realmente bloquea, dicho con claridad, pero solo cuando las pistas han fallado. Nunca la solución terminada.",
+  "site.ladder.r4.name": "Síntesis",
+  "site.ladder.r4.title": "Cerrar el círculo",
+  "site.ladder.r4.body":
+    "Un resumen para cerrar la sesión, o para desbloquear a quien está realmente atascado. Lo que el alumno reformula es lo que se evalúa.",
+  "site.ladder.note":
+    "No es una opción que un centro active. Raya está construida para no poder entregar una respuesta terminada, y su devolución apunta al método, nunca a la persona, siguiendo el trabajo de Carol Dweck: «aquí tropieza mucha gente», nunca «tienes talento».",
+
+  "site.kernel.eyebrow": "Núcleo cognitivo",
+  "site.kernel.title.a": "Cuatro dimensiones,",
+  "site.kernel.title.em": "cinco alertas.",
+  "site.kernel.sub":
+    "El núcleo no guarda una nota. Cada concepto lleva un vector de cuatro componentes y, en cuanto una señal se degrada, nombra el fallo para que Raya cambie de táctica en el turno siguiente.",
+  "site.kernel.k.name": "K · Conocimiento",
+  "site.kernel.k.title": "Lo que se sostiene sin ayuda",
+  "site.kernel.k.body": "El dominio de ese concepto concreto, en bruto y ajustado, recalculado tras cada intento.",
+  "site.kernel.v.name": "V · Velocidad",
+  "site.kernel.v.title": "A qué ritmo avanza",
+  "site.kernel.v.body": "El ritmo de aprendizaje observado: una subida lenta no se lee igual que un bloqueo total.",
+  "site.kernel.p.name": "P · Persistencia",
+  "site.kernel.p.title": "Lo que sobrevive a la semana",
+  "site.kernel.p.body": "Resistencia al olvido: un concepto asegurado el lunes que se desdibuja para el viernes se detecta.",
+  "site.kernel.m.name": "M · Mentalidad",
+  "site.kernel.m.title": "La relación con el error",
+  "site.kernel.m.body": "Si el esfuerzo se lee como información o como prueba de fracaso. Se sigue por alumno, no por concepto.",
+  "site.kernel.col.alert": "Alerta",
+  "site.kernel.col.signal": "Señal detectada",
+  "site.kernel.col.response": "Respuesta de Raya",
+  "site.kernel.a1.name": "Dependencia pasiva",
+  "site.kernel.a1.signal": "Respuestas cortas, ningún intento: el alumno espera que le den la solución.",
+  "site.kernel.a1.response": "Raya se niega a subir de nivel y exige un intento real, con una consigna más abierta.",
+  "site.kernel.a2.name": "Dominio falso",
+  "site.kernel.a2.signal": "Respuestas correctas, con el razonamiento ausente o recitado.",
+  "site.kernel.a2.response": "Nueva prueba inmediata en un contexto más difícil antes de dar el dominio por bueno.",
+  "site.kernel.a3.name": "Error recurrente",
+  "site.kernel.a3.signal": "Un concepto ya validado vuelve a fallar semanas después.",
+  "site.kernel.a3.response": "El concepto se descompone en pasos más pequeños y se reconstruye desde el prerrequisito.",
+  "site.kernel.a4.name": "Sobrecarga cognitiva",
+  "site.kernel.a4.signal": "Demasiadas cosas a la vez; la tarea supera la memoria de trabajo.",
+  "site.kernel.a4.response": "Se recorta la complejidad y un ejemplo resuelto sustituye al ejercicio.",
+  "site.kernel.a5.name": "Mentalidad fija",
+  "site.kernel.a5.signal": "«Se me dan mal las mates»: rendirse antes del primer intento.",
+  "site.kernel.a5.response": "Primero una reformulación centrada en el método, antes de proponer cualquier intento nuevo.",
+
+  "site.diff.title.a":"¿Por qué no",
   "site.diff.title.em": "los demás?",
   "site.diff.sub": "La diferencia no es la IA. Eso ya lo tiene todo el mundo. Es lo que cruza entre vosotros.",
   "site.diff.general.label": "Asistentes generalistas",
@@ -103,7 +163,58 @@ export const es: Partial<Messages> = {
   "site.diff.fixed.verdict": "Un camino rígido, sobre el temario de otro.",
   "site.diff.raya.verdict": "Una IA que ambos comparten. Lo comprendido circula.",
 
-  "site.pricing.title.a": "Precios que",
+  "site.roadmap.eyebrow": "Hoja de ruta",
+  "site.roadmap.title.a": "En qué punto está",
+  "site.roadmap.title.em": "realmente el producto.",
+  "site.roadmap.sub":
+    "Lo que funciona, lo que se está construyendo y lo que viene. Nada de lo anterior es la captura de una función que aún no existe.",
+  "site.roadmap.status.shipped": "Entregado",
+  "site.roadmap.status.progress": "En curso",
+  "site.roadmap.status.coming": "Próximamente",
+  "site.roadmap.i1.title": "Sesiones socráticas y núcleo cognitivo",
+  "site.roadmap.i1.body":
+    "La escalera Impulso → Pista → Afirmación → Síntesis, el vector por concepto y las cinco alertas pedagógicas, activos en cada sesión.",
+  "site.roadmap.i2.title": "Espacio para centros",
+  "site.roadmap.i2.body":
+    "Alta autónoma, roles de administración y profesorado, clases, códigos de invitación y altas de equipo, y análisis por clase y materia.",
+  "site.roadmap.i3.title": "Salas de estudio, retos y herramientas",
+  "site.roadmap.i3.body":
+    "Salas de grupo en directo con documentos compartidos, retos colectivos con clasificación, y cuestionarios, resúmenes, tarjetas y mapas mentales generados desde una lección.",
+  "site.roadmap.i4.title": "Pagos y cuotas",
+  "site.roadmap.i4.body":
+    "Tarjeta, mobile money y PayPal a través de un único agregador, más el control de límites de uso. El flujo completo funciona en entorno de pruebas; el cobro real aún no está activado.",
+  "site.roadmap.i5.title": "Curva de trayectoria por concepto",
+  "site.roadmap.i5.body":
+    "Una proyección real calculada en el núcleo, en lugar de la estimación guiada por el modelo que muestra hoy el perfil.",
+  "site.roadmap.i6.title": "Sincronización con el LMS",
+  "site.roadmap.i6.body": "Importar clases y listas desde el entorno que el centro ya usa, en vez de volver a teclearlas.",
+
+  "site.faq.title.a": "Preguntas",
+  "site.faq.title.em": "frecuentes.",
+  "site.faq.q1": "¿Raya sustituye al profesor?",
+  "site.faq.a1":
+    "No. Absorbe la repetición y el diagnóstico, y devuelve al profesor lo que hace mejor que cualquier modelo: decidir qué hacer con lo que se ha encontrado.",
+  "site.faq.q2": "¿Qué ve realmente un profesor?",
+  "site.faq.a2":
+    "Qué conceptos ha asegurado un alumno, cuáles siguen frágiles y el prerrequisito que bloquea el resto; nunca sus conversaciones con Raya. Un alumno que se siente leído deja de admitir lo que no entiende.",
+  "site.faq.q3": "¿Y si el alumno simplemente pide la respuesta?",
+  "site.faq.a3":
+    "Raya no puede darla: la barrera es estructural, no una opción. Y una respuesta correcta sin razonamiento detrás tampoco sube el dominio.",
+  "site.faq.q4": "¿Hay que importar nuestro currículo?",
+  "site.faq.a4":
+    "No. Los conceptos se extraen de los documentos que subes y se enlazan con el grafo existente. Basta con una lección para empezar.",
+  "site.faq.q5": "¿Funciona con mala conexión?",
+  "site.faq.a5":
+    "Sí. La interfaz es ligera, el alumno trabaja en su idioma y el perfil vive en el servidor: el dispositivo no guarda ni recalcula nada.",
+
+  "site.finalCta.title.a": "Prueba Raya con",
+  "site.finalCta.title.em": "una clase.",
+  "site.finalCta.sub": "Gratis para empezar, sin tarjeta. El alumno arranca; el núcleo hace el resto.",
+  "site.finalCta.ctaPrimary": "Empezar gratis",
+  "site.finalCta.ctaSecondary": "Hablar con el equipo",
+  "site.finalCta.note": "Solo, o con tu clase. Nada que instalar.",
+
+  "site.pricing.title.a":"Precios que",
   "site.pricing.title.em": "siguen siendo simples.",
   "site.pricing.sub": "Tres puertas de entrada — un alumno solo, un centro entero, o un despliegue a medida. Elige la tuya.",
   "site.pricing.solo.title": "Solo",
@@ -131,9 +242,13 @@ export const es: Partial<Messages> = {
   "site.footer.col.product": "PRODUCTO",
   "site.footer.col.project": "PROYECTO",
   "site.footer.col.resources": "RECURSOS",
+  "site.footer.col.legal": "LEGAL",
   "site.footer.link.studyRooms": "Salas de estudio",
   "site.footer.link.toolsStudio": "Estudio de herramientas",
   "site.footer.link.contribute": "Contribuir",
+  "site.footer.link.terms": "Términos",
+  "site.footer.link.dpa": "DPA para centros",
+  "site.footer.link.subprocessors": "Subencargados",
   "site.footer.link.feedback": "Comentarios",
   "site.footer.rights": "Todos los derechos reservados.",
 

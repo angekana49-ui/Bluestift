@@ -69,8 +69,8 @@ export const en = {
   "site.nav.tagline": "The AI tutor students and teachers share",
 
   // ── Public site: hero ─────────────────────────────────────────────
-  "site.hero.eyebrow": "AI tutor · any level, any subject, anywhere",
-  "site.hero.headline": "Everyone has an AI. Nobody shares one.",
+  "site.hero.eyebrow": "AI-powered diagnostic engine for schools",
+  "site.hero.headline": "The learning follows. The diagnosis comes first.",
   "site.hero.sub":
     "Students learn with one AI, teachers prepare with another, and neither side sees the other. Raya is the one they share — so what a student actually understands finally reaches the person teaching them.",
   "site.hero.ctaPrimary": "Try it free",
@@ -113,6 +113,72 @@ export const en = {
   "site.features.challenges.desc":
     "Quizzes, tests and group challenges with live standings, plus summaries, flashcards and mind maps from any lesson. Every attempt feeds the same profile.",
 
+  // ── Public site: the Socratic ladder (lib/raya/prompt.ts) ─────────
+  // The four rungs are the tutor's real escalation policy. Don't soften them
+  // into "adaptive help" — naming what each rung refuses to do is the point.
+  "site.ladder.eyebrow": "Pedagogical model",
+  "site.ladder.title.a": "A climbing ladder, not an",
+  "site.ladder.title.em": "answer engine.",
+  "site.ladder.sub":
+    "Raya climbs one rung at a time and never starts at the top. The goal isn’t a correct answer in the next thirty seconds — it’s a student who can do it again next week, alone.",
+  "site.ladder.r1.name": "Pump",
+  "site.ladder.r1.title": "Surface what’s already there",
+  "site.ladder.r1.body":
+    "Every exchange opens by asking the student to attempt or recall. Nothing is handed over before a real try — even a failed attempt makes the concept stick harder.",
+  "site.ladder.r2.name": "Hint",
+  "site.ladder.r2.title": "Narrow the search space",
+  "site.ladder.r2.body":
+    "A partial clue, and only after an attempt. It points at the next move without making it; the reasoning stays the student’s.",
+  "site.ladder.r3.name": "Assertion",
+  "site.ladder.r3.title": "State the missing piece",
+  "site.ladder.r3.body":
+    "The one fact that’s actually blocking progress, said plainly — but only once hints have failed. Never the finished solution.",
+  "site.ladder.r4.name": "Summary",
+  "site.ladder.r4.title": "Close the loop",
+  "site.ladder.r4.body":
+    "A recap to end the session, or to unstick a student who is genuinely blocked. What the student restates back is what gets scored.",
+  "site.ladder.note":
+    "This isn’t a setting a school switches on. Raya is built so it cannot hand over a finished answer — and its feedback targets the method, never the person, per Carol Dweck’s work: “this one trips a lot of people up”, never “you’re gifted”.",
+
+  // ── Public site: the Cognitive Kernel (lib/kernel/types.ts) ───────
+  // K/V/P/M are real fields (k_raw, v_score, p_score, m_score) and the five
+  // alerts are KernelAlertType verbatim. Keep this table in sync with them.
+  "site.kernel.eyebrow": "Cognitive Kernel",
+  "site.kernel.title.a": "Four dimensions,",
+  "site.kernel.title.em": "five alerts.",
+  "site.kernel.sub":
+    "The Kernel doesn’t store a grade. Every concept carries a four-part vector — and when a signal degrades it names the failure, so Raya can change tactic on the very next turn.",
+  "site.kernel.k.name": "K · Knowledge",
+  "site.kernel.k.title": "What holds up without help",
+  "site.kernel.k.body": "Mastery of that one concept, raw and adjusted, recomputed after each attempt.",
+  "site.kernel.v.name": "V · Velocity",
+  "site.kernel.v.title": "How fast it’s moving",
+  "site.kernel.v.body": "The observed learning rate, so a slow climb reads differently from a full stall.",
+  "site.kernel.p.name": "P · Persistence",
+  "site.kernel.p.title": "Whether it survives the week",
+  "site.kernel.p.body": "Resistance to forgetting: a concept secured on Monday that quietly slips by Friday gets caught.",
+  "site.kernel.m.name": "M · Mindset",
+  "site.kernel.m.title": "The relationship to error",
+  "site.kernel.m.body": "Whether struggle reads as information or as proof of failure. Tracked per student, not per concept.",
+  "site.kernel.col.alert": "Alert",
+  "site.kernel.col.signal": "Signal detected",
+  "site.kernel.col.response": "Raya’s response",
+  "site.kernel.a1.name": "Passive dependency",
+  "site.kernel.a1.signal": "Short answers, no attempt — the student is waiting to be handed the solution.",
+  "site.kernel.a1.response": "Raya refuses to escalate and asks for a genuine attempt, on a wider, goal-free prompt.",
+  "site.kernel.a2.name": "False mastery",
+  "site.kernel.a2.signal": "Right answers, with the reasoning missing or recited.",
+  "site.kernel.a2.response": "Immediate retest in a harder, held-out context before the mastery is trusted.",
+  "site.kernel.a3.name": "Recurring error",
+  "site.kernel.a3.signal": "A concept already validated breaks down again weeks later.",
+  "site.kernel.a3.response": "The concept is decomposed into smaller steps and rebuilt from the prerequisite up.",
+  "site.kernel.a4.name": "Cognitive overload",
+  "site.kernel.a4.signal": "Too many things to hold at once; the task is wider than working memory.",
+  "site.kernel.a4.response": "Task complexity is cut and a worked example replaces the exercise.",
+  "site.kernel.a5.name": "Fixed mindset",
+  "site.kernel.a5.signal": "“I’m just bad at maths” — giving up before the first attempt.",
+  "site.kernel.a5.response": "Process-focused reassurance first, before any new attempt is proposed.",
+
   // ── Public site: differentiators ──────────────────────────────────
   "site.diff.title.a": "Why not the",
   "site.diff.title.em": "others?",
@@ -124,6 +190,65 @@ export const en = {
   "site.diff.fixed.label": "Fixed adaptive platforms",
   "site.diff.fixed.verdict": "One rigid path, on somebody else’s curriculum.",
   "site.diff.raya.verdict": "One AI both sides share. What’s understood travels.",
+
+  // ── Public site: roadmap ──────────────────────────────────────────
+  // Must track docs/project-status.md. Payments stay "in progress" until live
+  // acquiring is switched on (sandbox-only today); the trajectory curve stays
+  // "in progress" until the simulation runs Kernel-side rather than as an LLM
+  // estimate. Promoting either one early makes the whole page a liability.
+  "site.roadmap.eyebrow": "Roadmap",
+  "site.roadmap.title.a": "Where the product",
+  "site.roadmap.title.em": "actually stands.",
+  "site.roadmap.sub":
+    "What’s live, what’s mid-build, what’s next. Nothing above is a screenshot of a feature that doesn’t exist yet.",
+  "site.roadmap.status.shipped": "Shipped",
+  "site.roadmap.status.progress": "In progress",
+  "site.roadmap.status.coming": "Coming",
+  "site.roadmap.i1.title": "Socratic sessions & Cognitive Kernel",
+  "site.roadmap.i1.body":
+    "The Pump → Hint → Assertion → Summary ladder, the per-concept vector and the five pedagogical alerts, running in every session.",
+  "site.roadmap.i2.title": "Schools workspace",
+  "site.roadmap.i2.body":
+    "Self-serve onboarding, admin and teacher roles, classes, invite codes and team joins, and insights by class and subject.",
+  "site.roadmap.i3.title": "Study Rooms, Challenges & Tools",
+  "site.roadmap.i3.body":
+    "Live group rooms with shared documents, group challenges with standings, and quizzes, summaries, flashcards and mind maps generated from a lesson.",
+  "site.roadmap.i4.title": "Payments & quotas",
+  "site.roadmap.i4.body":
+    "Card, mobile money and PayPal through a single aggregator, plus usage-limit enforcement. The full flow runs in sandbox; live acquiring isn’t switched on yet.",
+  "site.roadmap.i5.title": "Per-concept trajectory curve",
+  "site.roadmap.i5.body":
+    "A real Kernel-side projection, replacing the model-guided estimate the student profile shows today.",
+  "site.roadmap.i6.title": "LMS sync",
+  "site.roadmap.i6.body": "Importing classes and rosters from the environment a school already runs, instead of retyping them.",
+
+  // ── Public site: FAQ ──────────────────────────────────────────────
+  "site.faq.title.a": "Frequently asked",
+  "site.faq.title.em": "questions.",
+  "site.faq.q1": "Does Raya replace the teacher?",
+  "site.faq.a1":
+    "No. It absorbs the repetition and the diagnosis, and hands back the part a teacher does better than any model: deciding what to do about what it found.",
+  "site.faq.q2": "What does a teacher actually see?",
+  "site.faq.a2":
+    "Which concepts a student has secured, which are still shaky, and the prerequisite blocking the rest — never their conversations with Raya. A student who feels read stops admitting what they don’t understand.",
+  "site.faq.q3": "What if the student just asks for the answer?",
+  "site.faq.a3":
+    "Raya can’t give it — the guardrail is structural, not a setting. And a correct answer with no reasoning behind it doesn’t raise mastery either.",
+  "site.faq.q4": "Do we have to import our curriculum?",
+  "site.faq.a4":
+    "No. Concepts are extracted from the documents you upload and attached to the existing graph. One lesson is enough to start.",
+  "site.faq.q5": "Does it work on a weak connection?",
+  "site.faq.a5":
+    "Yes. The interface is light, the student works in their own language, and the profile lives server-side — the device stores and recomputes nothing.",
+
+  // ── Public site: closing CTA ──────────────────────────────────────
+  // Offer wording must match the hero chips. There is no fixed-length trial.
+  "site.finalCta.title.a": "Try Raya with",
+  "site.finalCta.title.em": "one class.",
+  "site.finalCta.sub": "Free to start, no card. The student begins; the Kernel does the rest.",
+  "site.finalCta.ctaPrimary": "Start free",
+  "site.finalCta.ctaSecondary": "Talk to the team",
+  "site.finalCta.note": "Solo, or with your class. Nothing to install.",
 
   // ── Public site: pricing gateway ──────────────────────────────────
   "site.pricing.title.a": "Pricing that",
@@ -155,9 +280,13 @@ export const en = {
   "site.footer.col.product": "PRODUCT",
   "site.footer.col.project": "PROJECT",
   "site.footer.col.resources": "RESOURCES",
+  "site.footer.col.legal": "LEGAL",
   "site.footer.link.studyRooms": "Study Rooms",
   "site.footer.link.toolsStudio": "Tools Studio",
   "site.footer.link.contribute": "Contribute",
+  "site.footer.link.terms": "Terms",
+  "site.footer.link.dpa": "Schools DPA",
+  "site.footer.link.subprocessors": "Sub-processors",
   "site.footer.link.feedback": "Feedback",
   "site.footer.rights": "All rights reserved.",
 

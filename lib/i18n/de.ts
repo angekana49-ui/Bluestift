@@ -92,7 +92,67 @@ export const de: Partial<Messages> = {
   "site.features.challenges.desc":
     "Quiz, Tests und Gruppen-Challenges mit Live-Rangliste, dazu Zusammenfassungen, Lernkarten und Mindmaps aus jeder Lektion. Jeder Versuch fließt in dasselbe Profil.",
 
-  "site.diff.title.a": "Warum nicht",
+  "site.ladder.eyebrow": "Pädagogisches Modell",
+  "site.ladder.title.a": "Eine Leiter zum Steigen, kein",
+  "site.ladder.title.em": "Antwortautomat.",
+  "site.ladder.sub":
+    "Raya steigt Sprosse für Sprosse und beginnt nie oben. Das Ziel ist nicht die richtige Antwort in dreißig Sekunden, sondern eine Lernende oder ein Lernender, die es nächste Woche allein wieder kann.",
+  "site.ladder.r1.name": "Anstoß",
+  "site.ladder.r1.title": "Hervorholen, was schon da ist",
+  "site.ladder.r1.body":
+    "Jeder Austausch beginnt mit der Bitte um einen Versuch oder eine Erinnerung. Nichts wird vor einem echten Versuch herausgegeben — selbst ein misslungener verankert das Konzept stärker.",
+  "site.ladder.r2.name": "Hinweis",
+  "site.ladder.r2.title": "Den Suchraum verengen",
+  "site.ladder.r2.body":
+    "Ein Teilhinweis, und erst nach einem Versuch. Er zeigt auf den nächsten Schritt, ohne ihn zu gehen; das Denken bleibt beim Lernenden.",
+  "site.ladder.r3.name": "Aussage",
+  "site.ladder.r3.title": "Das fehlende Stück benennen",
+  "site.ladder.r3.body":
+    "Genau der Punkt, der blockiert, klar ausgesprochen — aber erst, wenn Hinweise gescheitert sind. Nie die fertige Lösung.",
+  "site.ladder.r4.name": "Zusammenfassung",
+  "site.ladder.r4.title": "Den Kreis schließen",
+  "site.ladder.r4.body":
+    "Ein Rückblick zum Abschluss der Sitzung oder zum Lösen einer echten Blockade. Bewertet wird, was der Lernende selbst wiedergibt.",
+  "site.ladder.note":
+    "Das ist keine Einstellung, die eine Schule aktiviert. Raya ist so gebaut, dass sie keine fertige Antwort herausgeben kann — und ihr Feedback zielt auf die Methode, nie auf die Person, wie es Carol Dwecks Arbeit nahelegt: „Hier stolpern viele“, nie „du bist begabt“.",
+
+  "site.kernel.eyebrow": "Kognitiver Kern",
+  "site.kernel.title.a": "Vier Dimensionen,",
+  "site.kernel.title.em": "fünf Warnsignale.",
+  "site.kernel.sub":
+    "Der Kern speichert keine Note. Jedes Konzept trägt einen vierteiligen Vektor — und sobald ein Signal kippt, benennt er das Problem, damit Raya schon im nächsten Zug die Taktik wechselt.",
+  "site.kernel.k.name": "K · Wissen",
+  "site.kernel.k.title": "Was ohne Hilfe trägt",
+  "site.kernel.k.body": "Die Beherrschung genau dieses Konzepts, roh und angepasst, nach jedem Versuch neu berechnet.",
+  "site.kernel.v.name": "V · Tempo",
+  "site.kernel.v.title": "Wie schnell es sich bewegt",
+  "site.kernel.v.body": "Die beobachtete Lernrate: ein langsamer Anstieg liest sich anders als ein völliger Stillstand.",
+  "site.kernel.p.name": "P · Beständigkeit",
+  "site.kernel.p.title": "Was die Woche übersteht",
+  "site.kernel.p.body": "Widerstand gegen das Vergessen: ein am Montag gesichertes Konzept, das bis Freitag wegrutscht, fällt auf.",
+  "site.kernel.m.name": "M · Haltung",
+  "site.kernel.m.title": "Das Verhältnis zum Fehler",
+  "site.kernel.m.body": "Ob Anstrengung als Information gilt oder als Beweis des Scheiterns. Pro Lernendem erfasst, nicht pro Konzept.",
+  "site.kernel.col.alert": "Warnsignal",
+  "site.kernel.col.signal": "Erkanntes Signal",
+  "site.kernel.col.response": "Rayas Reaktion",
+  "site.kernel.a1.name": "Passive Abhängigkeit",
+  "site.kernel.a1.signal": "Kurze Antworten, kein Versuch — es wird darauf gewartet, die Lösung zu bekommen.",
+  "site.kernel.a1.response": "Raya eskaliert nicht und fordert einen echten Versuch, auf einer offeneren Aufgabe.",
+  "site.kernel.a2.name": "Scheinbeherrschung",
+  "site.kernel.a2.signal": "Richtige Antworten, aber die Begründung fehlt oder ist auswendig gelernt.",
+  "site.kernel.a2.response": "Sofortige Gegenprobe in einem schwereren, neuen Kontext, bevor das Können als gesichert gilt.",
+  "site.kernel.a3.name": "Wiederkehrender Fehler",
+  "site.kernel.a3.signal": "Ein bereits bestätigtes Konzept bricht Wochen später erneut ein.",
+  "site.kernel.a3.response": "Das Konzept wird in kleinere Schritte zerlegt und von der Voraussetzung an neu aufgebaut.",
+  "site.kernel.a4.name": "Kognitive Überlastung",
+  "site.kernel.a4.signal": "Zu viel gleichzeitig im Kopf; die Aufgabe übersteigt das Arbeitsgedächtnis.",
+  "site.kernel.a4.response": "Die Komplexität wird reduziert, ein durchgerechnetes Beispiel ersetzt die Übung.",
+  "site.kernel.a5.name": "Starre Haltung",
+  "site.kernel.a5.signal": "„Ich bin einfach schlecht in Mathe“ — aufgeben vor dem ersten Versuch.",
+  "site.kernel.a5.response": "Zuerst eine auf die Methode gerichtete Einordnung, bevor ein neuer Versuch vorgeschlagen wird.",
+
+  "site.diff.title.a":"Warum nicht",
   "site.diff.title.em": "die anderen?",
   "site.diff.sub": "Der Unterschied ist nicht die KI. Die haben inzwischen alle. Es ist das, was zwischen euch übergeht.",
   "site.diff.general.label": "Allgemeine Assistenten",
@@ -103,7 +163,58 @@ export const de: Partial<Messages> = {
   "site.diff.fixed.verdict": "Ein starrer Pfad, auf fremdem Lehrplan.",
   "site.diff.raya.verdict": "Eine KI, die beide teilen. Verstandenes wandert mit.",
 
-  "site.pricing.title.a": "Preise, die",
+  "site.roadmap.eyebrow": "Roadmap",
+  "site.roadmap.title.a": "Wo das Produkt",
+  "site.roadmap.title.em": "wirklich steht.",
+  "site.roadmap.sub":
+    "Was läuft, was gerade entsteht, was kommt. Nichts oben ist der Screenshot einer Funktion, die es noch nicht gibt.",
+  "site.roadmap.status.shipped": "Fertig",
+  "site.roadmap.status.progress": "In Arbeit",
+  "site.roadmap.status.coming": "Geplant",
+  "site.roadmap.i1.title": "Sokratische Sitzungen und kognitiver Kern",
+  "site.roadmap.i1.body":
+    "Die Leiter Anstoß → Hinweis → Aussage → Zusammenfassung, der Vektor pro Konzept und die fünf pädagogischen Warnsignale — in jeder Sitzung aktiv.",
+  "site.roadmap.i2.title": "Schul-Arbeitsbereich",
+  "site.roadmap.i2.body":
+    "Selbstständige Einrichtung, Rollen für Verwaltung und Lehrkräfte, Klassen, Einladungscodes und Team-Beitritte, Auswertungen nach Klasse und Fach.",
+  "site.roadmap.i3.title": "Lernräume, Challenges und Werkzeuge",
+  "site.roadmap.i3.body":
+    "Live-Gruppenräume mit gemeinsamen Dokumenten, Gruppen-Challenges mit Rangliste sowie Quizze, Zusammenfassungen, Lernkarten und Mindmaps aus einer Unterrichtsstunde.",
+  "site.roadmap.i4.title": "Zahlungen und Kontingente",
+  "site.roadmap.i4.body":
+    "Karte, Mobile Money und PayPal über einen einzigen Aggregator, dazu die Durchsetzung von Nutzungsgrenzen. Der komplette Ablauf läuft in der Sandbox; das echte Einziehen ist noch nicht freigeschaltet.",
+  "site.roadmap.i5.title": "Verlaufskurve pro Konzept",
+  "site.roadmap.i5.body":
+    "Eine echte Projektion im Kern statt der modellgestützten Schätzung, die das Profil heute zeigt.",
+  "site.roadmap.i6.title": "LMS-Abgleich",
+  "site.roadmap.i6.body": "Klassen und Namenslisten aus der bestehenden Umgebung importieren, statt sie erneut einzutippen.",
+
+  "site.faq.title.a": "Häufige",
+  "site.faq.title.em": "Fragen.",
+  "site.faq.q1": "Ersetzt Raya die Lehrkraft?",
+  "site.faq.a1":
+    "Nein. Sie übernimmt Wiederholung und Diagnose und gibt der Lehrkraft zurück, was diese besser kann als jedes Modell: entscheiden, was mit dem Befund geschieht.",
+  "site.faq.q2": "Was sieht eine Lehrkraft tatsächlich?",
+  "site.faq.a2":
+    "Welche Konzepte gesichert sind, welche noch wackeln und welche Voraussetzung den Rest blockiert — nie die Gespräche mit Raya. Wer sich gelesen fühlt, gibt nicht mehr zu, was er nicht versteht.",
+  "site.faq.q3": "Und wenn einfach nach der Antwort gefragt wird?",
+  "site.faq.a3":
+    "Raya kann sie nicht geben — die Schranke ist strukturell, keine Einstellung. Und eine richtige Antwort ohne Begründung hebt die Beherrschung ebenfalls nicht an.",
+  "site.faq.q4": "Müssen wir unseren Lehrplan importieren?",
+  "site.faq.a4":
+    "Nein. Konzepte werden aus den hochgeladenen Dokumenten gewonnen und an den bestehenden Graphen gehängt. Eine einzige Unterrichtsstunde reicht zum Start.",
+  "site.faq.q5": "Funktioniert es bei schwacher Verbindung?",
+  "site.faq.a5":
+    "Ja. Die Oberfläche ist leicht, gearbeitet wird in der eigenen Sprache, und das Profil liegt auf dem Server — das Gerät speichert und rechnet nichts.",
+
+  "site.finalCta.title.a": "Raya mit",
+  "site.finalCta.title.em": "einer Klasse testen.",
+  "site.finalCta.sub": "Kostenlos starten, ohne Karte. Die Lernenden legen los; den Rest macht der Kern.",
+  "site.finalCta.ctaPrimary": "Kostenlos starten",
+  "site.finalCta.ctaSecondary": "Mit dem Team sprechen",
+  "site.finalCta.note": "Allein oder mit der Klasse. Nichts zu installieren.",
+
+  "site.pricing.title.a":"Preise, die",
   "site.pricing.title.em": "einfach bleiben.",
   "site.pricing.sub": "Drei Einstiege — einzeln lernen, eine ganze Schule oder eine maßgeschneiderte Lösung. Wähle deinen.",
   "site.pricing.solo.title": "Solo",
@@ -131,9 +242,13 @@ export const de: Partial<Messages> = {
   "site.footer.col.product": "PRODUKT",
   "site.footer.col.project": "PROJEKT",
   "site.footer.col.resources": "RESSOURCEN",
+  "site.footer.col.legal": "RECHTLICHES",
   "site.footer.link.studyRooms": "Lernräume",
   "site.footer.link.toolsStudio": "Werkzeug-Studio",
   "site.footer.link.contribute": "Mitwirken",
+  "site.footer.link.terms": "AGB",
+  "site.footer.link.dpa": "Schul-AVV",
+  "site.footer.link.subprocessors": "Unterauftragsverarbeiter",
   "site.footer.link.feedback": "Feedback",
   "site.footer.rights": "Alle Rechte vorbehalten.",
 

@@ -6,8 +6,13 @@ import Navbar from "./Navbar";
 import HeroSection from "./HeroSection";
 import ConnectionSection from "./ConnectionSection";
 import FeaturesSection from "./FeaturesSection";
+import LadderSection from "./LadderSection";
+import KernelSection from "./KernelSection";
 import DifferentiatorsSection from "./DifferentiatorsSection";
+import RoadmapSection from "./RoadmapSection";
+import FaqSection from "./FaqSection";
 import PricingSection from "./PricingSection";
+import FinalCtaSection from "./FinalCtaSection";
 import Footer from "./Footer";
 import { LanguagePrompt } from "./LanguagePrompt";
 
@@ -248,8 +253,20 @@ export default function LandingPage({ signedIn, homeHref }: { signedIn?: boolean
           it (connection), then the surfaces that run on it (features). */}
       <ConnectionSection theme={t} />
       <FeaturesSection theme={t} />
+      {/* Claim, then proof. Ladder and Kernel are the two places the page stops
+          describing the product and shows the actual mechanism — the tutor's
+          escalation policy and the fields the Kernel really stores. They sit
+          right after the surfaces so a sceptical teacher hits them before the
+          comparison, not after it. */}
+      <LadderSection theme={t} />
+      <KernelSection theme={t} />
       <DifferentiatorsSection theme={t} />
+      {/* Objection handling, in the order objections arrive: "is any of this
+          real yet?" (roadmap), then the five that come back from every school. */}
+      <RoadmapSection theme={t} />
+      <FaqSection theme={t} />
       <PricingSection theme={t} />
+      <FinalCtaSection theme={t} signedIn={signedIn} homeHref={homeHref} />
       <Footer theme={t} variant="full" />
       {/* First visit only: asks the language instead of hiding a picker in the
           nav. Renders nothing once answered, and nothing at all server-side. */}

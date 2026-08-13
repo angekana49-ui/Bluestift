@@ -4,6 +4,7 @@ import type { Theme } from "./theme";
 import { RayaText } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
+import Reveal from "./Reveal";
 
 /**
  * The thesis band — the section the old "memory" landing didn't have.
@@ -59,10 +60,12 @@ export default function ConnectionSection({ theme: t }: { theme: Theme }) {
         </div>
 
         <div className="pub-grid-3" style={{ gap: 20, alignItems: "stretch" }}>
-          {STEPS.map((s) => (
+          {STEPS.map((s, i) => (
+            <Reveal key={s.n} delay={i * 80} style={{ height: "100%" }}>
             <div
-              key={s.n}
+              className="pub-lift"
               style={{
+                height: "100%",
                 display: "flex",
                 flexDirection: "column",
                 background: t.sectionAltBg,
@@ -94,6 +97,7 @@ export default function ConnectionSection({ theme: t }: { theme: Theme }) {
                 <RayaText>{tr(s.bodyKey)}</RayaText>
               </p>
             </div>
+            </Reveal>
           ))}
         </div>
 
