@@ -89,6 +89,7 @@ export default function Footer({ theme: t, variant = "full" }: { theme: Theme; v
         <div className="pub-footer-grid" style={{ marginBottom: 40 }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              {/* Light mark in both themes — see the note in Navbar.tsx. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/bluestift-mark.png" alt="BlueStift" style={{ width: 26, height: 26, borderRadius: 7, objectFit: "cover" }} />
               <span style={{ fontSize: 15, fontWeight: 800 }}>

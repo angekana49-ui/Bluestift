@@ -83,6 +83,9 @@ export default function Navbar({
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
+            // The public site keeps the light mark in both themes, by design:
+            // the blue bird is the brand signature and stays put when the page
+            // flips to dark. Only the app shell swaps in the -dark variant.
             src="/bluestift-mark.png"
             alt="BlueStift"
             style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}

@@ -138,6 +138,7 @@ export function LanguagePrompt({ theme: t }: { theme: Theme }) {
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
+          // Light mark in both themes — see the note in Navbar.tsx.
           src="/bluestift-mark.png"
           alt=""
           style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", margin: "0 auto 14px", display: "block" }}

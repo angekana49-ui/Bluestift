@@ -97,7 +97,7 @@ export function RayaApp() {
         expandedWidth={212}
         onBackgroundClick={() => setCollapsed((c) => !c)}
       >
-        <SidebarBrand theme={t} collapsed={collapsed} logoSrc="/raya-mark.png" logoSrcDark="/raya-mark-violet.png" logoRadius={0} logoSize={52} name="Raya" />
+        <SidebarBrand theme={t} collapsed={collapsed} logoSrc="/raya-mark.png" logoSrcDark="/raya-mark-dark.png" logoRadius={0} logoSize={52} name="Raya" />
 
         <NavItem
           theme={t}

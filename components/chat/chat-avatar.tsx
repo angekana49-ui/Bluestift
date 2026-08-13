@@ -42,7 +42,7 @@ export function ChatAvatar({
       <span style={{ ...base, background: t.dark ? "#141b2e" : "#ffffff", border: `1px solid ${t.cardBorder}` }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={t.dark ? "/raya-mark-violet.png" : "/raya-mark.png"}
+          src={t.dark ? "/raya-mark-dark.png" : "/raya-mark.png"}
           alt="Raya"
           style={{ width: "82%", height: "82%", objectFit: "contain" }}
         />

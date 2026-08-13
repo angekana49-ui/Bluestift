@@ -197,7 +197,8 @@ export function SidebarBrand({
   theme: AppTheme;
   collapsed: boolean;
   logoSrc: string;
-  /** Optional dark-mode logo (e.g. emerald rosace); falls back to `logoSrc`. */
+  /** Dark-mode logo. The marks are transparent, so the light variant (blue artwork)
+   *  disappears on a dark sidebar — pass the `-dark` file here. Falls back to `logoSrc`. */
   logoSrcDark?: string;
   logoRadius?: number;
   logoSize?: number;
