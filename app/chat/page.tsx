@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { needsAgeGate } from "@/lib/compliance/guard";
 import { getStudentRecommendations } from "@/lib/school-admin";
 import { getPlanLabel } from "@/lib/billing";
 import { softValue } from "@/lib/page-data";
@@ -18,7 +19,7 @@ export default async function ChatPage() {
   const [{ data: profile }, { data: convs }, recommendations, planLabel] = await Promise.all([
     supabase
       .from("users")
-      .select("account_state, display_name, username, profile_picture_url")
+      .select("account_state, display_name, username, profile_picture_url, birth_year, minor_consent_source, school_id")
       .eq("id", user.id)
       .single(),
     // Full solo-chat history (room-private channels are excluded).
@@ -32,7 +33,9 @@ export default async function ChatPage() {
     softValue(getStudentRecommendations(user.id), []),
     softValue(getPlanLabel({ userId: user.id }), "User — Free"),
   ]);
-  if (!profile || profile.account_state === "onboarding_pending") {
+  // Onboarding covers both first-run setup and the age question, so an
+  // account that predates the age gate is sent back for it too.
+  if (!profile || profile.account_state === "onboarding_pending" || needsAgeGate(profile)) {
     redirect("/onboarding");
   }
   const studentName = profile.display_name || profile.username || "";

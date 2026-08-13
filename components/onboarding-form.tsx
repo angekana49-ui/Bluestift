@@ -39,8 +39,12 @@ import {
 type Track = "raya" | "schools";
 type SchoolRole = "teacher" | "school";
 
-const RAYA_STEPS = ["path", "name", "level", "subjects", "goal"] as const;
-const SCHOOL_STEPS = ["path", "name", "srole", "focus", "ready"] as const;
+// The age question sits second on purpose — right after the path, before we ask
+// for a name or anything else. Nothing is collected from a child we're about to
+// turn away. It is also phrased neutrally ("what year were you born?") rather
+// than as "are you over 13?", which tells a child which answer opens the door.
+const RAYA_STEPS = ["path", "age", "name", "level", "subjects", "goal"] as const;
+const SCHOOL_STEPS = ["path", "age", "name", "srole", "focus", "ready"] as const;
 
 const LEVELS = [
   { value: "middle_school", label: "Middle school" },
@@ -71,6 +75,8 @@ export function OnboardingForm({
   recoveryCode,
   initialUsername,
   initialDisplayName,
+  ageOnly = false,
+  startBlocked = false,
 }: {
   userId: string;
   emailVerified: boolean;
@@ -78,13 +84,20 @@ export function OnboardingForm({
   recoveryCode: string | null;
   initialUsername: string;
   initialDisplayName: string;
+  /** Account already set up, but with no age on file — ask only that. */
+  ageOnly?: boolean;
+  /** Already known to be an unauthorised under-13; open on the blocked screen. */
+  startBlocked?: boolean;
 }) {
   const supabase = createClient();
   const router = useRouter();
 
-  const [track, setTrack] = useState<Track | null>(null);
-  const [stepIndex, setStepIndex] = useState(0);
-  const [phase, setPhase] = useState<"steps" | "email" | "welcome">("steps");
+  const [track, setTrack] = useState<Track | null>(ageOnly ? "raya" : null);
+  const [stepIndex, setStepIndex] = useState(ageOnly ? 1 : 0);
+  const [phase, setPhase] = useState<"steps" | "email" | "welcome" | "blocked">(
+    startBlocked ? "blocked" : "steps",
+  );
+  const [birthYear, setBirthYear] = useState("");
 
   const [username, setUsername] = useState(initialUsername);
   const [displayName, setDisplayName] = useState(initialDisplayName);
@@ -103,11 +116,15 @@ export function OnboardingForm({
 
   const steps = track === "schools" ? SCHOOL_STEPS : RAYA_STEPS;
   const stepKey = steps[stepIndex];
+  const lastStep = steps.length - 1;
   const identityReady = username.trim().length > 0 && displayName.trim().length > 0;
 
-  const totalSteps = isAnonymous ? 6 : 5;
-  const stepNumber = phase === "email" ? 6 : stepIndex + 1;
-  const progress = Math.round(28 + ((stepNumber - 1) / (totalSteps - 1)) * 67);
+  // In age-only mode there is exactly one question, so the counter says so
+  // rather than pretending the user is partway through a fresh setup.
+  const totalSteps = ageOnly ? 1 : steps.length + (isAnonymous ? 1 : 0);
+  const stepNumber = ageOnly ? 1 : phase === "email" ? steps.length + 1 : stepIndex + 1;
+  const progress =
+    totalSteps > 1 ? Math.round(28 + ((stepNumber - 1) / (totalSteps - 1)) * 67) : 60;
 
   const dest = track === "schools" ? "/school/enter" : "/chat";
 
@@ -125,16 +142,18 @@ export function OnboardingForm({
     setError(null);
     if (phase === "email") {
       setPhase("steps");
-      setStepIndex(4);
+      setStepIndex(lastStep);
       return;
     }
-    if (stepIndex === 0) return;
+    if (stepIndex === 0 || ageOnly) return;
     if (stepIndex === 1) setTrack(null);
     setStepIndex((i) => i - 1);
   }
 
   function validate(): string | null {
     switch (stepKey) {
+      case "age":
+        return /^\d{4}$/.test(birthYear.trim()) ? null : "Enter the year you were born.";
       case "name":
         return identityReady ? null : "Choose a username and a display name.";
       case "level":
@@ -146,20 +165,67 @@ export function OnboardingForm({
     }
   }
 
+  /**
+   * Send the declared year to the server, which decides the band and stores it.
+   * The client is deliberately not trusted with that call: `birth_year` isn't
+   * client-writable, so a blocked child can't post their way past this.
+   * Returns false when the answer blocks them.
+   */
+  async function submitAge(): Promise<boolean> {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/account/age", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ birthYear: Number(birthYear.trim()) }),
+      });
+      const data = (await res.json()) as { allowed?: boolean; error?: string };
+      if (!res.ok) {
+        setError(data.error ?? `Couldn't save that (${res.status}).`);
+        return false;
+      }
+      if (!data.allowed) {
+        setPhase("blocked");
+        return false;
+      }
+      return true;
+    } catch {
+      setError("Couldn't reach the server.");
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function next() {
     if (busy) return;
     const err = validate();
     if (err) return setError(err);
     setError(null);
-    if (stepIndex < 4) return setStepIndex((i) => i + 1);
+
+    if (stepKey === "age") {
+      const ok = await submitAge();
+      if (!ok) return;
+      // Nothing else is missing for an existing account — send them on.
+      if (ageOnly) {
+        router.replace("/chat");
+        router.refresh();
+        return;
+      }
+    }
+
+    if (stepIndex < lastStep) return setStepIndex((i) => i + 1);
     await commit();
   }
 
   async function commit() {
     const u = username.trim();
     const d = displayName.trim();
+    // Jump back to whichever index "name" now sits at — it moved when the age
+    // question was inserted, and a hard-coded 1 would land on the wrong screen.
+    const nameStep = (steps as readonly string[]).indexOf("name");
     if (!u || !d) {
-      setStepIndex(1);
+      setStepIndex(nameStep);
       return setError("Choose a username and a display name.");
     }
     setBusy(true);
@@ -182,7 +248,7 @@ export function OnboardingForm({
     if (updErr) {
       setBusy(false);
       if (updErr.code === "23505") {
-        setStepIndex(1);
+        setStepIndex(nameStep);
         return setError("That username is already taken.");
       }
       return setError(updErr.message);
@@ -230,6 +296,27 @@ export function OnboardingForm({
   function enterApp() {
     router.push(dest);
     router.refresh();
+  }
+
+  // ---------------------------------------------------------------- Blocked ---
+  // Under 13 with no school and no recorded parental authorisation. We run no
+  // verifiable-parental-consent mechanism of our own, so the only way in is a
+  // school vouching for them — anything else would be pretending.
+  if (phase === "blocked") {
+    return (
+      <AuthSplit>
+        <BlockedScreen
+          onLinked={() => {
+            // The school join records the authorisation server-side; reloading
+            // re-runs the gate, which now lets them through.
+            router.replace("/onboarding");
+            router.refresh();
+          }}
+          onLeave={leaveOnboarding}
+          busy={busy}
+        />
+      </AuthSplit>
+    );
   }
 
   // ---------------------------------------------------------------- Welcome ---
@@ -364,6 +451,30 @@ export function OnboardingForm({
             </>
           )}
 
+          {stepKey === "age" && (
+            <>
+              <h1 style={heading}>What year were you born?</h1>
+              <p style={sub}>
+                We ask everyone. It decides what we&apos;re allowed to switch on for your
+                account — nothing more.
+              </p>
+              <label style={fieldLabel}>Year of birth</label>
+              <input
+                style={fieldInput}
+                inputMode="numeric"
+                autoComplete="off"
+                maxLength={4}
+                placeholder="e.g. 2009"
+                value={birthYear}
+                // Digits only, so a stray letter can't turn into a silent NaN.
+                onChange={(e) => setBirthYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              />
+              <p style={{ fontSize: 13, color: "#64748b", margin: "-4px 0 0", lineHeight: 1.6 }}>
+                We store the year only — never a full date of birth.
+              </p>
+            </>
+          )}
+
           {stepKey === "name" && (
             <>
               <h1 style={heading}>What should we call you?</h1>
@@ -465,14 +576,39 @@ export function OnboardingForm({
           )}
 
           {stepKey !== "path" && (
-            <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-              <button onClick={back} disabled={busy} style={secondaryBtn}>
-                Back
-              </button>
-              <button onClick={next} disabled={busy} style={{ ...primaryBtn, marginTop: 0, flex: 1, opacity: busy ? 0.6 : 1 }}>
-                {busy ? "…" : stepIndex === 4 ? "Finish →" : "Continue"}
-              </button>
-            </div>
+            <>
+              <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+                <button onClick={back} disabled={busy} style={secondaryBtn}>
+                  Back
+                </button>
+                <button onClick={next} disabled={busy} style={{ ...primaryBtn, marginTop: 0, flex: 1, opacity: busy ? 0.6 : 1 }}>
+                  {busy ? "…" : stepIndex === lastStep ? "Finish →" : "Continue"}
+                </button>
+              </div>
+              {/* Shown at the step that creates the account, not buried in a
+                  footer — this is the moment the agreement is actually made. */}
+              {!ageOnly && (
+                <p
+                  style={{
+                    fontSize: 12.5,
+                    color: "#64748b",
+                    lineHeight: 1.6,
+                    textAlign: "center",
+                    margin: "14px 0 0",
+                  }}
+                >
+                  By continuing you agree to our{" "}
+                  <a href="/terms" target="_blank" rel="noreferrer" style={{ color: WORDMARK_B, fontWeight: 600 }}>
+                    Terms
+                  </a>{" "}
+                  and{" "}
+                  <a href="/privacy" target="_blank" rel="noreferrer" style={{ color: WORDMARK_B, fontWeight: 600 }}>
+                    Privacy Policy
+                  </a>
+                  .
+                </p>
+              )}
+            </>
           )}
         </>
       )}
@@ -617,6 +753,125 @@ function EmailStep({
           Continue →
         </button>
       </div>
+    </>
+  );
+}
+
+// ----------------------------------------------------------- Blocked screen ---
+/**
+ * The under-13 dead end, and the one door out of it.
+ *
+ * COPPA lets a school consent on a parent's behalf for school use, and that is
+ * the only consent mechanism we operate — we do not verify parents ourselves.
+ * So the class code is not a convenience here, it is the entire legal basis.
+ * Everything else on this screen points at a human.
+ */
+function BlockedScreen({
+  onLinked,
+  onLeave,
+  busy,
+}: {
+  onLinked: () => void;
+  onLeave: () => void;
+  busy: boolean;
+}) {
+  const [code, setCode] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [linking, setLinking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const ready = code.trim() && firstName.trim() && lastName.trim();
+
+  async function link() {
+    if (linking || !ready) return;
+    setLinking(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/school/join", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ code: code.trim(), firstName, lastName }),
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        setError(data.error ?? `Couldn't link that code (${res.status}).`);
+        return;
+      }
+      onLinked();
+    } catch {
+      setError("Couldn't reach the server.");
+    } finally {
+      setLinking(false);
+    }
+  }
+
+  return (
+    <>
+      <h1 style={heading}>
+        You need your school&apos;s permission to use <RayaName />.
+      </h1>
+      <p style={sub}>
+        Under 13, we can only open an account when a school sets it up. If your teacher gave
+        you a class code, enter it here and you&apos;re in.
+      </p>
+
+      <label style={fieldLabel}>Class code</label>
+      <input
+        style={fieldInput}
+        placeholder="From your teacher"
+        value={code}
+        onChange={(e) => setCode(e.target.value)}
+        autoCapitalize="characters"
+        disabled={linking}
+      />
+      <label style={fieldLabel}>Your name (shared only with your school)</label>
+      <div style={{ display: "flex", gap: 10 }}>
+        <input
+          style={fieldInput}
+          placeholder="First name"
+          value={firstName}
+          onChange={(e) => setFirstName(e.target.value)}
+          disabled={linking}
+        />
+        <input
+          style={fieldInput}
+          placeholder="Last name"
+          value={lastName}
+          onChange={(e) => setLastName(e.target.value)}
+          disabled={linking}
+        />
+      </div>
+      <button
+        onClick={link}
+        disabled={linking || !ready}
+        style={{ ...primaryBtn, opacity: linking || !ready ? 0.6 : 1 }}
+      >
+        {linking ? "Linking…" : "Use my class code →"}
+      </button>
+
+      <div style={noteBox}>
+        <strong style={{ color: "#0b1220" }}>No class code?</strong> Ask your teacher for one.
+        A parent or guardian can also write to{" "}
+        <a href="mailto:hello@thebluestift.com" style={{ color: WORDMARK_B, fontWeight: 600 }}>
+          hello@thebluestift.com
+        </a>{" "}
+        and we&apos;ll sort it out with them.
+      </div>
+      <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.6, margin: "12px 0 0" }}>
+        Until then this account stays closed. We&apos;ve kept nothing but the year you gave us,
+        and it will be deleted along with the account if it goes unused.
+      </p>
+
+      <button
+        onClick={onLeave}
+        disabled={busy}
+        style={{ ...secondaryBtn, marginTop: 16, width: "100%" }}
+      >
+        Sign out
+      </button>
+
+      {error && <p style={{ color: "#dc2626", textAlign: "center", marginTop: 14, fontSize: 14 }}>{error}</p>}
     </>
   );
 }

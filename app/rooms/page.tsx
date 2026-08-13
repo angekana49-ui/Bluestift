@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { needsAgeGate } from "@/lib/compliance/guard";
 import { RoomsList } from "@/components/rooms-list";
 import { RayaScaffold } from "@/components/raya/raya-scaffold";
 import { SectionHeader } from "@/components/raya/section-header";
@@ -31,13 +32,15 @@ export default async function RoomsPage() {
   const [{ data: profile }, { data: memberships }, studentPlan] = await Promise.all([
     supabase
       .from("users")
-      .select("account_state, display_name, username, profile_picture_url")
+      .select("account_state, display_name, username, profile_picture_url, birth_year, minor_consent_source, school_id")
       .eq("id", user.id)
       .single(),
     supabase.schema("learning").from("room_members").select("room_id").eq("user_id", user.id),
     softValue(getPlanLabel({ userId: user.id }), "User — Free"),
   ]);
-  if (!profile || profile.account_state === "onboarding_pending") {
+  // Onboarding covers both first-run setup and the age question, so an
+  // account that predates the age gate is sent back for it too.
+  if (!profile || profile.account_state === "onboarding_pending" || needsAgeGate(profile)) {
     redirect("/onboarding");
   }
   const studentName = profile.display_name || profile.username || "";

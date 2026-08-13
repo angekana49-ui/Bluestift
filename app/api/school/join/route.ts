@@ -5,6 +5,7 @@ import { classCapacity } from "@/lib/school-admin";
 import { resolveSeatGate } from "@/lib/billing";
 import { checkStrictRateLimit } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/request-ip";
+import { ageBand, isMinor } from "@/lib/compliance/age";
 
 // Local shapes for the untyped `schools` schema (not in generated types).
 type CodeRow = { class_id: string; school_year_id: string | null };
@@ -136,13 +137,23 @@ export async function POST(request: Request) {
   // Wire the coordination columns on public.users. class_enrollment_id has an FK
   // to a billing enrollment row — only set it when one already exists.
   const admin = createAdminClient();
-  const { data: enrollment } = await admin
-    .from("class_enrollments")
-    .select("id")
-    .eq("class_id", classRow.id)
-    .eq("is_active", true)
-    .limit(1)
-    .maybeSingle();
+  const [{ data: enrollment }, { data: ageRow }] = await Promise.all([
+    admin
+      .from("class_enrollments")
+      .select("id")
+      .eq("class_id", classRow.id)
+      .eq("is_active", true)
+      .limit(1)
+      .maybeSingle(),
+    admin.from("users").select("birth_year").eq("id", user.id).maybeSingle(),
+  ]);
+
+  // The school's authorisation is what lets an under-13 use Raya at all: we run
+  // no verifiable-parental-consent mechanism of our own and rely on the COPPA
+  // school-consent exception, which is also the FERPA "school official"
+  // relationship. Record it at the moment it is given, so the age gate can see
+  // it — otherwise a child who joins a class stays blocked forever.
+  const minor = isMinor(ageBand(ageRow?.birth_year ?? null));
 
   const { error: uErr } = await admin
     .from("users")
@@ -150,6 +161,13 @@ export async function POST(request: Request) {
       school_id: schoolId,
       school_year_id: schoolYearId,
       ...(enrollment?.id ? { class_enrollment_id: enrollment.id } : {}),
+      ...(minor
+        ? {
+            minor_consent_source: "school",
+            minor_consent_at: new Date().toISOString(),
+            minor_consent_note: schoolId,
+          }
+        : {}),
     })
     .eq("id", user.id);
   if (uErr) return NextResponse.json({ error: uErr.message }, { status: 500 });

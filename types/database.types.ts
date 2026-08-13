@@ -87,6 +87,39 @@ export type Database = {
           },
         ]
       }
+      data_requests: {
+        Row: {
+          channel: string
+          completed_at: string | null
+          id: string
+          kind: string
+          note: string | null
+          outcome: string | null
+          requested_at: string
+          subject_user_id: string
+        }
+        Insert: {
+          channel?: string
+          completed_at?: string | null
+          id?: string
+          kind: string
+          note?: string | null
+          outcome?: string | null
+          requested_at?: string
+          subject_user_id: string
+        }
+        Update: {
+          channel?: string
+          completed_at?: string | null
+          id?: string
+          kind?: string
+          note?: string | null
+          outcome?: string | null
+          requested_at?: string
+          subject_user_id?: string
+        }
+        Relationships: []
+      }
       email_usage_windows: {
         Row: {
           created_at: string
@@ -255,6 +288,11 @@ export type Database = {
           account_state: string
           account_type: string
           auth_method: string
+          birth_year: number | null
+          age_declared_at: string | null
+          minor_consent_source: string | null
+          minor_consent_at: string | null
+          minor_consent_note: string | null
           class_enrollment_id: string | null
           created_at: string
           daily_message_count: number
@@ -281,6 +319,11 @@ export type Database = {
           account_state?: string
           account_type?: string
           auth_method?: string
+          birth_year?: number | null
+          age_declared_at?: string | null
+          minor_consent_source?: string | null
+          minor_consent_at?: string | null
+          minor_consent_note?: string | null
           class_enrollment_id?: string | null
           created_at?: string
           daily_message_count?: number
@@ -307,6 +350,11 @@ export type Database = {
           account_state?: string
           account_type?: string
           auth_method?: string
+          birth_year?: number | null
+          age_declared_at?: string | null
+          minor_consent_source?: string | null
+          minor_consent_at?: string | null
+          minor_consent_note?: string | null
           class_enrollment_id?: string | null
           created_at?: string
           daily_message_count?: number

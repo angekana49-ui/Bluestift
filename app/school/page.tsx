@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { needsAgeGate } from "@/lib/compliance/guard";
 import {
   ensureCurrentSchoolYear,
   getAdminMembership,
@@ -37,14 +38,16 @@ export default async function SchoolPage({
       ensureRecoveryCode(user.id),
       supabase
         .from("users")
-        .select("account_state, profile_picture_url, display_name, username, account_type, recovery_code")
+        .select("account_state, profile_picture_url, display_name, username, account_type, recovery_code, birth_year, minor_consent_source, school_id")
         .eq("id", user.id)
         .single(),
       getAdminMembership(user.id),
       getMemberships(user.id),
       getActiveSchoolId(),
     ]);
-  if (!profileRow || profileRow.account_state === "onboarding_pending") {
+  // Onboarding covers both first-run setup and the age question, so an account
+  // that predates the age gate is sent back for it too.
+  if (!profileRow || profileRow.account_state === "onboarding_pending" || needsAgeGate(profileRow)) {
     redirect("/onboarding");
   }
   const profile = { ...profileRow, recovery_code: profileRow.recovery_code ?? recoveryCode };
