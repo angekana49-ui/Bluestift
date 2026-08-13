@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isOwnedStoragePath } from "@/lib/storage-path";
 
 /**
  * Return a short-lived signed URL for a file in the private `user-media` bucket.
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
       .eq("id", body.conversationFileId)
       .maybeSingle();
     path = cf?.file_path ?? null; // RLS guarantees ownership if a row is returned
-  } else if (typeof body.path === "string" && body.path.startsWith(`${user.id}/`)) {
+  } else if (typeof body.path === "string" && isOwnedStoragePath(body.path, user.id)) {
     path = body.path;
   }
 
