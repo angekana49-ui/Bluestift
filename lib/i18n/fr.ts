@@ -48,7 +48,7 @@ export const fr: Partial<Messages> = {
   "site.nav.signIn": "Se connecter",
   "site.nav.freeTrial": "Essai gratuit",
   "site.nav.openApp": "Ouvrir l’app",
-  "site.nav.tagline": "Le tuteur IA que professeurs et élèves partagent",
+  "site.nav.tagline": "Le moteur de diagnostic IA pour les écoles",
 
   "site.hero.eyebrow": "Tuteur IA · tout niveau, toute matière, partout",
   "site.hero.headline": "Tout le monde a une IA. Personne n’en partage.",

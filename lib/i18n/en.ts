@@ -66,11 +66,11 @@ export const en = {
   "site.nav.signIn": "Sign in",
   "site.nav.freeTrial": "Free trial",
   "site.nav.openApp": "Open app",
-  "site.nav.tagline": "The AI tutor students and teachers share",
+  "site.nav.tagline": "AI-powered diagnostic engine for schools",
 
   // ── Public site: hero ─────────────────────────────────────────────
-  "site.hero.eyebrow": "AI-powered diagnostic engine for schools",
-  "site.hero.headline": "The learning follows. The diagnosis comes first.",
+  "site.hero.eyebrow": "Students get why. Schools get the whole picture",
+  "site.hero.headline": "The diagnosis comes first. The learning follows.",
   "site.hero.sub":
     "Students learn with one AI, teachers prepare with another, and neither side sees the other. Raya is the one they share — so what a student actually understands finally reaches the person teaching them.",
   "site.hero.ctaPrimary": "Try it free",

@@ -48,7 +48,7 @@ export const de: Partial<Messages> = {
   "site.nav.signIn": "Anmelden",
   "site.nav.freeTrial": "Kostenlos testen",
   "site.nav.openApp": "App öffnen",
-  "site.nav.tagline": "Der KI-Tutor, den Lernende und Lehrkräfte teilen",
+  "site.nav.tagline": "KI-gestützte Diagnose-Engine für Schulen",
 
   "site.hero.eyebrow": "KI-Tutor · jedes Niveau, jedes Fach, überall",
   "site.hero.headline": "Alle haben eine KI. Niemand teilt eine.",
