@@ -34,3 +34,6 @@ yarn-error.log*
 # editor / OS
 .vscode/*
 !.vscode/extensions.json
+
+# local archive of dead code / old design handoffs — not source
+/.archive/
