@@ -4,6 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
+  downloadRecoveryKey,
+  formatRecoveryKey,
+  maskedRecoveryKey,
+  normalizeRecoveryKey,
+  recoveryKeyTail,
+} from "@/lib/recovery-key";
+import {
   AuthSplit,
   Logo,
   RayaName,
@@ -109,7 +116,6 @@ export function OnboardingForm({
 
   const [email, setEmail] = useState("");
   const [emailSent, setEmailSent] = useState(false);
-  const [savedKey, setSavedKey] = useState(false);
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -417,8 +423,6 @@ export function OnboardingForm({
           email={email}
           setEmail={setEmail}
           emailSent={emailSent}
-          savedKey={savedKey}
-          setSavedKey={setSavedKey}
           busy={busy}
           onLink={linkEmail}
           onBack={back}
@@ -626,8 +630,6 @@ function EmailStep({
   email,
   setEmail,
   emailSent,
-  savedKey,
-  setSavedKey,
   busy,
   onLink,
   onBack,
@@ -637,8 +639,6 @@ function EmailStep({
   email: string;
   setEmail: (v: string) => void;
   emailSent: boolean;
-  savedKey: boolean;
-  setSavedKey: (v: boolean) => void;
   busy: boolean;
   onLink: () => void;
   onBack: () => void;
@@ -646,17 +646,33 @@ function EmailStep({
 }) {
   const [shown, setShown] = useState(false);
   const [copied, setCopied] = useState(false);
-  const masked = "•".repeat(recoveryCode ? Math.min(recoveryCode.length, 16) : 12);
+  const [saved, setSaved] = useState(false);
+  const [tail, setTail] = useState("");
+  const masked = maskedRecoveryKey(recoveryCode);
+  const expectedTail = recoveryCode ? recoveryKeyTail(recoveryCode) : "";
+
+  // Proof beats an honour-system tick: retyping the last group means the key
+  // really left the screen. If the key failed to generate we have nothing to
+  // prove, so don't trap the user behind a check they cannot pass.
+  const tailOk = !recoveryCode || normalizeRecoveryKey(tail) === expectedTail;
 
   async function copy() {
     if (!recoveryCode) return;
     try {
-      await navigator.clipboard.writeText(recoveryCode);
+      await navigator.clipboard.writeText(formatRecoveryKey(recoveryCode));
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
       setCopied(false);
     }
+  }
+
+  function download() {
+    if (!recoveryCode) return;
+    downloadRecoveryKey(recoveryCode);
+    setSaved(true);
+    setShown(true);
+    setTimeout(() => setSaved(false), 2000);
   }
 
   return (
@@ -720,7 +736,7 @@ function EmailStep({
               textOverflow: "ellipsis",
             }}
           >
-            {recoveryCode ? (shown ? recoveryCode : masked) : "—"}
+            {recoveryCode ? (shown ? formatRecoveryKey(recoveryCode) : masked) : "already shown"}
           </code>
           <button type="button" style={keyPill} onClick={() => setShown((s) => !s)} disabled={!recoveryCode}>
             {shown ? "Hide" : "Reveal"}
@@ -728,18 +744,61 @@ function EmailStep({
           <button type="button" style={keyPill} onClick={copy} disabled={!recoveryCode}>
             {copied ? "Copied ✓" : "Copy"}
           </button>
+          {/* A download, not just a clipboard: the clipboard is gone the moment
+              the user copies anything else, which on a shared school machine is
+              about a minute. A file survives. */}
+          <button type="button" style={keyPill} onClick={download} disabled={!recoveryCode}>
+            {saved ? "Saved ✓" : "Download"}
+          </button>
         </div>
         <ul style={{ margin: 0, paddingLeft: 18, fontSize: 14, color: "#475569", lineHeight: 1.7 }}>
-          <li>It is the <strong style={{ color: "#0b1220" }}>only way back in</strong> without an email.</li>
-          <li>If you lose it, <strong style={{ color: "#0b1220" }}>we cannot recover it</strong> for you.</li>
-          <li>Anyone who has it gets <strong style={{ color: "#0b1220" }}>full access</strong> to your account — its security is minimal, so keep it private.</li>
+          <li>This key is how you get back in if you sign out or change device.</li>
+          <li>We keep no copy of it. If you lose it, <strong style={{ color: "#0b1220" }}>nobody can bring it back</strong> — not even us.</li>
+          <li>Anyone who has it can open your account, so keep it to yourself.</li>
         </ul>
       </div>
 
-      <label style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 14, cursor: "pointer", fontSize: 14, color: "#334155" }}>
-        <input type="checkbox" checked={savedKey} onChange={(e) => setSavedKey(e.target.checked)} style={{ marginTop: 2 }} />
-        I&apos;ve saved my recovery key somewhere safe.
-      </label>
+      {/* Evidence, not an honour-system tick: retyping the last group is proof
+          the key actually left this screen. Skipped when there is no key to
+          check — a reload lands here (the key is issued once and never stored in
+          the clear), and that must not trap someone in onboarding. */}
+      {recoveryCode ? (
+        <div style={{ marginTop: 14 }}>
+          <label style={{ ...fieldLabel, display: "block" }}>
+            Type the last four characters to check you have it
+          </label>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <input
+              style={{
+                ...fieldInput,
+                marginBottom: 0,
+                width: 130,
+                textTransform: "uppercase",
+                letterSpacing: "0.24em",
+                fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+              }}
+              value={tail}
+              onChange={(e) => setTail(e.target.value.slice(0, 8))}
+              placeholder="••••"
+              aria-label="Last four characters of your recovery key"
+              autoComplete="off"
+            />
+            {tailOk ? (
+              <span style={{ fontSize: 14, fontWeight: 600, color: "#047857" }}>Got it ✓</span>
+            ) : (
+              <span style={{ fontSize: 14, color: "#64748b" }}>
+                {tail.trim() ? "Not quite — check the last group." : "The four after the last dash."}
+              </span>
+            )}
+          </div>
+        </div>
+      ) : (
+        <p style={{ fontSize: 14, color: "#64748b", marginTop: 14, lineHeight: 1.6 }}>
+          Your key was already shown once — we keep only a fingerprint of it, so it can&apos;t be shown
+          again. If you didn&apos;t save it, add an email above, then generate a replacement in{" "}
+          <strong style={{ color: "#0b1220" }}>Settings</strong>.
+        </p>
+      )}
 
       <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
         <button onClick={onBack} disabled={busy} style={secondaryBtn}>
@@ -747,8 +806,8 @@ function EmailStep({
         </button>
         <button
           onClick={onContinue}
-          disabled={busy || (!savedKey && !emailSent)}
-          style={{ ...primaryBtn, marginTop: 0, flex: 1, opacity: busy || (!savedKey && !emailSent) ? 0.6 : 1 }}
+          disabled={busy || (!tailOk && !emailSent)}
+          style={{ ...primaryBtn, marginTop: 0, flex: 1, opacity: busy || (!tailOk && !emailSent) ? 0.6 : 1 }}
         >
           Continue →
         </button>

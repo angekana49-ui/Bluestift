@@ -7,7 +7,7 @@ import { setActiveSchool } from "@/app/school/actions";
 import { clearLocalData } from "@/lib/net/local-data";
 import { netFetch, getJsonCached, invalidateCached } from "@/lib/net/client-fetch";
 import { SchoolRayaChat } from "@/components/school/school-raya-chat";
-import { AuthPanel } from "@/components/auth-panel";
+import { AuthPanel, type RecoveryKeyInfo } from "@/components/auth-panel";
 import { SettingsThemeCard } from "@/components/raya/settings-theme-card";
 import { SettingsLanguageCard } from "@/components/raya/settings-language-card";
 import { StudentBillingCard } from "@/components/raya/settings-billing-card";
@@ -71,9 +71,11 @@ export type StaffAccount = {
     display_name: string | null;
     account_type: string;
     account_state: string;
-    recovery_code: string | null;
     profile_picture_url: string | null;
   };
+  /** Whether a recovery key has been issued — never the key itself, which is
+   *  stored only as a hash and cannot be read back. */
+  recoveryKey?: RecoveryKeyInfo;
 };
 
 const pctOrDash = (v: number | null) => (v == null ? "—" : `${Math.round(v * 100)}%`);
@@ -959,7 +961,12 @@ function ProfSettings({ account, classes }: { account: StaffAccount | null; clas
       <SettingsThemeCard />
       <SettingsLanguageCard />
       <TeachingPreferencesCard classes={classes} />
-      <AuthPanel user={account.user} profile={account.profile} maxWidth={700} />
+      <AuthPanel
+        user={account.user}
+        profile={account.profile}
+        recoveryKey={account.recoveryKey}
+        maxWidth={700}
+      />
       <WhoPaysNote />
       <StudentBillingCard />
     </div>

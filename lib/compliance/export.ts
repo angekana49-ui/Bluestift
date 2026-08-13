@@ -86,8 +86,10 @@ export async function buildDataExport(userId: string, email: string | null): Pro
     requests,
   ] = await Promise.all([
     section("account", async () => {
-      // Deliberately column-by-column rather than `*`: recovery_code must not
-      // be able to sneak into the bundle when the table gains a column.
+      // Deliberately column-by-column rather than `*`: the recovery-key columns
+      // (recovery_code_hash / recovery_code_issued_at) must not be able to sneak
+      // into the bundle when the table gains a column. An allowlist is what makes
+      // that a property of this code rather than a thing to remember.
       const { data } = await admin
         .from("users")
         .select(

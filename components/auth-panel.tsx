@@ -9,25 +9,40 @@ import { useResolvedTheme } from "@/components/ui/theme";
 import { panelCard, cardTitle, textInput, ctaButton } from "@/components/ui/forms";
 import { status } from "@/components/ui/tokens";
 import { avatarInitials } from "@/lib/name";
+import {
+  downloadRecoveryKey,
+  formatRecoveryKey,
+  isValidRecoveryKey,
+  maskedRecoveryKey,
+  normalizeRecoveryKey,
+} from "@/lib/recovery-key";
 
 type Profile = {
   username: string | null;
   display_name: string | null;
   account_type: string;
   account_state: string;
-  recovery_code: string | null;
   profile_picture_url: string | null;
 } | null;
+
+/** What the server can say about the key WITHOUT being able to read it. */
+export type RecoveryKeyInfo = { hasKey: boolean; issuedAt: string | null };
 
 type Props = {
   user: { id: string; email: string | null; isAnonymous: boolean } | null;
   profile: Profile;
+  recoveryKey?: RecoveryKeyInfo;
   /** Card width cap. Defaults to 560 (login); the Settings column passes a wider
    *  value so the card fills its centred column instead of hugging the left. */
   maxWidth?: number;
 };
 
-export function AuthPanel({ user, profile, maxWidth = 560 }: Props) {
+export function AuthPanel({
+  user,
+  profile,
+  recoveryKey = { hasKey: false, issuedAt: null },
+  maxWidth = 560,
+}: Props) {
   const { theme: t } = useResolvedTheme();
   const supabase = createClient();
   const router = useRouter();
@@ -99,15 +114,20 @@ export function AuthPanel({ user, profile, maxWidth = 560 }: Props) {
   }
 
   async function recoverWithKey() {
-    if (!recoveryCode.trim()) return;
+    // Accept the key however it was written down — grouped, spaced, lowercase.
+    const code = normalizeRecoveryKey(recoveryCode);
+    if (!code) return;
     if (!captchaToken) return setMsg("Complete the CAPTCHA first.");
+    if (!isValidRecoveryKey(code)) {
+      return setMsg("A recovery key is 16 characters. Check for a missing one.");
+    }
     setBusy(true);
     setMsg(null);
     try {
       const res = await fetch("/api/auth/recover", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ code: recoveryCode.trim(), captchaToken }),
+        body: JSON.stringify({ code, captchaToken }),
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
@@ -204,7 +224,14 @@ export function AuthPanel({ user, profile, maxWidth = 560 }: Props) {
         {/* Recovery key: emails a fresh link to the account on file. */}
         <p style={{ ...label, marginTop: 16 }}>Lost access? Use your recovery key</p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          <input style={input} type="text" placeholder="Recovery key" value={recoveryCode} onChange={(e) => setRecoveryCode(e.target.value)} />
+          <input
+            style={{ ...input, textTransform: "uppercase" }}
+            type="text"
+            placeholder="XXXX-XXXX-XXXX-XXXX"
+            autoComplete="off"
+            value={recoveryCode}
+            onChange={(e) => setRecoveryCode(e.target.value)}
+          />
           <button style={{ ...ghost, opacity: busy || !recoveryCode.trim() || !captchaToken ? 0.5 : 1 }} onClick={recoverWithKey} disabled={busy || !recoveryCode.trim() || !captchaToken}>
             Recover
           </button>
@@ -268,7 +295,7 @@ export function AuthPanel({ user, profile, maxWidth = 560 }: Props) {
           </>,
         )}
         {infoRow("Account type", <code>{profile?.account_type ?? "?"}</code>)}
-        <RecoveryKeyCard code={profile?.recovery_code ?? null} />
+        <RecoveryKeyCard hasKey={recoveryKey.hasKey} issuedAt={recoveryKey.issuedAt} />
 
 
         {user.isAnonymous && (
@@ -323,25 +350,78 @@ export function AuthPanel({ user, profile, maxWidth = 560 }: Props) {
 }
 
 /**
- * Recovery key panel: the single credential that lets an email-less account get
- * back in, so it must be *seen once, copied, and hidden*. Masked by default
- * (shoulder-surfing / screen-share safe), a Reveal toggle shows it, and a Copy
- * button lets the user stash it in a password manager without ever typing it.
+ * Recovery key panel.
+ *
+ * There is no "reveal" any more, and that absence is the feature: only a SHA-256
+ * of the key is stored, so the server genuinely cannot show it again. What the
+ * card offers instead is a replacement — generated on demand, displayed once in
+ * this component's state, and never persisted anywhere we can read back.
+ *
+ * The freshly generated key is still masked by default. It is on screen at the
+ * exact moment a child is most likely to be screen-sharing or sitting in a
+ * classroom, so Reveal stays an explicit act.
  */
-function RecoveryKeyCard({ code }: { code: string | null }) {
+function RecoveryKeyCard({
+  hasKey,
+  issuedAt,
+}: {
+  hasKey: boolean;
+  issuedAt: string | null;
+}) {
   const { theme: t } = useResolvedTheme();
+  const [code, setCode] = useState<string | null>(null);
   const [shown, setShown] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function generate() {
+    // Replacing a key the user still holds is destructive, so the second press
+    // is the confirmation. Nothing to confirm when no key has ever been issued.
+    if (hasKey && !confirming) {
+      setConfirming(true);
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await fetch("/api/account/recovery-key", { method: "POST" });
+      const data = (await res.json().catch(() => null)) as
+        | { code?: string; error?: string; warning?: string }
+        | null;
+      if (!res.ok || !data?.code) {
+        setErr(data?.error ?? "Could not generate a key. Try again.");
+        return;
+      }
+      setCode(data.code);
+      setShown(true); // it exists only now — hiding it on arrival helps nobody
+      setConfirming(false);
+      if (data.warning) setErr(data.warning);
+    } catch {
+      setErr("Could not generate a key. Check your connection.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function copy() {
     if (!code) return;
     try {
-      await navigator.clipboard.writeText(code);
+      await navigator.clipboard.writeText(formatRecoveryKey(code));
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
       setCopied(false);
     }
+  }
+
+  function download() {
+    if (!code) return;
+    downloadRecoveryKey(code);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
   }
 
   const pill: React.CSSProperties = {
@@ -355,7 +435,7 @@ function RecoveryKeyCard({ code }: { code: string | null }) {
     cursor: "pointer",
   };
 
-  const masked = "•".repeat(code ? Math.min(code.length, 16) : 12);
+  const masked = maskedRecoveryKey(code);
 
   return (
     <div
@@ -374,37 +454,90 @@ function RecoveryKeyCard({ code }: { code: string | null }) {
         <div style={{ fontSize: 15, fontWeight: 700, color: t.text, flex: 1 }}>Recovery key</div>
       </div>
       <p style={{ fontSize: 14, color: t.muted, lineHeight: 1.6, margin: "0 0 12px" }}>
-        This key is the <strong style={{ color: t.text }}>only way back into this account</strong> if you
-        lose access. Copy it somewhere safe (a password manager), then hide it. We can&apos;t recover it for you.
+        {code ? (
+          <>
+            Here is your new key. <strong style={{ color: t.text }}>This is the only time it will be
+            shown</strong> — save it now. Any older key has stopped working.
+          </>
+        ) : hasKey ? (
+          <>
+            Your key is the <strong style={{ color: t.text }}>only way back into this account</strong> if
+            you lose access. We store only a fingerprint of it, so we genuinely can&apos;t show it to you
+            again — if you&apos;ve lost it, generate a new one and the old one stops working.
+          </>
+        ) : (
+          <>
+            You don&apos;t have a recovery key yet. It is the{" "}
+            <strong style={{ color: t.text }}>only way back into this account</strong> if you lose access
+            to this device.
+          </>
+        )}
       </p>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <code
-          style={{
-            flex: 1,
-            minWidth: 160,
-            background: t.inputBg,
-            border: `1px solid ${t.inputBorder}`,
-            borderRadius: 8,
-            padding: "9px 12px",
-            fontSize: 15,
-            letterSpacing: shown ? "0.12em" : "0.24em",
-            color: t.text,
-            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-            userSelect: shown ? "all" : "none",
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          }}
-        >
-          {code ? (shown ? code : masked) : "—"}
-        </code>
-        <button type="button" style={pill} onClick={() => setShown((s) => !s)} disabled={!code}>
-          {shown ? "Hide" : "Reveal"}
+
+      {code && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+          <code
+            style={{
+              flex: 1,
+              minWidth: 160,
+              background: t.inputBg,
+              border: `1px solid ${t.inputBorder}`,
+              borderRadius: 8,
+              padding: "9px 12px",
+              fontSize: 15,
+              letterSpacing: shown ? "0.12em" : "0.24em",
+              color: t.text,
+              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+              userSelect: shown ? "all" : "none",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {shown ? formatRecoveryKey(code) : masked}
+          </code>
+          <button type="button" style={pill} onClick={() => setShown((s) => !s)}>
+            {shown ? "Hide" : "Reveal"}
+          </button>
+          <button type="button" style={pill} onClick={copy}>
+            {copied ? "Copied ✓" : "Copy"}
+          </button>
+          <button type="button" style={pill} onClick={download}>
+            {saved ? "Saved ✓" : "Download"}
+          </button>
+        </div>
+      )}
+
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <button type="button" style={{ ...pill, opacity: busy ? 0.5 : 1 }} onClick={generate} disabled={busy}>
+          {busy
+            ? "Generating…"
+            : confirming
+              ? "Yes, replace my key"
+              : hasKey
+                ? "Generate a new key"
+                : "Generate my key"}
         </button>
-        <button type="button" style={pill} onClick={copy} disabled={!code}>
-          {copied ? "Copied ✓" : "Copy"}
-        </button>
+        {confirming && !busy && (
+          <>
+            <span style={{ fontSize: 13, color: t.muted }}>Your current key will stop working.</span>
+            <button
+              type="button"
+              style={{ ...pill, border: "none", background: "none", color: t.muted }}
+              onClick={() => setConfirming(false)}
+            >
+              Cancel
+            </button>
+          </>
+        )}
+        {!code && issuedAt && !confirming && (
+          <span style={{ fontSize: 13, color: t.mutedLight }}>
+            Issued {new Date(issuedAt).toLocaleDateString()}
+          </span>
+        )}
       </div>
+
+      {err && <p style={{ fontSize: 13, color: t.muted, margin: "10px 0 0" }}>{err}</p>}
     </div>
   );
 }

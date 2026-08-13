@@ -306,6 +306,8 @@ export type Database = {
           onboarding_completed_at: string | null
           profile_picture_url: string | null
           recovery_code: string | null
+          recovery_code_hash: string | null
+          recovery_code_issued_at: string | null
           role: string
           school_id: string | null
           school_level: string | null
@@ -337,6 +339,8 @@ export type Database = {
           onboarding_completed_at?: string | null
           profile_picture_url?: string | null
           recovery_code?: string | null
+          recovery_code_hash?: string | null
+          recovery_code_issued_at?: string | null
           role?: string
           school_id?: string | null
           school_level?: string | null
@@ -368,6 +372,8 @@ export type Database = {
           onboarding_completed_at?: string | null
           profile_picture_url?: string | null
           recovery_code?: string | null
+          recovery_code_hash?: string | null
+          recovery_code_issued_at?: string | null
           role?: string
           school_id?: string | null
           school_level?: string | null
