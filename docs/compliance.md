@@ -34,9 +34,29 @@ that matters.
 | Band | Minimum age | Effect |
 |---|---|---|
 | `child` | < 13 | No self-serve account. School authorisation only. |
-| `teen` | 13–17 | Full product. No analytics, no model-training opt-in. |
-| `adult` | ≥ 18 | Full product, both opt-ins available. |
+| `teen` | 13–17 | Full product. No analytics, no model training, neither offerable. |
+| `adult` | ≥ 18 | Full product. Analytics opt-**in**; model training opt-**out**. |
 | `null` | undeclared | Treated as a minor and gated back to `/onboarding`. |
+
+### The two consents are not symmetric, on purpose
+
+Analytics is opt-in. Model training is **on by default for adults** and switchable
+off (migration `20260813220000_training_on_by_default`). That asymmetry is a
+product decision, not an oversight — but the age rule sits above both and is not
+negotiable: `allowsOptionalProcessing()` returns false for every minor, the POST
+route rejects a grant on an under-18 account, and the settings screen tells them
+why rather than showing a dead switch. There is no "default on" for a minor,
+because there is no valid consent to default.
+
+`training_consent_at` records **when the user last chose, in either direction**.
+It used to be nulled on withdrawal, which was harmless under opt-in and is a trap
+under opt-out: an untimestamped "no" is indistinguishable from "never asked", and
+the next backfill would switch them back on.
+
+`trainingAllowed()` in [`lib/compliance/optional-processing.ts`](../lib/compliance/optional-processing.ts)
+is the gate. Anything shipping content to a training pipeline calls it. Before
+2026-08-13 the column was written by the settings switch and read by nothing —
+the control existed but enforced nothing.
 
 ### Why the client cannot cheat it
 
@@ -117,6 +137,13 @@ anyone under 18, rather than resolving each student's country and its national
 age (13–16). One constant, `OPTIONAL_PROCESSING_MIN_BAND` in `age.ts`, if that
 trade ever changes.
 
+That strictness is what makes the opt-out default in §1 survivable. Opt-out for
+model training is a live regulatory argument for adults and a losing one for
+children, so the product does not make it: the band gate runs before the column
+is read, in `trainingAllowed()`, and the two are in the same file. Loosening the
+band constant would silently switch training on for teenagers — it is the single
+line to look at before touching any of this.
+
 ---
 
 ## 4. Schools (FERPA + processor terms)
@@ -133,6 +160,28 @@ gets them through the student's own export, which returns everything.
 
 Every staff download writes a `data_requests` row with `channel='school'` and the
 releasing staff id — that is the FERPA disclosure log.
+
+### The B2B2C boundary — one fact decides everything
+
+`public.users.school_id` is the switch. It is the difference between two products
+wearing the same interface, and it is the question a student actually has:
+
+| Account | Who sees the learning |
+|---|---|
+| Linked to a school | The student **and** their teachers: mastery per concept, gaps, results, follow-up notes. Scoped by `school_id` and `assertClassAccess`, so staff see their own classes, never the school at large. |
+| Linked to nobody | The student alone. Nothing leaves the account — no institution, no dashboard, no aggregate. |
+
+Conversations with Raya are on the student's side of that line **in both cases**.
+No school surface reads `learning.messages` or `learning.room_messages` for a
+student; the only conversation route under `/api/school` is the teacher's own
+Raya-for-Schools thread, scoped `user_id = auth.uid()`.
+
+Joining a class is therefore a disclosure event, not just an enrolment: it starts
+a flow of personal data to a third party. It is stated at the moment it happens
+and restated in Settings → Your data, which renders a different paragraph
+depending on `schoolLinked`. Leaving stops it going forward; the school keeps
+what it already holds, under its own retention terms, which is why the deletion
+copy says to ask them directly.
 
 ---
 

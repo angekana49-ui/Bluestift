@@ -139,7 +139,14 @@ re-run the Kernel's `migrations/009_shared_db_hardening.sql`.
 - Call `/update_concept_state` directly on graded attempts.
 - Add a `/ready`-based deep health check alongside the liveness probe.
 - Keep the chat hot path non-blocking on the Kernel (already the case).
-- **Not yet done: gate progression on mastery.** The prompt now names the weakest
-  concept and asks Raya to land the session there, but nothing *enforces* it —
-  she can still be talked forward onto a concept whose prerequisite is at 0.2.
-  That enforcement is the second half of mastery learning and it is still absent.
+- **Progression is NOT gated on mastery, and that is decided** (2026-08-13). The
+  prompt names the weakest concept and asks Raya to land the session there; a
+  student who wants to go elsewhere goes elsewhere. Bloom's mastery threshold is
+  used as a *measurement* — it decides what the Kernel considers acquired and
+  what the tutor is steered toward — not as a lock on the student.
+
+  The reasoning: Bluestift is not an LMS and does not own the student's
+  timetable. A tutor that refuses to answer until a prerequisite is repaired is a
+  tutor that gets closed. What has to be true is that the Kernel keeps building
+  an accurate profile and keeps computing the best available path — whether the
+  learner walks it is theirs. Do not "fix" this by adding a refusal.

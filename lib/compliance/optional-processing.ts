@@ -42,7 +42,50 @@ export async function optionalProcessingAllowed(userId: string): Promise<boolean
   return allowed;
 }
 
+/**
+ * May this account's content be used to improve the models?
+ *
+ * Deliberately NOT the same question as `optionalProcessingAllowed`. That one
+ * gates product analytics; this one gates training. They were conflated only in
+ * the sense that neither was checked here — `training_consent` was written by
+ * the settings switch and then read by nothing, so the control was decorative.
+ * Anything that ships content to a training pipeline must call this.
+ *
+ * Two conditions, in this order:
+ *  - the age band allows optional processing at all (adults only), and
+ *  - the user has not switched it off.
+ *
+ * The band is checked first for the same reason it is everywhere else: a minor
+ * cannot grant this, so their stored column value is irrelevant.
+ */
+const trainingMemo = new Map<string, { allowed: boolean; at: number }>();
+
+export async function trainingAllowed(userId: string): Promise<boolean> {
+  const hit = trainingMemo.get(userId);
+  const now = Date.now();
+  if (hit && now - hit.at < TTL_MS) return hit.allowed;
+
+  let allowed = false;
+  try {
+    const { data } = await createAdminClient()
+      .from("users")
+      .select("birth_year, training_consent")
+      .eq("id", userId)
+      .maybeSingle();
+    allowed =
+      allowsOptionalProcessing(ageBand(data?.birth_year ?? null)) &&
+      data?.training_consent === true;
+  } catch {
+    // A read failure must not enrol someone by accident.
+    allowed = false;
+  }
+
+  trainingMemo.set(userId, { allowed, at: now });
+  return allowed;
+}
+
 /** Drop a cached decision — call after the age or the account changes. */
 export function forgetOptionalProcessing(userId: string): void {
   memo.delete(userId);
+  trainingMemo.delete(userId);
 }

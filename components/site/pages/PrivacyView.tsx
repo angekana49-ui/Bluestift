@@ -44,8 +44,14 @@ export function PrivacyView({ signedIn }: { signedIn: boolean }) {
               18. Declining changes nothing about how the product works.
             </li>
             <li style={li(t)}>
-              We never use your work to improve our models unless you switch that on, and the
-              option isn&apos;t offered to under-18s at all.
+              On an adult account, your work <strong>is</strong> used to improve our models
+              unless you switch that off — one toggle in your settings, effective immediately.
+              For under-18s it is never used, and the option isn&apos;t offered at all.
+            </li>
+            <li style={li(t)}>
+              If your account is <strong>linked to a school</strong>, your progress is visible
+              to your teachers. If it is linked to nobody, nothing about your learning leaves
+              your account.
             </li>
             <li style={li(t)}>No ads. No selling data. No cross-site tracking.</li>
             <li style={li(t)}>
@@ -134,7 +140,12 @@ export function PrivacyView({ signedIn }: { signedIn: boolean }) {
               [
                 "Using your content to improve our models",
                 "To make the tutor better",
-                "Consent — off unless you switch it on, never for under-18s",
+                "Consent — on by default on adult accounts, switchable off at any time; never for under-18s",
+              ],
+              [
+                "Sending your progress to your school",
+                "So your teachers can see who is stuck and on what",
+                "Contract (with your school) — only while your account is linked to one",
               ],
               [
                 "Server logs and a coarse network signal",
