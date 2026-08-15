@@ -22,6 +22,12 @@ export interface AnalyzeRequest {
   subject?: string; // default "MATH"
   level?: string; // default "unknown"
   trigger?: string; // default "post_conversation"
+  /**
+   * Diagnose only — don't let the kernel commit its own BKT updates (default true).
+   * Set false when the same attempts were already sent to /update_concept_state,
+   * or the evidence counts twice and mastery inflates.
+   */
+  commit_state?: boolean;
 }
 
 export interface MasteryEntry {
@@ -87,18 +93,26 @@ export interface LoadProfileResponse {
 }
 
 // POST /update_concept_state
-export interface UpdateConceptStateRequest {
+/**
+ * Identify the KC either by `concept_id` (a kernel.concept_nodes UUID we already
+ * hold) or by `concept_label` — a plain concept name the kernel canonicalizes and
+ * creates on the fly. Grading knows the concept's name, not its UUID, so the label
+ * path is the normal one; the response returns the resolved id to cache.
+ */
+export type UpdateConceptStateRequest = {
   user_id: string;
-  concept_id: string;
   partial_credit_score: number; // 0..1
   is_assisted?: boolean;
   response_time_ms?: number | null;
   blocage_type?: BlocageType;
-}
+  subject?: string;
+  level?: string;
+} & ({ concept_id: string; concept_label?: string } | { concept_id?: string; concept_label: string });
 
 export interface UpdateConceptStateResponse {
   user_id: string;
   concept_id: string;
+  label: string;
   k_raw: number;
   k_effective: number;
   p_score: number;
