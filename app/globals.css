@@ -218,6 +218,28 @@ a {
   }
 }
 
+/* The first-visit language bar, settling in from the bottom edge rather than
+   appearing on top of the page. Same reasoning as the hero: it mounts already
+   in view, so it animates unconditionally and can never be left hidden. */
+.pub-lang-bar {
+  animation: langBarIn var(--dur-enter) var(--ease-out) 500ms both;
+}
+@keyframes langBarIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pub-lang-bar {
+    animation: none;
+  }
+}
+
 /* The hero dashboard, arriving once under the headline rather than bobbing
    forever. Pure CSS and unconditional: it sits above the fold, so there is no
    observer to wait for and no risk of it being stranded hidden. */

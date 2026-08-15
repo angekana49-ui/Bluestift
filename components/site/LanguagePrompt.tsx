@@ -13,19 +13,31 @@ import {
 } from "@/lib/locale";
 
 /**
- * First-visit language prompt for the public site.
+ * First-visit language offer for the public site.
  *
- * Why a prompt rather than a picker in the nav: the nav has no room for a fifth
- * control, and a visitor who reads French shouldn't have to hunt for a menu to
- * discover the site speaks it.
+ * Why offer at all rather than hide a picker in the nav: the nav has no room
+ * for a fifth control, and a visitor who reads French shouldn't have to hunt
+ * for a menu to discover the site speaks it.
  *
  * It is deliberately NOT a hard gate — an interstitial in front of the content
- * costs bounce rate, so:
+ * costs bounce rate. That was always the intent, but the implementation used to
+ * contradict it: a centred `aria-modal` dialog over a dimmed, blurred backdrop,
+ * which is an interstitial by any definition. The very first thing a new
+ * visitor saw was a dialog, before a single word of the page. It is now a bar
+ * that settles at the bottom of the viewport:
+ *
+ *  - the page is readable immediately, and stays clickable — the fixed wrapper
+ *    is `pointer-events: none`, so only the bar itself catches clicks;
  *  - the browser's own language is detected and pre-selected, making this a
- *    one-click confirmation instead of a question;
- *  - Escape and a backdrop click dismiss it, and dismissal is remembered;
+ *    one-click confirmation rather than a question;
+ *  - Escape dismisses it, and dismissal is remembered;
  *  - it never shows twice, and never shows at all to someone who already has a
  *    language (e.g. set inside the app — `LOCALE_KEY` is shared).
+ *
+ * It also no longer takes focus on appear. Stealing the caret is defensible for
+ * a modal, which owns the screen until answered; for a bar sitting beside the
+ * content it would just interrupt someone who has started reading. Keyboard
+ * users reach it by Tab, and it is last in the DOM.
  *
  * SSR-safe: it renders nothing until an effect has read localStorage, so the
  * server and first client render agree.
@@ -78,7 +90,7 @@ export function LanguagePrompt({ theme: t }: { theme: Theme }) {
 
   useEffect(() => {
     if (!open) return;
-    firstBtn.current?.focus();
+    // No focus() here on purpose — see the note on focus above.
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") dismiss();
     };
@@ -96,57 +108,78 @@ export function LanguagePrompt({ theme: t }: { theme: Theme }) {
     es: "Elige tu idioma",
     de: "Wähle deine Sprache",
   };
-  const changeHintFor: Record<Locale, string> = {
-    en: "You can change this later in the app.",
-    fr: "Vous pourrez changer plus tard dans l’application.",
-    es: "Puedes cambiarlo después en la aplicación.",
-    de: "Du kannst das später in der App ändern.",
+  const dismissLabelFor: Record<Locale, string> = {
+    en: "Dismiss",
+    fr: "Fermer",
+    es: "Cerrar",
+    de: "Schließen",
   };
   const shown = suggested ?? normalizeLocale(locale);
 
   return (
+    // Fixed, but transparent to the pointer: the visitor can keep reading and
+    // clicking the page underneath. Only the bar re-enables pointer events.
     <div
-      onClick={dismiss}
       style={{
         position: "fixed",
-        inset: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
         zIndex: 200,
         display: "flex",
-        alignItems: "center",
         justifyContent: "center",
-        padding: 20,
-        background: "rgba(8,12,24,0.5)",
-        backdropFilter: "blur(3px)",
+        padding: 16,
+        pointerEvents: "none",
       }}
     >
       <div
-        role="dialog"
-        aria-modal="true"
+        role="region"
         aria-label={headingFor[shown]}
-        onClick={(e) => e.stopPropagation()}
+        className="pub-lang-bar"
+        // Two rows rather than one: label + dismiss, then the languages. Laid
+        // out on a single line, the label competes with four chips for width and
+        // the chips collapse into a tall vertical stack on a phone.
         style={{
+          pointerEvents: "auto",
+          display: "flex",
+          flexDirection: "column",
+          gap: 10,
           width: "100%",
-          maxWidth: 400,
+          maxWidth: 520,
           background: t.cardBg,
           color: t.text,
           border: `1px solid ${t.cardBorder}`,
-          borderRadius: 22,
+          borderRadius: 18,
           boxShadow: t.cardShadowLg,
-          padding: 26,
-          textAlign: "center",
+          padding: "13px 15px",
         }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/bluestift-mark.png"
-          alt=""
-          style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", margin: "0 auto 14px", display: "block" }}
-        />
-        <div style={{ fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif", fontWeight: 800, fontSize: 19, letterSpacing: "-0.01em" }}>
-          {headingFor[shown]}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <span style={{ fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif", fontWeight: 700, fontSize: 14.5, letterSpacing: "-0.01em" }}>
+            {headingFor[shown]}
+          </span>
+          <button
+            onClick={dismiss}
+            aria-label={dismissLabelFor[shown]}
+            className="pub-focus"
+            style={{
+              flex: "none",
+              width: 26,
+              height: 26,
+              borderRadius: 999,
+              cursor: "pointer",
+              background: "transparent",
+              border: "none",
+              color: t.muted,
+              fontSize: 17,
+              lineHeight: 1,
+            }}
+          >
+            ×
+          </button>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 18 }}>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {LOCALES.map((l, i) => {
             const isSuggested = l.code === suggested;
             return (
@@ -154,18 +187,14 @@ export function LanguagePrompt({ theme: t }: { theme: Theme }) {
                 key={l.code}
                 ref={i === 0 ? firstBtn : undefined}
                 onClick={() => choose(l.code)}
+                className="pub-press"
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 10,
-                  width: "100%",
-                  padding: "12px 16px",
-                  borderRadius: 12,
+                  padding: "7px 14px",
+                  borderRadius: 999,
                   cursor: "pointer",
-                  fontSize: 15,
+                  fontSize: 14,
                   fontWeight: 600,
-                  textAlign: "left",
+                  whiteSpace: "nowrap",
                   // The detected language is the primary action — one click and
                   // the visitor is reading the site in their own language.
                   background: isSuggested ? t.ctaBg : "transparent",
@@ -173,14 +202,11 @@ export function LanguagePrompt({ theme: t }: { theme: Theme }) {
                   border: `1px solid ${isSuggested ? t.ctaBg : t.cardBorder}`,
                 }}
               >
-                <span>{l.label}</span>
-                {isSuggested && <span aria-hidden style={{ fontSize: 13, opacity: 0.8 }}>✓</span>}
+                {l.label}
               </button>
             );
           })}
         </div>
-
-        <div style={{ marginTop: 14, fontSize: 13, color: t.muted }}>{changeHintFor[shown]}</div>
       </div>
     </div>
   );
