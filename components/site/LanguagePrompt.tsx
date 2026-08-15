@@ -142,7 +142,7 @@ export function LanguagePrompt({ theme: t }: { theme: Theme }) {
           alt=""
           style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", margin: "0 auto 14px", display: "block" }}
         />
-        <div style={{ fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: 800, fontSize: 19, letterSpacing: "-0.01em" }}>
+        <div style={{ fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif", fontWeight: 800, fontSize: 19, letterSpacing: "-0.01em" }}>
           {headingFor[shown]}
         </div>
 

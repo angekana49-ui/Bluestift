@@ -33,7 +33,7 @@ export default function FaqSection({ theme: t }: { theme: Theme }) {
       <div style={{ position: "relative", maxWidth: 820, margin: "0 auto" }}>
         <h2
           style={{
-            fontFamily: "'IBM Plex Sans',sans-serif",
+            fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
             fontWeight: 900,
             fontSize: "clamp(1.7rem,3.6vw,2.6rem)",
             letterSpacing: "-0.02em",
@@ -43,7 +43,7 @@ export default function FaqSection({ theme: t }: { theme: Theme }) {
           }}
         >
           {tr("site.faq.title.a")}{" "}
-          <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic" }}>{tr("site.faq.title.em")}</em>
+          <em style={{ fontFamily: "var(--font-instrument-serif),'Instrument Serif',serif", fontStyle: "italic" }}>{tr("site.faq.title.em")}</em>
         </h2>
 
         <Reveal style={{ marginTop: 40, border: `1px solid ${t.cardBorder}`, borderRadius: 20, overflow: "hidden", background: t.sectionAltBg }}>

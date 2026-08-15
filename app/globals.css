@@ -1,9 +1,22 @@
-/* Public marketing site fonts (BlueStift landing handoff). Loaded by literal
-   family name so the inline style={{ fontFamily: "'IBM Plex Sans'..." }} used by
-   components/site/* resolves. Harmless to the connected app, which sets its own
-   font stacks explicitly. IBM Plex Sans (à la PostHog) is the display face; Inter
-   is the body. */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Caveat:wght@600;700&family=Instrument+Serif:ital@1&display=swap');
+/* NOTE ON FONTS — there is deliberately no @import here.
+   All four families (Inter, IBM Plex Sans, Caveat, Instrument Serif) are loaded
+   ONCE, by app/layout.tsx via next/font/google, which self-hosts the files and
+   exposes each as a custom property: --font-inter, --font-plex, --font-caveat,
+   --font-instrument-serif.
+
+   This file used to ALSO @import the same four families from Google's CDN, so
+   every page paid for a second, render-blocking download of fonts it had
+   already self-hosted — and any slowness or blocking of fonts.googleapis.com
+   showed as a flash of fallback type on the marketing site's own headlines. It
+   also sent every visitor's IP to a third party on page load, which is a poor
+   fit for a product shipping a DPA and a subprocessor list.
+
+   The import existed because components/site/* asks for fonts by literal family
+   name in inline styles. Those call sites now lead with the custom property —
+   fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif" — so they resolve
+   against the self-hosted face and keep the literal name only as a fallback.
+   Add a font the same way: register it in layout.tsx, then reference its
+   variable. Never re-add a CDN @import. */
 
 /* Tailwind — used ONLY by the public marketing site (components/site/*). Preflight
    is disabled in tailwind.config.ts so these directives add no global reset; the
@@ -105,6 +118,29 @@ a {
     transform 0.75s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
+/* ---- Product shots (components/site/ProductShots.tsx) ----
+   The wide 21/9 transcript plate is drawn as a two-column composition. Below
+   the breakpoint there isn't the width to keep both columns readable at once,
+   so the escalation aside drops and the frame squares up rather than shrinking
+   the type into illegibility — the transcript alone still makes the point. */
+@media (max-width: 760px) {
+  .pub-shot-wide {
+    /* Squarer than 21/9, because the transcript stacks into one column here and
+       needs the height its four turns actually occupy. */
+    aspect-ratio: 1 / 1 !important;
+    /* Narrow the nominal design width the shot is drawn against, so the
+       transcript scales UP to stay readable on a phone instead of shrinking
+       with the container. See BASE_WIDE in ProductShots.tsx. */
+    --shot-base-wide: 450;
+  }
+  .pub-shot-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .pub-shot-aside {
+    display: none !important;
+  }
+}
+
 /* ---- Hover affordances ---- */
 .pub-lift {
   transition:
@@ -113,6 +149,59 @@ a {
 }
 .pub-lift:hover {
   transform: translateY(-4px);
+}
+/* A card that rises should also cast further, or the lift reads as a glitch
+   rather than as depth.
+   Two things here are load-bearing rather than lazy. `!important`, because
+   every card carries its resting shadow as an INLINE style (the public pages
+   are inline-styled by design) and an inline declaration beats any selector
+   without it. And `var(--pub-lift-shadow)`, because the public site's dark mode
+   is React state — NOT a `data-theme` attribute — so a theme-scoped selector
+   would never match here. The page roots (site/LandingPage + site/SitePage)
+   publish the current theme's value into that property; the fallback keeps the
+   rule correct anywhere it hasn't been set. */
+.pub-lift:hover {
+  box-shadow: var(
+    --pub-lift-shadow,
+    0 2px 4px rgba(15, 23, 42, 0.06),
+    0 28px 60px rgba(15, 23, 42, 0.16)
+  ) !important;
+}
+
+/* Buttons and nav pills on the public site. The site is inline-styled, so the
+   states that can't be expressed inline (:hover, :focus-visible) live here and
+   are opted into with a class. `currentColor` keeps one rule correct on a dark
+   CTA, a light ghost button and a text link alike. */
+.pub-press {
+  transition:
+    transform 0.18s cubic-bezier(0.22, 0.61, 0.36, 1),
+    box-shadow 0.25s ease,
+    opacity 0.2s ease;
+}
+.pub-press:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
+}
+.pub-press:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+.pub-press:focus-visible,
+.pub-focus:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+  border-radius: 999px;
+}
+/* Underline that grows from the left rather than appearing all at once. */
+.pub-underline {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 1px;
+  transition: background-size 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.pub-underline:hover {
+  background-size: 100% 1px;
 }
 /* Slow push-in on the media inside a hovered card. */
 .pub-media {
@@ -130,11 +219,15 @@ a {
     transition: none;
   }
   .pub-lift,
-  .pub-media {
+  .pub-media,
+  .pub-press,
+  .pub-underline {
     transition: none;
   }
   .pub-lift:hover,
-  .pub-media-wrap:hover .pub-media {
+  .pub-media-wrap:hover .pub-media,
+  .pub-press:hover,
+  .pub-press:active {
     transform: none;
   }
 }

@@ -4,7 +4,7 @@ import type { Theme } from "./theme";
 import { RayaText } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
-import MediaFrame from "./MediaFrame";
+import { SocraticShot } from "./ProductShots";
 import Reveal from "./Reveal";
 
 /**
@@ -65,7 +65,7 @@ export default function LadderSection({ theme: t }: { theme: Theme }) {
           </div>
           <h2
             style={{
-              fontFamily: "'IBM Plex Sans',sans-serif",
+              fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
               fontWeight: 900,
               fontSize: "clamp(1.7rem,3.6vw,2.6rem)",
               letterSpacing: "-0.02em",
@@ -74,7 +74,7 @@ export default function LadderSection({ theme: t }: { theme: Theme }) {
             }}
           >
             {tr("site.ladder.title.a")}{" "}
-            <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic" }}>{tr("site.ladder.title.em")}</em>
+            <em style={{ fontFamily: "var(--font-instrument-serif),'Instrument Serif',serif", fontStyle: "italic" }}>{tr("site.ladder.title.em")}</em>
           </h2>
           <p style={{ maxWidth: 580, margin: "14px auto 0", fontSize: 16, color: t.text, lineHeight: 1.7 }}>
             <RayaText>{tr("site.ladder.sub")}</RayaText>
@@ -86,7 +86,7 @@ export default function LadderSection({ theme: t }: { theme: Theme }) {
             anything sharing that parent would be dragged into the pile. */}
         <Reveal>
           <div
-            className="pub-media-wrap pub-lift"
+            className="pub-lift"
             style={{
               marginBottom: 40,
               border: `1px solid ${t.cardBorder}`,
@@ -95,14 +95,7 @@ export default function LadderSection({ theme: t }: { theme: Theme }) {
               boxShadow: t.cardShadowLg,
             }}
           >
-            <MediaFrame
-              theme={t}
-              src="/media/socratic.mp4"
-              poster="/media/socratic.jpg"
-              label={tr("site.ladder.title.a")}
-              badge={tr("site.ladder.eyebrow")}
-              ratio="21 / 9"
-            />
+            <SocraticShot theme={t} />
           </div>
         </Reveal>
 
@@ -146,7 +139,7 @@ export default function LadderSection({ theme: t }: { theme: Theme }) {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontFamily: "'IBM Plex Sans',sans-serif",
+                    fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
                     fontWeight: 800,
                     fontSize: 13,
                   }}
@@ -179,7 +172,7 @@ export default function LadderSection({ theme: t }: { theme: Theme }) {
               <div style={{ padding: "clamp(22px,3.6vw,34px)", minHeight: "clamp(150px,20vh,190px)" }}>
                 <h3
                   style={{
-                    fontFamily: "'IBM Plex Sans',sans-serif",
+                    fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
                     fontWeight: 800,
                     fontSize: "clamp(1.15rem,2.6vw,1.6rem)",
                     letterSpacing: "-0.01em",

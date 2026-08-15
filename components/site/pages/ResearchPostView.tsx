@@ -41,7 +41,7 @@ export function ResearchPostView({ post, signedIn }: { post: PostDetail; signedI
             </span>
           </div>
 
-          <h1 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", fontWeight: 400, fontSize: "clamp(1.6rem,3.4vw,2.2rem)", lineHeight: 1.3, margin: "0 0 20px", color: t.text }}>
+          <h1 style={{ fontFamily: "var(--font-instrument-serif),'Instrument Serif',serif", fontStyle: "italic", fontWeight: 400, fontSize: "clamp(1.6rem,3.4vw,2.2rem)", lineHeight: 1.3, margin: "0 0 20px", color: t.text }}>
             {post.title}
           </h1>
 

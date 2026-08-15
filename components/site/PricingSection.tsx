@@ -35,7 +35,7 @@ export default function PricingSection({ theme: t }: { theme: Theme }) {
       <div style={{ position: "relative", fontSize: "1.5rem", fontWeight: 900, color: t.text, letterSpacing: "-0.02em" }}>{opts.title}</div>
       {lineList(opts.lines, t.muted, t.greenSolid)}
       <div style={{ position: "relative", fontSize: 14, fontWeight: 600, color: t.wordmarkB, marginTop: 16 }}>{opts.meta}</div>
-      <a href={opts.href} style={{ position: "relative", display: "block", textAlign: "center", marginTop: 18, background: t.ctaBg, color: t.ctaText, borderRadius: 999, padding: "11px 20px", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
+      <a href={opts.href} className="pub-press" style={{ position: "relative", display: "block", textAlign: "center", marginTop: 18, background: t.ctaBg, color: t.ctaText, borderRadius: 999, padding: "11px 20px", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
         {opts.cta}
       </a>
     </div>
@@ -46,9 +46,9 @@ export default function PricingSection({ theme: t }: { theme: Theme }) {
       <div style={{ position: "absolute", inset: "0 0 auto 0", height: 140, background: `linear-gradient(180deg, ${t.cardBg} 0%, transparent 100%)`, pointerEvents: "none" }} />
       <div style={{ position: "relative", maxWidth: 1080, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 52 }}>
-          <h2 style={{ fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "clamp(1.9rem,4vw,2.9rem)", letterSpacing: "-0.02em", color: t.text }}>
+          <h2 style={{ fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "clamp(1.9rem,4vw,2.9rem)", letterSpacing: "-0.02em", color: t.text }}>
             {tr("site.pricing.title.a")}{" "}
-            <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic" }}>{tr("site.pricing.title.em")}</em>
+            <em style={{ fontFamily: "var(--font-instrument-serif),'Instrument Serif',serif", fontStyle: "italic" }}>{tr("site.pricing.title.em")}</em>
           </h2>
           <p style={{ fontSize: 16, color: t.muted, marginTop: 12, maxWidth: 520, marginLeft: "auto", marginRight: "auto", lineHeight: 1.7 }}>
             {tr("site.pricing.sub")}
@@ -92,7 +92,7 @@ export default function PricingSection({ theme: t }: { theme: Theme }) {
               t.greenSolid,
             )}
             <div style={{ position: "relative", fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.9)", marginTop: 16 }}>Standard $2 · Plus $4 / student / mo</div>
-            <a href="/pricing?for=schools" style={{ position: "relative", display: "block", textAlign: "center", marginTop: 18, background: "white", color: "#0b1220", borderRadius: 999, padding: "11px 20px", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
+            <a href="/pricing?for=schools" className="pub-press" style={{ position: "relative", display: "block", textAlign: "center", marginTop: 18, background: "white", color: "#0b1220", borderRadius: 999, padding: "11px 20px", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
               {tr("site.pricing.schools.cta")}
             </a>
           </div>
@@ -115,7 +115,7 @@ export default function PricingSection({ theme: t }: { theme: Theme }) {
         </div>
 
         <div style={{ textAlign: "center", marginTop: 36 }}>
-          <a href="/pricing" style={{ fontSize: 15, fontWeight: 600, color: t.link, textDecoration: "none", borderBottom: `1px solid ${t.link}`, paddingBottom: 2 }}>
+          <a href="/pricing" className="pub-focus" style={{ fontSize: 15, fontWeight: 600, color: t.link, textDecoration: "none", borderBottom: `1px solid ${t.link}`, paddingBottom: 2 }}>
             {tr("site.pricing.compare")}
           </a>
         </div>

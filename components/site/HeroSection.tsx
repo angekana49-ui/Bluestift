@@ -18,7 +18,10 @@ export default function HeroSection({ theme: t }: { theme: Theme }) {
       style={{
         position: "relative",
         overflow: "hidden",
-        padding: "150px 24px 180px",
+        // The bottom used to be 180, which stacked with the next section's own
+        // 96 into ~280px of empty sky under the dashboard — long enough to read
+        // as the page having ended. 96 matches every other section's rhythm.
+        padding: "150px 24px 96px",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -50,7 +53,7 @@ export default function HeroSection({ theme: t }: { theme: Theme }) {
         <div style={{ position: "relative", display: "inline-block", maxWidth: 820 }}>
           <h1
             style={{
-              fontFamily: "'Caveat',cursive",
+              fontFamily: "var(--font-caveat),'Caveat',cursive",
               fontWeight: 700,
               fontSize: "clamp(3.2rem,9vw,6.4rem)",
               lineHeight: 0.92,
@@ -78,11 +81,16 @@ export default function HeroSection({ theme: t }: { theme: Theme }) {
         </p>
 
         <div style={{ display: "flex", gap: 12, justifyContent: "center", marginTop: 28, flexWrap: "wrap" }}>
-          <a href="/login" style={{ background: t.ctaBg, color: t.ctaText, borderRadius: 999, padding: "13px 24px", fontSize: 16, fontWeight: 500, textDecoration: "none" }}>
+          <a
+            href="/login"
+            className="pub-press"
+            style={{ background: t.ctaBg, color: t.ctaText, borderRadius: 999, padding: "13px 24px", fontSize: 16, fontWeight: 500, textDecoration: "none" }}
+          >
             {tr("site.hero.ctaPrimary")}
           </a>
           <a
             href="#how-it-works"
+            className="pub-press"
             style={{ background: t.chipBg, border: `1px solid ${t.chipBorder}`, borderRadius: 999, padding: "13px 22px", fontSize: 16, fontWeight: 500, color: t.text, textDecoration: "none" }}
           >
             {tr("site.hero.ctaSecondary")}

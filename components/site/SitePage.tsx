@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { useThemeMode } from "./useThemeMode";
 import { getTheme, type Theme } from "./theme";
 import Navbar, { type NavLink } from "./Navbar";
@@ -29,14 +29,19 @@ export default function SitePage({
 
   return (
     <div
-      style={{
-        fontFamily: "'Inter', sans-serif",
-        color: t.text,
-        minHeight: "100vh",
-        background: t.pageBg,
-        transition: "background 0.4s ease, color 0.4s ease",
-        position: "relative",
-      }}
+      style={
+        {
+          fontFamily: "var(--font-inter),'Inter',sans-serif",
+          color: t.text,
+          minHeight: "100vh",
+          background: t.pageBg,
+          transition: "background 0.4s ease, color 0.4s ease",
+          position: "relative",
+          // See LandingPage: `.pub-lift`'s hover elevation has to reach CSS as a
+          // custom property, because the theme lives in React state.
+          "--pub-lift-shadow": t.liftShadow,
+        } as CSSProperties
+      }
     >
       <CloudBackground theme={t} variant="fixed" />
       <Navbar theme={t} isDark={isDark} onToggleTheme={toggle} active={active} section={section} signedIn={signedIn} />

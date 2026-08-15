@@ -335,7 +335,7 @@ export function PricingView({
               <div style={{ textAlign: "center", marginBottom: 30 }}>
                 <h1
                   style={{
-                    fontFamily: "'IBM Plex Sans',sans-serif",
+                    fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
                     fontWeight: 900,
                     fontSize: "clamp(1.9rem,4.5vw,3rem)",
                     letterSpacing: "-0.02em",
@@ -344,7 +344,7 @@ export function PricingView({
                   }}
                 >
                   Pricing that{" "}
-                  <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", color: t.wordmarkB }}>
+                  <em style={{ fontFamily: "var(--font-instrument-serif),'Instrument Serif',serif", fontStyle: "italic", color: t.wordmarkB }}>
                     stays simple.
                   </em>
                 </h1>

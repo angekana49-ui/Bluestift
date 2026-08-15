@@ -4,47 +4,46 @@ import type { Theme } from "./theme";
 import { RayaText } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
-import MediaFrame from "./MediaFrame";
+import { KernelShot, RoomShot, ToolsShot } from "./ProductShots";
 import Reveal from "./Reveal";
 
 /**
- * The three surfaces, each with an illustrative clip.
+ * The three surfaces, each drawn as the surface itself.
  *
  * These cards used to carry a permanent `floatSm` bob and a looping `shine`
- * sweep. Both are gone: motion with nothing behind it reads as filler, and the
- * sweep would have sat on top of the video. The card is now still until you
- * touch it (`pub-lift`), the clip plays only while it's on screen, and the
- * entrance is a one-shot reveal — motion that responds to the visitor rather
- * than looping at them.
+ * sweep. Both are gone: motion with nothing behind it reads as filler. The card
+ * is now still until you touch it (`pub-lift`), and the entrance is a one-shot
+ * reveal — motion that responds to the visitor rather than looping at them.
+ *
+ * The illustration slot used to hold a generic AI clip per card. It now holds a
+ * drawn mockup of the actual screen being described (see ProductShots.tsx), so
+ * the three cards show three different products instead of three variations on
+ * the same glowing abstraction.
  */
 
 const FEATURES: {
   icon: string;
   titleKey: MessageKey;
   descKey: MessageKey;
-  media: string;
-  poster: string;
+  Shot: (props: { theme: Theme }) => React.ReactElement;
 }[] = [
   {
     icon: "K",
     titleKey: "site.features.kernel.title",
     descKey: "site.features.kernel.desc",
-    media: "/media/kernel.mp4",
-    poster: "/media/kernel.jpg",
+    Shot: KernelShot,
   },
   {
     icon: "S",
     titleKey: "site.features.rooms.title",
     descKey: "site.features.rooms.desc",
-    media: "/media/session.mp4",
-    poster: "/media/session.jpg",
+    Shot: RoomShot,
   },
   {
     icon: "C",
     titleKey: "site.features.challenges.title",
     descKey: "site.features.challenges.desc",
-    media: "/media/flashcards.mp4",
-    poster: "/media/flashcards.jpg",
+    Shot: ToolsShot,
   },
 ];
 
@@ -57,14 +56,14 @@ export default function FeaturesSection({ theme: t }: { theme: Theme }) {
       <div style={{ position: "relative", maxWidth: 1080, margin: "0 auto" }}>
         <Reveal>
           <div style={{ textAlign: "center", marginBottom: 52 }}>
-            <h2 style={{ fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "clamp(1.8rem,4vw,2.8rem)", letterSpacing: "-0.02em", maxWidth: 640, margin: "0 auto", color: t.text }}>
+            <h2 style={{ fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "clamp(1.8rem,4vw,2.8rem)", letterSpacing: "-0.02em", maxWidth: 640, margin: "0 auto", color: t.text }}>
               {tr("site.features.title.more")}{" "}
-              <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic" }}>
+              <em style={{ fontFamily: "var(--font-instrument-serif),'Instrument Serif',serif", fontStyle: "italic" }}>
                 {tr("site.features.title.em1")}
               </em>
               <br />
               {tr("site.features.title.more")}{" "}
-              <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic" }}>
+              <em style={{ fontFamily: "var(--font-instrument-serif),'Instrument Serif',serif", fontStyle: "italic" }}>
                 {tr("site.features.title.em2")}
               </em>
             </h2>
@@ -88,7 +87,7 @@ export default function FeaturesSection({ theme: t }: { theme: Theme }) {
                   boxShadow: t.cardShadow,
                 }}
               >
-                <MediaFrame theme={t} src={f.media} poster={f.poster} label={tr(f.titleKey)} ratio="16 / 10" />
+                <f.Shot theme={t} />
                 <div style={{ padding: 24 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     <span style={{ width: 34, height: 34, flex: "none", borderRadius: 12, background: t.ctaBg, color: t.ctaText, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, fontSize: 15 }}>

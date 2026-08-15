@@ -40,7 +40,7 @@ export default function ConnectionSection({ theme: t }: { theme: Theme }) {
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <h2
             style={{
-              fontFamily: "'IBM Plex Sans',sans-serif",
+              fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
               fontWeight: 900,
               fontSize: "clamp(1.7rem,3.6vw,2.6rem)",
               letterSpacing: "-0.02em",
@@ -49,7 +49,7 @@ export default function ConnectionSection({ theme: t }: { theme: Theme }) {
             }}
           >
             {tr("site.connection.title.a")}{" "}
-            <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic" }}>
+            <em style={{ fontFamily: "var(--font-instrument-serif),'Instrument Serif',serif", fontStyle: "italic" }}>
               {tr("site.connection.title.em")}
             </em>{" "}
             {tr("site.connection.title.b")}
@@ -71,6 +71,7 @@ export default function ConnectionSection({ theme: t }: { theme: Theme }) {
                 background: t.sectionAltBg,
                 border: `1px solid ${t.cardBorder}`,
                 borderRadius: 22,
+                boxShadow: t.cardShadowSm,
                 padding: 24,
               }}
             >

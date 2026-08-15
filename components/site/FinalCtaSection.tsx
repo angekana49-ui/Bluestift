@@ -42,7 +42,7 @@ export default function FinalCtaSection({ theme: t, signedIn, homeHref = "/chat"
       >
         <h2
           style={{
-            fontFamily: "'IBM Plex Sans',sans-serif",
+            fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
             fontWeight: 900,
             fontSize: "clamp(1.8rem,4vw,2.7rem)",
             letterSpacing: "-0.02em",
@@ -51,7 +51,7 @@ export default function FinalCtaSection({ theme: t, signedIn, homeHref = "/chat"
           }}
         >
           <RayaText>{tr("site.finalCta.title.a")}</RayaText>{" "}
-          <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic" }}>{tr("site.finalCta.title.em")}</em>
+          <em style={{ fontFamily: "var(--font-instrument-serif),'Instrument Serif',serif", fontStyle: "italic" }}>{tr("site.finalCta.title.em")}</em>
         </h2>
 
         <p style={{ margin: "16px auto 0", maxWidth: 480, color: "rgba(255,255,255,0.82)", fontSize: 16, lineHeight: 1.7 }}>
@@ -61,12 +61,14 @@ export default function FinalCtaSection({ theme: t, signedIn, homeHref = "/chat"
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginTop: 32 }}>
           <Link
             href={signedIn ? homeHref : "/login"}
+            className="pub-press"
             style={{ background: "#ffffff", color: "#0b1220", borderRadius: 999, padding: "13px 28px", fontSize: 15, fontWeight: 700, textDecoration: "none" }}
           >
             {tr(signedIn ? "site.nav.openApp" : "site.finalCta.ctaPrimary")}
           </Link>
           <Link
             href="/contact"
+            className="pub-press"
             style={{ border: "1px solid rgba(255,255,255,0.3)", color: "#ffffff", borderRadius: 999, padding: "13px 26px", fontSize: 15, fontWeight: 600, textDecoration: "none" }}
           >
             {tr("site.finalCta.ctaSecondary")}

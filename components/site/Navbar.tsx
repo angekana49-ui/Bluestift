@@ -71,8 +71,10 @@ export default function Navbar({
           justifyContent: "space-between",
           gap: 10,
           background: t.navBg,
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
+          // Saturation boost is what separates a glass bar from a grey one: it
+          // keeps the sky behind it colourful instead of washing to concrete.
+          backdropFilter: "blur(24px) saturate(180%)",
+          WebkitBackdropFilter: "blur(24px) saturate(180%)",
           border: `1px solid ${t.navBorder}`,
           borderRadius: 999,
           padding: "8px 10px 8px 14px",
@@ -88,12 +90,17 @@ export default function Navbar({
             style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
           />
           <div>
-            <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: "-0.02em", fontFamily: "'IBM Plex Sans',sans-serif" }}>
+            <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: "-0.02em", fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif" }}>
               <span style={{ color: t.wordmarkA }}>Blue</span>
               <span style={{ color: t.wordmarkB }}>Stift</span>
               {section && <span style={{ fontWeight: 400, opacity: 0.6, marginLeft: 4, color: t.text }}>· {section}</span>}
             </div>
-            <div style={{ fontSize: 13, color: t.text }}>{tr("site.nav.tagline")}</div>
+            {/* Hidden on phones: at 390px it wrapped onto four lines and pushed
+                the pill to a third of the screen height. The wordmark alone
+                identifies the site there. */}
+            <div className="pub-hide-sm" style={{ fontSize: 13, color: t.text }}>
+              {tr("site.nav.tagline")}
+            </div>
           </div>
         </Link>
 
@@ -125,16 +132,20 @@ export default function Navbar({
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <ThemeToggle theme={t} isDark={isDark} onToggle={onToggleTheme} />
           {signedIn ? (
-            <Link href={homeHref} style={ctaPill}>
+            <Link href={homeHref} className="pub-press" style={ctaPill}>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#34d399" }} />
               {tr("site.nav.openApp")}
             </Link>
           ) : (
             <>
-              <Link href="/login" className="pub-hide-sm" style={{ fontSize: 14, fontWeight: 500, color: t.link, whiteSpace: "nowrap", textDecoration: "none" }}>
+              <Link
+                href="/login"
+                className="pub-hide-sm pub-underline pub-focus"
+                style={{ fontSize: 14, fontWeight: 500, color: t.link, whiteSpace: "nowrap", textDecoration: "none" }}
+              >
                 {tr("site.nav.signIn")}
               </Link>
-              <Link href="/login" style={ctaPill}>
+              <Link href="/login" className="pub-press" style={ctaPill}>
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#34d399" }} />
                 {tr("site.nav.freeTrial")}
               </Link>

@@ -56,7 +56,7 @@ export default function KernelSection({ theme: t }: { theme: Theme }) {
           </div>
           <h2
             style={{
-              fontFamily: "'IBM Plex Sans',sans-serif",
+              fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
               fontWeight: 900,
               fontSize: "clamp(1.7rem,3.6vw,2.6rem)",
               letterSpacing: "-0.02em",
@@ -65,7 +65,7 @@ export default function KernelSection({ theme: t }: { theme: Theme }) {
             }}
           >
             {tr("site.kernel.title.a")}{" "}
-            <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic" }}>{tr("site.kernel.title.em")}</em>
+            <em style={{ fontFamily: "var(--font-instrument-serif),'Instrument Serif',serif", fontStyle: "italic" }}>{tr("site.kernel.title.em")}</em>
           </h2>
           <p style={{ maxWidth: 620, margin: "14px auto 0", fontSize: 16, color: t.text, lineHeight: 1.7 }}>
             <RayaText>{tr("site.kernel.sub")}</RayaText>
@@ -96,7 +96,7 @@ export default function KernelSection({ theme: t }: { theme: Theme }) {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontFamily: "'IBM Plex Sans',sans-serif",
+                  fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
                   fontWeight: 800,
                   fontSize: 20,
                 }}

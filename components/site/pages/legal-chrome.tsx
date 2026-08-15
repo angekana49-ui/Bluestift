@@ -12,7 +12,7 @@ import type { Theme } from "@/components/site/theme";
 
 export const h2 = (t: Theme) =>
   ({
-    fontFamily: "'IBM Plex Sans',sans-serif",
+    fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
     fontWeight: 800,
     fontSize: "1.05rem",
     letterSpacing: "-0.01em",
@@ -22,7 +22,7 @@ export const h2 = (t: Theme) =>
 
 export const h3 = (t: Theme) =>
   ({
-    fontFamily: "'IBM Plex Sans',sans-serif",
+    fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
     fontWeight: 700,
     fontSize: "0.95rem",
     color: t.text,
@@ -147,7 +147,7 @@ export function LegalShell({
           >
             <h1
               style={{
-                fontFamily: "'IBM Plex Sans',sans-serif",
+                fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
                 fontWeight: 900,
                 fontSize: "clamp(1.6rem,4vw,2.4rem)",
                 letterSpacing: "-0.02em",
@@ -158,7 +158,7 @@ export function LegalShell({
               {title}{" "}
               <em
                 style={{
-                  fontFamily: "'Instrument Serif',serif",
+                  fontFamily: "var(--font-instrument-serif),'Instrument Serif',serif",
                   fontStyle: "italic",
                   color: t.wordmarkB,
                 }}

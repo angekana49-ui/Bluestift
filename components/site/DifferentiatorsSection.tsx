@@ -19,9 +19,9 @@ export default function DifferentiatorsSection({ theme: t }: { theme: Theme }) {
       <div style={{ position: "absolute", inset: "0 0 auto 0", height: 140, background: `linear-gradient(180deg, ${t.sectionAltBg} 0%, transparent 100%)`, pointerEvents: "none" }} />
       <div style={{ position: "relative", maxWidth: 720, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 44 }}>
-          <h2 style={{ fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "clamp(1.7rem,3.6vw,2.6rem)", letterSpacing: "-0.02em", color: t.text }}>
+          <h2 style={{ fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "clamp(1.7rem,3.6vw,2.6rem)", letterSpacing: "-0.02em", color: t.text }}>
             {tr("site.diff.title.a")}{" "}
-            <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic" }}>{tr("site.diff.title.em")}</em>
+            <em style={{ fontFamily: "var(--font-instrument-serif),'Instrument Serif',serif", fontStyle: "italic" }}>{tr("site.diff.title.em")}</em>
           </h2>
           {/* The old line here was "the difference is the memory". That stopped
               being true: frontier models ship long context and cross-session

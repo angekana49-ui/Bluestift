@@ -68,7 +68,7 @@ export default function RoadmapSection({ theme: t }: { theme: Theme }) {
           </div>
           <h2
             style={{
-              fontFamily: "'IBM Plex Sans',sans-serif",
+              fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
               fontWeight: 900,
               fontSize: "clamp(1.7rem,3.6vw,2.6rem)",
               letterSpacing: "-0.02em",
@@ -77,7 +77,7 @@ export default function RoadmapSection({ theme: t }: { theme: Theme }) {
             }}
           >
             {tr("site.roadmap.title.a")}{" "}
-            <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic" }}>{tr("site.roadmap.title.em")}</em>
+            <em style={{ fontFamily: "var(--font-instrument-serif),'Instrument Serif',serif", fontStyle: "italic" }}>{tr("site.roadmap.title.em")}</em>
           </h2>
           <p style={{ maxWidth: 580, margin: "14px auto 0", fontSize: 16, color: t.text, lineHeight: 1.7 }}>
             {tr("site.roadmap.sub")}
