@@ -62,18 +62,10 @@ function ArticleCard({ t, post, large }: { t: Theme; post: PublicResearchPost; l
         color: t.text,
       }}
     >
-      {large && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            pointerEvents: "none",
-            background: "linear-gradient(115deg,rgba(255,255,255,0) 0%,rgba(255,255,255,0.3) 20%,rgba(255,255,255,0) 40%)",
-            backgroundSize: "250% 100%",
-            animation: "shine 7s linear infinite",
-          }}
-        />
-      )}
+      {/* The featured card used to carry an infinite `shine` sweep. On a link to
+          an article it read as a loading skeleton, not as emphasis — the card's
+          size already says which post is featured. The hover lift is the
+          emphasis now. */}
       <div style={{ position: "relative", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: large ? 12 : 8, fontSize: 13, color: t.mutedLight }}>
         <span>{meta.icon}</span>
         <span style={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>{meta.label}</span>

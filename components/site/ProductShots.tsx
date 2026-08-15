@@ -1,3 +1,6 @@
+"use client";
+
+import { createContext, useContext, useEffect, useRef, useState, type CSSProperties } from "react";
 import type { Theme } from "./theme";
 import { RayaName } from "@/components/ui/brand";
 
@@ -52,9 +55,100 @@ const ACCENT = {
   orange: "#f97316",
 };
 
+/* ───────────────────────── Choreography ───────────────────────── */
+
+/**
+ * Stagger helper: an inline `--d` the stylesheet reads as an animation-delay.
+ * Writing the sequence as numbers at the call site keeps each shot's timing
+ * readable as a score — you can see the beats without cross-referencing CSS.
+ */
+const at = (ms: number) => ({ "--d": `${ms}ms` }) as CSSProperties;
+
+/** True once the surrounding shot has started playing. Only ever true when
+ *  motion is allowed, so consumers can treat it as "animate now". */
+const ShotLive = createContext(false);
+
+/**
+ * Drives one shot's entrance.
+ *
+ * Returns the ref to attach and whether the sequence is running. The contract
+ * mirrors site/Reveal.tsx deliberately: the animated start state is opt-IN, so
+ * a visitor with reduced motion, without IntersectionObserver, or looking at a
+ * shot that was already on screen at mount sees the finished composition —
+ * never a frame of hidden content waiting for an observer that will not fire.
+ */
+function useShotSequence() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [live, setLive] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (typeof IntersectionObserver === "undefined") return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    // Already on screen: playing an entrance now would be a flash, not a reveal.
+    if (el.getBoundingClientRect().top < window.innerHeight * 0.92) return;
+
+    el.classList.add("pub-shot-anim");
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        el.classList.add("is-live");
+        setLive(true);
+        // One-shot: replaying on every scroll-by is what makes this cheap.
+        io.disconnect();
+      },
+      { threshold: 0.35 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  return { ref, live };
+}
+
+/**
+ * A number that counts to its value as the shot plays — the detail that reads
+ * as live data rather than a screenshot of it. Renders the final value
+ * immediately when the sequence isn't running, so the static shot is correct.
+ */
+function CountUp({ to, suffix = "", delay = 0 }: { to: number; suffix?: string; delay?: number }) {
+  const live = useContext(ShotLive);
+  const [n, setN] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!live) return;
+    let raf = 0;
+    let start = 0;
+    const DUR = 620;
+    const tick = (now: number) => {
+      if (!start) start = now;
+      const p = Math.min(1, (now - start) / DUR);
+      // Matches --ease-out closely enough that the number and its bar land together.
+      setN(Math.round(to * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    const timer = window.setTimeout(() => {
+      raf = requestAnimationFrame(tick);
+    }, delay);
+    return () => {
+      window.clearTimeout(timer);
+      cancelAnimationFrame(raf);
+    };
+  }, [live, to, delay]);
+
+  return (
+    <>
+      {live && n !== null ? n : to}
+      {suffix}
+    </>
+  );
+}
+
 /**
  * The aspect-ratio box every shot is drawn into. Owns the container context
- * that `u()`/`uw()` resolve against, so a shot is never rendered outside one.
+ * that `u()`/`uw()` resolve against, so a shot is never rendered outside one,
+ * and owns the entrance sequence for everything inside it.
  */
 function ShotFrame({
   theme: t,
@@ -67,8 +161,11 @@ function ShotFrame({
   className?: string;
   children: React.ReactNode;
 }) {
+  const { ref, live } = useShotSequence();
+
   return (
     <div
+      ref={ref}
       className={className ? `pub-shot ${className}` : "pub-shot"}
       style={{
         containerType: "inline-size",
@@ -83,7 +180,7 @@ function ShotFrame({
         borderBottom: `1px solid ${t.cardBorder}`,
       }}
     >
-      {children}
+      <ShotLive.Provider value={live}>{children}</ShotLive.Provider>
     </div>
   );
 }
@@ -114,8 +211,11 @@ const CONCEPTS: { label: string; pct: number; tone: keyof typeof ACCENT }[] = [
 export function KernelShot({ theme: t }: { theme: Theme }) {
   return (
     <ShotFrame theme={t} ratio="16 / 10">
+      {/* Score: the panel arrives, the three concepts fill in sequence, and the
+          blocking prerequisite lands last — the profile assembling itself in
+          the order a teacher would read it. */}
       <div style={{ position: "absolute", inset: 0, padding: u(16), display: "flex", flexDirection: "column", gap: u(10) }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div className="shot-in" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
             <div style={{ fontSize: u(13), fontWeight: 700, color: t.text, letterSpacing: "-0.01em" }}>Kernel profile</div>
             <div style={{ fontSize: u(10), color: t.muted, marginTop: u(2) }}>Maya · 9th grade</div>
@@ -135,22 +235,32 @@ export function KernelShot({ theme: t }: { theme: Theme }) {
           </span>
         </div>
 
-        <div style={{ ...panel(t, u(12), u(12)), display: "flex", flexDirection: "column", gap: u(10) }}>
-          {CONCEPTS.map((c) => (
-            <div key={c.label}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: u(4) }}>
-                <span style={{ fontSize: u(10.5), color: t.text }}>{c.label}</span>
-                <span style={{ fontSize: u(10.5), fontWeight: 700, color: ACCENT[c.tone] }}>{c.pct}%</span>
+        <div className="shot-in" style={{ ...panel(t, u(12), u(12)), ...at(90), display: "flex", flexDirection: "column", gap: u(10) }}>
+          {CONCEPTS.map((c, i) => {
+            const beat = 200 + i * 130;
+            return (
+              <div key={c.label}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: u(4) }}>
+                  <span style={{ fontSize: u(10.5), color: t.text }}>{c.label}</span>
+                  <span style={{ fontSize: u(10.5), fontWeight: 700, color: ACCENT[c.tone] }}>
+                    <CountUp to={c.pct} suffix="%" delay={beat} />
+                  </span>
+                </div>
+                <div style={{ height: u(5), borderRadius: u(999), background: t.inputFieldBg, overflow: "hidden" }}>
+                  <div
+                    className="shot-bar"
+                    style={{ ...at(beat), width: `${c.pct}%`, height: "100%", borderRadius: u(999), background: ACCENT[c.tone] }}
+                  />
+                </div>
               </div>
-              <div style={{ height: u(5), borderRadius: u(999), background: t.inputFieldBg, overflow: "hidden" }}>
-                <div style={{ width: `${c.pct}%`, height: "100%", borderRadius: u(999), background: ACCENT[c.tone] }} />
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <div
+          className="shot-in"
           style={{
+            ...at(700),
             marginTop: "auto",
             display: "flex",
             alignItems: "center",
@@ -213,10 +323,12 @@ export function RoomShot({ theme: t }: { theme: Theme }) {
 
   return (
     <ShotFrame theme={t} ratio="16 / 10">
+      {/* Score: the room header, then the shared document, then the exchange —
+          the student asking before Raya answers, which is the whole claim. */}
       <div style={{ position: "absolute", inset: 0, padding: u(16), display: "flex", flexDirection: "column", gap: u(10) }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div className="shot-in" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: u(6) }}>
-            <span style={{ width: u(6), height: u(6), borderRadius: u(999), background: ACCENT.green }} />
+            <span className="pub-shot-live-dot" style={{ width: u(6), height: u(6), borderRadius: u(999), background: ACCENT.green }} />
             <span style={{ fontSize: u(12), fontWeight: 700, color: t.text, letterSpacing: "-0.01em" }}>Trigonometry · live</span>
           </div>
           <div style={{ display: "flex" }}>
@@ -263,7 +375,9 @@ export function RoomShot({ theme: t }: { theme: Theme }) {
         </div>
 
         <div
+          className="shot-in"
           style={{
+            ...at(110),
             display: "flex",
             alignItems: "center",
             gap: u(7),
@@ -279,8 +393,10 @@ export function RoomShot({ theme: t }: { theme: Theme }) {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: u(7) }}>
-          <div style={bubble(true)}>Why is sin(150°) positive if 150° isn&apos;t in the first quadrant?</div>
-          <div style={{ display: "flex", gap: u(7), alignItems: "flex-end" }}>
+          <div className="shot-in" style={{ ...at(260), ...bubble(true) }}>
+            Why is sin(150°) positive if 150° isn&apos;t in the first quadrant?
+          </div>
+          <div className="shot-in" style={{ ...at(560), display: "flex", gap: u(7), alignItems: "flex-end" }}>
             <span
               style={{
                 flex: "none",
@@ -305,7 +421,9 @@ export function RoomShot({ theme: t }: { theme: Theme }) {
         </div>
 
         <div
+          className="shot-in"
           style={{
+            ...at(760),
             marginTop: "auto",
             display: "flex",
             alignItems: "center",
@@ -339,8 +457,11 @@ const FORMATS = ["Quiz", "Summary", "Flashcards", "Mind map"];
 export function ToolsShot({ theme: t }: { theme: Theme }) {
   return (
     <ShotFrame theme={t} ratio="16 / 10">
+      {/* Score: the source file, the question it produced, then the options —
+          with the correct one landing last, on the sequence's one emphasised
+          beat. Generation, shown in the order it happens. */}
       <div style={{ position: "absolute", inset: 0, padding: u(16), display: "flex", flexDirection: "column", gap: u(9) }}>
-        <div style={{ display: "flex", alignItems: "center", gap: u(7) }}>
+        <div className="shot-in" style={{ display: "flex", alignItems: "center", gap: u(7) }}>
           <span style={{ width: u(14), height: u(16), borderRadius: u(3), background: ACCENT.green, flex: "none" }} />
           <span style={{ fontSize: u(10), color: t.text, fontWeight: 600 }}>Photosynthesis — lesson 4.pdf</span>
           <span
@@ -359,19 +480,23 @@ export function ToolsShot({ theme: t }: { theme: Theme }) {
           </span>
         </div>
 
-        <div style={{ ...panel(t, u(12), u(12)), display: "flex", flexDirection: "column", gap: u(7) }}>
-          <div style={{ fontSize: u(8.5), fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: t.muted }}>
+        <div className="shot-in" style={{ ...at(110), ...panel(t, u(12), u(12)), display: "flex", flexDirection: "column", gap: u(7) }}>
+          <div className="shot-in" style={{ ...at(220), fontSize: u(8.5), fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: t.muted }}>
             Question 3 of 8
           </div>
-          <div style={{ fontSize: u(11), fontWeight: 600, color: t.text, lineHeight: 1.4 }}>
+          <div className="shot-in" style={{ ...at(300), fontSize: u(11), fontWeight: 600, color: t.text, lineHeight: 1.4 }}>
             What happens to oxygen during photosynthesis?
           </div>
-          {OPTIONS.map((o) => {
+          {OPTIONS.map((o, i) => {
             const right = o.state === "right";
+            // The wrong options arrive first; the answer resolves after them.
+            const beat = right ? 420 + OPTIONS.length * 90 : 420 + i * 90;
             return (
               <div
                 key={o.label}
+                className={right ? "shot-pick" : "shot-in"}
                 style={{
+                  ...at(beat),
                   display: "flex",
                   alignItems: "center",
                   gap: u(7),
@@ -403,7 +528,9 @@ export function ToolsShot({ theme: t }: { theme: Theme }) {
           {FORMATS.map((f, i) => (
             <span
               key={f}
+              className="shot-in"
               style={{
+                ...at(880 + i * 70),
                 fontSize: u(9),
                 fontWeight: 500,
                 borderRadius: u(999),
@@ -423,6 +550,15 @@ export function ToolsShot({ theme: t }: { theme: Theme }) {
 }
 
 /* ───────────────────────── The Socratic ladder ───────────────────────── */
+
+/**
+ * When turn `i` lands. Slow enough to read as a conversation replaying rather
+ * than a list appearing — this sequence IS the argument the section makes, so
+ * it's the one place on the site worth spending a second and a half.
+ */
+const turnBeat = (i: number) => 140 + i * 340;
+/** A rung ticks just after the turn that used it, never before. */
+const rungBeat = (turnIndex: number) => turnBeat(turnIndex) + 200;
 
 const TURNS: { rung: string; who: "raya" | "student"; text: string; tone: string }[] = [
   { rung: "Pump", who: "raya", text: "Before anything else — what do you already know about how limits behave near a hole?", tone: ACCENT.indigo },
@@ -444,7 +580,7 @@ export function SocraticShot({ theme: t }: { theme: Theme }) {
         style={{ position: "absolute", inset: 0, display: "grid", gridTemplateColumns: "1.55fr 1fr", gap: uw(18), padding: uw(22) }}
       >
         <div style={{ display: "flex", flexDirection: "column", gap: uw(9), minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: uw(8), marginBottom: uw(2) }}>
+          <div className="shot-in" style={{ display: "flex", alignItems: "center", gap: uw(8), marginBottom: uw(2) }}>
             <span
               style={{
                 width: uw(26),
@@ -467,10 +603,14 @@ export function SocraticShot({ theme: t }: { theme: Theme }) {
             </span>
           </div>
 
-          {TURNS.map((turn) => {
+          {TURNS.map((turn, i) => {
             const own = turn.who === "student";
             return (
-              <div key={turn.text} style={{ display: "flex", flexDirection: "column", alignItems: own ? "flex-end" : "flex-start", gap: uw(4) }}>
+              <div
+                key={turn.text}
+                className="shot-in"
+                style={{ ...at(turnBeat(i)), display: "flex", flexDirection: "column", alignItems: own ? "flex-end" : "flex-start", gap: uw(4) }}
+              >
                 <span
                   style={{
                     fontSize: uw(9),
@@ -503,16 +643,19 @@ export function SocraticShot({ theme: t }: { theme: Theme }) {
         </div>
 
         <div className="pub-shot-aside" style={{ ...panel(t, uw(16), uw(16)), display: "flex", flexDirection: "column", gap: uw(12), minWidth: 0 }}>
-          <div style={{ fontSize: uw(10), fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: t.muted }}>
+          <div className="shot-in" style={{ fontSize: uw(10), fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: t.muted }}>
             Escalation
           </div>
+          {/* Each rung is timed to the turn that used it (TURNS index), so the
+              panel ticks in step with the transcript instead of running its own
+              unrelated animation next to it. */}
           {[
-            { n: "01", name: "Pump", done: true, tone: ACCENT.indigo },
-            { n: "02", name: "Hint", done: true, tone: ACCENT.blue },
-            { n: "03", name: "Assertion", done: true, tone: ACCENT.green },
-            { n: "04", name: "Summary", done: false, tone: t.muted },
+            { n: "01", name: "Pump", done: true, tone: ACCENT.indigo, beat: rungBeat(0) },
+            { n: "02", name: "Hint", done: true, tone: ACCENT.blue, beat: rungBeat(2) },
+            { n: "03", name: "Assertion", done: true, tone: ACCENT.green, beat: rungBeat(3) },
+            { n: "04", name: "Summary", done: false, tone: t.muted, beat: rungBeat(3) + 180 },
           ].map((r) => (
-            <div key={r.n} style={{ display: "flex", alignItems: "center", gap: uw(9) }}>
+            <div key={r.n} className="shot-in" style={{ ...at(r.beat), display: "flex", alignItems: "center", gap: uw(9) }}>
               <span
                 style={{
                   flex: "none",
@@ -538,7 +681,10 @@ export function SocraticShot({ theme: t }: { theme: Theme }) {
           {/* Pinned to the bottom, with a rule above it so the slack between
               the rungs and the footnote reads as a panel foot rather than as a
               gap someone forgot to close. */}
-          <div style={{ marginTop: "auto", paddingTop: uw(12), borderTop: `1px solid ${t.cardBorder}`, fontSize: uw(10.5), lineHeight: 1.5, color: t.muted }}>
+          <div
+            className="shot-in"
+            style={{ ...at(rungBeat(3) + 320), marginTop: "auto", paddingTop: uw(12), borderTop: `1px solid ${t.cardBorder}`, fontSize: uw(10.5), lineHeight: 1.5, color: t.muted }}
+          >
             Never opens above rung 1. Escalates only after a real attempt.
           </div>
         </div>

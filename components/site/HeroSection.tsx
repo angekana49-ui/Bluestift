@@ -106,7 +106,11 @@ export default function HeroSection({ theme: t }: { theme: Theme }) {
         </div>
       </div>
 
-      <div style={{ position: "relative", marginTop: 56, width: "100%", maxWidth: 1080, animation: "floatSm 7s ease-in-out infinite", zIndex: 1 }}>
+      {/* Was bobbing on an infinite `floatSm` loop. A product screenshot that
+          never stops moving is restless, not alive — and it undercuts the one
+          thing this image is here to do, which is let you read it. It now
+          arrives once, under the headline, and then holds still. */}
+      <div className="pub-hero-rise" style={{ position: "relative", marginTop: 56, width: "100%", maxWidth: 1080, zIndex: 1 }}>
         <DashboardMockup theme={t} />
       </div>
     </section>

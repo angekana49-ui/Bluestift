@@ -29,7 +29,10 @@ export default function DashboardMockup({ theme: t }: { theme: Theme }) {
     <div style={{ flex: 1, height: h, background: bg, borderRadius: "3px 3px 0 0" }} />
   );
 
-  const statTile = (label: string, value: string, sub: string, subColor: string, shine?: boolean) => (
+  // One tile used to carry an infinite `shine` sweep. It drew the eye to the
+  // tile with the least to say, forever, and made a static dashboard look like
+  // a loading skeleton. The tiles are now plain — the numbers are the content.
+  const statTile = (label: string, value: string, sub: string, subColor: string) => (
     <div
       style={{
         position: "relative",
@@ -40,20 +43,9 @@ export default function DashboardMockup({ theme: t }: { theme: Theme }) {
         padding: 14,
       }}
     >
-      {shine && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background: "linear-gradient(115deg,rgba(255,255,255,0) 0%,rgba(255,255,255,0.5) 20%,rgba(255,255,255,0) 40%)",
-            backgroundSize: "250% 100%",
-            animation: "shine 6s linear infinite",
-          }}
-        />
-      )}
-      <div style={{ position: "relative", fontSize: 13, color: t.muted }}>{label}</div>
-      <div style={{ position: "relative", fontSize: 23, fontWeight: 600 }}>{value}</div>
-      <div style={{ position: "relative", fontSize: 13, color: subColor }}>{sub}</div>
+      <div style={{ fontSize: 13, color: t.muted }}>{label}</div>
+      <div style={{ fontSize: 23, fontWeight: 600 }}>{value}</div>
+      <div style={{ fontSize: 13, color: subColor }}>{sub}</div>
     </div>
   );
 
@@ -94,7 +86,7 @@ export default function DashboardMockup({ theme: t }: { theme: Theme }) {
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
-            {statTile("Sessions today", "482", "+21% vs last month", "#10b981", true)}
+            {statTile("Sessions today", "482", "+21% vs last month", "#10b981")}
             {statTile("Students stuck", "6", "-2 since this morning", t.mutedLight)}
             {statTile("Average mastery", "83%", "+12 points this month", t.mutedLight)}
             {statTile("Active students", "1,204", "+340 this week", "#10b981")}

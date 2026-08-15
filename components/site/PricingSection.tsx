@@ -21,17 +21,20 @@ export default function PricingSection({ theme: t }: { theme: Theme }) {
 
   // Audience gateway card — no single price; sells the segment, then deep-links
   // into /pricing with the right tab preselected.
+  //
+  // These cards each used to carry a blurred blob morphing on an infinite loop.
+  // Three of them, on slightly different periods, right next to the one
+  // decision the page actually asks a visitor to make — motion with nothing to
+  // say, pulling the eye off the prices. Gone: the cards hold still, and the
+  // only thing that moves is the CTA when you reach for it.
   const gatewayCard = (opts: {
     title: string;
     lines: string[];
     meta: ReactNode;
     cta: string;
     href: string;
-    blobDur: string;
-    blobDelay: string;
   }) => (
     <div style={{ display: "flex", flexDirection: "column", background: t.cardBg, borderRadius: 24, padding: 28, boxShadow: t.cardShadowLg, position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", right: "-15%", bottom: "-15%", width: "75%", height: "75%", background: "rgba(11,18,32,0.05)", filter: "blur(30px)", animation: `morphBlob ${opts.blobDur} ease-in-out infinite`, animationDelay: opts.blobDelay, pointerEvents: "none" }} />
       <div style={{ position: "relative", fontSize: "1.5rem", fontWeight: 900, color: t.text, letterSpacing: "-0.02em" }}>{opts.title}</div>
       {lineList(opts.lines, t.muted, t.greenSolid)}
       <div style={{ position: "relative", fontSize: 14, fontWeight: 600, color: t.wordmarkB, marginTop: 16 }}>{opts.meta}</div>
@@ -68,15 +71,10 @@ export default function PricingSection({ theme: t }: { theme: Theme }) {
             meta: "Free · Plus $20 · Max $40 / mo",
             cta: tr("site.pricing.solo.cta"),
             href: "/pricing?for=solo",
-            blobDur: "10.5s",
-            blobDelay: "0s",
           })}
 
           {/* 2 — Schools (recommended, dark) */}
           <div style={{ display: "flex", flexDirection: "column", background: "#0b1220", color: "white", borderRadius: 24, padding: 28, position: "relative", boxShadow: "0 16px 40px rgba(15,23,42,0.25)" }}>
-            <div style={{ position: "absolute", inset: 0, borderRadius: 24, overflow: "hidden", pointerEvents: "none" }}>
-              <div style={{ position: "absolute", right: "-15%", bottom: "-15%", width: "75%", height: "75%", background: "rgba(255,255,255,0.09)", filter: "blur(30px)", animation: "morphBlob 7.5s ease-in-out infinite", animationDelay: "0.8s" }} />
-            </div>
             <span style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: "white", color: "#0b1220", fontSize: 13, fontWeight: 700, padding: "4px 12px", borderRadius: 999, letterSpacing: "0.1em", zIndex: 1 }}>
               {tr("site.pricing.schools.badge")}
             </span>
@@ -109,8 +107,6 @@ export default function PricingSection({ theme: t }: { theme: Theme }) {
             meta: tr("site.pricing.custom.meta"),
             cta: tr("site.pricing.custom.cta"),
             href: "/pricing?for=schools",
-            blobDur: "9s",
-            blobDelay: "1.6s",
           })}
         </div>
 
