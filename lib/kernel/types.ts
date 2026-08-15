@@ -41,12 +41,44 @@ export type KernelAlertType =
   | "false_mastery"
   | "re_emergence_error"
   | "cognitive_overload"
-  | "fixed_mindset";
+  | "fixed_mindset"
+  /** Mastery estimate oscillates instead of settling — treat K as unreliable. */
+  | "inconsistency_high"
+  /** Student diverges from the population the parameters were calibrated on. */
+  | "ood_distribution";
 
 export interface KernelAlert {
   type: KernelAlertType | string;
   severity?: "low" | "medium" | "high" | string;
   [key: string]: unknown;
+}
+
+export type ObjectiveStatus = "met" | "at_risk" | "overdue" | "pending" | "unknown";
+
+/** A school objective measured against the student's real mastery. */
+export interface CurriculumObjective {
+  concept: string;
+  target_mastery: number;
+  /** null when the student has no evidence on that concept yet. */
+  observed_mastery: number | null;
+  due_at: string | null;
+  status: ObjectiveStatus;
+}
+
+/**
+ * The School → AI → Student channel. Absent (null) unless the student belongs to
+ * a school that has set curriculum layers, so always treat it as optional. When
+ * present, `recommended_path` has already been reordered by the school's
+ * priorities.
+ */
+export interface CurriculumContext {
+  school_id: string | null;
+  layers_applied: string[];
+  objectives: CurriculumObjective[];
+  /** Whether the detected root gap is part of the school's program. */
+  root_gap_in_program: boolean | null;
+  /** School instructions for Raya's prompt. */
+  rules: string[];
 }
 
 export interface AnalyzeResponse {
@@ -60,6 +92,7 @@ export interface AnalyzeResponse {
   summary: string;
   recommended_path: string[];
   alerts: KernelAlert[];
+  curriculum?: CurriculumContext | null;
   kernel_version: string;
   llm_used: string;
 }

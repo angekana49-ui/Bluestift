@@ -208,6 +208,12 @@ Priority:
 3. fixed_mindset
 4. false_mastery
 5. re_emergence_error
+6. inconsistency_high — this concept's mastery estimate is unreliable, not
+   necessarily low. Re-establish it: ask for one clean attempt with no hints
+   before building anything on top of it.
+7. ood_distribution — this student doesn't match the population the model was
+   calibrated on. Lean on what they show you this turn rather than on their
+   stored mastery, and don't push a harder task on the strength of a number.
 
 Adapt naturally.
 
