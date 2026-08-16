@@ -2,9 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { generateJson } from "@/lib/raya/llm";
-import { kernel, clampHistory } from "@/lib/kernel/client";
-import { invalidateProfile } from "@/lib/kernel/profile-cache";
-import type { KernelMessage } from "@/lib/kernel/types";
+import { reportGradedSubmission } from "@/lib/kernel/graded";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -158,21 +156,22 @@ export async function POST(request: Request) {
   const { error: ansErr } = await admin.schema("learning").from("challenge_answers").insert(answerRows);
   if (ansErr) return NextResponse.json({ error: ansErr.message }, { status: 500 });
 
-  // Feed the Kernel (fire-and-forget) — assignment performance is a strong signal.
+  // Feed the Kernel (fire-and-forget) — a graded assignment is the strongest
+  // signal the product produces, so it goes through the precise per-KC route
+  // with its real partial credit, not only as a synthetic conversation.
   const contentById = new Map(questions.map((q) => [q.id, q.content ?? ""]));
-  const convo: KernelMessage[] = [
-    {
-      role: "user",
-      content:
-        "Assignment results:\n" +
-        results.map((r) => `Q: ${contentById.get(r.questionId)} — ${r.isCorrect ? "correct" : "wrong"}`).join("\n") +
-        `\nScore: ${correct}/${total}.`,
-    },
-  ];
-  void kernel
-    .analyze({ user_id: user.id, conversation_history: clampHistory(convo), trigger: "post_challenge" })
-    .then(() => invalidateProfile(user.id))
-    .catch(() => {});
+  void reportGradedSubmission({
+    userId: user.id,
+    questions: results.map((r) => ({
+      question: contentById.get(r.questionId) ?? "",
+      score: r.score,
+    })),
+    resultSummary:
+      "Assignment results:\n" +
+      results.map((r) => `Q: ${contentById.get(r.questionId)} — ${r.isCorrect ? "correct" : "wrong"}`).join("\n") +
+      `\nScore: ${correct}/${total}.`,
+    trigger: "post_challenge",
+  });
 
   return NextResponse.json({ score, correct, total, results });
 }

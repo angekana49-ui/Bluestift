@@ -17,8 +17,17 @@ export async function GET() {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  // This call is about exactly one student, and that student is right here, so
+  // it travels on their own token rather than the service secret.
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
   try {
-    const result = await kernel.loadProfile({ user_id: user.id });
+    const result = await kernel.loadProfile(
+      { user_id: user.id },
+      { accessToken: session?.access_token },
+    );
     return NextResponse.json(result);
   } catch (err) {
     if (err instanceof KernelError) {

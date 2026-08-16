@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildRayaMessages, safetyLayer } from "@/lib/raya/prompt";
+import type { KernelAlertType } from "@/lib/kernel/types";
 
 /**
  * These assert that the promises made on the public legal pages are actually
@@ -35,6 +36,27 @@ describe("safetyLayer", () => {
 
   it("refuses to invent a helpline number", () => {
     expect(safetyLayer("solo")).toContain("Never invent one");
+  });
+});
+
+describe("alert coverage", () => {
+  it("gives Raya a move for every alert the kernel can emit", () => {
+    // The kernel decides which alerts exist; the prompt decides what to do about
+    // them. A new kernel alert type arriving with no instruction here would reach
+    // students as an unhandled token, so this pins the two lists together.
+    const kernelAlertTypes: KernelAlertType[] = [
+      "passive_dependency",
+      "false_mastery",
+      "re_emergence_error",
+      "cognitive_overload",
+      "fixed_mindset",
+      "inconsistency_high",
+      "ood_distribution",
+    ];
+    const system = systemOf([], null);
+    for (const alertType of kernelAlertTypes) {
+      expect(system).toContain(alertType);
+    }
   });
 });
 

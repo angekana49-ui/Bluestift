@@ -32,6 +32,23 @@ export function clampHistory(messages: KernelMessage[]): KernelMessage[] {
 const KERNEL_URL = process.env.KERNEL_API_URL ?? "http://localhost:8000";
 const KERNEL_SECRET = process.env.KERNEL_API_SECRET;
 
+/**
+ * Send the student's own Supabase token instead of the service secret on calls
+ * that are about one known student.
+ *
+ * The service secret can read and write ANY student's cognitive profile. A
+ * student's token can only reach their own, so the skeleton key stops travelling
+ * on ordinary user-initiated requests.
+ *
+ * Off by default, and deliberately: the kernel only accepts user tokens once it
+ * has SUPABASE_JWT_SECRET set. Turning this on first would 401 every scoped
+ * call. Set it on the app AFTER the kernel has the secret.
+ */
+const USER_SCOPED_AUTH = process.env.KERNEL_USER_SCOPED_AUTH === "1";
+
+/** Per-call auth: the token of the student the call is about. */
+export type KernelCallOptions = { accessToken?: string | null };
+
 class KernelError extends Error {
   constructor(
     message: string,
@@ -45,14 +62,20 @@ class KernelError extends Error {
 
 async function kernelFetch<T>(
   path: string,
-  init?: RequestInit & { json?: unknown },
+  init?: RequestInit & { json?: unknown; accessToken?: string | null },
 ): Promise<T> {
-  const { json, ...rest } = init ?? {};
+  const { json, accessToken, ...rest } = init ?? {};
   const headers = new Headers(rest.headers);
   if (json !== undefined) headers.set("content-type", "application/json");
-  // The kernel currently enforces no auth; send the secret if configured so
-  // this keeps working once it does.
-  if (KERNEL_SECRET) headers.set("authorization", `Bearer ${KERNEL_SECRET}`);
+  // Prefer the student's own token when we have one: it reaches only their
+  // profile. Fall back to the service secret, which the kernel treats as a
+  // trusted backend acting for anyone — needed for background work that has no
+  // live session to borrow a token from.
+  if (USER_SCOPED_AUTH && accessToken) {
+    headers.set("authorization", `Bearer ${accessToken}`);
+  } else if (KERNEL_SECRET) {
+    headers.set("authorization", `Bearer ${KERNEL_SECRET}`);
+  }
 
   const res = await fetch(`${KERNEL_URL}${path}`, {
     ...rest,
@@ -83,19 +106,25 @@ export const kernel = {
 
   ready: () => kernelFetch<ReadyResponse>("/ready", { method: "GET" }),
 
-  analyze: (payload: AnalyzeRequest) =>
-    kernelFetch<AnalyzeResponse>("/analyze", { method: "POST", json: payload }),
+  analyze: (payload: AnalyzeRequest, opts?: KernelCallOptions) =>
+    kernelFetch<AnalyzeResponse>("/analyze", {
+      method: "POST",
+      json: payload,
+      accessToken: opts?.accessToken,
+    }),
 
-  loadProfile: (payload: LoadProfileRequest) =>
+  loadProfile: (payload: LoadProfileRequest, opts?: KernelCallOptions) =>
     kernelFetch<LoadProfileResponse>("/load_profile", {
       method: "POST",
       json: payload,
+      accessToken: opts?.accessToken,
     }),
 
-  updateConceptState: (payload: UpdateConceptStateRequest) =>
+  updateConceptState: (payload: UpdateConceptStateRequest, opts?: KernelCallOptions) =>
     kernelFetch<UpdateConceptStateResponse>("/update_concept_state", {
       method: "POST",
       json: payload,
+      accessToken: opts?.accessToken,
     }),
 };
 

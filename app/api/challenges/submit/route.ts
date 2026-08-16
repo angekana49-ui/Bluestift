@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateJson } from "@/lib/raya/llm";
-import { kernel, clampHistory } from "@/lib/kernel/client";
-import { invalidateProfile } from "@/lib/kernel/profile-cache";
+import { reportGradedSubmission } from "@/lib/kernel/graded";
 import { assertRoomOpen } from "@/lib/rooms";
-import type { KernelMessage } from "@/lib/kernel/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -161,21 +159,22 @@ export async function POST(request: Request) {
   const { error: ansErr } = await supabase.schema("learning").from("challenge_answers").insert(answerRows);
   if (ansErr) return NextResponse.json({ error: ansErr.message }, { status: 500 });
 
-  // Loop Kernel: feed the performance as a strong signal (fire-and-forget).
+  // Loop Kernel: a graded challenge is a strong signal, so it goes through the
+  // precise route (real partial credit per KC) rather than only as a synthetic
+  // conversation. Fire-and-forget — the student's score doesn't wait on it.
   const contentById = new Map(questions.map((q) => [q.id, q.content ?? ""]));
-  const convo: KernelMessage[] = [
-    {
-      role: "user",
-      content:
-        "Challenge results:\n" +
-        results.map((r) => `Q: ${contentById.get(r.questionId)} — ${r.isCorrect ? "correct" : "wrong"}`).join("\n") +
-        `\nScore: ${correct}/${total}.`,
-    },
-  ];
-  void kernel
-    .analyze({ user_id: user.id, conversation_history: clampHistory(convo), trigger: "post_challenge" })
-    .then(() => invalidateProfile(user.id))
-    .catch(() => {});
+  void reportGradedSubmission({
+    userId: user.id,
+    questions: results.map((r) => ({
+      question: contentById.get(r.questionId) ?? "",
+      score: r.score,
+    })),
+    resultSummary:
+      "Challenge results:\n" +
+      results.map((r) => `Q: ${contentById.get(r.questionId)} — ${r.isCorrect ? "correct" : "wrong"}`).join("\n") +
+      `\nScore: ${correct}/${total}.`,
+    trigger: "post_challenge",
+  });
 
   return NextResponse.json({ score, correct, total, results });
 }
