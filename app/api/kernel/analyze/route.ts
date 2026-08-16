@@ -40,14 +40,22 @@ export async function POST(request: Request) {
     );
   }
 
+  // About one student, who is the caller: send their token, not the skeleton key.
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
   try {
-    const result = await kernel.analyze({
-      user_id: user.id,
-      conversation_history: clampHistory(body.conversation_history),
-      subject: body.subject,
-      level: body.level,
-      trigger: body.trigger,
-    });
+    const result = await kernel.analyze(
+      {
+        user_id: user.id,
+        conversation_history: clampHistory(body.conversation_history),
+        subject: body.subject,
+        level: body.level,
+        trigger: body.trigger,
+      },
+      { accessToken: session?.access_token },
+    );
     return NextResponse.json(result);
   } catch (err) {
     if (err instanceof KernelError) {
