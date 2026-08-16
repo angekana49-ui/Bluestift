@@ -1203,7 +1203,9 @@ function profInsightsToDoc(data: ProfInsights, schoolName?: string): BrandedDoc 
     lines.push("No students need attention right now.");
   }
   for (const a of data.alerts) {
-    lines.push(`- **${a.name}** · ${a.className} · ${a.alertTypes?.join(" · ") ?? a.statusLabel ?? "at risk"}`);
+    lines.push(
+      `- **${a.name}** · ${a.className} · ${a.alertTypes?.join(" · ") ?? a.statusLabel ?? "at risk"} · ${pctOrDash(a.avgMastery)}`,
+    );
   }
   lines.push("# Class insights");
   if (data.insights.length === 0) lines.push("No certified insights yet.");
@@ -1276,6 +1278,7 @@ function ProfInsightsView({ onStudent, schoolName }: { onStudent: (classId: stri
                 <span style={{ opacity: 0.5, fontSize: "0.8rem" }}>
                   {" "}· {a.className} · {a.alertTypes?.join(" · ") ?? a.statusLabel ?? "at risk"}
                   {a.alertCount && a.alertCount > 1 ? ` · ${a.alertCount} signals` : ""}
+                  {a.avgMastery != null ? ` · ${pctOrDash(a.avgMastery)}` : ""}
                 </span>
               </span>
               <button style={ghost} onClick={() => onStudent(a.classId, a.userId)}>Open →</button>

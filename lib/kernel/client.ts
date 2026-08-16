@@ -132,9 +132,15 @@ export const kernel = {
     }),
 
   /**
+   * NOTE: the school dashboards do NOT use this — they read the kernel schema
+   * directly via lib/kernel/risk.ts, because we share that database and an HTTP
+   * call here would wake a sleeping (billed) container on every page view. This
+   * method is for callers that need the kernel's own view: a client that does
+   * not share the DB, or a one-off check.
+   *
    * Staff scopes (`user_ids`, `school_id`) deliberately take no accessToken: the
    * kernel refuses them on a user token, because it has no way to know who
-   * teaches where. Authorize the caller here first (getAdminMembership +
+   * teaches where. Authorize the caller first (getAdminMembership +
    * getProfClasses), then this call carries the service secret.
    */
   loadAlerts: (payload: LoadAlertsRequest, opts?: KernelCallOptions) =>
