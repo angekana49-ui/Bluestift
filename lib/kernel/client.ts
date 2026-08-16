@@ -4,9 +4,13 @@ import type {
   AnalyzeResponse,
   HealthResponse,
   KernelMessage,
+  LoadAlertsRequest,
+  LoadAlertsResponse,
   LoadProfileRequest,
   LoadProfileResponse,
   ReadyResponse,
+  ResolveAlertRequest,
+  ResolveAlertResponse,
   UpdateConceptStateRequest,
   UpdateConceptStateResponse,
 } from "./types";
@@ -125,6 +129,25 @@ export const kernel = {
       method: "POST",
       json: payload,
       accessToken: opts?.accessToken,
+    }),
+
+  /**
+   * Staff scopes (`user_ids`, `school_id`) deliberately take no accessToken: the
+   * kernel refuses them on a user token, because it has no way to know who
+   * teaches where. Authorize the caller here first (getAdminMembership +
+   * getProfClasses), then this call carries the service secret.
+   */
+  loadAlerts: (payload: LoadAlertsRequest, opts?: KernelCallOptions) =>
+    kernelFetch<LoadAlertsResponse>("/load_alerts", {
+      method: "POST",
+      json: payload,
+      accessToken: opts?.accessToken,
+    }),
+
+  resolveAlert: (payload: ResolveAlertRequest) =>
+    kernelFetch<ResolveAlertResponse>("/resolve_alert", {
+      method: "POST",
+      json: payload,
     }),
 };
 

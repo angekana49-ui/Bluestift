@@ -1195,9 +1195,15 @@ function TeacherBanner({
 /** Compose a teacher's at-risk list + class insights into a branded Markdown document. */
 function profInsightsToDoc(data: ProfInsights, schoolName?: string): BrandedDoc {
   const lines: string[] = ["# At-risk students"];
-  if (data.alerts.length === 0) lines.push("No students need attention right now.");
+  if (data.alertsUnavailable) {
+    // The PDF outlives the screen it was exported from, so it must not freeze
+    // an unknown state into a printed "all clear".
+    lines.push("_Kernel unreachable when this was exported — the list is unknown, not empty._");
+  } else if (data.alerts.length === 0) {
+    lines.push("No students need attention right now.");
+  }
   for (const a of data.alerts) {
-    lines.push(`- **${a.name}** · ${a.className} · ${a.statusLabel ?? "at risk"} · ${pctOrDash(a.avgMastery)}`);
+    lines.push(`- **${a.name}** · ${a.className} · ${a.alertTypes?.join(" · ") ?? a.statusLabel ?? "at risk"}`);
   }
   lines.push("# Class insights");
   if (data.insights.length === 0) lines.push("No certified insights yet.");
@@ -1249,7 +1255,14 @@ function ProfInsightsView({ onStudent, schoolName }: { onStudent: (classId: stri
             </button>
           )}
         </div>
-        {data.alerts.length === 0 ? (
+        {data.alertsUnavailable ? (
+          // Not the same thing as "nobody needs attention". We don't know, and
+          // saying "all clear" when the kernel is unreachable is the one lie a
+          // safety panel must never tell.
+          <p style={{ color: "#fbbf24", fontSize: "0.85rem", margin: 0 }}>
+            Can&apos;t reach the kernel — this list is unknown, not empty. Try again shortly.
+          </p>
+        ) : data.alerts.length === 0 ? (
           <p style={{ opacity: 0.55, fontSize: "0.85rem", margin: 0 }}>No students need attention right now.</p>
         ) : (
           data.alerts.map((a) => (
@@ -1261,7 +1274,8 @@ function ProfInsightsView({ onStudent, schoolName }: { onStudent: (classId: stri
               <span style={{ flex: 1 }}>
                 {a.name}
                 <span style={{ opacity: 0.5, fontSize: "0.8rem" }}>
-                  {" "}· {a.className} · {a.statusLabel ?? "at risk"} · {pctOrDash(a.avgMastery)}
+                  {" "}· {a.className} · {a.alertTypes?.join(" · ") ?? a.statusLabel ?? "at risk"}
+                  {a.alertCount && a.alertCount > 1 ? ` · ${a.alertCount} signals` : ""}
                 </span>
               </span>
               <button style={ghost} onClick={() => onStudent(a.classId, a.userId)}>Open →</button>

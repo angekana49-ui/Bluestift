@@ -5,6 +5,7 @@ import {
   createKernelAdminClient,
 } from "@/lib/supabase/admin";
 import { getActiveSchoolId } from "@/lib/school-active";
+import { kernel } from "@/lib/kernel/client";
 
 /**
  * School-admin data layer (Tranche 1). All access is via the service_role
@@ -638,8 +639,85 @@ export type ProfAlert = {
   riskLevel: string | null;
   statusLabel: string | null;
   avgMastery: number | null;
+  /** Which safety signals fired, most severe first. */
+  alertTypes?: string[];
+  alertCount?: number;
 };
-export type ProfInsights = { insights: ClassInsight[]; alerts: ProfAlert[] };
+export type ProfInsights = {
+  insights: ClassInsight[];
+  alerts: ProfAlert[];
+  /**
+   * The kernel could not be reached. The list is then unknown, NOT empty —
+   * the UI must say so rather than render "no students need attention", which
+   * is the one thing a safety screen must never claim when it doesn't know.
+   */
+  alertsUnavailable?: boolean;
+  /** Students actually covered — 30 expected and 2 seen is a roster bug. */
+  studentsInScope?: number;
+};
+
+/** Plain-language names for the kernel's alert types (kernel-handoff §4). */
+const ALERT_LABELS: Record<string, string> = {
+  cognitive_overload: "Overloaded",
+  fixed_mindset: "Giving up early",
+  passive_dependency: "Leaning on answers",
+  false_mastery: "Mastery may be false",
+  re_emergence_error: "Fails in harder contexts",
+  inconsistency_high: "Unstable estimate",
+  ood_distribution: "Doesn't match the cohort",
+};
+
+const SEVERITY_RANK: Record<string, number> = { high: 0, medium: 1, low: 2 };
+
+export type AlertIdentity = { user_id: string; first_name: string; last_name: string; class_id: string };
+
+/**
+ * Fold the kernel's alert rows into one line per student, most urgent first.
+ *
+ * The kernel returns one row per signal; a teacher needs one row per child,
+ * because "Amina raised 3 signals" is a different call to action than three
+ * separate lines that scroll past each other. A student's severity is that of
+ * their WORST signal — averaging would let two low alerts bury one high one.
+ */
+export function aggregateAlertsByStudent(
+  rows: { user_id: string | null; alert_type: string; alert_severity: string }[],
+  identities: AlertIdentity[],
+  classNameById: Map<string, string>,
+): ProfAlert[] {
+  const identityByUser = new Map(identities.map((i) => [i.user_id, i]));
+  const byStudent = new Map<string, { severity: string; types: string[]; count: number }>();
+
+  for (const a of rows) {
+    const i = a.user_id ? identityByUser.get(a.user_id) : undefined;
+    if (!i) continue; // Not one of this teacher's students.
+    const entry = byStudent.get(i.user_id) ?? { severity: "low", types: [], count: 0 };
+    entry.count += 1;
+    if ((SEVERITY_RANK[a.alert_severity] ?? 3) < (SEVERITY_RANK[entry.severity] ?? 3)) {
+      entry.severity = a.alert_severity;
+    }
+    const label = ALERT_LABELS[a.alert_type] ?? a.alert_type;
+    if (!entry.types.includes(label)) entry.types.push(label);
+    byStudent.set(i.user_id, entry);
+  }
+
+  const alerts: ProfAlert[] = [];
+  for (const [userId, entry] of byStudent) {
+    const i = identityByUser.get(userId)!;
+    alerts.push({
+      userId,
+      classId: i.class_id,
+      className: classNameById.get(i.class_id) ?? "Class",
+      name: `${i.first_name} ${i.last_name[0] ?? ""}.`,
+      riskLevel: entry.severity,
+      statusLabel: entry.types[0] ?? null,
+      avgMastery: null,
+      alertTypes: entry.types,
+      alertCount: entry.count,
+    });
+  }
+  alerts.sort((a, b) => (SEVERITY_RANK[a.riskLevel ?? ""] ?? 3) - (SEVERITY_RANK[b.riskLevel ?? ""] ?? 3));
+  return alerts;
+}
 
 /**
  * Certified class insights + at-risk students for a teacher's assigned classes
@@ -694,48 +772,36 @@ export async function getProfInsights(userId: string): Promise<ProfInsights | nu
     });
   }
 
-  // At-risk students across those classes (latest kernel risk row per user).
+  // At-risk students across those classes, from the kernel's own safety alerts.
+  //
+  // This used to read kernel.student_risk_assessments directly. That table has
+  // no writer — not in the app, not in the kernel — so the panel was reading a
+  // table that would never fill, and reporting "no students need attention"
+  // forever. The kernel's alerts are the live signal, so ask the kernel.
   const identities =
     (idData as { user_id: string; first_name: string; last_name: string; class_id: string }[] | null) ?? [];
   const alerts: ProfAlert[] = [];
+  let alertsUnavailable = false;
+  let studentsInScope = 0;
+
   if (identities.length) {
     try {
-      const kernel = createKernelAdminClient();
-      const { data: riskData } = await kernel
-        .from("student_risk_assessments")
-        .select("user_id, risk_level, status_label, avg_mastery, assessed_at")
-        .in("user_id", identities.map((i) => i.user_id));
-      const riskByUser = latestByUser(
-        (riskData as {
-          user_id: string;
-          risk_level: string | null;
-          status_label: string | null;
-          avg_mastery: number | null;
-          assessed_at: string | null;
-        }[] | null) ?? [],
-      );
-      for (const i of identities) {
-        const r = riskByUser.get(i.user_id);
-        if (!r || !(r.risk_level === "high" || r.risk_level === "medium" || r.risk_level === "med")) continue;
-        alerts.push({
-          userId: i.user_id,
-          classId: i.class_id,
-          className: classNameById.get(i.class_id) ?? "Class",
-          name: `${i.first_name} ${i.last_name[0] ?? ""}.`,
-          riskLevel: r.risk_level,
-          statusLabel: r.status_label,
-          avgMastery: r.avg_mastery,
-        });
-      }
-      // Highest risk first.
-      const rank: Record<string, number> = { high: 0, medium: 1, med: 1 };
-      alerts.sort((a, b) => (rank[a.riskLevel ?? ""] ?? 2) - (rank[b.riskLevel ?? ""] ?? 2));
+      // The roster scope, not the school scope: this teacher's assigned classes
+      // only. Service-authenticated — we just proved the caller is staff here.
+      const res = await kernel.loadAlerts({
+        user_ids: [...new Set(identities.map((i) => i.user_id))],
+        limit: 500,
+      });
+      studentsInScope = res.students_in_scope;
+      alerts.push(...aggregateAlertsByStudent(res.alerts, identities, classNameById));
     } catch {
-      // Kernel unavailable → no alerts.
+      // Unreachable kernel means we don't KNOW whether anyone needs attention.
+      // Say so; an empty list here would read as an all-clear.
+      alertsUnavailable = true;
     }
   }
 
-  return { insights, alerts };
+  return { insights, alerts, alertsUnavailable, studentsInScope };
 }
 
 /**
