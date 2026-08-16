@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import SitePage from "@/components/site/SitePage";
 import type { Theme } from "@/components/site/theme";
+import { MEASURE, lead, pageColumn, pageH1, pageSection, serifEm } from "@/components/site/layout";
 import { ANNUAL_DISCOUNT, annualMonthlyRate, termTotal } from "@/lib/billing/terms";
 import { RayaName } from "@/components/ui/brand";
 
@@ -330,25 +331,14 @@ export function PricingView({
         };
 
         return (
-          <section style={{ position: "relative", zIndex: 1, overflow: "hidden", padding: "140px 24px 0" }}>
-            <div style={{ maxWidth: 1080, margin: "0 auto", width: "100%", boxSizing: "border-box", paddingBottom: 96 }}>
+          <section style={pageSection}>
+            <div style={pageColumn("wide")}>
               <div style={{ textAlign: "center", marginBottom: 30 }}>
-                <h1
-                  style={{
-                    fontFamily: "'IBM Plex Sans',sans-serif",
-                    fontWeight: 900,
-                    fontSize: "clamp(1.9rem,4.5vw,3rem)",
-                    letterSpacing: "-0.02em",
-                    margin: "0 0 12px",
-                    color: t.text,
-                  }}
-                >
+                <h1 style={{ ...pageH1(t), margin: "0 0 12px" }}>
                   Pricing that{" "}
-                  <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", color: t.wordmarkB }}>
-                    stays simple.
-                  </em>
+                  <em style={{ ...serifEm, color: t.wordmarkB }}>stays simple.</em>
                 </h1>
-                <p style={{ fontSize: 16, color: t.text, lineHeight: 1.7, maxWidth: 520, margin: "0 auto" }}>
+                <p style={{ ...lead(t), margin: "0 auto" }}>
                   Solo starts free and stays free. Schools pay per enrolled student — their effectif, not per active
                   user.
                 </p>
@@ -373,7 +363,7 @@ export function PricingView({
                 <div
                   style={{
                     marginTop: 30,
-                    maxWidth: 720,
+                    maxWidth: MEASURE.prose,
                     marginLeft: "auto",
                     marginRight: "auto",
                     background: t.chipBg,

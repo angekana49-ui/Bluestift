@@ -5,6 +5,7 @@ import type { ComponentType } from "react";
 import { useRef, useState } from "react";
 import SitePage from "@/components/site/SitePage";
 import type { Theme } from "@/components/site/theme";
+import { GUTTER, MEASURE, PAGE_TOP, pageH1, serifEm } from "@/components/site/layout";
 import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
 import type { WallPost } from "@/lib/content";
 import { IconTeacher, IconStudent, IconUser, IconHeart, IconFlame, IconPencil, IconCheck } from "@/components/site/icons";
@@ -111,7 +112,7 @@ function SurveyFlow({ t, profile, onDone }: { t: Theme; profile: "teacher" | "st
   }
 
   return (
-    <div style={{ maxWidth: 560, margin: "0 auto", padding: "8px 24px 32px" }}>
+    <div style={{ maxWidth: MEASURE.form, margin: "0 auto", padding: `8px ${GUTTER}px 32px` }}>
       <div style={{ background: t.cardBg, borderRadius: 22, padding: 28, boxShadow: t.cardShadow, border: `1px solid ${t.cardBorder}` }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 22 }}>
           <div style={{ flex: 1, height: 3, background: t.pillTrackBg, borderRadius: 999, overflow: "hidden" }}>
@@ -185,7 +186,7 @@ function DoneScreen({ t, responseId, onFreeWall }: { t: Theme; responseId: strin
   }
 
   return (
-    <div style={{ maxWidth: 440, margin: "0 auto", padding: "64px 24px", textAlign: "center" }}>
+    <div style={{ maxWidth: MEASURE.form, margin: "0 auto", padding: `64px ${GUTTER}px`, textAlign: "center" }}>
       <div style={{ display: "flex", justifyContent: "center", marginBottom: 20, color: t.orange }}>
         <IconHeart size={44} filled />
       </div>
@@ -270,7 +271,7 @@ function FreeWall({ t, initialPosts }: { t: Theme; initialPosts: WallPost[] }) {
   }
 
   return (
-    <div style={{ maxWidth: 580, margin: "0 auto", padding: "8px 24px 32px" }}>
+    <div style={{ maxWidth: MEASURE.form, margin: "0 auto", padding: `8px ${GUTTER}px 32px` }}>
       <div style={{ marginBottom: 28 }}>
         <h2 style={{ fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "clamp(1.3rem,3vw,1.8rem)", letterSpacing: "-0.02em", margin: "0 0 8px", color: t.text }}>Tell us what you think.</h2>
         <p style={{ fontSize: 15, lineHeight: 1.7, color: t.text, margin: 0 }}>
@@ -363,7 +364,7 @@ export function SurveyView({ signedIn, initialPosts, stats }: Props) {
   return (
     <SitePage active="Survey" section="Survey" signedIn={signedIn}>
       {(t) => (
-        <div style={{ position: "relative", zIndex: 1, paddingTop: 140, paddingBottom: 24 }}>
+        <div style={{ position: "relative", zIndex: 1, paddingTop: PAGE_TOP, paddingBottom: GUTTER }}>
           {/* Survey / Free wall switch */}
           <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 24 }}>
             {([["landing", "Survey"], ["free", "Free wall"]] as const).map(([k, l]) => {
@@ -381,18 +382,18 @@ export function SurveyView({ signedIn, initialPosts, stats }: Props) {
           </div>
 
           {view === "landing" && (
-            <div style={{ maxWidth: 560, margin: "0 auto", padding: "0 24px 40px", textAlign: "center" }}>
+            <div style={{ maxWidth: MEASURE.form, margin: "0 auto", padding: `0 ${GUTTER}px 40px`, textAlign: "center" }}>
               <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: t.orangeBg, border: `1px solid ${t.orangeBorder}`, borderRadius: 999, padding: "6px 16px", marginBottom: 20 }}>
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: t.orange }} />
                 <span style={{ fontSize: 13, fontWeight: 600, color: t.orangeText }}>R&amp;D · 5 minutes · Anonymous</span>
               </div>
 
-              <h1 style={{ fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "clamp(1.6rem,4vw,2.4rem)", letterSpacing: "-0.02em", lineHeight: 1.2, margin: "0 0 14px", color: t.text }}>
+              <h1 style={{ ...pageH1(t), lineHeight: 1.2, margin: "0 0 14px" }}>
                 Do you teach or do you learn?
                 <br />
-                <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", color: t.orange }}>Tell us what&apos;s really getting in the way.</em>
+                <em style={{ ...serifEm, color: t.orange }}>Tell us what&apos;s really getting in the way.</em>
               </h1>
-              <p style={{ maxWidth: 380, margin: "0 auto 32px", fontSize: 15, color: t.text, lineHeight: 1.7 }}>
+              <p style={{ margin: "0 auto 32px", fontSize: 15, color: t.text, lineHeight: 1.7 }}>
                 6 questions. No account needed. Your answers feed directly into <RayaName />&apos;s development.
               </p>
 

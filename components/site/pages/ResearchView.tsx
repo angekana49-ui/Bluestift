@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import SitePage from "@/components/site/SitePage";
 import RoadmapTimeline from "@/components/site/RoadmapTimeline";
 import type { Theme } from "@/components/site/theme";
+import { GUTTER, MEASURE, PAGE_BOTTOM, lead, pageH1, pageSection, serifEm } from "@/components/site/layout";
 import { useTranslate } from "@/components/ui/locale";
 import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
 import { readTime } from "@/components/public/format";
@@ -187,7 +188,7 @@ function ProposeForm({ t, onClose }: { t: Theme; onClose: () => void }) {
 
   if (state === "done") {
     return (
-      <div style={{ maxWidth: 520, margin: "0 auto", padding: "8px 0" }}>
+      <div style={{ maxWidth: MEASURE.form, margin: "0 auto", padding: "8px 0" }}>
         <div style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: 20, padding: "48px 24px", boxShadow: t.cardShadow, textAlign: "center" }}>
           <div style={{ fontSize: 44, marginBottom: 16 }}>🙏</div>
           <h2 style={{ fontSize: 23, fontWeight: 800, margin: "0 0 10px", color: t.text }}>Proposal received.</h2>
@@ -199,7 +200,7 @@ function ProposeForm({ t, onClose }: { t: Theme; onClose: () => void }) {
   }
 
   return (
-    <div style={{ maxWidth: 520, margin: "0 auto", padding: "8px 0" }}>
+    <div style={{ maxWidth: MEASURE.form, margin: "0 auto", padding: "8px 0" }}>
       <button onClick={onClose} style={{ background: "none", border: "none", marginBottom: 16, fontSize: 14, color: t.muted, cursor: "pointer" }}>← Back</button>
       <div style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: 20, padding: 24, boxShadow: t.cardShadow }}>
         <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", fontSize: 23, margin: "0 0 8px", color: t.text }}>Propose a contribution</h2>
@@ -263,17 +264,19 @@ export function ResearchView({ posts, issues, signedIn, initialTab }: Props) {
     <SitePage active="Research" section="Research" signedIn={signedIn}>
       {(t) => (
         <>
-          <section style={{ position: "relative", zIndex: 1, overflow: "hidden", padding: "150px 24px 40px" }}>
-            <div style={{ maxWidth: 760, margin: "0 auto" }}>
+          {/* The tab strip has to sit tight under the title, so this header
+              overrides only the bottom of the shared page padding. */}
+          <section style={{ ...pageSection, paddingBottom: 40 }}>
+            <div style={{ maxWidth: MEASURE.text, margin: "0 auto" }}>
               <div style={{ textAlign: "center", marginBottom: 36 }}>
                 <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: t.greenBg, border: `1px solid ${t.greenBorder}`, borderRadius: 999, padding: "6px 16px", marginBottom: 16 }}>
                   <span style={{ width: 6, height: 6, borderRadius: "50%", background: t.greenDot }} />
                   <span style={{ fontSize: 13, fontWeight: 600, color: t.greenText }}>Volume 1 · Open research</span>
                 </div>
-                <h1 style={{ fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "clamp(1.8rem,4vw,2.6rem)", letterSpacing: "-0.02em", margin: 0, color: t.text }}>
-                  What we&apos;re learning by <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", color: t.greenText }}>building Raya.</em>
+                <h1 style={{ ...pageH1(t), margin: 0 }}>
+                  What we&apos;re learning by <em style={{ ...serifEm, color: t.greenText }}>building Raya.</em>
                 </h1>
-                <p style={{ maxWidth: 440, margin: "14px auto 0", fontSize: 16, color: t.text, lineHeight: 1.7 }}>
+                <p style={lead(t)}>
                   Papers, field experiments, and release notes — published as we go, open to everyone.
                 </p>
               </div>
@@ -300,7 +303,7 @@ export function ResearchView({ posts, issues, signedIn, initialTab }: Props) {
             </div>
           </section>
 
-          <div style={{ maxWidth: 760, margin: "0 auto", padding: "0 24px 96px", position: "relative", zIndex: 1 }}>
+          <div style={{ maxWidth: MEASURE.text, margin: "0 auto", padding: `0 ${GUTTER}px ${PAGE_BOTTOM}px`, position: "relative", zIndex: 1 }}>
             {proposing ? (
               <ProposeForm t={t} onClose={() => setProposing(false)} />
             ) : tab === "articles" ? (
@@ -387,7 +390,7 @@ export function ResearchView({ posts, issues, signedIn, initialTab }: Props) {
                 )}
               </>
             ) : (
-              <div style={{ maxWidth: 520, margin: "0 auto" }}>
+              <div style={{ maxWidth: MEASURE.form, margin: "0 auto" }}>
                 <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", fontSize: 21, margin: "0 0 8px", color: t.greenText }}>Academic collaborations</h2>
                 <p style={{ fontSize: 15, lineHeight: 1.7, color: t.muted, marginBottom: 16 }}>
                   BlueStift wants to collaborate with education researchers to validate the Cognitive Kernel. This effort is opening up — if it interests you, write to us.

@@ -6,6 +6,7 @@ import SitePage from "@/components/site/SitePage";
 import type { Theme } from "@/components/site/theme";
 import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
 import { IconLightbulb, IconBug, IconSparkle, IconHeart, IconChatBubble, IconStar } from "@/components/site/icons";
+import { pageColumn, pageH1, pageSection, serifEm } from "@/components/site/layout";
 
 type IconEl = ComponentType<{ size?: number; filled?: boolean }>;
 
@@ -126,10 +127,10 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
       {(t) => (
         <>
         <ParticleBurst particles={particles} />
-        <section style={{ position: "relative", zIndex: 1, overflow: "hidden", padding: "150px 24px 0" }}>
-          <div style={{ maxWidth: 560, margin: "0 auto", width: "100%", boxSizing: "border-box", paddingBottom: 96 }}>
-            <h1 style={{ fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "clamp(1.6rem,4vw,2.4rem)", letterSpacing: "-0.02em", margin: "0 0 10px", color: t.text }}>
-              Your <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", color: t.wordmarkB }}>feedback.</em>
+        <section style={pageSection}>
+          <div style={pageColumn("form")}>
+            <h1 style={pageH1(t)}>
+              Your <em style={{ ...serifEm, color: t.wordmarkB }}>feedback.</em>
             </h1>
             <p style={{ fontSize: 15, color: t.text, lineHeight: 1.7, margin: "0 0 28px" }}>
               A bug, an idea, something you loved or that annoyed you — we want it all, and we read it all.
