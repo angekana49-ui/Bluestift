@@ -5,6 +5,7 @@ import type { Theme } from "./theme";
 import ThemeToggle from "./ThemeToggle";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
+import { MEASURE } from "./layout";
 
 // "Privacy" is a valid section (for SitePage's `active`) but intentionally not in
 // LINKS below — the privacy page has no nav pill, so nothing highlights for it.
@@ -64,7 +65,9 @@ export default function Navbar({
     <div style={{ position: "sticky", top: 12, zIndex: 50, padding: "0 16px", marginBottom: -56 }}>
       <div
         style={{
-          maxWidth: 1100,
+          // Was 1100 — 20px wider than every content column below it, so the
+          // nav pill hung past the page edge by 10px on each side.
+          maxWidth: MEASURE.wide,
           margin: "0 auto",
           display: "flex",
           alignItems: "center",
