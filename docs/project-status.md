@@ -1,6 +1,6 @@
  # Bluestift — project status
 
-_Last updated: 2026-07-23. Living summary of what's built, how it works, and what's next._
+_Last updated: 2026-08-16. Living summary of what's built, how it works, and what's next._
 
 > **This is Version 2 (V2) of RAYA and RAYA for Schools — a clean-slate rebuild.**
 > It is the ONLY version we show, demo, or sell. **V1 is dead product.** The V1 of RAYA
@@ -400,10 +400,29 @@ Next.js app  ──HTTP──▶  Kernel (FastAPI, Railway)
   documents** as context.
 
 ### Public site — `/`, `/research`, `/survey`, `/contact`, `/feedback`
-Built from the approved mockups (`landing/research/survey-thebluestift.jsx`,
-in Downloads); French copy, light theme, per-surface signature accents (teal /
-academic green / amber), Inter + Georgia italic. Shared `PublicNav` /
-`PublicFooter` / tokens in `components/public/`. Backed by the **`content`**
+Lives in **`components/site/`** (the earlier `components/public/*` mockup build is
+archived under `docs/templates/`). **English copy, translated to FR/ES/DE** through
+`lib/i18n` + `useTranslate`; day/night theme in `components/site/theme.ts`, held in
+React state and passed down — there is no CSS-variable theme for the site.
+- **One page template** (`components/site/layout.tsx`) owns every measure and the
+  vertical rhythm, so a page picks a role rather than a number: four measures
+  (`form` 560 / `prose` 680 / `text` 820 / `wide` 1080), one `PAGE_TOP`, one
+  `SECTION_Y`, one `GUTTER`, plus `pageSection`/`bandSection`/`pageColumn`/
+  `bandColumn` and the type helpers (`pageH1`, `sectionH2`, `lead`, `eyebrow`,
+  `serifEm`). It replaced ten hand-typed content widths and three sizes of the
+  same heading level. **`test/site-layout.test.ts` enforces it**: a numeric
+  `maxWidth` or a hard-coded page padding under `components/site` fails with file
+  and line. Component-internal caps are allowed by name, each with its reason.
+- **Motion is deliberate and one-shot**: `Reveal` (scroll-in, server markup stays
+  visible, respects `prefers-reduced-motion`), `.pub-hero-rise`, `.pub-lift`,
+  `.pub-press`. The permanent loops — bobbing hero, morphing blobs behind the
+  pricing cards, looping shine — were removed: motion with nothing to say pulls
+  the eye off the one decision the page asks for.
+- **Product mockups** (`ProductShots.tsx`, `DashboardMockup.tsx`) are hand-drawn
+  in JSX rather than screenshots. They are **not translated** — hard-coded English,
+  like the mockups before them.
+
+Backed by the **`content`**
 schema via `createContentAdminClient()` (untyped, like `schools`) — reads/writes
 go through `lib/content.ts` + `app/api/content/*`, all public POSTs are
 **Turnstile-verified server-side** (`lib/turnstile.ts`, `TURNSTILE_SECRET_KEY`;
@@ -422,7 +441,11 @@ skipped when unset in dev).
   (Kernel · Study Rooms · Challenges & Tools — the collaborative/playful side is
   a first-class pillar) → `DifferentiatorsSection` (now drawn on *who else can
   see the learning*: general assistants are invisible to the teacher, teacher
-  toolkits invisible to the student, fixed platforms rigid) → pricing → footer.
+  toolkits invisible to the student, fixed platforms rigid) → `LadderSection`
+  (the EMT rungs, as a sticky scroll-stack) → `KernelSection` → `FaqSection` →
+  `PricingSection` → `FinalCtaSection` → footer. The roadmap is no longer on the
+  landing page: it is a changelog, not part of the argument, and now lives at
+  `/research?tab=progress` as `RoadmapTimeline`.
   **No geography or level targeting anywhere** — "K-12 · Cameroon & US" is gone
   from the hero, navbar, footer, the auth/onboarding chrome and Privacy; the
   product is open to anyone, anywhere, at any level. Rationale and the unresolved
@@ -559,7 +582,7 @@ the installed supabase-js).
 | Design system | `components/ui/{tokens,theme,shell,icons,widgets,forms}.tsx`, `components/raya/raya-{shell,scaffold}.tsx`, `components/school/schools-shell.tsx`, `app/globals.css` |
 | Schools | `lib/{school-admin,school-active}.ts`, `app/school/{page,actions}.tsx`, `app/school/enter/`, `app/api/school/*`, `components/school-*.tsx` |
 | Billing | `lib/billing.ts`, `lib/billing/{payments,payments-data,regions}.ts`, `app/api/billing/*`, `app/{checkout,pricing}/`, `components/{school-billing,checkout/*}.tsx` |
-| Public site | `components/public/*`, `lib/{content,turnstile}.ts`, `app/{research,survey,contact,feedback}/`, `app/api/content/*` |
+| Public site | `components/site/*` (template: `layout.tsx`, theme: `theme.ts`), `lib/i18n/*`, `lib/{content,turnstile}.ts`, `app/{research,survey,contact,feedback}/`, `app/api/content/*` |
 | Export | `lib/export.ts` (TXT + jsPDF) |
 
 ---
@@ -628,10 +651,13 @@ activation, online checkout, regional price book). What's genuinely left:
   `defaultConfig`/`InboxSection` copy. (`components/public/*` and `/preview` — the
   other two dead-copy holders — are gone now, moved to `.archive/` pre-deployment.)
   `splitOnRaya` is covered by `test/brand.test.ts`.
-- No tests / CI (the public content APIs were verified by a throwaway e2e
-  script, not committed). No error monitoring.
-- **Nothing is committed yet** — the tree is one initial commit plus ~220 staged/
-  untracked files; the owner commits on their own cue.
+- **Tests: 242 across 30 files** (Vitest), covering the parts that fail silently —
+  recovery-key hashing, training consent, storage paths, kernel signals/snapshots/
+  graded submissions, prompt safety, brand assets, and the site layout template.
+  Still **no CI** (nothing runs them on push) and **no error monitoring**. `npm test`,
+  `npm run lint`, `npm run build` are green as of this update.
+- The tree **is committed** — `main` carries the full history, and the two
+  `claude/*` working branches (kernel resume, premium design) are merged into it.
 
 **Reconnect / returning users**
 - Signed-out screen (`components/auth-panel.tsx`) now separates: **sign in with
@@ -714,16 +740,19 @@ activation, online checkout, regional price book). What's genuinely left:
 ~~public content site~~ (done), ~~conversation history / cognitive profile /
 progress curve / signal logging~~ (done).
 
-1. **Commit the tree.** ~220 files sit uncommitted on one initial commit — the
-   single biggest risk right now.
+1. ~~**Commit the tree**~~ — done. Next on the same axis: **apply the two
+   unapplied migrations** (`20260813210000_kernel_latest_analysis`,
+   `20260813220000_training_on_by_default` — the second contains an `UPDATE`
+   touching adults who never chose), then deploy.
 2. ~~**"Raya" wordmark sweep**~~ — done (see §5).
 3. **Real payments** — get a merchant account, then exercise the CinetPay path
    end-to-end (the whole loop is written and idempotent; only keys are missing).
 4. **Usage limits / quotas** — `daily_message_count` / `email_usage_windows` are
    still unenforced. This *stops being deferrable* now that paid plans exist:
    there's no cost cap on Raya.
-5. **Tests / CI + error monitoring** — nothing exists, and the money path
-   (webhook idempotency, seat gate) is exactly the kind of code that needs it.
+5. **CI + error monitoring** — 242 tests exist but nothing runs them on push, and
+   the money path (webhook idempotency, seat gate) is exactly the kind of code
+   that needs both.
 6. **Blocked on the Kernel** — per-concept trajectory curve, a real simulation
    endpoint, `update_concept_state` (needs `concept_id` on challenge questions).
 7. **Later** — social (`friendships`/`notifications`), remaining Tools
