@@ -282,6 +282,26 @@ export async function getClassRoster(userId: string, classId: string): Promise<C
   return { classId: cls.id, className: cls.name, students };
 }
 
+/**
+ * True when this student is in one of the caller's own classes.
+ *
+ * The guard for any action taken on a named student from the staff side. An
+ * id in a request body is a claim, not a permission — a teacher must not reach
+ * a child they don't teach, in this school or any other.
+ */
+export async function canReachStudent(userId: string, studentUserId: string): Promise<boolean> {
+  const classes = await getProfClasses(userId);
+  if (classes.length === 0) return false;
+  const schools = createSchoolsAdminClient();
+  const { data } = await schools
+    .from("student_identities")
+    .select("user_id")
+    .eq("user_id", studentUserId)
+    .in("class_id", classes.map((c) => c.id))
+    .limit(1);
+  return ((data as { user_id: string }[] | null) ?? []).length > 0;
+}
+
 export type SchoolRole = "admin_master" | "prof";
 export type Membership = { schoolId: string; adminId: string; role: SchoolRole; schoolName: string };
 
@@ -616,6 +636,8 @@ export type ProfAlert = {
   /** Which safety signals fired, most severe first. */
   alertTypes?: string[];
   alertCount?: number;
+  /** The open alert rows behind this line — what an acknowledgement closes. */
+  alertIds?: string[];
 };
 export type ProfInsights = {
   insights: ClassInsight[];
@@ -658,6 +680,7 @@ export function aggregateAlertsByStudent(
       avgMastery: r.avgMastery,
       alertTypes: r.alertTypes,
       alertCount: r.alertCount,
+      alertIds: r.alertIds,
     });
   }
   alerts.sort((a, b) => (SEVERITY_RANK[a.riskLevel ?? ""] ?? 3) - (SEVERITY_RANK[b.riskLevel ?? ""] ?? 3));

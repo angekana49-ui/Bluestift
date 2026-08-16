@@ -5,7 +5,9 @@ import { aggregateAlertsByStudent, type AlertIdentity } from "@/lib/school-admin
 // This is the logic that decides what a teacher sees when they open the
 // dashboard, so it is checkable without a database on purpose.
 
+let alertSeq = 0;
 const alert = (user_id: string | null, alert_type: string, alert_severity: string) => ({
+  id: `a${++alertSeq}`,
   user_id,
   alert_type,
   alert_severity,
@@ -135,6 +137,22 @@ describe("aggregateAlertsByStudent", () => {
     });
     const out = aggregateAlertsByStudent(risk, IDENTITIES, CLASS_NAMES);
     expect(out.map((a) => a.userId)).toEqual(["u1"]);
+  });
+
+  it("carries every open alert id, so acknowledging clears the whole line", () => {
+    // The row aggregates N alerts. If it only carried one id, pressing "Seen"
+    // would close one and leave the student sitting in the list looking
+    // unacknowledged — so staff would stop trusting the button.
+    const risk = foldStudentRisk(["u1"], {
+      ...empty,
+      alerts: [
+        alert("u1", "cognitive_overload", "high"),
+        alert("u1", "fixed_mindset", "medium"),
+      ],
+    });
+    const out = aggregateAlertsByStudent(risk, IDENTITIES, CLASS_NAMES);
+    expect(out[0].alertIds).toHaveLength(2);
+    expect(out[0].alertIds).toEqual(risk.get("u1")!.alertIds);
   });
 
   it("carries mastery through so the teacher sees the number too", () => {

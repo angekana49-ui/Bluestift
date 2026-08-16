@@ -38,6 +38,8 @@ export type StudentRisk = {
   statusLabel: string | null;
   alertTypes: string[];
   alertCount: number;
+  /** The open alert rows behind this line, so staff can acknowledge them. */
+  alertIds: string[];
   avgMastery: number | null;
   mindsetScore: number | null;
   lastActiveAt: string | null;
@@ -57,7 +59,12 @@ export const ALERT_LABELS: Record<string, string> = {
 
 export const SEVERITY_RANK: Record<string, number> = { high: 0, medium: 1, low: 2 };
 
-type AlertRow = { user_id: string | null; alert_type: string | null; alert_severity: string | null };
+type AlertRow = {
+  id: string;
+  user_id: string | null;
+  alert_type: string | null;
+  alert_severity: string | null;
+};
 type StateRow = { user_id: string; mastery_score_effective: number | null; last_strong_signal_at: string | null };
 type MindsetRow = { user_id: string; m_score: number | null };
 type RequestRow = { user_id: string };
@@ -81,6 +88,7 @@ export function foldStudentRisk(
       statusLabel: null,
       alertTypes: [],
       alertCount: 0,
+      alertIds: [],
       avgMastery: null,
       mindsetScore: null,
       lastActiveAt: null,
@@ -92,6 +100,7 @@ export function foldStudentRisk(
     const entry = a.user_id ? out.get(a.user_id) : undefined;
     if (!entry || !a.alert_type) continue;
     entry.alertCount += 1;
+    entry.alertIds.push(a.id);
     const severity = a.alert_severity ?? "low";
     if ((SEVERITY_RANK[severity] ?? 3) < (SEVERITY_RANK[entry.riskLevel ?? ""] ?? 3)) {
       entry.riskLevel = severity as StudentRisk["riskLevel"];
@@ -138,6 +147,25 @@ export function foldStudentRisk(
 }
 
 /**
+ * Which student an alert is about, or null if there is no such alert.
+ *
+ * An alert id is an opaque UUID a caller could guess or copy, so knowing it
+ * proves nothing. Before acting on one, resolve its owner here and check that
+ * student is on the caller's own roster — otherwise a teacher could close an
+ * alert raised about a child in another school.
+ */
+export async function getAlertOwner(alertId: string): Promise<string | null> {
+  const kernel = createKernelAdminClient();
+  const { data } = await kernel
+    .from("kernel_monitoring")
+    .select("user_id")
+    .eq("id", alertId)
+    .eq("level", "alert")
+    .maybeSingle();
+  return (data as { user_id: string | null } | null)?.user_id ?? null;
+}
+
+/**
  * Live risk rows for a set of students. Throws when the kernel schema is
  * unreachable — callers must distinguish "nobody at risk" from "we don't know",
  * and an empty map cannot carry that difference.
@@ -152,7 +180,7 @@ export async function getStudentRisk(userIds: string[]): Promise<Map<string, Stu
   const [alerts, states, mindsets, requests] = await Promise.all([
     kernel
       .from("kernel_monitoring")
-      .select("user_id, alert_type, alert_severity")
+      .select("id, user_id, alert_type, alert_severity")
       // The one line duplicated from the kernel's own filter. See the note above.
       .eq("level", "alert")
       .eq("resolved", false)

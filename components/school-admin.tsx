@@ -53,6 +53,7 @@ import type {
   ClassSummary,
   LearningGraph,
   MembershipSummary,
+  ProfAlert,
   ProfInsights,
   RosterStudent,
   SchoolDashboard,
@@ -1228,6 +1229,28 @@ function ProfInsightsView({ onStudent, schoolName }: { onStudent: (classId: stri
   const [data, setData] = useState<ProfInsights | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [acking, setAcking] = useState<string | null>(null);
+  const [ackError, setAckError] = useState<string | null>(null);
+
+  /**
+   * Acknowledging refetches instead of removing the row locally. The kernel is
+   * the record; if the call half-succeeded, an optimistic removal would show a
+   * teacher a cleared alert that is still open.
+   */
+  async function acknowledge(a: ProfAlert) {
+    if (!a.alertIds?.length) return;
+    setAcking(a.userId);
+    setAckError(null);
+    try {
+      await postJson("/api/school/alerts/resolve", { alertIds: a.alertIds });
+      const fresh = await getJson<ProfInsights>("/api/school/prof-insights", "school:profInsights");
+      if (fresh) setData(fresh);
+    } catch (e) {
+      setAckError(e instanceof Error ? e.message : "Could not acknowledge.");
+    } finally {
+      setAcking(null);
+    }
+  }
 
   useEffect(() => {
     (async () => {
@@ -1281,9 +1304,22 @@ function ProfInsightsView({ onStudent, schoolName }: { onStudent: (classId: stri
                   {a.avgMastery != null ? ` · ${pctOrDash(a.avgMastery)}` : ""}
                 </span>
               </span>
+              {a.alertIds?.length ? (
+                <button
+                  style={ghost}
+                  disabled={acking === a.userId}
+                  title="Mark as seen — it leaves this list, the student's data is untouched."
+                  onClick={() => acknowledge(a)}
+                >
+                  {acking === a.userId ? "…" : "Seen"}
+                </button>
+              ) : null}
               <button style={ghost} onClick={() => onStudent(a.classId, a.userId)}>Open →</button>
             </div>
           ))
+        )}
+        {ackError && (
+          <p style={{ color: "#f87171", fontSize: "0.8rem", margin: "0.4rem 0 0" }}>{ackError}</p>
         )}
       </div>
 
