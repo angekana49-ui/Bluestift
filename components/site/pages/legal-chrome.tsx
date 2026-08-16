@@ -13,7 +13,7 @@ import { pageColumn, pageH1, pageSection, serifEm } from "@/components/site/layo
 
 export const h2 = (t: Theme) =>
   ({
-    fontFamily: "'IBM Plex Sans',sans-serif",
+    fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
     fontWeight: 800,
     fontSize: "1.05rem",
     letterSpacing: "-0.01em",
@@ -23,7 +23,7 @@ export const h2 = (t: Theme) =>
 
 export const h3 = (t: Theme) =>
   ({
-    fontFamily: "'IBM Plex Sans',sans-serif",
+    fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
     fontWeight: 700,
     fontSize: "0.95rem",
     color: t.text,

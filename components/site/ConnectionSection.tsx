@@ -61,6 +61,7 @@ export default function ConnectionSection({ theme: t }: { theme: Theme }) {
                 background: t.sectionAltBg,
                 border: `1px solid ${t.cardBorder}`,
                 borderRadius: 22,
+                boxShadow: t.cardShadowSm,
                 padding: 24,
               }}
             >

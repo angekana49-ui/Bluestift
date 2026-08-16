@@ -65,18 +65,10 @@ function ArticleCard({ t, post, large }: { t: Theme; post: PublicResearchPost; l
         color: t.text,
       }}
     >
-      {large && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            pointerEvents: "none",
-            background: "linear-gradient(115deg,rgba(255,255,255,0) 0%,rgba(255,255,255,0.3) 20%,rgba(255,255,255,0) 40%)",
-            backgroundSize: "250% 100%",
-            animation: "shine 7s linear infinite",
-          }}
-        />
-      )}
+      {/* The featured card used to carry an infinite `shine` sweep. On a link to
+          an article it read as a loading skeleton, not as emphasis — the card's
+          size already says which post is featured. The hover lift is the
+          emphasis now. */}
       <div style={{ position: "relative", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: large ? 12 : 8, fontSize: 13, color: t.mutedLight }}>
         <span>{meta.icon}</span>
         <span style={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>{meta.label}</span>
@@ -89,7 +81,7 @@ function ArticleCard({ t, post, large }: { t: Theme; post: PublicResearchPost; l
           </>
         )}
       </div>
-      <h3 style={{ position: "relative", fontFamily: "'Instrument Serif',serif", fontStyle: "italic", fontSize: large ? 18 : 14, margin: "0 0 10px", lineHeight: 1.4, color: t.text }}>
+      <h3 style={{ position: "relative", fontFamily: "var(--font-instrument-serif),'Instrument Serif',serif", fontStyle: "italic", fontSize: large ? 18 : 14, margin: "0 0 10px", lineHeight: 1.4, color: t.text }}>
         {post.title}
       </h3>
       {large && post.content && (
@@ -138,7 +130,7 @@ function NewsletterBox({ t }: { t: Theme }) {
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: 16 }}>
         <div style={{ minWidth: 220, flex: 1 }}>
           <div style={{ marginBottom: 8, fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: t.greenText }}>Newsletter · Monthly</div>
-          <h3 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", fontSize: 18, margin: "0 0 8px", color: t.greenText }}>BlueStift Research Digest</h3>
+          <h3 style={{ fontFamily: "var(--font-instrument-serif),'Instrument Serif',serif", fontStyle: "italic", fontSize: 18, margin: "0 0 8px", color: t.greenText }}>BlueStift Research Digest</h3>
           <p style={{ fontSize: 14, lineHeight: 1.7, color: t.greenText, margin: 0, opacity: 0.85 }}>Kernel advances, field results, recommended reads. Once a month, no spam.</p>
         </div>
         {state !== "done" ? (
@@ -203,7 +195,7 @@ function ProposeForm({ t, onClose }: { t: Theme; onClose: () => void }) {
     <div style={{ maxWidth: MEASURE.form, margin: "0 auto", padding: "8px 0" }}>
       <button onClick={onClose} style={{ background: "none", border: "none", marginBottom: 16, fontSize: 14, color: t.muted, cursor: "pointer" }}>← Back</button>
       <div style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: 20, padding: 24, boxShadow: t.cardShadow }}>
-        <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", fontSize: 23, margin: "0 0 8px", color: t.text }}>Propose a contribution</h2>
+        <h2 style={{ fontFamily: "var(--font-instrument-serif),'Instrument Serif',serif", fontStyle: "italic", fontSize: 23, margin: "0 0 8px", color: t.text }}>Propose a contribution</h2>
         <p style={{ fontSize: 15, lineHeight: 1.7, color: t.muted, marginBottom: 20 }}>Paper, field experiment, article or dataset — describe your proposal and the research team will get back to you.</p>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -391,7 +383,7 @@ export function ResearchView({ posts, issues, signedIn, initialTab }: Props) {
               </>
             ) : (
               <div style={{ maxWidth: MEASURE.form, margin: "0 auto" }}>
-                <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", fontSize: 21, margin: "0 0 8px", color: t.greenText }}>Academic collaborations</h2>
+                <h2 style={{ ...serifEm, fontSize: 21, margin: "0 0 8px", color: t.greenText }}>Academic collaborations</h2>
                 <p style={{ fontSize: 15, lineHeight: 1.7, color: t.muted, marginBottom: 16 }}>
                   BlueStift wants to collaborate with education researchers to validate the Cognitive Kernel. This effort is opening up — if it interests you, write to us.
                 </p>

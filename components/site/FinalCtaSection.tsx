@@ -58,12 +58,14 @@ export default function FinalCtaSection({ theme: t, signedIn, homeHref = "/chat"
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginTop: 32 }}>
           <Link
             href={signedIn ? homeHref : "/login"}
+            className="pub-press"
             style={{ background: "#ffffff", color: "#0b1220", borderRadius: 999, padding: "13px 28px", fontSize: 15, fontWeight: 700, textDecoration: "none" }}
           >
             {tr(signedIn ? "site.nav.openApp" : "site.finalCta.ctaPrimary")}
           </Link>
           <Link
             href="/contact"
+            className="pub-press"
             style={{ border: "1px solid rgba(255,255,255,0.3)", color: "#ffffff", borderRadius: 999, padding: "13px 26px", fontSize: 15, fontWeight: 600, textDecoration: "none" }}
           >
             {tr("site.finalCta.ctaSecondary")}

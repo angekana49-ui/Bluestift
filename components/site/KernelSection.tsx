@@ -86,7 +86,7 @@ export default function KernelSection({ theme: t }: { theme: Theme }) {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontFamily: "'IBM Plex Sans',sans-serif",
+                  fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
                   fontWeight: 800,
                   fontSize: 20,
                 }}

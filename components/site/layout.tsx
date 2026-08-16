@@ -88,16 +88,27 @@ export function bandColumn(measure: Measure): CSSProperties {
 
 /* ------------------------------------------------------------------ type --- */
 
+/**
+ * The two font stacks the site's headings use.
+ *
+ * The `var(--font-*)` half is the one that actually resolves: app/layout.tsx
+ * loads the faces through next/font and exposes each as a custom property, so
+ * naming the family alone would only hit it if the visitor happened to have it
+ * installed. The quoted names stay behind it as the fallback they always were.
+ */
+const DISPLAY_FONT = "var(--font-plex),'IBM Plex Sans',sans-serif";
+const ACCENT_FONT = "var(--font-instrument-serif),'Instrument Serif',serif";
+
 /** The italic serif half of every heading on the site. */
 export const serifEm: CSSProperties = {
-  fontFamily: "'Instrument Serif',serif",
+  fontFamily: ACCENT_FONT,
   fontStyle: "italic",
 };
 
 /** Page title (h1) — standalone pages. */
 export function pageH1(t: Theme): CSSProperties {
   return {
-    fontFamily: "'IBM Plex Sans',sans-serif",
+    fontFamily: DISPLAY_FONT,
     fontWeight: 900,
     fontSize: "clamp(1.6rem,4vw,2.4rem)",
     letterSpacing: "-0.02em",
@@ -109,7 +120,7 @@ export function pageH1(t: Theme): CSSProperties {
 /** Section title (h2) — landing bands. One size, not three. */
 export function sectionH2(t: Theme): CSSProperties {
   return {
-    fontFamily: "'IBM Plex Sans',sans-serif",
+    fontFamily: DISPLAY_FONT,
     fontWeight: 900,
     fontSize: "clamp(1.7rem,3.6vw,2.6rem)",
     letterSpacing: "-0.02em",

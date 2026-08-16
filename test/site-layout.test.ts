@@ -31,7 +31,7 @@ const SITE_DIR = join(process.cwd(), "components", "site");
  */
 const ALLOWED_LOCAL_CAPS: Record<number, string> = {
   220: "Footer — the tagline sitting under the wordmark",
-  400: "LanguagePrompt — a floating prompt, not a page",
+  520: "LanguagePrompt — a bar floating over the page, sized to hold a label and four chips",
   620: "LadderSection — body copy inside a rung card",
   640: "FeaturesSection — the only two-line heading on the site, needs a break point",
 };

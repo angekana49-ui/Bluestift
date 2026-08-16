@@ -190,7 +190,7 @@ function DoneScreen({ t, responseId, onFreeWall }: { t: Theme; responseId: strin
       <div style={{ display: "flex", justifyContent: "center", marginBottom: 20, color: t.orange }}>
         <IconHeart size={44} filled />
       </div>
-      <h2 style={{ fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "1.9rem", letterSpacing: "-0.02em", margin: "0 0 12px", color: t.text }}>Thank you.</h2>
+      <h2 style={{ fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "1.9rem", letterSpacing: "-0.02em", margin: "0 0 12px", color: t.text }}>Thank you.</h2>
       <p style={{ fontSize: 15, lineHeight: 1.7, color: t.text, marginBottom: 24 }}>
         Your answers feed straight into <RayaName />&apos;s development. Leave your email if you want early access when the beta is ready.
       </p>
@@ -273,7 +273,7 @@ function FreeWall({ t, initialPosts }: { t: Theme; initialPosts: WallPost[] }) {
   return (
     <div style={{ maxWidth: MEASURE.form, margin: "0 auto", padding: `8px ${GUTTER}px 32px` }}>
       <div style={{ marginBottom: 28 }}>
-        <h2 style={{ fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "clamp(1.3rem,3vw,1.8rem)", letterSpacing: "-0.02em", margin: "0 0 8px", color: t.text }}>Tell us what you think.</h2>
+        <h2 style={{ fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "clamp(1.3rem,3vw,1.8rem)", letterSpacing: "-0.02em", margin: "0 0 8px", color: t.text }}>Tell us what you think.</h2>
         <p style={{ fontSize: 15, lineHeight: 1.7, color: t.text, margin: 0 }}>
           No questions, no form. Just a space to express yourself freely. What you write here feeds straight into the product.
         </p>
@@ -319,7 +319,7 @@ function FreeWall({ t, initialPosts }: { t: Theme; initialPosts: WallPost[] }) {
                 <Icon size={15} />
                 <span style={{ fontSize: 13, fontWeight: 600, color: t.muted }}>{PROFILE_LABEL[p] ?? "Anonymous"}</span>
               </div>
-              <p style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", fontSize: 15, lineHeight: 1.6, color: t.text, margin: "0 0 14px" }}>&ldquo;{post.content}&rdquo;</p>
+              <p style={{ fontFamily: "var(--font-instrument-serif),'Instrument Serif',serif", fontStyle: "italic", fontSize: 15, lineHeight: 1.6, color: t.text, margin: "0 0 14px" }}>&ldquo;{post.content}&rdquo;</p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
                 {(["resonates", "important"] as const).map((kind) => {
                   const on = reacted.has(`${post.id}:${kind}`);

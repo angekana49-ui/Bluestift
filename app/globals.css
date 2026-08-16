@@ -1,9 +1,22 @@
-/* Public marketing site fonts (BlueStift landing handoff). Loaded by literal
-   family name so the inline style={{ fontFamily: "'IBM Plex Sans'..." }} used by
-   components/site/* resolves. Harmless to the connected app, which sets its own
-   font stacks explicitly. IBM Plex Sans (à la PostHog) is the display face; Inter
-   is the body. */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Caveat:wght@600;700&family=Instrument+Serif:ital@1&display=swap');
+/* NOTE ON FONTS — there is deliberately no @import here.
+   All four families (Inter, IBM Plex Sans, Caveat, Instrument Serif) are loaded
+   ONCE, by app/layout.tsx via next/font/google, which self-hosts the files and
+   exposes each as a custom property: --font-inter, --font-plex, --font-caveat,
+   --font-instrument-serif.
+
+   This file used to ALSO @import the same four families from Google's CDN, so
+   every page paid for a second, render-blocking download of fonts it had
+   already self-hosted — and any slowness or blocking of fonts.googleapis.com
+   showed as a flash of fallback type on the marketing site's own headlines. It
+   also sent every visitor's IP to a third party on page load, which is a poor
+   fit for a product shipping a DPA and a subprocessor list.
+
+   The import existed because components/site/* asks for fonts by literal family
+   name in inline styles. Those call sites now lead with the custom property —
+   fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif" — so they resolve
+   against the self-hosted face and keep the literal name only as a fallback.
+   Add a font the same way: register it in layout.tsx, then reference its
+   variable. Never re-add a CDN @import. */
 
 /* Tailwind — used ONLY by the public marketing site (components/site/*). Preflight
    is disabled in tailwind.config.ts so these directives add no global reset; the
@@ -86,33 +99,276 @@ a {
   display: none;
 }
 
+/* ---- Motion system ----
+   One vocabulary for every moving thing on the public site, so the page reads
+   as one object rather than a dozen effects that happen to share a page.
+
+   The rule the durations encode: the closer motion is to something the visitor
+   just did, the faster it resolves. A button answering a press has to feel
+   instant (--dur-tap); an element arriving on its own can afford to be seen
+   (--dur-enter); only a composed sequence of several elements gets real time
+   (--dur-play).
+
+   Two easings, and only two. --ease-out decelerates into place and is the
+   default for anything arriving or responding. --ease-emphasis overshoots
+   slightly and is reserved for the single moment in a sequence worth noticing
+   (a value landing, an answer being selected). Nothing on this site uses
+   ease-in — motion that accelerates as it leaves reads as sluggish. */
+:root {
+  --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-emphasis: cubic-bezier(0.34, 1.28, 0.64, 1);
+  --dur-tap: 140ms;
+  --dur-enter: 300ms;
+  --dur-play: 620ms;
+}
+
 /* ---- Scroll reveal ----
    Deliberately NOT applied server-side. The markup ships visible; components/
    site/Reveal.tsx only adds `.pub-reveal` after mount, and only to elements
    that are still below the fold — so a JS-off visitor or a crawler gets a
    fully readable page instead of a blank one, and an element already on screen
    never flashes hidden-then-shown. The transition lives on the `-in` class so
-   the initial hide is instant (it happens off-screen) while the reveal eases. */
+   the initial hide is instant (it happens off-screen) while the reveal eases.
+
+   Was 20px over 0.75s, which reads as content struggling to arrive. A reveal
+   should confirm that something is there, not perform its arrival: half the
+   distance, half the time. */
 .pub-reveal {
   opacity: 0;
-  transform: translateY(20px);
+  transform: translateY(10px);
 }
 .pub-reveal-in {
   opacity: 1;
   transform: none;
   transition:
-    opacity 0.75s ease,
-    transform 0.75s cubic-bezier(0.22, 0.61, 0.36, 1);
+    opacity var(--dur-enter) var(--ease-out),
+    transform var(--dur-enter) var(--ease-out);
+}
+
+/* ---- Product shots: choreography ----
+   Each shot plays its sequence once, when it first scrolls into view, so the
+   mockups demonstrate the loop the copy is claiming instead of sitting there
+   as a still. A Kernel profile that fills in front of you is an argument; a
+   screenshot of one is a claim.
+
+   Nothing here is decorative-by-default. `.pub-shot-anim` is added by
+   ProductShots.tsx ONLY when motion is allowed, IntersectionObserver exists,
+   and the shot is still off-screen — the same contract Reveal.tsx uses. So the
+   hidden start state can never strand content: no JS, reduced motion, or a
+   shot already on screen at mount all render the finished composition, and
+   every rule below is scoped under that class to guarantee it.
+
+   Per-element stagger arrives as `--d` (an inline animation-delay), which is
+   what lets one sequence be written as data in the component rather than as a
+   pile of nth-child rules here. */
+.pub-shot-anim .shot-in {
+  opacity: 0;
+  transform: translateY(5px);
+}
+.pub-shot-anim.is-live .shot-in {
+  animation: shotIn var(--dur-enter) var(--ease-out) var(--d, 0ms) both;
+}
+@keyframes shotIn {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Mastery bars sweep from empty. Scale, not width: width would relayout the
+   row on every frame, and these sit inside a container-query context where
+   that is exactly the wrong thing to ask for. */
+.pub-shot-anim .shot-bar {
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+.pub-shot-anim.is-live .shot-bar {
+  animation: shotBar var(--dur-play) var(--ease-out) var(--d, 0ms) both;
+}
+@keyframes shotBar {
+  to {
+    transform: none;
+  }
+}
+
+/* The one emphasised beat per sequence: the answer landing last, after the
+   wrong options have already settled, so it reads as a selection being made
+   rather than as one more element appearing.
+   This is a standalone variant, NOT a modifier on `.shot-in` — both would
+   drive `transform` on the same element and the later rule would silently win,
+   dropping half the effect. It carries its own fade instead. */
+.pub-shot-anim .shot-pick {
+  opacity: 0;
+}
+.pub-shot-anim.is-live .shot-pick {
+  animation: shotPick var(--dur-play) var(--ease-emphasis) var(--d, 0ms) both;
+}
+@keyframes shotPick {
+  0% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The first-visit language bar, settling in from the bottom edge rather than
+   appearing on top of the page. Same reasoning as the hero: it mounts already
+   in view, so it animates unconditionally and can never be left hidden. */
+.pub-lang-bar {
+  animation: langBarIn var(--dur-enter) var(--ease-out) 500ms both;
+}
+@keyframes langBarIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pub-lang-bar {
+    animation: none;
+  }
+}
+
+/* The hero dashboard, arriving once under the headline rather than bobbing
+   forever. Pure CSS and unconditional: it sits above the fold, so there is no
+   observer to wait for and no risk of it being stranded hidden. */
+.pub-hero-rise {
+  animation: heroRise var(--dur-play) var(--ease-out) 240ms both;
+}
+@keyframes heroRise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pub-hero-rise {
+    animation: none;
+  }
+}
+
+/* The live dot on the room shot. The one loop kept on the whole site, because
+   it is the only motion here that carries information: it means the session is
+   live right now. */
+.pub-shot-live-dot {
+  animation: shotPulse 2s var(--ease-out) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pub-shot-live-dot {
+    animation: none;
+  }
+}
+
+@keyframes shotPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* ---- Product shots: layout ----
+   The wide 21/9 transcript plate is drawn as a two-column composition. Below
+   the breakpoint there isn't the width to keep both columns readable at once,
+   so the escalation aside drops and the frame squares up rather than shrinking
+   the type into illegibility — the transcript alone still makes the point. */
+@media (max-width: 760px) {
+  .pub-shot-wide {
+    /* Squarer than 21/9, because the transcript stacks into one column here and
+       needs the height its four turns actually occupy. */
+    aspect-ratio: 1 / 1 !important;
+    /* Narrow the nominal design width the shot is drawn against, so the
+       transcript scales UP to stay readable on a phone instead of shrinking
+       with the container. See BASE_WIDE in ProductShots.tsx. */
+    --shot-base-wide: 450;
+  }
+  .pub-shot-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .pub-shot-aside {
+    display: none !important;
+  }
 }
 
 /* ---- Hover affordances ---- */
 .pub-lift {
   transition:
-    transform 0.35s cubic-bezier(0.22, 0.61, 0.36, 1),
-    box-shadow 0.35s ease;
+    transform var(--dur-enter) var(--ease-out),
+    box-shadow var(--dur-enter) var(--ease-out);
 }
 .pub-lift:hover {
   transform: translateY(-4px);
+}
+/* A card that rises should also cast further, or the lift reads as a glitch
+   rather than as depth.
+   Two things here are load-bearing rather than lazy. `!important`, because
+   every card carries its resting shadow as an INLINE style (the public pages
+   are inline-styled by design) and an inline declaration beats any selector
+   without it. And `var(--pub-lift-shadow)`, because the public site's dark mode
+   is React state — NOT a `data-theme` attribute — so a theme-scoped selector
+   would never match here. The page roots (site/LandingPage + site/SitePage)
+   publish the current theme's value into that property; the fallback keeps the
+   rule correct anywhere it hasn't been set. */
+.pub-lift:hover {
+  box-shadow: var(
+    --pub-lift-shadow,
+    0 2px 4px rgba(15, 23, 42, 0.06),
+    0 28px 60px rgba(15, 23, 42, 0.16)
+  ) !important;
+}
+
+/* Buttons and nav pills on the public site. The site is inline-styled, so the
+   states that can't be expressed inline (:hover, :focus-visible) live here and
+   are opted into with a class. `currentColor` keeps one rule correct on a dark
+   CTA, a light ghost button and a text link alike. */
+.pub-press {
+  transition:
+    transform var(--dur-tap) var(--ease-out),
+    box-shadow var(--dur-tap) var(--ease-out),
+    opacity var(--dur-tap) var(--ease-out);
+}
+.pub-press:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
+}
+.pub-press:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+.pub-press:focus-visible,
+.pub-focus:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+  border-radius: 999px;
+}
+/* Underline that grows from the left rather than appearing all at once. */
+.pub-underline {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 1px;
+  transition: background-size var(--dur-enter) var(--ease-out);
+}
+.pub-underline:hover {
+  background-size: 100% 1px;
 }
 /* Slow push-in on the media inside a hovered card. */
 .pub-media {
@@ -130,11 +386,15 @@ a {
     transition: none;
   }
   .pub-lift,
-  .pub-media {
+  .pub-media,
+  .pub-press,
+  .pub-underline {
     transition: none;
   }
   .pub-lift:hover,
-  .pub-media-wrap:hover .pub-media {
+  .pub-media-wrap:hover .pub-media,
+  .pub-press:hover,
+  .pub-press:active {
     transform: none;
   }
 }
@@ -573,20 +833,6 @@ a {
   }
   100% {
     opacity: 0;
-  }
-}
-@keyframes morphBlob {
-  0% {
-    border-radius: 42% 58% 65% 35% / 45% 45% 55% 55%;
-    transform: translate(-8%, -6%) scale(1);
-  }
-  50% {
-    border-radius: 58% 42% 38% 62% / 60% 55% 45% 40%;
-    transform: translate(10%, 8%) scale(1.18);
-  }
-  100% {
-    border-radius: 42% 58% 65% 35% / 45% 45% 55% 55%;
-    transform: translate(-8%, -6%) scale(1);
   }
 }
 

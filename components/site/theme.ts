@@ -29,8 +29,16 @@ export interface Theme {
 
   cardBg: string;
   cardBorder: string;
+  /** Resting elevation for a card sitting inside a section — a contact shadow
+   *  plus a wide soft one. Lighter than `cardShadow`, which is for cards that
+   *  are meant to float off the page (feature cards, the hero dashboard). */
+  cardShadowSm: string;
   cardShadow: string;
   cardShadowLg: string;
+  /** Elevation a `.pub-lift` card rises to on hover. Published as the
+   *  `--pub-lift-shadow` custom property by the page roots, because the hover
+   *  state can only be expressed in CSS while the theme lives in React state. */
+  liftShadow: string;
 
   footerBg: string;
   footerBorder: string;
@@ -94,7 +102,10 @@ const light: Theme = {
   // rather than only as decoration.
   link: "#1b5fc1",
 
-  navBg: "rgba(255,255,255,0.75)",
+  // Was 0.75 — too sheer. The bar is sticky over a page of headings, so at some
+  // scroll position there is always copy directly behind it, and at 0.75 that
+  // copy ghosted through and collided with the nav's own labels.
+  navBg: "rgba(255,255,255,0.9)",
   navBorder: "rgba(255,255,255,0.65)",
   navShadow: "0 18px 60px rgba(15,23,42,0.14)",
   pillTrackBg: "rgba(0,0,0,0.06)",
@@ -110,8 +121,10 @@ const light: Theme = {
 
   cardBg: "#ffffff",
   cardBorder: "rgba(15,23,42,0.07)",
+  cardShadowSm: "0 1px 2px rgba(15,23,42,0.05), 0 10px 26px rgba(15,23,42,0.06)",
   cardShadow: "0 20px 50px rgba(15,23,42,0.1)",
   cardShadowLg: "0 26px 64px rgba(15,23,42,0.13)",
+  liftShadow: "0 2px 4px rgba(15,23,42,0.06), 0 28px 60px rgba(15,23,42,0.16)",
 
   footerBg: "#ffffff",
   footerBorder: "rgba(148,163,184,0.18)",
@@ -170,7 +183,7 @@ const dark: Theme = {
   mutedLight: "#d3dbe8",
   link: "#7ab3f7",
 
-  navBg: "rgba(13,20,38,0.72)",
+  navBg: "rgba(13,20,38,0.88)",
   navBorder: "rgba(255,255,255,0.08)",
   navShadow: "0 14px 50px rgba(0,0,0,0.45)",
   pillTrackBg: "rgba(255,255,255,0.06)",
@@ -186,8 +199,10 @@ const dark: Theme = {
 
   cardBg: "#111a2e",
   cardBorder: "rgba(255,255,255,0.08)",
+  cardShadowSm: "0 1px 2px rgba(0,0,0,0.35), 0 10px 26px rgba(0,0,0,0.28)",
   cardShadow: "0 14px 36px rgba(0,0,0,0.35)",
   cardShadowLg: "0 16px 40px rgba(0,0,0,0.4)",
+  liftShadow: "0 2px 4px rgba(0,0,0,0.4), 0 28px 60px rgba(0,0,0,0.45)",
 
   footerBg: "#0a0f1e",
   footerBorder: "rgba(255,255,255,0.08)",

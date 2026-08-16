@@ -238,13 +238,19 @@ export default function LandingPage({ signedIn, homeHref }: { signedIn?: boolean
 
   return (
     <div
-      style={{
-        fontFamily: "'Inter', sans-serif",
-        color: t.text,
-        minHeight: "100vh",
-        background: t.pageBg,
-        transition: "background 0.4s ease, color 0.4s ease",
-      }}
+      style={
+        {
+          fontFamily: "var(--font-inter),'Inter',sans-serif",
+          color: t.text,
+          minHeight: "100vh",
+          background: t.pageBg,
+          transition: "background 0.4s ease, color 0.4s ease",
+          // Hover elevation for `.pub-lift` cards. It has to reach CSS as a
+          // custom property because the hover state can only live in the
+          // stylesheet while the theme itself lives in React state.
+          "--pub-lift-shadow": t.liftShadow,
+        } as React.CSSProperties
+      }
     >
       <Navbar theme={t} isDark={isDark} onToggleTheme={toggle} active="Product" signedIn={signedIn} homeHref={homeHref} />
       <HeroSection theme={t} />
