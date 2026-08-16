@@ -1,6 +1,6 @@
 import "server-only";
 import { kernel, clampHistory } from "./client";
-import { invalidateProfile, setLatestAlerts } from "./profile-cache";
+import { invalidateProfile, setLatestAnalysis } from "./profile-cache";
 import { generateJson } from "@/lib/raya/llm";
 import type { KernelMessage } from "./types";
 
@@ -129,9 +129,11 @@ export async function reportGradedSubmission(opts: {
       trigger,
       commit_state: false, // state already committed above — don't count it twice
     });
-    // Same as the chat path: park the alerts so RAYA's next turn reacts to them.
-    // A graded submission is where false_mastery and cognitive_overload surface.
-    setLatestAlerts(userId, diagnosis.alerts ?? []);
+    // Same as the chat path: park the whole diagnosis so RAYA's next turn reacts
+    // to it. A graded submission is where false_mastery and cognitive_overload
+    // surface — and where the root gap behind a bad score is worth most, since
+    // nothing else in the app can reconstruct the chain the Kernel walked.
+    setLatestAnalysis(userId, diagnosis);
   } catch {
     // Best-effort by contract: the attempt is saved and the score is returned
     // regardless of whether the kernel heard about it.
