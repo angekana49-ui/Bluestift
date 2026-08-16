@@ -5,6 +5,7 @@ import type { Theme } from "./theme";
 import { RayaText } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
 import Reveal from "./Reveal";
+import { GUTTER, LEAD, MEASURE, sectionH2, serifEm } from "./layout";
 
 /**
  * Closing band, between pricing and the footer.
@@ -25,11 +26,14 @@ export default function FinalCtaSection({ theme: t, signedIn, homeHref = "/chat"
     ? "linear-gradient(135deg,#12234a 0%,#1e4f9e 100%)"
     : "linear-gradient(135deg,#0b1220 0%,#173d8a 100%)";
 
+  // No top padding and no blend: this band continues PricingSection's
+  // background rather than starting a new one, so `bandSection` doesn't apply.
+  // Only the measure and the type come from the shared template.
   return (
-    <section style={{ background: t.footerBg, padding: "0 24px 104px" }}>
+    <section style={{ background: t.footerBg, padding: `0 ${GUTTER}px 104px` }}>
       <Reveal
         style={{
-          maxWidth: 1000,
+          maxWidth: MEASURE.wide,
           margin: "0 auto",
           background: cardBg,
           borderRadius: 28,
@@ -40,21 +44,14 @@ export default function FinalCtaSection({ theme: t, signedIn, homeHref = "/chat"
           boxShadow: t.cardShadowLg,
         }}
       >
-        <h2
-          style={{
-            fontFamily: "'IBM Plex Sans',sans-serif",
-            fontWeight: 900,
-            fontSize: "clamp(1.8rem,4vw,2.7rem)",
-            letterSpacing: "-0.02em",
-            color: "#ffffff",
-            margin: 0,
-          }}
-        >
+        {/* Same heading as every other band; only the colour changes, because
+            this one sits on a dark card. */}
+        <h2 style={{ ...sectionH2(t), color: "#ffffff" }}>
           <RayaText>{tr("site.finalCta.title.a")}</RayaText>{" "}
-          <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic" }}>{tr("site.finalCta.title.em")}</em>
+          <em style={serifEm}>{tr("site.finalCta.title.em")}</em>
         </h2>
 
-        <p style={{ margin: "16px auto 0", maxWidth: 480, color: "rgba(255,255,255,0.82)", fontSize: 16, lineHeight: 1.7 }}>
+        <p style={{ margin: "16px auto 0", maxWidth: LEAD, color: "rgba(255,255,255,0.82)", fontSize: 16, lineHeight: 1.7 }}>
           <RayaText>{tr("site.finalCta.sub")}</RayaText>
         </p>
 

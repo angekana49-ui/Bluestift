@@ -5,6 +5,7 @@ import { RayaText } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
 import Reveal from "./Reveal";
+import { bandColumn, bandSection, sectionH2, serifEm } from "./layout";
 
 /**
  * The five objections that actually come back from teachers and schools.
@@ -26,26 +27,16 @@ const QA: { qKey: MessageKey; aKey: MessageKey }[] = [
 export default function FaqSection({ theme: t }: { theme: Theme }) {
   const tr = useTranslate();
   return (
-    <section id="faq" style={{ position: "relative", background: t.cardBg, padding: "96px 24px", scrollMarginTop: 24 }}>
+    <section id="faq" style={bandSection(t.cardBg)}>
       {/* No top blend: since the roadmap moved to /research, this section now
           follows DifferentiatorsSection, which is already t.cardBg. Fading
           t.sectionAltBg over an identical background would paint a band, not a
           transition. */}
 
-      <div style={{ position: "relative", maxWidth: 820, margin: "0 auto" }}>
-        <h2
-          style={{
-            fontFamily: "'IBM Plex Sans',sans-serif",
-            fontWeight: 900,
-            fontSize: "clamp(1.7rem,3.6vw,2.6rem)",
-            letterSpacing: "-0.02em",
-            margin: 0,
-            textAlign: "center",
-            color: t.text,
-          }}
-        >
+      <div style={bandColumn("text")}>
+        <h2 style={{ ...sectionH2(t), textAlign: "center" }}>
           {tr("site.faq.title.a")}{" "}
-          <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic" }}>{tr("site.faq.title.em")}</em>
+          <em style={serifEm}>{tr("site.faq.title.em")}</em>
         </h2>
 
         <Reveal style={{ marginTop: 40, border: `1px solid ${t.cardBorder}`, borderRadius: 20, overflow: "hidden", background: t.sectionAltBg }}>

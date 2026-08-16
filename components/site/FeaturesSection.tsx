@@ -6,6 +6,7 @@ import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
 import MediaFrame from "./MediaFrame";
 import Reveal from "./Reveal";
+import { SectionBlend, bandColumn, bandSection, lead, sectionH2, serifEm } from "./layout";
 
 /**
  * The three surfaces, each with an illustrative clip.
@@ -51,26 +52,22 @@ const FEATURES: {
 export default function FeaturesSection({ theme: t }: { theme: Theme }) {
   const tr = useTranslate();
   return (
-    <section style={{ position: "relative", background: t.sectionAltBg, padding: "96px 24px" }}>
+    <section style={bandSection(t.sectionAltBg)}>
       {/* Blends down from ConnectionSection (t.cardBg), which now sits above. */}
-      <div style={{ position: "absolute", inset: "0 0 auto 0", height: 140, background: `linear-gradient(180deg, ${t.cardBg} 0%, transparent 100%)`, pointerEvents: "none" }} />
-      <div style={{ position: "relative", maxWidth: 1080, margin: "0 auto" }}>
+      <SectionBlend from={t.cardBg} />
+      <div style={bandColumn("wide")}>
         <Reveal>
           <div style={{ textAlign: "center", marginBottom: 52 }}>
-            <h2 style={{ fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "clamp(1.8rem,4vw,2.8rem)", letterSpacing: "-0.02em", maxWidth: 640, margin: "0 auto", color: t.text }}>
+            {/* Two-line heading, so it gets its own measure to break on — the
+                only heading on the site that does. */}
+            <h2 style={{ ...sectionH2(t), maxWidth: 640, margin: "0 auto" }}>
               {tr("site.features.title.more")}{" "}
-              <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic" }}>
-                {tr("site.features.title.em1")}
-              </em>
+              <em style={serifEm}>{tr("site.features.title.em1")}</em>
               <br />
               {tr("site.features.title.more")}{" "}
-              <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic" }}>
-                {tr("site.features.title.em2")}
-              </em>
+              <em style={serifEm}>{tr("site.features.title.em2")}</em>
             </h2>
-            <p style={{ maxWidth: 520, margin: "16px auto 0", fontSize: 16, color: t.text, lineHeight: 1.7 }}>
-              {tr("site.features.sub")}
-            </p>
+            <p style={lead(t)}>{tr("site.features.sub")}</p>
           </div>
         </Reveal>
 

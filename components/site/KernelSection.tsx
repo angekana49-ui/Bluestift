@@ -5,6 +5,7 @@ import { RayaText } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
 import Reveal from "./Reveal";
+import { SectionBlend, bandColumn, bandSection, eyebrow, lead, sectionH2, serifEm } from "./layout";
 
 /**
  * What the Cognitive Kernel actually stores, named field by field.
@@ -45,29 +46,18 @@ export default function KernelSection({ theme: t }: { theme: Theme }) {
   const alertAccent = t.dark ? "#7ab3f7" : "#173d8a";
 
   return (
-    <section id="kernel" style={{ position: "relative", background: t.sectionAltBg, padding: "96px 24px", scrollMarginTop: 24 }}>
+    <section id="kernel" style={bandSection(t.sectionAltBg)}>
       {/* Blends down from LadderSection (t.cardBg). */}
-      <div style={{ position: "absolute", inset: "0 0 auto 0", height: 140, background: `linear-gradient(180deg, ${t.cardBg} 0%, transparent 100%)`, pointerEvents: "none" }} />
+      <SectionBlend from={t.cardBg} />
 
-      <div style={{ position: "relative", maxWidth: 1080, margin: "0 auto" }}>
+      <div style={bandColumn("wide")}>
         <Reveal style={{ textAlign: "center", marginBottom: 48 }}>
-          <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.14em", color: t.muted, fontWeight: 600 }}>
-            {tr("site.kernel.eyebrow")}
-          </div>
-          <h2
-            style={{
-              fontFamily: "'IBM Plex Sans',sans-serif",
-              fontWeight: 900,
-              fontSize: "clamp(1.7rem,3.6vw,2.6rem)",
-              letterSpacing: "-0.02em",
-              margin: "10px 0 0",
-              color: t.text,
-            }}
-          >
+          <div style={eyebrow(t)}>{tr("site.kernel.eyebrow")}</div>
+          <h2 style={{ ...sectionH2(t), margin: "10px 0 0" }}>
             {tr("site.kernel.title.a")}{" "}
-            <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic" }}>{tr("site.kernel.title.em")}</em>
+            <em style={serifEm}>{tr("site.kernel.title.em")}</em>
           </h2>
-          <p style={{ maxWidth: 620, margin: "14px auto 0", fontSize: 16, color: t.text, lineHeight: 1.7 }}>
+          <p style={lead(t)}>
             <RayaText>{tr("site.kernel.sub")}</RayaText>
           </p>
         </Reveal>

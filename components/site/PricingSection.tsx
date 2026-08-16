@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import type { Theme } from "./theme";
 import { RayaText, SchoolsName } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
+import { SectionBlend, bandColumn, bandSection, lead, sectionH2, serifEm } from "./layout";
 
 export default function PricingSection({ theme: t }: { theme: Theme }) {
   const tr = useTranslate();
@@ -42,17 +43,15 @@ export default function PricingSection({ theme: t }: { theme: Theme }) {
   );
 
   return (
-    <section id="pricing" style={{ position: "relative", padding: "112px 24px", background: t.pricingBg }}>
-      <div style={{ position: "absolute", inset: "0 0 auto 0", height: 140, background: `linear-gradient(180deg, ${t.cardBg} 0%, transparent 100%)`, pointerEvents: "none" }} />
-      <div style={{ position: "relative", maxWidth: 1080, margin: "0 auto" }}>
+    <section id="pricing" style={bandSection(t.pricingBg)}>
+      <SectionBlend from={t.cardBg} />
+      <div style={bandColumn("wide")}>
         <div style={{ textAlign: "center", marginBottom: 52 }}>
-          <h2 style={{ fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "clamp(1.9rem,4vw,2.9rem)", letterSpacing: "-0.02em", color: t.text }}>
+          <h2 style={sectionH2(t)}>
             {tr("site.pricing.title.a")}{" "}
-            <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic" }}>{tr("site.pricing.title.em")}</em>
+            <em style={serifEm}>{tr("site.pricing.title.em")}</em>
           </h2>
-          <p style={{ fontSize: 16, color: t.muted, marginTop: 12, maxWidth: 520, marginLeft: "auto", marginRight: "auto", lineHeight: 1.7 }}>
-            {tr("site.pricing.sub")}
-          </p>
+          <p style={lead(t)}>{tr("site.pricing.sub")}</p>
         </div>
 
         <div className="pub-grid-3" style={{ gap: 20, alignItems: "stretch" }}>

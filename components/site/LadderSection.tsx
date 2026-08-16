@@ -6,6 +6,7 @@ import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
 import MediaFrame from "./MediaFrame";
 import Reveal from "./Reveal";
+import { LEAD, SectionBlend, bandColumn, bandSection, eyebrow, lead, sectionH2, serifEm } from "./layout";
 
 /**
  * The pedagogical model, stated openly — as a stack of cards that climb.
@@ -54,29 +55,20 @@ export default function LadderSection({ theme: t }: { theme: Theme }) {
   const onAccent = t.dark ? "#0b1220" : "#ffffff";
 
   return (
-    <section id="method" style={{ position: "relative", background: t.cardBg, padding: "96px 24px", scrollMarginTop: 24 }}>
+    <section id="method" style={bandSection(t.cardBg)}>
       {/* Blends down from FeaturesSection (t.sectionAltBg), which sits above. */}
-      <div style={{ position: "absolute", inset: "0 0 auto 0", height: 140, background: `linear-gradient(180deg, ${t.sectionAltBg} 0%, transparent 100%)`, pointerEvents: "none" }} />
+      <SectionBlend from={t.sectionAltBg} />
 
-      <div style={{ position: "relative", maxWidth: 900, margin: "0 auto" }}>
+      {/* NOTE the section must never gain `overflow: hidden` — it would break
+          the sticky scroll-stack below. `bandSection` deliberately omits it. */}
+      <div style={bandColumn("text")}>
         <div style={{ textAlign: "center", marginBottom: 40 }}>
-          <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.14em", color: t.muted, fontWeight: 600 }}>
-            {tr("site.ladder.eyebrow")}
-          </div>
-          <h2
-            style={{
-              fontFamily: "'IBM Plex Sans',sans-serif",
-              fontWeight: 900,
-              fontSize: "clamp(1.7rem,3.6vw,2.6rem)",
-              letterSpacing: "-0.02em",
-              margin: "10px 0 0",
-              color: t.text,
-            }}
-          >
+          <div style={eyebrow(t)}>{tr("site.ladder.eyebrow")}</div>
+          <h2 style={{ ...sectionH2(t), margin: "10px 0 0" }}>
             {tr("site.ladder.title.a")}{" "}
-            <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic" }}>{tr("site.ladder.title.em")}</em>
+            <em style={serifEm}>{tr("site.ladder.title.em")}</em>
           </h2>
-          <p style={{ maxWidth: 580, margin: "14px auto 0", fontSize: 16, color: t.text, lineHeight: 1.7 }}>
+          <p style={lead(t)}>
             <RayaText>{tr("site.ladder.sub")}</RayaText>
           </p>
         </div>
@@ -197,7 +189,7 @@ export default function LadderSection({ theme: t }: { theme: Theme }) {
           ))}
         </div>
 
-        <p style={{ maxWidth: 680, margin: "40px auto 0", textAlign: "center", fontSize: 14.5, color: t.muted, lineHeight: 1.75 }}>
+        <p style={{ maxWidth: LEAD, margin: "40px auto 0", textAlign: "center", fontSize: 14.5, color: t.muted, lineHeight: 1.75 }}>
           <RayaText>{tr("site.ladder.note")}</RayaText>
         </p>
       </div>

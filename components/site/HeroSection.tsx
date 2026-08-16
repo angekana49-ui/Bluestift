@@ -5,6 +5,7 @@ import { RayaText } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
 import CloudBackground from "./CloudBackground";
 import DashboardMockup from "./DashboardMockup";
+import { GUTTER, LEAD, MEASURE, PAGE_TOP } from "./layout";
 
 const BIRD_PATH =
   "M12 6 C9 2 4 1 0 3 C4 4 7 6 9 8 C7 10 4 12 0 13 C4 15 9 14 12 10 C15 14 20 15 24 13 C20 12 17 10 15 8 C17 6 20 4 24 3 C20 1 15 2 12 6 Z";
@@ -18,7 +19,7 @@ export default function HeroSection({ theme: t }: { theme: Theme }) {
       style={{
         position: "relative",
         overflow: "hidden",
-        padding: "150px 24px 180px",
+        padding: `${PAGE_TOP}px ${GUTTER}px 180px`,
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -27,7 +28,7 @@ export default function HeroSection({ theme: t }: { theme: Theme }) {
     >
       <CloudBackground theme={t} variant="hero" />
 
-      <div style={{ position: "relative", zIndex: 1, maxWidth: 820 }}>
+      <div style={{ position: "relative", zIndex: 1, maxWidth: MEASURE.text }}>
         <div
           style={{
             display: "inline-flex",
@@ -47,7 +48,7 @@ export default function HeroSection({ theme: t }: { theme: Theme }) {
           {tr("site.hero.eyebrow")}
         </div>
 
-        <div style={{ position: "relative", display: "inline-block", maxWidth: 820 }}>
+        <div style={{ position: "relative", display: "inline-block", maxWidth: MEASURE.text }}>
           <h1
             style={{
               fontFamily: "'Caveat',cursive",
@@ -73,7 +74,7 @@ export default function HeroSection({ theme: t }: { theme: Theme }) {
           </span>
         </div>
 
-        <p style={{ maxWidth: 600, margin: "20px auto 0", fontSize: 18, lineHeight: 1.7, color: t.text }}>
+        <p style={{ maxWidth: LEAD, margin: "20px auto 0", fontSize: 18, lineHeight: 1.7, color: t.text }}>
           <RayaText>{tr("site.hero.sub")}</RayaText>
         </p>
 
@@ -98,7 +99,7 @@ export default function HeroSection({ theme: t }: { theme: Theme }) {
         </div>
       </div>
 
-      <div style={{ position: "relative", marginTop: 56, width: "100%", maxWidth: 1080, animation: "floatSm 7s ease-in-out infinite", zIndex: 1 }}>
+      <div style={{ position: "relative", marginTop: 56, width: "100%", maxWidth: MEASURE.wide, animation: "floatSm 7s ease-in-out infinite", zIndex: 1 }}>
         <DashboardMockup theme={t} />
       </div>
     </section>
