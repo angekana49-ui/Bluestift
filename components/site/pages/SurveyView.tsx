@@ -5,7 +5,7 @@ import type { ComponentType } from "react";
 import { useRef, useState } from "react";
 import SitePage from "@/components/site/SitePage";
 import type { Theme } from "@/components/site/theme";
-import { GUTTER, MEASURE, PAGE_TOP, pageH1, serifEm } from "@/components/site/layout";
+import { GUTTER, MEASURE, pageH1, pageTop, serifEm } from "@/components/site/layout";
 import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
 import type { WallPost } from "@/lib/content";
 import { IconTeacher, IconStudent, IconUser, IconHeart, IconFlame, IconPencil, IconCheck } from "@/components/site/icons";
@@ -364,7 +364,7 @@ export function SurveyView({ signedIn, initialPosts, stats }: Props) {
   return (
     <SitePage active="Survey" section="Survey" signedIn={signedIn}>
       {(t) => (
-        <div style={{ position: "relative", zIndex: 1, paddingTop: PAGE_TOP, paddingBottom: GUTTER }}>
+        <div style={{ position: "relative", zIndex: 1, paddingTop: pageTop, paddingBottom: GUTTER }}>
           {/* Survey / Free wall switch */}
           <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 24 }}>
             {([["landing", "Survey"], ["free", "Free wall"]] as const).map(([k, l]) => {

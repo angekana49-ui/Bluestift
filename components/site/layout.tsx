@@ -47,6 +47,35 @@ export const PAGE_BOTTOM = 96;
 /** Vertical rhythm between landing sections. */
 export const SECTION_Y = 96;
 
+/* --------------------------------------------------------------- rhythm --- */
+
+/**
+ * The vertical rhythm, as a CSS length rather than a number.
+ *
+ * PAGE_TOP and SECTION_Y are desktop values, and they were being applied
+ * verbatim at every width. On a 390px phone that meant 96px above and below all
+ * nine landing bands — measured, 1536px, or 1.8 screens of the page spent on
+ * nothing, on the device with the least room to spend. Space that reads as
+ * composure at 1440px reads as an empty page on a phone, because what the eye
+ * judges is the gap relative to the column, and the column got four times
+ * narrower while the gap did not move at all.
+ *
+ * The floors are the point of the clamps. `SECTION_Y_MIN` still separates two
+ * bands clearly at 390px; `PAGE_TOP_MIN` still clears the sticky navbar (top:12
+ * plus ~60px tall) with room under it, which is the one thing page-top padding
+ * must not stop doing.
+ *
+ * The numeric constants stay exported and stay the maxima: they are what the
+ * clamps reach, and what test/site-layout.test.ts pins.
+ */
+export const SECTION_Y_MIN = 56;
+export const PAGE_TOP_MIN = 104;
+
+/** Band-to-band rhythm. Reaches SECTION_Y at ~1200px and floors on a phone. */
+export const sectionY = `clamp(${SECTION_Y_MIN}px, 8vw, ${SECTION_Y}px)`;
+/** Top of a standalone page. Reaches PAGE_TOP at ~1250px and floors on a phone. */
+export const pageTop = `clamp(${PAGE_TOP_MIN}px, 12vw, ${PAGE_TOP}px)`;
+
 /**
  * Outer <section> for a standalone page (Research, Pricing, legal, forms).
  * `overflow: hidden` is safe here — no standalone page uses position:sticky
@@ -57,7 +86,7 @@ export const pageSection: CSSProperties = {
   position: "relative",
   zIndex: 1,
   overflow: "hidden",
-  padding: `${PAGE_TOP}px ${GUTTER}px 0`,
+  padding: `${pageTop} ${GUTTER}px 0`,
 };
 
 /** Inner column of a standalone page. */
@@ -76,7 +105,7 @@ export function bandSection(background: string): CSSProperties {
   return {
     position: "relative",
     background,
-    padding: `${SECTION_Y}px ${GUTTER}px`,
+    padding: `${sectionY} ${GUTTER}px`,
     scrollMarginTop: GUTTER,
   };
 }

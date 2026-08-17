@@ -3,7 +3,7 @@
 import Link from "next/link";
 import SitePage from "@/components/site/SitePage";
 import { readTime } from "@/components/public/format";
-import { GUTTER, MEASURE, PAGE_BOTTOM, PAGE_TOP } from "@/components/site/layout";
+import { GUTTER, MEASURE, PAGE_BOTTOM, pageTop } from "@/components/site/layout";
 import type { PublicMedia, PublicResearchPost } from "@/lib/content";
 
 type PostDetail = PublicResearchPost & { media: PublicMedia[] };
@@ -29,7 +29,7 @@ export function ResearchPostView({ post, signedIn }: { post: PostDetail; signedI
   return (
     <SitePage active="Research" section="Research" signedIn={signedIn}>
       {(t) => (
-        <div style={{ position: "relative", zIndex: 1, maxWidth: MEASURE.prose, margin: "0 auto", padding: `${PAGE_TOP}px ${GUTTER}px ${PAGE_BOTTOM}px` }}>
+        <div style={{ position: "relative", zIndex: 1, maxWidth: MEASURE.prose, margin: "0 auto", padding: `${pageTop} ${GUTTER}px ${PAGE_BOTTOM}px` }}>
           <Link href="/research" style={{ display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 24, fontSize: 14, color: t.link, textDecoration: "none" }}>
             ← Back to publications
           </Link>

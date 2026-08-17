@@ -5,7 +5,7 @@ import { RayaText } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
 import CloudBackground from "./CloudBackground";
 import DashboardMockup from "./DashboardMockup";
-import { GUTTER, LEAD, MEASURE, PAGE_TOP, SECTION_Y } from "./layout";
+import { GUTTER, LEAD, MEASURE, pageTop, sectionY } from "./layout";
 
 const BIRD_PATH =
   "M12 6 C9 2 4 1 0 3 C4 4 7 6 9 8 C7 10 4 12 0 13 C4 15 9 14 12 10 C15 14 20 15 24 13 C20 12 17 10 15 8 C17 6 20 4 24 3 C20 1 15 2 12 6 Z";
@@ -21,9 +21,10 @@ export default function HeroSection({ theme: t }: { theme: Theme }) {
         overflow: "hidden",
         // The bottom used to be 180, which stacked with the next section's own
         // 96 into ~280px of empty sky under the dashboard — long enough to read
-        // as the page having ended. SECTION_Y is that same 96, so the hero now
-        // closes on the rhythm every band below it keeps.
-        padding: `${PAGE_TOP}px ${GUTTER}px ${SECTION_Y}px`,
+        // as the page having ended. `sectionY` is that same rhythm, so the hero
+        // closes on the one every band below it keeps — including its phone
+        // floor, so the gap shrinks with the column rather than staying put.
+        padding: `${pageTop} ${GUTTER}px ${sectionY}`,
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
