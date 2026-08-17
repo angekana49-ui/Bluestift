@@ -23,8 +23,8 @@
  *
  * Two sets, because there are two installable apps (see app/manifest.ts and
  * app/raya-manifest/route.ts):
- *   launch-<w>x<h>.png       Bluestift — the bird over the wordmark
- *   launch-raya-<w>x<h>.png  Raya — its own mark, no word
+ *   launch-<w>x<h>.png       Bluestift — the bird over "BlueStift"
+ *   launch-raya-<w>x<h>.png  Raya — the rosace over "Raya"
  *
  * The gradient is the one /onboarding paints, which is also the site's light
  * `pageBg`, so the launch screen dissolves into the product's first screen
@@ -73,23 +73,34 @@ const GRADIENT = "linear-gradient(180deg,#eef3f9 0%,#dde8f3 45%,#c9d9ea 100%)";
 const WORDMARK_A = "#173d8a";
 const WORDMARK_B = "#2f7fe0";
 
+/**
+ * Both screens set their word in the display face at the same size and tracking,
+ * so the two apps read as siblings on a home screen rather than as two
+ * unrelated products. Only the colouring differs: Bluestift is split across the
+ * two brand blues the way the navbar writes it, Raya stays in the darker one
+ * alone.
+ *
+ * Note that Raya's word departs from the brand rule in components/ui/brand.tsx,
+ * which sets the tutor's name in a bold serif (Cambria Math, falling back to
+ * Times New Roman) because it reads warmer than a sans for a student audience.
+ * That rule still governs every <RayaName/> in the product; this one baked image
+ * is a deliberate exception. It is also the only way to bake the name at all —
+ * the serif has no copy in this container, so rendering it here would ship
+ * whatever font this machine happens to fall back to rather than what a phone
+ * shows, which is why the mark previously stood alone.
+ */
 const APPS = [
   {
     prefix: "launch",
     mark: "bluestift-mark.png",
-    // "avec le mot bluestift" — the wordmark as the navbar writes it.
-    word: true,
     markShare: 0.2,
+    word: `<span style="color:${WORDMARK_A}">Blue</span><span style="color:${WORDMARK_B}">Stift</span>`,
   },
   {
     prefix: "launch-raya",
     mark: "raya-mark.png",
-    // The tutor's mark stands alone: "Raya" is set in a serif the container has
-    // no copy of (Cambria Math, falling back to Times New Roman), so baking the
-    // word here would ship whatever this machine happens to have rather than
-    // what a phone shows. The mark is the identity either way.
-    word: false,
-    markShare: 0.26,
+    markShare: 0.2,
+    word: `<span style="color:${WORDMARK_A}">Raya</span>`,
   },
 ];
 
@@ -136,27 +147,20 @@ for (const app of APPS) {
     await page.evaluate(() => document.fonts.ready);
 
     await page.evaluate(
-      ({ gradient, markSrc, word, markShare, a, b }) => {
+      ({ gradient, markSrc, word, markShare }) => {
         document.documentElement.style.background = gradient;
         document.body.style.cssText =
           `margin:0;height:100vh;display:flex;flex-direction:column;` +
           `align-items:center;justify-content:center;gap:22px;background:${gradient};`;
+        // `var(--font-plex)` resolves to the face next/font already loaded on
+        // this page, and 800 falls back to Bold exactly as it does on the site —
+        // Plex stops at 700. Both are why this runs in a browser at all.
         document.body.innerHTML =
           `<img src="${markSrc}" style="width:${markShare * 100}vw;display:block">` +
-          (word
-            ? `<div style="font-family:var(--font-plex),'IBM Plex Sans',sans-serif;` +
-              `font-weight:800;letter-spacing:-0.02em;font-size:7.5vw;line-height:1">` +
-              `<span style="color:${a}">Blue</span><span style="color:${b}">Stift</span></div>`
-            : "");
+          `<div style="font-family:var(--font-plex),'IBM Plex Sans',sans-serif;` +
+          `font-weight:800;letter-spacing:-0.02em;font-size:7.5vw;line-height:1">${word}</div>`;
       },
-      {
-        gradient: GRADIENT,
-        markSrc,
-        word: app.word,
-        markShare: app.markShare,
-        a: WORDMARK_A,
-        b: WORDMARK_B,
-      },
+      { gradient: GRADIENT, markSrc, word: app.word, markShare: app.markShare },
     );
     await page.evaluate(() => document.fonts.ready);
 
