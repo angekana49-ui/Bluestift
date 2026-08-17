@@ -166,3 +166,73 @@ export interface ReadyResponse {
   write_ok?: boolean;
   status: "ok" | "degraded" | string;
 }
+
+// POST /load_alerts — pedagogical-safety alerts the kernel has persisted.
+export type AlertSeverity = "low" | "medium" | "high";
+
+/**
+ * Exactly one scope. `user_ids` is the teacher view: staff are assigned to
+ * classes, not to establishments, so a school-wide call would show a teacher
+ * children they don't teach. `school_id` is the head teacher's view. Both are
+ * service-only — the kernel has no staff directory, so WE prove the caller may
+ * see these students before asking.
+ */
+export type LoadAlertsRequest = {
+  include_resolved?: boolean;
+  severity?: AlertSeverity;
+  since?: string;
+  limit?: number;
+} & (
+  | { user_id: string; user_ids?: never; school_id?: never }
+  | { user_ids: string[]; user_id?: never; school_id?: never }
+  | { school_id: string; user_id?: never; user_ids?: never }
+);
+
+/**
+ * A stored alert row. Distinct from `KernelAlert`, which is the live signal
+ * inside an /analyze response: this one has an id, an author who resolved it,
+ * and a history.
+ */
+export interface PersistedAlert {
+  id: string;
+  user_id: string | null;
+  concept_id: string | null;
+  concept_label: string;
+  alert_type: string;
+  alert_severity: AlertSeverity | string;
+  alert_details: Record<string, unknown>;
+  inconsistency_rate: number | null;
+  volatility_score: number | null;
+  interactions_count: number | null;
+  resolved: boolean;
+  resolved_by: string | null;
+  resolved_at: string | null;
+  created_at: string | null;
+}
+
+export interface LoadAlertsResponse {
+  scope: "user" | "users" | "school";
+  user_id: string | null;
+  school_id: string | null;
+  /** How many students the call covered — surface it: 30 expected, 2 seen is a roster bug. */
+  students_in_scope: number;
+  alerts: PersistedAlert[];
+  counts_by_type: Record<string, number>;
+  counts_by_severity: Record<string, number>;
+  /** The limit cut the list short. Never render a truncated list as complete. */
+  truncated: boolean;
+}
+
+// POST /resolve_alert — service-only: a student must not close the alert about them.
+export interface ResolveAlertRequest {
+  alert_id: string;
+  resolved_by: string;
+  resolved?: boolean;
+}
+
+export interface ResolveAlertResponse {
+  alert_id: string;
+  resolved: boolean;
+  resolved_by: string | null;
+  resolved_at: string | null;
+}

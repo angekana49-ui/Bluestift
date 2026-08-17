@@ -4,9 +4,13 @@ import type {
   AnalyzeResponse,
   HealthResponse,
   KernelMessage,
+  LoadAlertsRequest,
+  LoadAlertsResponse,
   LoadProfileRequest,
   LoadProfileResponse,
   ReadyResponse,
+  ResolveAlertRequest,
+  ResolveAlertResponse,
   UpdateConceptStateRequest,
   UpdateConceptStateResponse,
 } from "./types";
@@ -62,9 +66,9 @@ class KernelError extends Error {
 
 async function kernelFetch<T>(
   path: string,
-  init?: RequestInit & { json?: unknown; accessToken?: string | null },
+  init?: RequestInit & { json?: unknown; accessToken?: string | null; timeoutMs?: number },
 ): Promise<T> {
-  const { json, accessToken, ...rest } = init ?? {};
+  const { json, accessToken, timeoutMs, ...rest } = init ?? {};
   const headers = new Headers(rest.headers);
   if (json !== undefined) headers.set("content-type", "application/json");
   // Prefer the student's own token when we have one: it reaches only their
@@ -82,7 +86,7 @@ async function kernelFetch<T>(
     headers,
     body: json !== undefined ? JSON.stringify(json) : rest.body,
     cache: "no-store",
-    signal: rest.signal ?? AbortSignal.timeout(6000),
+    signal: rest.signal ?? AbortSignal.timeout(timeoutMs ?? 6000),
   });
 
   if (!res.ok) {
@@ -125,6 +129,43 @@ export const kernel = {
       method: "POST",
       json: payload,
       accessToken: opts?.accessToken,
+    }),
+
+  /**
+   * NOTE: the school dashboards do NOT use this — they read the kernel schema
+   * directly via lib/kernel/risk.ts, because we share that database and an HTTP
+   * call here would wake a sleeping (billed) container on every page view. This
+   * method is for callers that need the kernel's own view: a client that does
+   * not share the DB, or a one-off check.
+   *
+   * Staff scopes (`user_ids`, `school_id`) deliberately take no accessToken: the
+   * kernel refuses them on a user token, because it has no way to know who
+   * teaches where. Authorize the caller first (getAdminMembership +
+   * getProfClasses), then this call carries the service secret.
+   */
+  loadAlerts: (payload: LoadAlertsRequest, opts?: KernelCallOptions) =>
+    kernelFetch<LoadAlertsResponse>("/load_alerts", {
+      method: "POST",
+      json: payload,
+      accessToken: opts?.accessToken,
+    }),
+
+  /**
+   * Writes go through the kernel, not straight to its tables: acknowledging an
+   * alert is the kernel's own semantics (it clears resolved_by/resolved_at
+   * together, and refuses to touch non-alert log rows).
+   *
+   * The long timeout is deliberate. Reads avoid the kernel precisely so a
+   * sleeping container is never on the critical path, but a write has to wake
+   * it — and a Railway cold start on a Python service can outlast the 6s
+   * default. This is a teacher pressing a button, not a page load, so waiting
+   * is fine; timing out on a cold start and reporting failure is not.
+   */
+  resolveAlert: (payload: ResolveAlertRequest) =>
+    kernelFetch<ResolveAlertResponse>("/resolve_alert", {
+      method: "POST",
+      json: payload,
+      timeoutMs: 25_000,
     }),
 };
 

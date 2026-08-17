@@ -5,6 +5,7 @@ import {
   createKernelAdminClient,
 } from "@/lib/supabase/admin";
 import { getActiveSchoolId } from "@/lib/school-active";
+import { getStudentRisk, SEVERITY_RANK, type StudentRisk } from "@/lib/kernel/risk";
 
 /**
  * School-admin data layer (Tranche 1). All access is via the service_role
@@ -238,17 +239,7 @@ export type RosterStudent = {
 
 export type ClassRoster = { classId: string; className: string; students: RosterStudent[] };
 
-/** Latest risk row per user (assessed_at desc), keyed by user_id. */
-function latestByUser<T extends { user_id: string; assessed_at?: string | null }>(rows: T[]) {
-  const map = new Map<string, T>();
-  for (const r of rows) {
-    const cur = map.get(r.user_id);
-    if (!cur || (r.assessed_at ?? "") > (cur.assessed_at ?? "")) map.set(r.user_id, r);
-  }
-  return map;
-}
-
-/** The roster of a class the caller administers, merged with each student's latest risk. */
+/** The roster of a class the caller administers, merged with each student's live risk. */
 export async function getClassRoster(userId: string, classId: string): Promise<ClassRoster | null> {
   const schools = createSchoolsAdminClient();
   const { data: classData } = await schools
@@ -267,27 +258,11 @@ export async function getClassRoster(userId: string, classId: string): Promise<C
   if (identities.length === 0) return { classId: cls.id, className: cls.name, students: [] };
 
   const userIds = identities.map((i) => i.user_id);
-  type RiskRow = {
-    user_id: string;
-    risk_level: string | null;
-    status_label: string | null;
-    sessions_last_7d: number | null;
-    last_active_at: string | null;
-    avg_mastery: number | null;
-    mindset_score: number | null;
-    assessed_at: string | null;
-  };
-  let riskByUser = new Map<string, RiskRow>();
+  let riskByUser = new Map<string, StudentRisk>();
   try {
-    const kernel = createKernelAdminClient();
-    const { data: riskData } = await kernel
-      .from("student_risk_assessments")
-      .select("user_id, risk_level, status_label, sessions_last_7d, last_active_at, avg_mastery, mindset_score, assessed_at")
-      .eq("class_id", classId)
-      .in("user_id", userIds);
-    riskByUser = latestByUser((riskData as RiskRow[] | null) ?? []);
+    riskByUser = await getStudentRisk(userIds);
   } catch {
-    // Kernel unavailable → students show without risk data.
+    // Kernel schema unreachable → students show without risk data.
   }
 
   const students: RosterStudent[] = identities.map((i) => {
@@ -296,15 +271,35 @@ export async function getClassRoster(userId: string, classId: string): Promise<C
       userId: i.user_id,
       firstName: i.first_name,
       lastName: i.last_name,
-      riskLevel: r?.risk_level ?? null,
-      statusLabel: r?.status_label ?? null,
-      sessionsLast7d: r?.sessions_last_7d ?? null,
-      lastActiveAt: r?.last_active_at ?? null,
-      avgMastery: r?.avg_mastery ?? null,
-      mindsetScore: r?.mindset_score ?? null,
+      riskLevel: r?.riskLevel ?? null,
+      statusLabel: r?.statusLabel ?? null,
+      sessionsLast7d: r?.sessionsLast7d ?? null,
+      lastActiveAt: r?.lastActiveAt ?? null,
+      avgMastery: r?.avgMastery ?? null,
+      mindsetScore: r?.mindsetScore ?? null,
     };
   });
   return { classId: cls.id, className: cls.name, students };
+}
+
+/**
+ * True when this student is in one of the caller's own classes.
+ *
+ * The guard for any action taken on a named student from the staff side. An
+ * id in a request body is a claim, not a permission — a teacher must not reach
+ * a child they don't teach, in this school or any other.
+ */
+export async function canReachStudent(userId: string, studentUserId: string): Promise<boolean> {
+  const classes = await getProfClasses(userId);
+  if (classes.length === 0) return false;
+  const schools = createSchoolsAdminClient();
+  const { data } = await schools
+    .from("student_identities")
+    .select("user_id")
+    .eq("user_id", studentUserId)
+    .in("class_id", classes.map((c) => c.id))
+    .limit(1);
+  return ((data as { user_id: string }[] | null) ?? []).length > 0;
 }
 
 export type SchoolRole = "admin_master" | "prof";
@@ -638,8 +633,59 @@ export type ProfAlert = {
   riskLevel: string | null;
   statusLabel: string | null;
   avgMastery: number | null;
+  /** Which safety signals fired, most severe first. */
+  alertTypes?: string[];
+  alertCount?: number;
+  /** The open alert rows behind this line — what an acknowledgement closes. */
+  alertIds?: string[];
 };
-export type ProfInsights = { insights: ClassInsight[]; alerts: ProfAlert[] };
+export type ProfInsights = {
+  insights: ClassInsight[];
+  alerts: ProfAlert[];
+  /**
+   * The kernel could not be reached. The list is then unknown, NOT empty —
+   * the UI must say so rather than render "no students need attention", which
+   * is the one thing a safety screen must never claim when it doesn't know.
+   */
+  alertsUnavailable?: boolean;
+  /** Students actually covered — 30 expected and 2 seen is a roster bug. */
+  studentsInScope?: number;
+};
+
+export type AlertIdentity = { user_id: string; first_name: string; last_name: string; class_id: string };
+
+/**
+ * Turn live risk rows into the teacher's at-risk list, most urgent first.
+ *
+ * Only students carrying at least one open signal appear: this is a "who needs
+ * you" list, not a roster. A student's severity is that of their WORST signal
+ * (see foldStudentRisk) — averaging would let two low alerts bury one high one.
+ */
+export function aggregateAlertsByStudent(
+  risk: Map<string, StudentRisk>,
+  identities: AlertIdentity[],
+  classNameById: Map<string, string>,
+): ProfAlert[] {
+  const alerts: ProfAlert[] = [];
+  for (const i of identities) {
+    const r = risk.get(i.user_id);
+    if (!r || r.alertCount === 0) continue;
+    alerts.push({
+      userId: i.user_id,
+      classId: i.class_id,
+      className: classNameById.get(i.class_id) ?? "Class",
+      name: `${i.first_name} ${i.last_name[0] ?? ""}.`,
+      riskLevel: r.riskLevel,
+      statusLabel: r.statusLabel,
+      avgMastery: r.avgMastery,
+      alertTypes: r.alertTypes,
+      alertCount: r.alertCount,
+      alertIds: r.alertIds,
+    });
+  }
+  alerts.sort((a, b) => (SEVERITY_RANK[a.riskLevel ?? ""] ?? 3) - (SEVERITY_RANK[b.riskLevel ?? ""] ?? 3));
+  return alerts;
+}
 
 /**
  * Certified class insights + at-risk students for a teacher's assigned classes
@@ -694,48 +740,31 @@ export async function getProfInsights(userId: string): Promise<ProfInsights | nu
     });
   }
 
-  // At-risk students across those classes (latest kernel risk row per user).
+  // At-risk students across those classes, from the kernel's own safety alerts.
+  //
+  // This used to read kernel.student_risk_assessments directly. That table has
+  // no writer — not in the app, not in the kernel — so the panel was reading a
+  // table that would never fill, and reporting "no students need attention"
+  // forever. The kernel's alerts are the live signal, so ask the kernel.
   const identities =
     (idData as { user_id: string; first_name: string; last_name: string; class_id: string }[] | null) ?? [];
   const alerts: ProfAlert[] = [];
+  let alertsUnavailable = false;
+  let studentsInScope = 0;
+
   if (identities.length) {
     try {
-      const kernel = createKernelAdminClient();
-      const { data: riskData } = await kernel
-        .from("student_risk_assessments")
-        .select("user_id, risk_level, status_label, avg_mastery, assessed_at")
-        .in("user_id", identities.map((i) => i.user_id));
-      const riskByUser = latestByUser(
-        (riskData as {
-          user_id: string;
-          risk_level: string | null;
-          status_label: string | null;
-          avg_mastery: number | null;
-          assessed_at: string | null;
-        }[] | null) ?? [],
-      );
-      for (const i of identities) {
-        const r = riskByUser.get(i.user_id);
-        if (!r || !(r.risk_level === "high" || r.risk_level === "medium" || r.risk_level === "med")) continue;
-        alerts.push({
-          userId: i.user_id,
-          classId: i.class_id,
-          className: classNameById.get(i.class_id) ?? "Class",
-          name: `${i.first_name} ${i.last_name[0] ?? ""}.`,
-          riskLevel: r.risk_level,
-          statusLabel: r.status_label,
-          avgMastery: r.avg_mastery,
-        });
-      }
-      // Highest risk first.
-      const rank: Record<string, number> = { high: 0, medium: 1, med: 1 };
-      alerts.sort((a, b) => (rank[a.riskLevel ?? ""] ?? 2) - (rank[b.riskLevel ?? ""] ?? 2));
+      const risk = await getStudentRisk(identities.map((i) => i.user_id));
+      studentsInScope = identities.length;
+      alerts.push(...aggregateAlertsByStudent(risk, identities, classNameById));
     } catch {
-      // Kernel unavailable → no alerts.
+      // Unreachable kernel means we don't KNOW whether anyone needs attention.
+      // Say so; an empty list here would read as an all-clear.
+      alertsUnavailable = true;
     }
   }
 
-  return { insights, alerts };
+  return { insights, alerts, alertsUnavailable, studentsInScope };
 }
 
 /**
@@ -1096,27 +1125,13 @@ export async function getSchoolOverview(userId: string): Promise<SchoolOverview 
     .eq("school_id", school.id);
   const identities = (idData as { user_id: string; class_id: string }[] | null) ?? [];
 
-  // Latest risk per user (a student belongs to one class).
-  type RiskRow = {
-    user_id: string;
-    risk_level: string | null;
-    last_active_at: string | null;
-    sessions_last_7d: number | null;
-    avg_mastery: number | null;
-    assessed_at: string | null;
-  };
-  let riskByUser = new Map<string, RiskRow>();
-  const classIds = classRows.map((c) => c.id);
-  if (classIds.length) {
+  // Live risk per user (a student belongs to one class).
+  let riskByUser = new Map<string, StudentRisk>();
+  if (classRows.length) {
     try {
-      const kernel = createKernelAdminClient();
-      const { data: riskData } = await kernel
-        .from("student_risk_assessments")
-        .select("user_id, risk_level, last_active_at, sessions_last_7d, avg_mastery, assessed_at")
-        .in("class_id", classIds);
-      riskByUser = latestByUser((riskData as RiskRow[] | null) ?? []);
+      riskByUser = await getStudentRisk(identities.map((i) => i.user_id));
     } catch {
-      // Kernel unavailable → metrics degrade to counts only.
+      // Kernel schema unreachable → metrics degrade to counts only.
     }
   }
 
@@ -1129,10 +1144,10 @@ export async function getSchoolOverview(userId: string): Promise<SchoolOverview 
     for (const m of members) {
       const r = riskByUser.get(m.user_id);
       if (!r) continue;
-      if ((r.sessions_last_7d ?? 0) > 0 || (r.last_active_at && now - +new Date(r.last_active_at) <= WEEK_MS))
+      if ((r.sessionsLast7d ?? 0) > 0 || (r.lastActiveAt && now - +new Date(r.lastActiveAt) <= WEEK_MS))
         active += 1;
-      if (isAlert(r.risk_level)) alerts += 1;
-      if (r.avg_mastery != null) masteries.push(r.avg_mastery);
+      if (isAlert(r.riskLevel)) alerts += 1;
+      if (r.avgMastery != null) masteries.push(r.avgMastery);
     }
     return {
       id: c.id,
@@ -1187,29 +1202,19 @@ export async function buildSchoolContext(userId: string): Promise<string | null>
 
   // At-risk students by class (names + status + mastery), from latest risk rows.
   const memberIds = identities.map((i) => i.user_id);
-  type RiskRow = {
-    user_id: string;
-    risk_level: string | null;
-    status_label: string | null;
-    avg_mastery: number | null;
-    assessed_at: string | null;
-  };
-  let riskByUser = new Map<string, RiskRow>();
+  let riskByUser = new Map<string, StudentRisk>();
   const conceptAvg = new Map<string, { sum: number; n: number }>();
   if (memberIds.length) {
     try {
       const kernel = createKernelAdminClient();
-      const [{ data: riskData }, { data: stateData }] = await Promise.all([
-        kernel
-          .from("student_risk_assessments")
-          .select("user_id, risk_level, status_label, avg_mastery, assessed_at")
-          .in("user_id", memberIds),
+      const [risk, { data: stateData }] = await Promise.all([
+        getStudentRisk(memberIds),
         kernel
           .from("student_concept_state")
           .select("concept_id, mastery_score_effective")
           .in("user_id", memberIds),
       ]);
-      riskByUser = latestByUser((riskData as RiskRow[] | null) ?? []);
+      riskByUser = risk;
       for (const s of (stateData as { concept_id: string; mastery_score_effective: number | null }[] | null) ?? []) {
         if (s.mastery_score_effective == null) continue;
         const e = conceptAvg.get(s.concept_id) ?? { sum: 0, n: 0 };
@@ -1218,7 +1223,7 @@ export async function buildSchoolContext(userId: string): Promise<string | null>
         conceptAvg.set(s.concept_id, e);
       }
     } catch {
-      // Kernel unavailable → context carries counts only.
+      // Kernel schema unreachable → context carries counts only.
     }
   }
 
@@ -1227,8 +1232,8 @@ export async function buildSchoolContext(userId: string): Promise<string | null>
     const atRisk = identities
       .filter((i) => i.class_id === c.id)
       .map((i) => ({ name: nameByUser.get(i.user_id) ?? "Student", r: riskByUser.get(i.user_id) }))
-      .filter((x) => x.r && (x.r.risk_level === "high" || x.r.risk_level === "medium" || x.r.risk_level === "med"))
-      .map((x) => `${x.name} (${x.r?.status_label ?? "at risk"}, ${pct(x.r?.avg_mastery ?? null)})`);
+      .filter((x) => x.r && (x.r.riskLevel === "high" || x.r.riskLevel === "medium"))
+      .map((x) => `${x.name} (${x.r?.statusLabel ?? "at risk"}, ${pct(x.r?.avgMastery ?? null)})`);
     lines.push(
       `- ${c.name}: ${c.studentCount} students, ${c.active} active, ${c.alerts} at-risk, avg mastery ${pct(c.avgMastery)}.` +
         (atRisk.length ? ` At-risk: ${atRisk.join("; ")}.` : ""),
@@ -1287,29 +1292,19 @@ export async function buildProfContext(userId: string): Promise<string | null> {
   const lines: string[] = [];
   lines.push(`School: ${school.name} — your assigned classes only.`);
 
-  type RiskRow = {
-    user_id: string;
-    risk_level: string | null;
-    status_label: string | null;
-    avg_mastery: number | null;
-    assessed_at: string | null;
-  };
-  let riskByUser = new Map<string, RiskRow>();
+  let riskByUser = new Map<string, StudentRisk>();
   const conceptAvg = new Map<string, { sum: number; n: number }>();
   if (memberIds.length) {
     try {
       const kernel = createKernelAdminClient();
-      const [{ data: riskData }, { data: stateData }] = await Promise.all([
-        kernel
-          .from("student_risk_assessments")
-          .select("user_id, risk_level, status_label, avg_mastery, assessed_at")
-          .in("user_id", memberIds),
+      const [risk, { data: stateData }] = await Promise.all([
+        getStudentRisk(memberIds),
         kernel
           .from("student_concept_state")
           .select("concept_id, mastery_score_effective")
           .in("user_id", memberIds),
       ]);
-      riskByUser = latestByUser((riskData as RiskRow[] | null) ?? []);
+      riskByUser = risk;
       for (const s of (stateData as { concept_id: string; mastery_score_effective: number | null }[] | null) ?? []) {
         if (s.mastery_score_effective == null) continue;
         const e = conceptAvg.get(s.concept_id) ?? { sum: 0, n: 0 };
@@ -1318,7 +1313,7 @@ export async function buildProfContext(userId: string): Promise<string | null> {
         conceptAvg.set(s.concept_id, e);
       }
     } catch {
-      // Kernel unavailable → counts only.
+      // Kernel schema unreachable → counts only.
     }
   }
 
@@ -1327,8 +1322,8 @@ export async function buildProfContext(userId: string): Promise<string | null> {
     const members = identities.filter((i) => i.class_id === c.id);
     const atRisk = members
       .map((i) => ({ name: nameByUser.get(i.user_id) ?? "Student", r: riskByUser.get(i.user_id) }))
-      .filter((x) => x.r && (x.r.risk_level === "high" || x.r.risk_level === "medium" || x.r.risk_level === "med"))
-      .map((x) => `${x.name} (${x.r?.status_label ?? "at risk"}, ${pct(x.r?.avg_mastery ?? null)})`);
+      .filter((x) => x.r && (x.r.riskLevel === "high" || x.r.riskLevel === "medium"))
+      .map((x) => `${x.name} (${x.r?.statusLabel ?? "at risk"}, ${pct(x.r?.avgMastery ?? null)})`);
     lines.push(
       `- ${classNameById.get(c.id)}: ${c.studentCount} students, ${atRisk.length} at-risk.` +
         (atRisk.length ? ` At-risk: ${atRisk.join("; ")}.` : ""),
@@ -1494,15 +1489,8 @@ export async function getStudentDetail(
 
   try {
     const kernel = createKernelAdminClient();
-    const [risk, states, mindset, insight] = await Promise.all([
-      kernel
-        .from("student_risk_assessments")
-        .select("risk_level, status_label, sessions_last_7d, last_active_at, avg_mastery, mindset_score, assessed_at")
-        .eq("user_id", studentUserId)
-        .eq("class_id", classId)
-        .order("assessed_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
+    const [riskByUser, states, mindset, insight] = await Promise.all([
+      getStudentRisk([studentUserId]),
       kernel
         .from("student_concept_state")
         .select("concept_id, mastery_score_effective")
@@ -1523,21 +1511,14 @@ export async function getStudentDetail(
         .maybeSingle(),
     ]);
 
-    const r = risk.data as {
-      risk_level: string | null;
-      status_label: string | null;
-      sessions_last_7d: number | null;
-      last_active_at: string | null;
-      avg_mastery: number | null;
-      mindset_score: number | null;
-    } | null;
+    const r = riskByUser.get(studentUserId);
     if (r) {
-      detail.riskLevel = r.risk_level;
-      detail.statusLabel = r.status_label;
-      detail.sessionsLast7d = r.sessions_last_7d;
-      detail.lastActiveAt = r.last_active_at;
-      detail.avgMastery = r.avg_mastery;
-      detail.mindsetScore = r.mindset_score;
+      detail.riskLevel = r.riskLevel;
+      detail.statusLabel = r.statusLabel;
+      detail.sessionsLast7d = r.sessionsLast7d;
+      detail.lastActiveAt = r.lastActiveAt;
+      detail.avgMastery = r.avgMastery;
+      detail.mindsetScore = r.mindsetScore;
     }
     const m = mindset.data as { m_score: number | null; detected_mindset: string | null } | null;
     if (m) {

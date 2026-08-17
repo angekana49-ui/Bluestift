@@ -59,6 +59,15 @@ export async function POST(request: Request) {
     return NextResponse.json(result);
   } catch (err) {
     if (err instanceof KernelError) {
+      // The kernel rate-limits /analyze to bound LLM cost. That's a "come back
+      // later", not a failure — passing it through as 502 would invite the
+      // caller to retry immediately, which is exactly what tripped the limit.
+      if (err.status === 429) {
+        return NextResponse.json(
+          { error: "rate_limited", detail: err.body },
+          { status: 429 },
+        );
+      }
       return NextResponse.json(
         { error: "kernel_error", detail: err.body },
         { status: 502 },
