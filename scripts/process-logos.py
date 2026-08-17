@@ -1,9 +1,17 @@
 """
 Turn the delivered logo crops in assets/logos into the canonical brand marks in
-public/, and the PWA icons the manifest points at. Run from the repo root:
+public/, and the home-screen icons the two manifests point at. Run from the repo
+root:
   python scripts/process-logos.py
 Needs Pillow. The sources live outside /public deliberately — they are 1.5 MB of
 raw crops with no runtime use, and everything under /public is served publicly.
+
+The iOS launch screens are NOT made here — see scripts/render-launch-screens.mjs.
+They carry the wordmark set in IBM Plex Sans, and the only copy of that face in
+this repo is the woff2 next/font caches under a content hash, with the weight
+stripped from its name table. Picking one by guesswork would silently bake the
+wrong weight, so those are rendered in a browser instead, where the real font and
+the real 800-to-Bold fallback already resolve.
 
 AFTER RUNNING THIS, BUMP `VERSION` IN public/sw.js. The marks and icons keep
 their filenames, and the service worker caches /public images with no
@@ -205,29 +213,19 @@ def square(art, size, margin, background=None):
     return canvas.resize((size, size), Image.LANCZOS)
 
 
-def write(im, name, colors=COLORS, alpha=True, dither=False):
+def write(im, name, colors=COLORS, alpha=True):
     """Quantise and write, mirroring how the marks are optimised."""
     if not alpha:
         # iOS composites a transparent apple-touch-icon onto black rather than
         # onto the icon's own background, so that one ships without an alpha
         # channel at all.
         im = im.convert("RGB")
-    if dither:
-        # For anything containing a large smooth gradient. FASTOCTREE below
-        # allocates its palette by colour frequency, which on a launch screen
-        # means the mark's ~9,500 antialiased colours crowd out the background:
-        # measured, a 2532px ramp came back as SIX bands of 10 levels each.
-        # An adaptive palette with Floyd-Steinberg gives back the original 75
-        # steps at a maximum step of 1 — identical to not quantising at all —
-        # for 19 KB instead of 46. It drops alpha, so it is RGB-only.
-        im = im.convert(
-            "P", palette=Image.Palette.ADAPTIVE, colors=colors, dither=Image.Dither.FLOYDSTEINBERG
-        )
-    else:
-        # FASTOCTREE is the only Pillow quantiser that keeps the alpha channel;
-        # the default (median cut) would flatten the transparency we just carved
-        # out. Fine for the marks and icons, which are flat-colour artwork.
-        im = im.quantize(colors=colors, method=Image.Quantize.FASTOCTREE)
+    # FASTOCTREE is the only Pillow quantiser that keeps the alpha channel; the
+    # default (median cut) would flatten the transparency we just carved out.
+    # Fine for everything here, which is flat-colour artwork. It is NOT fine for
+    # a large smooth gradient — see scripts/render-launch-screens.mjs, which is
+    # why the launch screens are made elsewhere.
+    im = im.quantize(colors=colors, method=Image.Quantize.FASTOCTREE)
     dest = OUT / name
     im.save(dest, "PNG", optimize=True)
     return dest.stat().st_size / 1024
@@ -268,6 +266,11 @@ for src_name, out_name, global_clear in JOBS:
 #
 # The navy matches theme.ts's ctaBg (#0b1220) and the inverted Kernel band, so
 # the installed icon and the product agree on what the brand's dark is.
+#
+# Two sets, because there are two installable apps: Bluestift (Schools, Rooms,
+# Tools — see app/manifest.ts) and Raya (app/raya-manifest). An installed icon
+# is the app's name on a home screen, so the tutor gets its own mark rather than
+# the company's.
 NAVY = (11, 18, 32, 255)
 ICON_JOBS = [
     # (source, global_clear, out_name, size, margin, background, alpha)
@@ -275,6 +278,10 @@ ICON_JOBS = [
     ("bird-blue-on-white.png", False, "icon-512.png", 512, MARGIN, None, True),
     ("bird-white-on-navy.png", True, "icon-maskable-512.png", 512, 0.40, NAVY, True),
     ("bird-white-on-navy.png", True, "apple-touch-icon.png", 180, 0.25, NAVY, False),
+    ("flower-blue-on-white.png", False, "icon-raya-192.png", 192, MARGIN, None, True),
+    ("flower-blue-on-white.png", False, "icon-raya-512.png", 512, MARGIN, None, True),
+    ("flower-white-on-navy.png", True, "icon-raya-maskable-512.png", 512, 0.40, NAVY, True),
+    ("flower-white-on-navy.png", True, "apple-touch-icon-raya.png", 180, 0.25, NAVY, False),
 ]
 
 for src_name, global_clear, out_name, size, margin, background, alpha in ICON_JOBS:
@@ -289,92 +296,3 @@ for src_name, global_clear, out_name, size, margin, background, alpha in ICON_JO
         f"{src_name:28} -> {out_name:24} art={art.size} -> {size}x{size} "
         f"fills {occupies:.0%} alpha={alpha} {kb:.1f} KB"
     )
-
-
-# ------------------------------------------------------ iOS launch screens ---
-#
-# Android needs none of this: Chrome composes a launch screen from the
-# manifest's name, background_color and 512 icon. Safari composes nothing, so
-# without these an install launched from the home screen shows a blank screen
-# while it loads — on the one platform where the product is most likely to be
-# installed.
-#
-# iOS matches them by EXACT device metrics, so a size that is not in this list
-# gets no image at all rather than a near-enough one. Hence one file per modern
-# iPhone geometry. Portrait only: a phone is launched upright, and covering
-# landscape too would double the count for a case that barely happens on the
-# home screen. iPads fall back to the manifest's background_color.
-#
-# The gradient is the one /onboarding paints (components/onboarding-form.tsx),
-# which is also the site's light `pageBg`. That is the whole point of matching
-# it: the launch screen dissolves into the first screen of the product rather
-# than cutting to it.
-GRADIENT = [(0.00, (238, 243, 249)), (0.45, (221, 232, 243)), (1.00, (201, 217, 234))]
-# The mark's share of the screen's WIDTH. Tuned so it reads at 375px wide and
-# doesn't dominate at 440px.
-LAUNCH_MARK = 0.22
-
-# (css width, css height, device pixel ratio) — the iPhone geometries in use.
-LAUNCH_DEVICES = [
-    (375, 667, 2),  # SE 2/3, 8
-    (414, 736, 3),  # 8 Plus
-    (375, 812, 3),  # X, XS, 11 Pro, 12/13 mini
-    (414, 896, 2),  # XR, 11
-    (414, 896, 3),  # XS Max, 11 Pro Max
-    (390, 844, 3),  # 12, 12 Pro, 13, 13 Pro, 14
-    (428, 926, 3),  # 12/13 Pro Max, 14 Plus
-    (393, 852, 3),  # 14 Pro, 15, 15 Pro, 16
-    (430, 932, 3),  # 14 Pro Max, 15 Plus/Pro Max, 16 Plus
-    (402, 874, 3),  # 16 Pro
-    (440, 956, 3),  # 16 Pro Max
-]
-
-
-def gradient_canvas(w, h):
-    """Paint the vertical gradient one row at a time.
-
-    Row-wise is not just convenient: PNG's Up filter encodes each row as its
-    difference from the one above, so a purely vertical gradient collapses to
-    almost nothing on disk. These are full-screen images and they still come out
-    a few KB each.
-    """
-    im = Image.new("RGB", (w, h))
-    px = im.load()
-    stops = GRADIENT
-    for y in range(h):
-        t = y / max(h - 1, 1)
-        for i in range(len(stops) - 1):
-            t0, c0 = stops[i]
-            t1, c1 = stops[i + 1]
-            if t <= t1 or i == len(stops) - 2:
-                k = 0 if t1 == t0 else min(max((t - t0) / (t1 - t0), 0), 1)
-                row = tuple(round(c0[j] + (c1[j] - c0[j]) * k) for j in range(3))
-                break
-        for x in range(w):
-            px[x, y] = row
-    return im
-
-
-launch_art = extract_art("bird-blue-on-white.png", False)
-if not launch_art:
-    print("!! launch screens: no artwork — SKIPPED")
-else:
-    art = launch_art[0]
-    total = 0
-    for cw, ch, dpr in LAUNCH_DEVICES:
-        w, h = cw * dpr, ch * dpr
-        canvas = gradient_canvas(w, h)
-        mark_px = int(w * LAUNCH_MARK)
-        mark = square(art, mark_px, MARGIN)
-        canvas.paste(mark, ((w - mark_px) // 2, (h - mark_px) // 2), mark)
-        name = f"launch-{w}x{h}.png"
-        # Dithered — see `write`. A per-channel error figure is the wrong way to
-        # judge this: an average error near zero still bands, because what the
-        # eye picks up in a large flat gradient is the STEP between neighbouring
-        # levels, and a step of 10 across 400px is a visible edge. Band count and
-        # step size are what get checked, and this comes out at 75 steps of 1 —
-        # the same as the unquantised render.
-        kb = write(canvas, name, colors=256, alpha=False, dither=True)
-        total += kb
-        print(f"{'launch':28} -> {name:24} {cw}x{ch}@{dpr}x  mark={mark_px}px  {kb:.1f} KB")
-    print(f"{'':28}    {len(LAUNCH_DEVICES)} launch screens, {total:.0f} KB total")
