@@ -78,6 +78,23 @@ a {
   grid-template-columns: repeat(4, 1fr);
   gap: 0;
 }
+/* Asymmetric band header (see SectionHeader in components/site/layout.tsx):
+   title left, lead right, bottom-aligned so the two blocks share a baseline
+   instead of floating at different heights. Collapses to one column early —
+   below ~860px the lead column is too narrow to be worth the split, and a
+   two-line title beside a four-line paragraph reads worse than stacking. */
+.pub-band-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: 32px 56px;
+  align-items: end;
+}
+@media (max-width: 860px) {
+  .pub-band-split {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
 .pub-footer-grid {
   display: grid;
   /* Brand block + four link columns (the fourth is Legal). */

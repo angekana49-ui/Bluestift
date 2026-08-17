@@ -111,4 +111,24 @@ describe("public site layout template", () => {
     // 320px is the narrowest viewport worth supporting.
     expect(GUTTER * 2).toBeLessThan(320);
   });
+
+  /**
+   * The inverted band is punctuation, and punctuation only works if it is rare.
+   *
+   * Measured before it existed, every band on the landing page was one of two
+   * near-white shades — which is precisely how a page ends up with ten screens
+   * that read as one. The fix was a single dark band at the Kernel. The failure
+   * mode from here is the opposite one: `ink` looks good, so it gets reached for
+   * again, and a second one turns an accent into a stripe.
+   *
+   * One is the decision. This is where it is written down.
+   */
+  it("inverts at most one band", () => {
+    const inkBands = files.flatMap((file) => {
+      const src = readFileSync(file, "utf8");
+      return [...src.matchAll(/bandTone\([^)]*"ink"\)/g)].map(() => file.replace(process.cwd(), ""));
+    });
+
+    expect(inkBands, `Only one band may use tone "ink":\n${inkBands.join("\n")}`).toHaveLength(1);
+  });
 });

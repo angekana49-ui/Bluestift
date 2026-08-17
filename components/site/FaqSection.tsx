@@ -5,7 +5,7 @@ import { RayaText } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
 import Reveal from "./Reveal";
-import { bandColumn, bandSection, sectionH2, serifEm } from "./layout";
+import { SectionBlend, bandColumn, bandSection, sectionH2, serifEm } from "./layout";
 
 /**
  * The five objections that actually come back from teachers and schools.
@@ -28,10 +28,13 @@ export default function FaqSection({ theme: t }: { theme: Theme }) {
   const tr = useTranslate();
   return (
     <section id="faq" style={bandSection(t.cardBg)}>
-      {/* No top blend: since the roadmap moved to /research, this section now
-          follows DifferentiatorsSection, which is already t.cardBg. Fading
-          t.sectionAltBg over an identical background would paint a band, not a
-          transition. */}
+      {/* This section used to have no top blend, correctly: it followed
+          DifferentiatorsSection when that band was also t.cardBg, and fading a
+          colour over an identical background paints a band rather than a
+          transition. Differentiators is now tint (it absorbs the step down from
+          the inverted Kernel above it), so there is a real edge here again and
+          the blend has work to do. */}
+      <SectionBlend from={t.sectionAltBg} />
 
       <div style={bandColumn("text")}>
         <h2 style={{ ...sectionH2(t), textAlign: "center" }}>
