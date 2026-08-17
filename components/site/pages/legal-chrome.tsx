@@ -11,23 +11,40 @@ import { pageColumn, pageH1, pageSection, serifEm } from "@/components/site/layo
  * measure, one type scale, one place to change it.
  */
 
+/**
+ * The document type scale.
+ *
+ * It used to be h2 1.05rem / h3 0.95rem over 15px body — which means h3 (15.2px)
+ * was the same size as the paragraphs it introduced, and h2 was one point above
+ * them. On a five-screen document that is not a scale at all: nothing told the
+ * eye where one topic ended and the next began, so a careful, well-organised
+ * policy read as an undifferentiated wall and became unskimmable.
+ *
+ * These pages are read by people looking for one specific answer — what you keep,
+ * for how long, who else sees it. Skimmability is the whole job. The steps below
+ * are wide enough to survive being glanced at, and h2 carries a rule so the
+ * top-level sections are findable at a scroll.
+ */
 export const h2 = (t: Theme) =>
   ({
     fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
     fontWeight: 800,
-    fontSize: "1.05rem",
-    letterSpacing: "-0.01em",
+    fontSize: "1.35rem",
+    letterSpacing: "-0.015em",
     color: t.text,
-    margin: "34px 0 10px",
+    margin: "52px 0 14px",
+    paddingTop: 18,
+    borderTop: `1px solid ${t.footerBorder}`,
   }) as const;
 
 export const h3 = (t: Theme) =>
   ({
     fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
     fontWeight: 700,
-    fontSize: "0.95rem",
+    fontSize: "1.05rem",
+    letterSpacing: "-0.01em",
     color: t.text,
-    margin: "22px 0 8px",
+    margin: "28px 0 8px",
   }) as const;
 
 export const p = (t: Theme) =>
@@ -132,7 +149,8 @@ export function LegalShell({
   children: (t: Theme) => React.ReactNode;
 }) {
   return (
-    <SitePage active={active} section={section} signedIn={signedIn}>
+    // `plain`: these are documents, not marketing surfaces — see SitePage.
+    <SitePage active={active} section={section} signedIn={signedIn} surface="plain">
       {(t) => (
         <section style={pageSection}>
           <div style={pageColumn("prose")}>
@@ -140,7 +158,7 @@ export function LegalShell({
               {title}{" "}
               <em style={{ ...serifEm, color: t.wordmarkB }}>{accent}</em>
             </h1>
-            <p style={{ fontSize: 14, color: t.muted, margin: "0 0 26px" }}>
+            <p style={{ fontSize: 14, color: t.muted, margin: "0 0 40px" }}>
               Last updated {updated}
             </p>
             {children(t)}
