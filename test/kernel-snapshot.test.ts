@@ -122,7 +122,7 @@ describe("getCognitiveContext", () => {
   it("empty everywhere → null profile, no throw", async () => {
     const mod = await freshModule();
     const ctx = await mod.getCognitiveContext("u1");
-    expect(ctx).toEqual({ profile: null, alerts: [] });
+    expect(ctx).toEqual({ profile: null, alerts: [], analysis: null });
   });
 });
 
@@ -139,14 +139,61 @@ describe("refresh path", () => {
     expect(ctx.profile).toEqual(PROFILE);
   });
 
-  it("setLatestAlerts writes L1 and upserts L2", async () => {
+  it("setLatestAnalysis writes L1 and upserts L2", async () => {
     const mod = await freshModule();
-    mod.setLatestAlerts("u1", [{ type: "frustration" } as never]);
+    mod.setLatestAnalysis("u1", {
+      alerts: [{ type: "frustration" }],
+      root_gap: "notion_de_variable",
+      detection_path: ["derivation", "notion_de_variable"],
+      recommended_path: ["notion_de_variable", "derivation"],
+      confidence: 0.9,
+    } as never);
     const ctx = await mod.getCognitiveContext("u1");
     expect(ctx.alerts).toEqual([{ type: "frustration" }]);
+    // The whole point of the rename: the root cause survives the response.
+    expect(ctx.analysis?.root_gap).toBe("notion_de_variable");
+    expect(ctx.analysis?.recommended_path).toEqual(["notion_de_variable", "derivation"]);
     await vi.waitFor(() => {
-      expect(state.upserts.some((u) => Array.isArray(u.alerts))).toBe(true);
+      expect(state.upserts.some((u) => u.latest_analysis != null)).toBe(true);
     });
+  });
+
+  it("an analysis older than the TTL is not served as current", async () => {
+    const mod = await freshModule();
+    state.selectRow = {
+      profile: null,
+      alerts: [],
+      latest_analysis: {
+        root_gap: "stale_gap",
+        detection_path: [],
+        recommended_path: [],
+        confidence: 0.5,
+        at: Date.now() - 31 * 60_000,
+      },
+      profile_updated_at: null,
+      alerts_updated_at: null,
+    };
+    const ctx = await mod.getCognitiveContext("u1");
+    expect(ctx.analysis).toBeNull();
+  });
+
+  it("a root cause from the last half hour IS served", async () => {
+    const mod = await freshModule();
+    state.selectRow = {
+      profile: null,
+      alerts: [],
+      latest_analysis: {
+        root_gap: "fresh_gap",
+        detection_path: [],
+        recommended_path: [],
+        confidence: 0.5,
+        at: Date.now() - 60_000,
+      },
+      profile_updated_at: null,
+      alerts_updated_at: null,
+    };
+    const ctx = await mod.getCognitiveContext("u1");
+    expect(ctx.analysis?.root_gap).toBe("fresh_gap");
   });
 
   it("a Kernel failure backs off without erasing the previous profile", async () => {

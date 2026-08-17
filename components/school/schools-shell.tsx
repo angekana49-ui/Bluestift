@@ -119,6 +119,7 @@ export function SchoolsShell({
           theme={t}
           collapsed={effectiveCollapsed}
           logoSrc="/bluestift-mark.png"
+          logoSrcDark="/bluestift-mark-dark.png"
           logoRadius={9}
           logoSize={30}
           name={<SchoolsName />}

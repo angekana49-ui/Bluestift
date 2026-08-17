@@ -104,6 +104,23 @@ From `/load_profile`, inject per active KC: **K**, **V**, **P**, and global **M*
 Drives the EMT entry level: low K+P → vicarious/assertion; solid K+P → pump;
 low M → deflect to content before any retry.
 
+**Implemented in `lib/kernel/signals.ts`** — the single derivation both the
+prompt and the model router read. The rule that matters: the teaching target is
+the **weakest active concept**, never the mean of `k_effective` across the
+profile. Averaging was the original bug (fixed 2026-08-13): a learner at 0.78
+average with a prerequisite at 0.20 read as "high mastery, encourage productive
+struggle", which is the precise case mastery learning exists to catch. A concept
+counts as done only when the Kernel's `status` says `mastered` **and**
+`k_effective >= 0.8`; disagreement keeps it a target.
+
+Concept labels are sanitised before they enter the prompt (`sanitizeConceptLabel`).
+KCs are created dynamically from student conversations, so a label is untrusted
+text crossing into an instruction channel.
+
+`root_gap` / `recommended_path` come from `/analyze`, not `/load_profile`, so they
+are carried across turns in `learning.kernel_profile_snapshots.latest_analysis`
+and expire after 30 minutes on read.
+
 ---
 
 ## 6. Shared-DB rules (do NOT lock the Kernel out)
@@ -122,3 +139,14 @@ re-run the Kernel's `migrations/009_shared_db_hardening.sql`.
 - Call `/update_concept_state` directly on graded attempts.
 - Add a `/ready`-based deep health check alongside the liveness probe.
 - Keep the chat hot path non-blocking on the Kernel (already the case).
+- **Progression is NOT gated on mastery, and that is decided** (2026-08-13). The
+  prompt names the weakest concept and asks Raya to land the session there; a
+  student who wants to go elsewhere goes elsewhere. Bloom's mastery threshold is
+  used as a *measurement* — it decides what the Kernel considers acquired and
+  what the tutor is steered toward — not as a lock on the student.
+
+  The reasoning: Bluestift is not an LMS and does not own the student's
+  timetable. A tutor that refuses to answer until a prerequisite is repaired is a
+  tutor that gets closed. What has to be true is that the Kernel keeps building
+  an accurate profile and keeps computing the best available path — whether the
+  learner walks it is theirs. Do not "fix" this by adding a refusal.

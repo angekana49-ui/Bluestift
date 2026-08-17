@@ -12,7 +12,7 @@ import { persistAndGather, linkAttachments, replayReply } from "@/lib/raya/chat-
 import {
   getCognitiveContext,
   invalidateProfile,
-  setLatestAlerts,
+  setLatestAnalysis,
 } from "@/lib/kernel/profile-cache";
 import type { KernelMessage } from "@/lib/kernel/types";
 
@@ -105,7 +105,7 @@ export async function POST(request: Request) {
   // Who the student is (age band + school level) rides in this wave rather than
   // as its own hop, so calibrating Raya to a 12-year-old costs no latency. RLS
   // scopes the row to its owner; both columns are read-only to the client.
-  const [allowed, roomMember, roomOpen, { profile, alerts }, instructions, learner] =
+  const [allowed, roomMember, roomOpen, { profile, alerts, analysis }, instructions, learner] =
     await Promise.all([
       checkStrictUserRateLimit("raya_chat", user.id, 30, "1 minute"),
       roomId
@@ -216,10 +216,18 @@ export async function POST(request: Request) {
   let deltas: AsyncGenerator<string>;
   try {
     const out = await rayaStream(
-      buildRayaMessages(hist, profile, alerts, docs, instructions, {
-        birthYear: learner?.birth_year ?? null,
-        schoolLevel: learner?.school_level ?? null,
-      }),
+      buildRayaMessages(
+        hist,
+        profile,
+        alerts,
+        docs,
+        instructions,
+        {
+          birthYear: learner?.birth_year ?? null,
+          schoolLevel: learner?.school_level ?? null,
+        },
+        analysis,
+      ),
       routing.tier,
     );
     model = out.model;
@@ -285,7 +293,7 @@ export async function POST(request: Request) {
             trigger: "post_conversation",
           })
           .then((res) => {
-            setLatestAlerts(user.id, res.alerts ?? []);
+            setLatestAnalysis(user.id, res);
             invalidateProfile(user.id);
           })
           .catch(() => {});

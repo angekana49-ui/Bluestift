@@ -5,6 +5,7 @@ import { RayaText } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
 import CloudBackground from "./CloudBackground";
 import DashboardMockup from "./DashboardMockup";
+import { GUTTER, LEAD, MEASURE, PAGE_TOP, SECTION_Y } from "./layout";
 
 const BIRD_PATH =
   "M12 6 C9 2 4 1 0 3 C4 4 7 6 9 8 C7 10 4 12 0 13 C4 15 9 14 12 10 C15 14 20 15 24 13 C20 12 17 10 15 8 C17 6 20 4 24 3 C20 1 15 2 12 6 Z";
@@ -18,7 +19,11 @@ export default function HeroSection({ theme: t }: { theme: Theme }) {
       style={{
         position: "relative",
         overflow: "hidden",
-        padding: "150px 24px 180px",
+        // The bottom used to be 180, which stacked with the next section's own
+        // 96 into ~280px of empty sky under the dashboard — long enough to read
+        // as the page having ended. SECTION_Y is that same 96, so the hero now
+        // closes on the rhythm every band below it keeps.
+        padding: `${PAGE_TOP}px ${GUTTER}px ${SECTION_Y}px`,
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -27,7 +32,7 @@ export default function HeroSection({ theme: t }: { theme: Theme }) {
     >
       <CloudBackground theme={t} variant="hero" />
 
-      <div style={{ position: "relative", zIndex: 1, maxWidth: 820 }}>
+      <div style={{ position: "relative", zIndex: 1, maxWidth: MEASURE.text }}>
         <div
           style={{
             display: "inline-flex",
@@ -47,10 +52,10 @@ export default function HeroSection({ theme: t }: { theme: Theme }) {
           {tr("site.hero.eyebrow")}
         </div>
 
-        <div style={{ position: "relative", display: "inline-block", maxWidth: 820 }}>
+        <div style={{ position: "relative", display: "inline-block", maxWidth: MEASURE.text }}>
           <h1
             style={{
-              fontFamily: "'Caveat',cursive",
+              fontFamily: "var(--font-caveat),'Caveat',cursive",
               fontWeight: 700,
               fontSize: "clamp(3.2rem,9vw,6.4rem)",
               lineHeight: 0.92,
@@ -73,16 +78,21 @@ export default function HeroSection({ theme: t }: { theme: Theme }) {
           </span>
         </div>
 
-        <p style={{ maxWidth: 600, margin: "20px auto 0", fontSize: 18, lineHeight: 1.7, color: t.text }}>
+        <p style={{ maxWidth: LEAD, margin: "20px auto 0", fontSize: 18, lineHeight: 1.7, color: t.text }}>
           <RayaText>{tr("site.hero.sub")}</RayaText>
         </p>
 
         <div style={{ display: "flex", gap: 12, justifyContent: "center", marginTop: 28, flexWrap: "wrap" }}>
-          <a href="/login" style={{ background: t.ctaBg, color: t.ctaText, borderRadius: 999, padding: "13px 24px", fontSize: 16, fontWeight: 500, textDecoration: "none" }}>
+          <a
+            href="/login"
+            className="pub-press"
+            style={{ background: t.ctaBg, color: t.ctaText, borderRadius: 999, padding: "13px 24px", fontSize: 16, fontWeight: 500, textDecoration: "none" }}
+          >
             {tr("site.hero.ctaPrimary")}
           </a>
           <a
             href="#how-it-works"
+            className="pub-press"
             style={{ background: t.chipBg, border: `1px solid ${t.chipBorder}`, borderRadius: 999, padding: "13px 22px", fontSize: 16, fontWeight: 500, color: t.text, textDecoration: "none" }}
           >
             {tr("site.hero.ctaSecondary")}
@@ -98,7 +108,11 @@ export default function HeroSection({ theme: t }: { theme: Theme }) {
         </div>
       </div>
 
-      <div style={{ position: "relative", marginTop: 56, width: "100%", maxWidth: 1080, animation: "floatSm 7s ease-in-out infinite", zIndex: 1 }}>
+      {/* Was bobbing on an infinite `floatSm` loop. A product screenshot that
+          never stops moving is restless, not alive — and it undercuts the one
+          thing this image is here to do, which is let you read it. It now
+          arrives once, under the headline, and then holds still. */}
+      <div className="pub-hero-rise" style={{ position: "relative", marginTop: 56, width: "100%", maxWidth: MEASURE.wide, zIndex: 1 }}>
         <DashboardMockup theme={t} />
       </div>
     </section>

@@ -5,6 +5,7 @@ import type { Theme } from "./theme";
 import { RayaText } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
+import { GUTTER, MEASURE } from "./layout";
 
 /** `null` in the label slot = a brand name, shown literally in every language. */
 const COLUMNS: { labelKey: MessageKey; links: [MessageKey | null, string, string][] }[] = [
@@ -21,6 +22,8 @@ const COLUMNS: { labelKey: MessageKey; links: [MessageKey | null, string, string
     labelKey: "site.footer.col.project",
     links: [
       ["site.nav.research", "Research", "/research"],
+      // The roadmap left the landing page; this is now the only route to it.
+      ["site.footer.link.progress", "Progress", "/research?tab=progress"],
       ["site.nav.survey", "Survey", "/survey"],
       ["site.footer.link.contribute", "Contribute", "/research?tab=collaborations"],
     ],
@@ -82,13 +85,14 @@ export default function Footer({ theme: t, variant = "full" }: { theme: Theme; v
         position: "relative",
         background: t.footerBg,
         borderTop: `1px solid ${t.footerBorder}`,
-        padding: "56px 24px 32px",
+        padding: `56px ${GUTTER}px 32px`,
       }}
     >
-      <div style={{ position: "relative", maxWidth: 1080, margin: "0 auto" }}>
+      <div style={{ position: "relative", maxWidth: MEASURE.wide, margin: "0 auto" }}>
         <div className="pub-footer-grid" style={{ marginBottom: 40 }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              {/* Light mark in both themes — see the note in Navbar.tsx. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/bluestift-mark.png" alt="BlueStift" style={{ width: 26, height: 26, borderRadius: 7, objectFit: "cover" }} />
               <span style={{ fontSize: 15, fontWeight: 800 }}>

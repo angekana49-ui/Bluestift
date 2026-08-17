@@ -21,7 +21,12 @@
  * to the next, and a stale API response is worse than none.
  */
 
-const VERSION = "v1";
+// Bump on any change to a STABLE public asset. `cacheFirst` never revalidates a
+// /public image, so a file that keeps its name but changes its bytes (the brand
+// marks did) would otherwise be served from the old cache forever. Bumping the
+// version renames the cache, and `activate` deletes every cache but the current
+// one — that is the only cache-bust this worker has.
+const VERSION = "v2";
 const STATIC_CACHE = `bluestift-static-${VERSION}`;
 const OFFLINE_URL = "/offline.html";
 /**

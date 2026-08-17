@@ -46,9 +46,14 @@ Supabase DB and the contract `user_id = public.users.id = auth.users.id`.
   the profile cache so the next reply reflects it.
 - Manual **"Analyze"** button calls `/api/kernel/analyze` for on-demand gap
   detection (root_gap / summary / mastery_map).
+- **Per-concept, not averaged**: `lib/kernel/signals.ts` turns the profile into a
+  named focus concept (weakest active, with its K/V/P), the list of concepts past
+  the mastery bar, and the entry level. The prompt and the model router read that
+  same derivation. The background `/analyze` result is kept whole — `root_gap` and
+  `recommended_path` ride into the next prompt via `latest_analysis`.
 
 ## What needs the Kernel running
-- Personalized EMT entry level (uses avg mastery + mindset from `/load_profile`).
+- Personalized EMT entry level (weakest active concept + mindset, `/load_profile`).
 - Real gap detection from "Analyze" and the background loop.
 - Set `KERNEL_API_URL` in `.env.local`; verify with `/api/kernel/health`
   (`{ ok: true }`). See `docs/kernel-connection.md`.

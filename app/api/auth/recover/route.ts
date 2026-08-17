@@ -2,7 +2,13 @@ import { NextResponse } from "next/server";
 import { createClient as createAnonClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { ensureRecoverable, hasRealEmail } from "@/lib/auth";
+import {
+  ensureRecoverable,
+  findUserIdByRecoveryKey,
+  hasRealEmail,
+  mintSessionFor,
+} from "@/lib/auth";
+import { isValidRecoveryKey, normalizeRecoveryKey } from "@/lib/recovery-key";
 import { verifyTurnstile } from "@/lib/turnstile";
 import { checkStrictRateLimit } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/request-ip";
@@ -10,10 +16,14 @@ import { clientIp } from "@/lib/request-ip";
 /**
  * Reconnect via recovery key. Two paths, chosen by the account's identity:
  * - Real linked email  -> email a fresh magic link (Supabase verifies captcha).
- * - Email-less anonymous account -> sign it straight back in with the synthetic
- *   credential attached by `ensureRecoverable` (recovery key == password). No
- *   inbox needed, which is the whole point of a key for anonymous users. The
- *   session cookies are set on this response.
+ * - Email-less anonymous account -> mint a session server-side against the
+ *   synthetic address. No inbox needed, which is the whole point of a key for
+ *   anonymous users. The session cookies are set on this response.
+ *
+ * The key is matched by SHA-256 against `users.recovery_code_hash`; it is not
+ * stored anywhere in the clear, and it is no longer the account's password
+ * either — it identifies the account, and the session is issued admin-side. That
+ * split is why a read of the users table is no longer a working credential.
  *
  * Responses (200): { status: "recovered" | "sent" | "invalid" }.
  */
@@ -26,8 +36,10 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "invalid json" }, { status: 400 });
   }
-  const code = (body.code ?? "").trim().toUpperCase();
-  if (!/^[A-HJ-NP-Z2-9]{16}$/.test(code)) {
+  // Normalise before matching: the key is shown grouped (7KFM-9QRT-2XBH-4DWP),
+  // so the dashes and spaces a user copies back MUST NOT be read as a bad key.
+  const code = normalizeRecoveryKey(body.code ?? "");
+  if (!isValidRecoveryKey(code)) {
     return NextResponse.json({ status: "invalid" });
   }
   if (!(await verifyTurnstile(body.captchaToken))) {
@@ -37,17 +49,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }
 
-  // Look up the account by recovery key (service role).
+  // Look up the account by the key's hash (service role). The cleartext key is
+  // never compared against anything stored, because nothing stored is cleartext.
   const admin = createAdminClient();
-  const { data: found } = await admin
-    .from("users")
-    .select("id")
-    .eq("recovery_code", code)
-    .maybeSingle();
-  if (!found) return NextResponse.json({ status: "invalid" });
+  const foundId = await findUserIdByRecoveryKey(code);
+  if (!foundId) return NextResponse.json({ status: "invalid" });
+  const found = { id: foundId };
 
-  // Make sure the account actually carries a login credential (backfills any
-  // pre-existing anonymous account that never got a synthetic email/password).
+  // Make sure the account actually carries a login identity (backfills any
+  // pre-existing anonymous account that never got a synthetic email).
   await ensureRecoverable(found.id);
 
   // Reactivate a dormant account: the lifecycle cron bans + marks 'dormant' after
@@ -86,16 +96,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ status: "sent" });
   }
 
-  // Synthetic (email-less) account -> sign in directly with the recovery key as
-  // the password. Supabase verifies the captcha token (project has captcha
-  // protection on). Session cookies land on this response.
+  // Synthetic (email-less) account -> mint the session admin-side. We have
+  // already proven possession of the key by matching its hash; asking Supabase to
+  // re-verify a password would only work because the key USED to be that
+  // password, which is precisely the coupling this design removes. Session
+  // cookies land on this response via the SSR client.
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password: code,
-    options: { captchaToken: body.captchaToken },
-  });
-  if (error) return NextResponse.json({ status: "invalid" });
+  const minted = await mintSessionFor(supabase, email);
+  if (!minted) return NextResponse.json({ status: "invalid" });
 
   return NextResponse.json({ status: "recovered" });
 }

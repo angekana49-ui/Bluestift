@@ -13,14 +13,14 @@ const state: {
   updates: UpdateConceptStateRequest[];
   analyzeArgs: Record<string, unknown>[];
   updateImpl: (req: UpdateConceptStateRequest) => Promise<unknown>;
-  alerts: unknown[];
+  analysis: AnalyzeResponse | null;
   invalidated: string[];
 } = {
   labelJson: "",
   updates: [],
   analyzeArgs: [],
   updateImpl: async () => ({}),
-  alerts: [],
+  analysis: null,
   invalidated: [],
 };
 
@@ -37,15 +37,19 @@ vi.mock("@/lib/kernel/client", () => ({
     },
     analyze: async (args: Record<string, unknown>) => {
       state.analyzeArgs.push(args);
-      return { alerts: [{ type: "false_mastery" }] } as unknown as AnalyzeResponse;
+      return {
+        alerts: [{ type: "false_mastery" }],
+        root_gap: "notion_de_variable",
+        recommended_path: ["notion_de_variable", "derivation_fonction"],
+      } as unknown as AnalyzeResponse;
     },
   },
 }));
 
 vi.mock("@/lib/kernel/profile-cache", () => ({
   invalidateProfile: (u: string) => state.invalidated.push(u),
-  setLatestAlerts: (_u: string, a: unknown[]) => {
-    state.alerts = a;
+  setLatestAnalysis: (_u: string, res: AnalyzeResponse) => {
+    state.analysis = res;
   },
 }));
 
@@ -59,7 +63,7 @@ beforeEach(() => {
   state.updates = [];
   state.analyzeArgs = [];
   state.updateImpl = async () => ({});
-  state.alerts = [];
+  state.analysis = null;
   state.invalidated = [];
 });
 
@@ -140,7 +144,7 @@ describe("reportGradedSubmission", () => {
     expect(state.analyzeArgs).toHaveLength(1);
   });
 
-  it("parks the alerts and invalidates the profile", async () => {
+  it("parks the whole diagnosis and invalidates the profile", async () => {
     const { reportGradedSubmission } = await freshModule();
     await reportGradedSubmission({
       userId: "u1",
@@ -148,7 +152,14 @@ describe("reportGradedSubmission", () => {
       resultSummary: "…",
     });
 
-    expect(state.alerts).toEqual([{ type: "false_mastery" }]);
+    // Not just the alerts: the root gap and the order it wants the concepts
+    // taught in are the half of /analyze nothing else can reconstruct.
+    expect(state.analysis?.alerts).toEqual([{ type: "false_mastery" }]);
+    expect(state.analysis?.root_gap).toBe("notion_de_variable");
+    expect(state.analysis?.recommended_path).toEqual([
+      "notion_de_variable",
+      "derivation_fonction",
+    ]);
     expect(state.invalidated).toEqual(["u1"]);
   });
 

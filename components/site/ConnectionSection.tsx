@@ -5,6 +5,7 @@ import { RayaText } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
 import Reveal from "./Reveal";
+import { SectionBlend, bandColumn, bandSection, lead, sectionH2, serifEm } from "./layout";
 
 /**
  * The thesis band — the section the old "memory" landing didn't have.
@@ -32,29 +33,18 @@ const STEPS: { n: string; titleKey: MessageKey; bodyKey: MessageKey }[] = [
 export default function ConnectionSection({ theme: t }: { theme: Theme }) {
   const tr = useTranslate();
   return (
-    <section id="how-it-works" style={{ position: "relative", background: t.cardBg, padding: "96px 24px", scrollMarginTop: 24 }}>
+    <section id="how-it-works" style={bandSection(t.cardBg)}>
       {/* This band now sits directly under the hero, so it inherits the
           hero-to-section blend that FeaturesSection used to carry. */}
-      <div style={{ position: "absolute", inset: "0 0 auto 0", height: 140, background: `linear-gradient(180deg, ${t.heroEndSolid} 0%, transparent 100%)`, pointerEvents: "none" }} />
-      <div style={{ position: "relative", maxWidth: 940, margin: "0 auto" }}>
+      <SectionBlend from={t.heroEndSolid} />
+      <div style={bandColumn("wide")}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
-          <h2
-            style={{
-              fontFamily: "'IBM Plex Sans',sans-serif",
-              fontWeight: 900,
-              fontSize: "clamp(1.7rem,3.6vw,2.6rem)",
-              letterSpacing: "-0.02em",
-              margin: 0,
-              color: t.text,
-            }}
-          >
+          <h2 style={sectionH2(t)}>
             {tr("site.connection.title.a")}{" "}
-            <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic" }}>
-              {tr("site.connection.title.em")}
-            </em>{" "}
+            <em style={serifEm}>{tr("site.connection.title.em")}</em>{" "}
             {tr("site.connection.title.b")}
           </h2>
-          <p style={{ maxWidth: 560, margin: "14px auto 0", fontSize: 16, color: t.text, lineHeight: 1.7 }}>
+          <p style={lead(t)}>
             <RayaText>{tr("site.connection.sub")}</RayaText>
           </p>
         </div>
@@ -71,6 +61,7 @@ export default function ConnectionSection({ theme: t }: { theme: Theme }) {
                 background: t.sectionAltBg,
                 border: `1px solid ${t.cardBorder}`,
                 borderRadius: 22,
+                boxShadow: t.cardShadowSm,
                 padding: 24,
               }}
             >

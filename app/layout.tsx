@@ -39,7 +39,7 @@ const instrumentSerif = Instrument_Serif({
 
 export const metadata: Metadata = {
   title: "Bluestift",
-  description: "Bluestift — Raya, the AI tutor students and teachers share.",
+  description: "Bluestift — AI-powered diagnostic engine for schools.",
 };
 
 export default function RootLayout({

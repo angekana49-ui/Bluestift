@@ -19,7 +19,9 @@ export type BrandInfo = {
 /** Brand identity for a document. Schools/prof docs are Bluestift; Raya docs are Raya. */
 export const DOC_BRANDS: Record<DocBrand, BrandInfo> = {
   bluestift: { name: "Bluestift", logo: "/bluestift-mark.png", accent: "#2f7fe0", url: "thebluestift.com" },
-  raya: { name: "Raya", logo: "/raya-mark.png", accent: "#6366f1", url: "thebluestift.com" },
+  // Raya's accent is sampled from its own mark (the deep blue of the rosace), not
+  // the old violet — a document header must not clash with the logo printed above it.
+  raya: { name: "Raya", logo: "/raya-mark.png", accent: "#0248d1", url: "thebluestift.com" },
 };
 
 export type DocBlockType = "h1" | "h2" | "h3" | "p" | "li";

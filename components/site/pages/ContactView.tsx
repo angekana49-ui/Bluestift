@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import SitePage from "@/components/site/SitePage";
 import type { Theme } from "@/components/site/theme";
 import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
+import { pageColumn, pageH1, pageSection, serifEm } from "@/components/site/layout";
 
 const SUBJECTS = ["School", "Research / collaboration", "Press", "Other"];
 
@@ -44,10 +45,10 @@ export function ContactView({ signedIn }: { signedIn: boolean }) {
   return (
     <SitePage active="Contact" section="Contact" signedIn={signedIn}>
       {(t) => (
-        <section style={{ position: "relative", zIndex: 1, overflow: "hidden", padding: "150px 24px 0" }}>
-          <div style={{ maxWidth: 560, margin: "0 auto", width: "100%", boxSizing: "border-box", paddingBottom: 96 }}>
-            <h1 style={{ fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "clamp(1.6rem,4vw,2.4rem)", letterSpacing: "-0.02em", margin: "0 0 10px", color: t.text }}>
-              Talk to <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", color: t.wordmarkB }}>the team.</em>
+        <section style={pageSection}>
+          <div style={pageColumn("form")}>
+            <h1 style={pageH1(t)}>
+              Talk to <em style={{ ...serifEm, color: t.wordmarkB }}>the team.</em>
             </h1>
             <p style={{ fontSize: 15, color: t.text, lineHeight: 1.7, margin: "0 0 28px" }}>
               Interested school, researcher, press, or just curious — write to us, we reply fast.

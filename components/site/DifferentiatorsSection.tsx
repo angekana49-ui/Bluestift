@@ -3,6 +3,7 @@
 import type { Theme } from "./theme";
 import { RayaName } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
+import { SectionBlend, bandColumn, bandSection, lead, sectionH2, serifEm } from "./layout";
 
 export default function DifferentiatorsSection({ theme: t }: { theme: Theme }) {
   const tr = useTranslate();
@@ -15,19 +16,19 @@ export default function DifferentiatorsSection({ theme: t }: { theme: Theme }) {
   );
 
   return (
-    <section style={{ position: "relative", background: t.cardBg, padding: "96px 24px" }}>
-      <div style={{ position: "absolute", inset: "0 0 auto 0", height: 140, background: `linear-gradient(180deg, ${t.sectionAltBg} 0%, transparent 100%)`, pointerEvents: "none" }} />
-      <div style={{ position: "relative", maxWidth: 720, margin: "0 auto" }}>
+    <section style={bandSection(t.cardBg)}>
+      <SectionBlend from={t.sectionAltBg} />
+      <div style={bandColumn("text")}>
         <div style={{ textAlign: "center", marginBottom: 44 }}>
-          <h2 style={{ fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "clamp(1.7rem,3.6vw,2.6rem)", letterSpacing: "-0.02em", color: t.text }}>
+          <h2 style={sectionH2(t)}>
             {tr("site.diff.title.a")}{" "}
-            <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic" }}>{tr("site.diff.title.em")}</em>
+            <em style={serifEm}>{tr("site.diff.title.em")}</em>
           </h2>
           {/* The old line here was "the difference is the memory". That stopped
               being true: frontier models ship long context and cross-session
               memory as standard. The durable difference is who else can see the
               learning — so the comparison is now drawn on that axis. */}
-          <p style={{ fontSize: 16, color: t.text, marginTop: 12 }}>{tr("site.diff.sub")}</p>
+          <p style={lead(t)}>{tr("site.diff.sub")}</p>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

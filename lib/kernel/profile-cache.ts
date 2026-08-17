@@ -2,7 +2,8 @@ import "server-only";
 import { kernel } from "./client";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { withTimeout } from "@/lib/net/timeout";
-import type { KernelAlert, LoadProfileResponse } from "./types";
+import { sanitizeConceptLabel } from "./signals";
+import type { AnalyzeResponse, KernelAlert, LoadProfileResponse } from "./types";
 
 /**
  * Non-blocking learner-profile cache, two layers deep:
@@ -26,9 +27,30 @@ const L2_READ_BUDGET_MS = 250;
 // Latest pedagogical-safety alerts from the most recent /analyze, per user.
 const alertsCache = new Map<string, { alerts: KernelAlert[]; at: number }>();
 
+/**
+ * The cross-concept half of /analyze: the root cause the Kernel walked to, and
+ * the order it wants the concepts taught in. `/load_profile` cannot supply this
+ * — it returns per-concept state, not the chain between concepts — so it has to
+ * ride along from the last analysis or be lost, which is what used to happen:
+ * the route kept `alerts` and dropped `root_gap` on the floor.
+ */
+export type LatestAnalysis = {
+  root_gap: string | null;
+  detection_path: string[];
+  recommended_path: string[];
+  confidence: number | null;
+  at: number;
+};
+
+/** A root cause older than this describes a session that has moved on. */
+const ANALYSIS_TTL_MS = 30 * 60_000;
+
+const analysisCache = new Map<string, LatestAnalysis>();
+
 type SnapshotRow = {
   profile: LoadProfileResponse | null;
   alerts: KernelAlert[] | null;
+  latest_analysis: LatestAnalysis | null;
   profile_updated_at: string | null;
   alerts_updated_at: string | null;
 };
@@ -65,6 +87,8 @@ function snapshots() {
 export type CognitiveContext = {
   profile: LoadProfileResponse | null;
   alerts: KernelAlert[];
+  /** null when there has been no analysis, or it is older than the TTL. */
+  analysis: LatestAnalysis | null;
 };
 
 /**
@@ -79,14 +103,15 @@ export async function getCognitiveContext(userId: string): Promise<CognitiveCont
 
   let profile = l1?.profile ?? null;
   let alerts = l1Alerts?.alerts ?? null;
+  let analysis = analysisCache.get(userId) ?? null;
   let l1Fresh = l1 != null && now - l1.at <= TTL_MS;
 
-  // L1 miss on either half → one bounded snapshot read fills both.
-  if ((!l1 || !l1Alerts) && (profile === null || alerts === null)) {
+  // L1 miss on any part → one bounded snapshot read fills all three.
+  if ((!l1 || !l1Alerts || !analysis) && (profile === null || alerts === null || analysis === null)) {
     const row = await withTimeout(
       (async () => {
         const { data } = await snapshots()
-          .select("profile, alerts, profile_updated_at, alerts_updated_at")
+          .select("profile, alerts, latest_analysis, profile_updated_at, alerts_updated_at")
           .eq("user_id", userId)
           .maybeSingle();
         return data;
@@ -105,11 +130,19 @@ export async function getCognitiveContext(userId: string): Promise<CognitiveCont
         alerts = row.alerts;
         alertsCache.set(userId, { alerts: row.alerts, at: now });
       }
+      if (!analysis && row.latest_analysis) {
+        analysis = row.latest_analysis;
+        analysisCache.set(userId, row.latest_analysis);
+      }
     }
   }
 
+  // Expiry is applied on read, not on write: a stale row is harmless in the
+  // table and this keeps the one clock that matters in one place.
+  if (analysis && now - analysis.at > ANALYSIS_TTL_MS) analysis = null;
+
   if (!l1Fresh) void refresh(userId);
-  return { profile, alerts: alerts ?? [] };
+  return { profile, alerts: alerts ?? [], analysis };
 }
 
 /** Mark the cached profile stale and refresh it from the Kernel right away. */
@@ -119,14 +152,34 @@ export function invalidateProfile(userId: string): void {
   void refresh(userId);
 }
 
-/** Store the latest /analyze alerts — L1 now, L2 fire-and-forget. */
-export function setLatestAlerts(userId: string, alerts: KernelAlert[]): void {
-  alertsCache.set(userId, { alerts: alerts ?? [], at: Date.now() });
+/**
+ * Store everything the last /analyze produced — L1 now, L2 fire-and-forget.
+ *
+ * Replaces `setLatestAlerts`, which kept `alerts` and discarded the rest of the
+ * response. `root_gap` and `recommended_path` are the Kernel's cross-concept
+ * reasoning; nothing else in the app can reconstruct them.
+ */
+export function setLatestAnalysis(userId: string, res: AnalyzeResponse): void {
+  const alerts = res.alerts ?? [];
+  const analysis: LatestAnalysis = {
+    // Kernel-authored, but built from student conversations — sanitised here so
+    // no caller can forget to, since these end up inside a system prompt.
+    root_gap: res.root_gap ? sanitizeConceptLabel(res.root_gap) : null,
+    detection_path: (res.detection_path ?? []).slice(0, 8).map(sanitizeConceptLabel).filter(Boolean),
+    recommended_path: (res.recommended_path ?? []).slice(0, 8).map(sanitizeConceptLabel).filter(Boolean),
+    confidence: typeof res.confidence === "number" ? res.confidence : null,
+    at: Date.now(),
+  };
+
+  alertsCache.set(userId, { alerts, at: Date.now() });
+  analysisCache.set(userId, analysis);
+
   void (async () => {
     try {
       await snapshots().upsert({
         user_id: userId,
-        alerts: alerts ?? [],
+        alerts,
+        latest_analysis: analysis,
         alerts_updated_at: new Date().toISOString(),
       });
     } catch {

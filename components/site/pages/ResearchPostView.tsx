@@ -3,6 +3,7 @@
 import Link from "next/link";
 import SitePage from "@/components/site/SitePage";
 import { readTime } from "@/components/public/format";
+import { GUTTER, MEASURE, PAGE_BOTTOM, PAGE_TOP } from "@/components/site/layout";
 import type { PublicMedia, PublicResearchPost } from "@/lib/content";
 
 type PostDetail = PublicResearchPost & { media: PublicMedia[] };
@@ -28,7 +29,7 @@ export function ResearchPostView({ post, signedIn }: { post: PostDetail; signedI
   return (
     <SitePage active="Research" section="Research" signedIn={signedIn}>
       {(t) => (
-        <div style={{ position: "relative", zIndex: 1, maxWidth: 640, margin: "0 auto", padding: "140px 24px 96px" }}>
+        <div style={{ position: "relative", zIndex: 1, maxWidth: MEASURE.prose, margin: "0 auto", padding: `${PAGE_TOP}px ${GUTTER}px ${PAGE_BOTTOM}px` }}>
           <Link href="/research" style={{ display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 24, fontSize: 14, color: t.link, textDecoration: "none" }}>
             ← Back to publications
           </Link>
@@ -41,7 +42,7 @@ export function ResearchPostView({ post, signedIn }: { post: PostDetail; signedI
             </span>
           </div>
 
-          <h1 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", fontWeight: 400, fontSize: "clamp(1.6rem,3.4vw,2.2rem)", lineHeight: 1.3, margin: "0 0 20px", color: t.text }}>
+          <h1 style={{ fontFamily: "var(--font-instrument-serif),'Instrument Serif',serif", fontStyle: "italic", fontWeight: 400, fontSize: "clamp(1.6rem,3.4vw,2.2rem)", lineHeight: 1.3, margin: "0 0 20px", color: t.text }}>
             {post.title}
           </h1>
 

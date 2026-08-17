@@ -16,8 +16,10 @@ import { disableAnalytics, enableAnalytics } from "@/lib/analytics/posthog-lazy"
  *  - Withdraw analytics consent. The privacy policy used to say "clear your
  *    site data", which is not a withdrawal mechanism — art. 7(3) wants it to be
  *    as easy to withdraw as it was to give.
- *  - Choose whether your content helps improve Raya. Off unless chosen, and not
- *    offered at all to a minor.
+ *  - Choose whether your content helps improve Raya. ON by default for adults,
+ *    switchable off, and not offered at all to a minor.
+ *  - See what a linked school can and cannot read — the B2B2C boundary, stated
+ *    where the student is rather than only in the policy.
  *  - Delete the account (art. 17), typed confirmation, no undo.
  *
  * Minors see the two consent rows replaced by a statement of why they're
@@ -177,13 +179,45 @@ export function SettingsDataCard({
             <div>
               <div style={{ ...label, fontSize: 15 }}>Help improve Raya</div>
               <div style={desc}>
-                Let us use your conversations to improve the tutor. Off unless you turn it on.
+                Your conversations help train the tutor other students get. This is on by
+                default — switch it off and your work stops being used, with nothing else
+                about the product changing.
               </div>
             </div>
             <Switch on={training} onChange={toggleTraining} theme={t} />
           </div>
         </>
       )}
+
+      {/* ------------------------------------------------ what a school sees --- */}
+      {/* Named explicitly rather than buried in the privacy policy: whether a
+          teacher can see your work is the question a student actually has, and
+          the honest answer differs entirely depending on one fact about their
+          account. */}
+      <div style={row}>
+        <div>
+          <div style={{ ...label, fontSize: 15 }}>
+            {schoolLinked ? "What your school can see" : "Nobody else can see this"}
+          </div>
+          <div style={desc}>
+            {schoolLinked ? (
+              <>
+                You&apos;re linked to a school, so your teachers see how you&apos;re doing:
+                which concepts you&apos;ve mastered and where you&apos;re stuck, your results,
+                and the follow-up notes they write about you. They do not read your
+                conversations with Raya. Leaving the class stops this going forward.
+              </>
+            ) : (
+              <>
+                This account isn&apos;t linked to any school, so nothing about your learning
+                leaves it — no teacher, no institution, no class dashboard. If you ever join
+                a class with a code, your progress starts being visible to that school&apos;s
+                teachers, and we&apos;ll say so at that moment.
+              </>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* ---------------------------------------------------------- delete --- */}
       <div style={{ ...row, display: "block" }}>

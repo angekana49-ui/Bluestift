@@ -3,6 +3,7 @@
 import SitePage from "@/components/site/SitePage";
 import type { NavLink } from "@/components/site/Navbar";
 import type { Theme } from "@/components/site/theme";
+import { pageColumn, pageH1, pageSection, serifEm } from "@/components/site/layout";
 
 /**
  * Shared chrome for the four legal pages (Privacy, Terms, DPA, Sub-processors).
@@ -12,7 +13,7 @@ import type { Theme } from "@/components/site/theme";
 
 export const h2 = (t: Theme) =>
   ({
-    fontFamily: "'IBM Plex Sans',sans-serif",
+    fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
     fontWeight: 800,
     fontSize: "1.05rem",
     letterSpacing: "-0.01em",
@@ -22,7 +23,7 @@ export const h2 = (t: Theme) =>
 
 export const h3 = (t: Theme) =>
   ({
-    fontFamily: "'IBM Plex Sans',sans-serif",
+    fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
     fontWeight: 700,
     fontSize: "0.95rem",
     color: t.text,
@@ -133,38 +134,11 @@ export function LegalShell({
   return (
     <SitePage active={active} section={section} signedIn={signedIn}>
       {(t) => (
-        <section
-          style={{ position: "relative", zIndex: 1, overflow: "hidden", padding: "150px 24px 0" }}
-        >
-          <div
-            style={{
-              maxWidth: 720,
-              margin: "0 auto",
-              width: "100%",
-              boxSizing: "border-box",
-              paddingBottom: 96,
-            }}
-          >
-            <h1
-              style={{
-                fontFamily: "'IBM Plex Sans',sans-serif",
-                fontWeight: 900,
-                fontSize: "clamp(1.6rem,4vw,2.4rem)",
-                letterSpacing: "-0.02em",
-                margin: "0 0 10px",
-                color: t.text,
-              }}
-            >
+        <section style={pageSection}>
+          <div style={pageColumn("prose")}>
+            <h1 style={pageH1(t)}>
               {title}{" "}
-              <em
-                style={{
-                  fontFamily: "'Instrument Serif',serif",
-                  fontStyle: "italic",
-                  color: t.wordmarkB,
-                }}
-              >
-                {accent}
-              </em>
+              <em style={{ ...serifEm, color: t.wordmarkB }}>{accent}</em>
             </h1>
             <p style={{ fontSize: 14, color: t.muted, margin: "0 0 26px" }}>
               Last updated {updated}

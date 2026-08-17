@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import type { Theme } from "./theme";
 import { RayaText, SchoolsName } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
+import { SectionBlend, bandColumn, bandSection, lead, sectionH2, serifEm } from "./layout";
 
 export default function PricingSection({ theme: t }: { theme: Theme }) {
   const tr = useTranslate();
@@ -21,38 +22,39 @@ export default function PricingSection({ theme: t }: { theme: Theme }) {
 
   // Audience gateway card — no single price; sells the segment, then deep-links
   // into /pricing with the right tab preselected.
+  //
+  // These cards each used to carry a blurred blob morphing on an infinite loop.
+  // Three of them, on slightly different periods, right next to the one
+  // decision the page actually asks a visitor to make — motion with nothing to
+  // say, pulling the eye off the prices. Gone: the cards hold still, and the
+  // only thing that moves is the CTA when you reach for it.
   const gatewayCard = (opts: {
     title: string;
     lines: string[];
     meta: ReactNode;
     cta: string;
     href: string;
-    blobDur: string;
-    blobDelay: string;
   }) => (
     <div style={{ display: "flex", flexDirection: "column", background: t.cardBg, borderRadius: 24, padding: 28, boxShadow: t.cardShadowLg, position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", right: "-15%", bottom: "-15%", width: "75%", height: "75%", background: "rgba(11,18,32,0.05)", filter: "blur(30px)", animation: `morphBlob ${opts.blobDur} ease-in-out infinite`, animationDelay: opts.blobDelay, pointerEvents: "none" }} />
       <div style={{ position: "relative", fontSize: "1.5rem", fontWeight: 900, color: t.text, letterSpacing: "-0.02em" }}>{opts.title}</div>
       {lineList(opts.lines, t.muted, t.greenSolid)}
       <div style={{ position: "relative", fontSize: 14, fontWeight: 600, color: t.wordmarkB, marginTop: 16 }}>{opts.meta}</div>
-      <a href={opts.href} style={{ position: "relative", display: "block", textAlign: "center", marginTop: 18, background: t.ctaBg, color: t.ctaText, borderRadius: 999, padding: "11px 20px", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
+      <a href={opts.href} className="pub-press" style={{ position: "relative", display: "block", textAlign: "center", marginTop: 18, background: t.ctaBg, color: t.ctaText, borderRadius: 999, padding: "11px 20px", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
         {opts.cta}
       </a>
     </div>
   );
 
   return (
-    <section id="pricing" style={{ position: "relative", padding: "112px 24px", background: t.pricingBg }}>
-      <div style={{ position: "absolute", inset: "0 0 auto 0", height: 140, background: `linear-gradient(180deg, ${t.cardBg} 0%, transparent 100%)`, pointerEvents: "none" }} />
-      <div style={{ position: "relative", maxWidth: 1080, margin: "0 auto" }}>
+    <section id="pricing" style={bandSection(t.pricingBg)}>
+      <SectionBlend from={t.cardBg} />
+      <div style={bandColumn("wide")}>
         <div style={{ textAlign: "center", marginBottom: 52 }}>
-          <h2 style={{ fontFamily: "'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "clamp(1.9rem,4vw,2.9rem)", letterSpacing: "-0.02em", color: t.text }}>
+          <h2 style={sectionH2(t)}>
             {tr("site.pricing.title.a")}{" "}
-            <em style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic" }}>{tr("site.pricing.title.em")}</em>
+            <em style={serifEm}>{tr("site.pricing.title.em")}</em>
           </h2>
-          <p style={{ fontSize: 16, color: t.muted, marginTop: 12, maxWidth: 520, marginLeft: "auto", marginRight: "auto", lineHeight: 1.7 }}>
-            {tr("site.pricing.sub")}
-          </p>
+          <p style={lead(t)}>{tr("site.pricing.sub")}</p>
         </div>
 
         <div className="pub-grid-3" style={{ gap: 20, alignItems: "stretch" }}>
@@ -68,15 +70,10 @@ export default function PricingSection({ theme: t }: { theme: Theme }) {
             meta: "Free · Plus $20 · Max $40 / mo",
             cta: tr("site.pricing.solo.cta"),
             href: "/pricing?for=solo",
-            blobDur: "10.5s",
-            blobDelay: "0s",
           })}
 
           {/* 2 — Schools (recommended, dark) */}
           <div style={{ display: "flex", flexDirection: "column", background: "#0b1220", color: "white", borderRadius: 24, padding: 28, position: "relative", boxShadow: "0 16px 40px rgba(15,23,42,0.25)" }}>
-            <div style={{ position: "absolute", inset: 0, borderRadius: 24, overflow: "hidden", pointerEvents: "none" }}>
-              <div style={{ position: "absolute", right: "-15%", bottom: "-15%", width: "75%", height: "75%", background: "rgba(255,255,255,0.09)", filter: "blur(30px)", animation: "morphBlob 7.5s ease-in-out infinite", animationDelay: "0.8s" }} />
-            </div>
             <span style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: "white", color: "#0b1220", fontSize: 13, fontWeight: 700, padding: "4px 12px", borderRadius: 999, letterSpacing: "0.1em", zIndex: 1 }}>
               {tr("site.pricing.schools.badge")}
             </span>
@@ -92,7 +89,7 @@ export default function PricingSection({ theme: t }: { theme: Theme }) {
               t.greenSolid,
             )}
             <div style={{ position: "relative", fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.9)", marginTop: 16 }}>Standard $2 · Plus $4 / student / mo</div>
-            <a href="/pricing?for=schools" style={{ position: "relative", display: "block", textAlign: "center", marginTop: 18, background: "white", color: "#0b1220", borderRadius: 999, padding: "11px 20px", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
+            <a href="/pricing?for=schools" className="pub-press" style={{ position: "relative", display: "block", textAlign: "center", marginTop: 18, background: "white", color: "#0b1220", borderRadius: 999, padding: "11px 20px", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
               {tr("site.pricing.schools.cta")}
             </a>
           </div>
@@ -109,13 +106,11 @@ export default function PricingSection({ theme: t }: { theme: Theme }) {
             meta: tr("site.pricing.custom.meta"),
             cta: tr("site.pricing.custom.cta"),
             href: "/pricing?for=schools",
-            blobDur: "9s",
-            blobDelay: "1.6s",
           })}
         </div>
 
         <div style={{ textAlign: "center", marginTop: 36 }}>
-          <a href="/pricing" style={{ fontSize: 15, fontWeight: 600, color: t.link, textDecoration: "none", borderBottom: `1px solid ${t.link}`, paddingBottom: 2 }}>
+          <a href="/pricing" className="pub-focus" style={{ fontSize: 15, fontWeight: 600, color: t.link, textDecoration: "none", borderBottom: `1px solid ${t.link}`, paddingBottom: 2 }}>
             {tr("site.pricing.compare")}
           </a>
         </div>

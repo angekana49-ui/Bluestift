@@ -12,7 +12,7 @@ import {
 import { getActiveSchoolId } from "@/lib/school-active";
 import { getPlanLabel } from "@/lib/billing";
 import { softValue } from "@/lib/page-data";
-import { ensureRecoveryCode, hasRealEmail } from "@/lib/auth";
+import { recoveryKeyState, hasRealEmail } from "@/lib/auth";
 import type { AdminClass, ProfContext, SchoolDashboard } from "@/lib/school-admin";
 import { SchoolAdmin } from "@/components/school-admin";
 
@@ -29,16 +29,15 @@ export default async function SchoolPage({
   if (!user) redirect("/login");
 
   // Wave 1: five independent lookups that used to run in sequence — this page
-  // was the app's worst blocking path. `ensureRecoveryCode` (idempotent,
-  // session-safe) may CREATE the code the profile select reads, so we take its
-  // return value rather than serialising the two; it gives the in-dashboard
-  // Settings panel the same guarantee /account gives.
-  const [recoveryCode, { data: profileRow }, membership, memberships, activeSchoolId] =
+  // was the app's worst blocking path. The recovery key is never read here (only
+  // its hash is stored); the in-dashboard Settings panel just needs to know
+  // whether one has been issued, same as /account.
+  const [keyState, { data: profileRow }, membership, memberships, activeSchoolId] =
     await Promise.all([
-      ensureRecoveryCode(user.id),
+      recoveryKeyState(user.id),
       supabase
         .from("users")
-        .select("account_state, profile_picture_url, display_name, username, account_type, recovery_code, birth_year, minor_consent_source, school_id")
+        .select("account_state, profile_picture_url, display_name, username, account_type, birth_year, minor_consent_source, school_id")
         .eq("id", user.id)
         .single(),
       getAdminMembership(user.id),
@@ -50,7 +49,7 @@ export default async function SchoolPage({
   if (!profileRow || profileRow.account_state === "onboarding_pending" || needsAgeGate(profileRow)) {
     redirect("/onboarding");
   }
-  const profile = { ...profileRow, recovery_code: profileRow.recovery_code ?? recoveryCode };
+  const profile = profileRow;
   // The resolved active school (may differ from the cookie when stale/absent).
   const resolvedActiveSchoolId = membership?.schoolId ?? activeSchoolId ?? null;
   const role = membership?.role ?? null;
@@ -95,9 +94,9 @@ export default async function SchoolPage({
       display_name: profile.display_name,
       account_type: profile.account_type,
       account_state: profile.account_state,
-      recovery_code: profile.recovery_code,
       profile_picture_url: profile.profile_picture_url,
     },
+    recoveryKey: keyState,
   };
 
   return (

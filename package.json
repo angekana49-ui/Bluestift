@@ -6,10 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "gen:types": "npx supabase gen types typescript --project-id mbvovxnfdptxvnhmdxew --schema public --schema learning --schema schools --schema rag --schema content > types/database.types.ts"
+    "gen:types": "node scripts/gen-types.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",

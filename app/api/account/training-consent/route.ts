@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ageBand, allowsOptionalProcessing } from "@/lib/compliance/age";
+import { forgetOptionalProcessing } from "@/lib/compliance/optional-processing";
 
 /**
  * The "use my content to improve Raya" opt-in.
@@ -11,7 +12,9 @@ import { ageBand, allowsOptionalProcessing } from "@/lib/compliance/age";
  * — a minor must not be able to grant it, and a checkbox the client can write
  * straight to the database is a checkbox that enforces nothing.
  *
- * Off by default, and off for every minor whatever the request says.
+ * ON by default for adults, and off for every minor whatever the request says.
+ * The default changed on 2026-08-13; the band rule did not, and must not — a
+ * minor cannot grant this, so there is no version of "on by default" for them.
  */
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -50,10 +53,19 @@ export async function POST(request: Request) {
     .from("users")
     .update({
       training_consent: body.consent,
-      training_consent_at: body.consent ? new Date().toISOString() : null,
+      // Stamped on BOTH directions. It used to be nulled on withdrawal, which
+      // was harmless while the column was opt-in — but now that the default is
+      // on, "no timestamp" means "never chose", and a backfill would read a
+      // withdrawal as an untouched account and switch it back on. The timestamp
+      // is what makes a "no" durable.
+      training_consent_at: new Date().toISOString(),
     })
     .eq("id", user.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // The decision is memoised for five minutes on the read path; without this
+  // the switch appears to do nothing for the rest of that window.
+  forgetOptionalProcessing(user.id);
 
   return NextResponse.json({ ok: true, consent: body.consent });
 }

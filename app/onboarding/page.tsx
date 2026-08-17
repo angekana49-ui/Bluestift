@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { hasRealEmail, ensureRecoveryCode } from "@/lib/auth";
+import { hasRealEmail, ensureRecoveryKeyIssued } from "@/lib/auth";
 import { resolveHome } from "@/lib/routing";
 import { needsAgeGate } from "@/lib/compliance/guard";
 import { evaluateAccess } from "@/lib/compliance/age";
@@ -46,9 +46,13 @@ export default async function OnboardingPage() {
 
   // Anonymous = no REAL linked email (the synthetic recovery address doesn't count).
   // These accounts get a dedicated onboarding page: continue-with-email + the
-  // recovery key with its constraints. Make sure the key exists to show it.
+  // recovery key with its constraints.
+  //
+  // This render is the ONE moment the key exists in cleartext — only its hash is
+  // stored, so a reload returns null and the screen sends the user to /account to
+  // generate a replacement rather than showing a key it cannot know.
   const isAnonymous = !hasRealEmail(user.email);
-  const recoveryCode = isAnonymous ? await ensureRecoveryCode(user.id) : null;
+  const recoveryCode = isAnonymous ? await ensureRecoveryKeyIssued(user.id) : null;
 
   return (
     <main style={{ minHeight: "100vh", width: "100%" }}>

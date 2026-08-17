@@ -172,7 +172,7 @@ export function RayaShell({
           theme={t}
           collapsed={effectiveCollapsed}
           logoSrc="/raya-mark.png"
-          logoSrcDark="/raya-mark-violet.png"
+          logoSrcDark="/raya-mark-dark.png"
           logoRadius={0}
           logoSize={52}
           name={<RayaName />}

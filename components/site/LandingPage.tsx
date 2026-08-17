@@ -9,7 +9,6 @@ import FeaturesSection from "./FeaturesSection";
 import LadderSection from "./LadderSection";
 import KernelSection from "./KernelSection";
 import DifferentiatorsSection from "./DifferentiatorsSection";
-import RoadmapSection from "./RoadmapSection";
 import FaqSection from "./FaqSection";
 import PricingSection from "./PricingSection";
 import FinalCtaSection from "./FinalCtaSection";
@@ -239,13 +238,19 @@ export default function LandingPage({ signedIn, homeHref }: { signedIn?: boolean
 
   return (
     <div
-      style={{
-        fontFamily: "'Inter', sans-serif",
-        color: t.text,
-        minHeight: "100vh",
-        background: t.pageBg,
-        transition: "background 0.4s ease, color 0.4s ease",
-      }}
+      style={
+        {
+          fontFamily: "var(--font-inter),'Inter',sans-serif",
+          color: t.text,
+          minHeight: "100vh",
+          background: t.pageBg,
+          transition: "background 0.4s ease, color 0.4s ease",
+          // Hover elevation for `.pub-lift` cards. It has to reach CSS as a
+          // custom property because the hover state can only live in the
+          // stylesheet while the theme itself lives in React state.
+          "--pub-lift-shadow": t.liftShadow,
+        } as React.CSSProperties
+      }
     >
       <Navbar theme={t} isDark={isDark} onToggleTheme={toggle} active="Product" signedIn={signedIn} homeHref={homeHref} />
       <HeroSection theme={t} />
@@ -261,9 +266,10 @@ export default function LandingPage({ signedIn, homeHref }: { signedIn?: boolean
       <LadderSection theme={t} />
       <KernelSection theme={t} />
       <DifferentiatorsSection theme={t} />
-      {/* Objection handling, in the order objections arrive: "is any of this
-          real yet?" (roadmap), then the five that come back from every school. */}
-      <RoadmapSection theme={t} />
+      {/* Objection handling: the five that come back from every school. The
+          sixth — "is any of this real yet?" — used to be answered here by the
+          roadmap; it now lives at /research?tab=progress, linked from the
+          footer, because it is a changelog and not part of the argument. */}
       <FaqSection theme={t} />
       <PricingSection theme={t} />
       <FinalCtaSection theme={t} signedIn={signedIn} homeHref={homeHref} />
