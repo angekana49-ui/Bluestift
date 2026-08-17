@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, IBM_Plex_Sans, Caveat, Instrument_Serif } from "next/font/google";
 import { THEME_COLOR_LIGHT } from "@/lib/theme-color";
+import { startupImages } from "@/lib/launch-screens";
 import "./globals.css";
 import { PostHogProvider } from "@/components/analytics/PostHogProvider";
 import { UpgradeModal } from "@/components/upgrade/UpgradeModal";
@@ -57,6 +58,7 @@ export const metadata: Metadata = {
     capable: true,
     title: "Bluestift",
     statusBarStyle: "default",
+    startupImage: startupImages,
   },
   other: {
     // `appleWebApp.capable` renders only the standard `mobile-web-app-capable`

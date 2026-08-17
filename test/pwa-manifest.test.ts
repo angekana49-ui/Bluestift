@@ -1,8 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync, existsSync, statSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import manifest from "@/app/manifest";
+import { startupImages } from "@/lib/launch-screens";
 import { THEME_COLOR_LIGHT, THEME_COLOR_DARK } from "@/lib/theme-color";
 
 /**
@@ -103,6 +104,56 @@ describe("PWA manifest", () => {
     expect(m.theme_color).toBe(THEME_COLOR_LIGHT);
     expect(m.background_color).toBe(THEME_COLOR_LIGHT);
     expect(THEME_COLOR_DARK).not.toBe(THEME_COLOR_LIGHT);
+  });
+
+  /**
+   * The launch screens exist twice: as a device list in app/layout.tsx and as
+   * files written by scripts/process-logos.py from its own copy of that list.
+   * iOS matches them on EXACT device metrics, so a mismatch is not a degraded
+   * launch screen — it is no launch screen, and a blank white screen on open.
+   * Neither half can see the other, so both directions get checked.
+   */
+  describe("iOS launch screens", () => {
+    it("declares one per geometry, each resolving to a file of exactly that size", () => {
+      expect(startupImages.length).toBeGreaterThanOrEqual(8);
+
+      for (const { url, media } of startupImages) {
+        const file = join(PUBLIC, url);
+        expect(existsSync(file), `${url} is declared but missing`).toBe(true);
+
+        // The media query and the filename encode the same geometry by two
+        // different routes; if they disagree, iOS matches the query and then
+        // paints an image of the wrong size.
+        const w = Number(media.match(/device-width: (\d+)px/)?.[1]);
+        const h = Number(media.match(/device-height: (\d+)px/)?.[1]);
+        const ratio = Number(media.match(/-webkit-device-pixel-ratio: (\d+)/)?.[1]);
+        expect([w, h, ratio].some(Number.isNaN), `unparseable media: ${media}`).toBe(false);
+
+        const meta = png(file);
+        expect([meta.width, meta.height], `${url} vs its media query`).toEqual([w * ratio, h * ratio]);
+        // Portrait, as the query claims.
+        expect(meta.height).toBeGreaterThan(meta.width);
+      }
+    });
+
+    it("leaves no generated launch screen undeclared", () => {
+      // The other direction: a file regenerated under a new name and never
+      // wired up is dead weight in /public, and the geometry it was meant for
+      // silently has no image.
+      const onDisk = readdirSync(PUBLIC).filter((f) => /^launch-\d+x\d+\.png$/.test(f));
+      const declared = new Set(startupImages.map((i) => i.url.replace("/", "")));
+      expect(onDisk.length).toBe(startupImages.length);
+      expect(onDisk.filter((f) => !declared.has(f))).toEqual([]);
+    });
+
+    it("keeps each launch screen affordable on a metered connection", () => {
+      // A phone downloads exactly one of these, so the per-file size is what
+      // matters rather than the total.
+      for (const { url } of startupImages) {
+        const kb = png(join(PUBLIC, url)).kb;
+        expect(kb, `${url} is ${kb.toFixed(1)} KB`).toBeLessThan(40);
+      }
+    });
   });
 
   it("bumps the service worker whenever the icons change", () => {
