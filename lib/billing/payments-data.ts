@@ -2,6 +2,7 @@ import "server-only";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { invalidateEntitlements } from "@/lib/entitlements";
 import { sendBrandedEmail, getUserEmail, siteUrl } from "@/lib/email";
+import { reportError } from "@/lib/observability/report";
 import type { PaymentChannel } from "./payments";
 
 /**
@@ -159,11 +160,22 @@ export async function markPaymentPaid(
     // back the (already-committed) activation.
     try {
       await sendPaymentReceipt(p);
-    } catch {
-      /* best-effort */
+    } catch (e) {
+      // Best-effort for the request, but not silent: the customer paid, was
+      // activated, and got no confirmation. Someone has to be able to see that.
+      await reportError("billing.receipt", e, {
+        severity: "warning",
+        tags: { paymentId: p.id, audience: p.audience, provider },
+      });
     }
     return { ok: true, subscriptionId: subId };
-  } catch {
+  } catch (e) {
+    // The one that must never be quiet: the money moved and the subscription
+    // did not. The claim is rolled back so a provider retry can finish the job,
+    // but if the retries run out this record is the only trace left.
+    await reportError("billing.activation", e, {
+      tags: { paymentId: p.id, audience: p.audience, planId: p.plan_id, provider, providerRef },
+    });
     // Roll back the claim so a retry can complete activation.
     await schools.from("payments").update({ status: "pending", paid_at: null, updated_at: nowIso }).eq("id", p.id);
     return { ok: false };

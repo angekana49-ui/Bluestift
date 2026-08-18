@@ -1,6 +1,6 @@
  # Bluestift — project status
 
-_Last updated: 2026-08-16. Living summary of what's built, how it works, and what's next._
+_Last updated: 2026-08-18. Living summary of what's built, how it works, and what's next._
 
 > **This is Version 2 (V2) of RAYA and RAYA for Schools — a clean-slate rebuild.**
 > It is the ONLY version we show, demo, or sell. **V1 is dead product.** The V1 of RAYA
@@ -750,11 +750,16 @@ progress curve / signal logging~~ (done).
 4. **Usage limits / quotas** — `daily_message_count` / `email_usage_windows` are
    still unenforced. This *stops being deferrable* now that paid plans exist:
    there's no cost cap on Raya.
-5. **~~CI~~ + error monitoring** — CI is in (`.github/workflows/ci.yml`:
-   type-check, lint, 289 tests, and a build, on every PR and every push to
-   main; no secrets needed — the build completes with an empty environment).
-   **Error monitoring is still missing**, and the money path (webhook
-   idempotency, seat gate) is exactly the kind of code that needs it.
+5. ~~**CI + error monitoring**~~ — both are in. CI
+   (`.github/workflows/ci.yml`): type-check, lint, 325 tests, and a build, on
+   every PR and every push to main; no secrets needed — the build completes
+   with an empty environment. Error monitoring
+   (`lib/observability/report.ts` + `instrumentation.ts`): every server error
+   Next.js catches is logged as one line of JSON, and the money path is
+   instrumented explicitly at each point where a failure used to be silent —
+   see `docs/observability.md`. **What is left is outside the repo**: pointing
+   an alert at it (a saved Vercel log query on `[bluestift.error]`, or an
+   `ERROR_WEBHOOK_URL`). Not covered: client-side errors and uptime.
 6. **Blocked on the Kernel** — per-concept trajectory curve, a real simulation
    endpoint, `update_concept_state` (needs `concept_id` on challenge questions).
 7. **Domain split** — site / `raya.` / `schools.` on three origins, one repo,
