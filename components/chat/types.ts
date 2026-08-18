@@ -50,6 +50,12 @@ export type ChatConfig = {
   /** Composer input placeholder. */
   placeholder: string;
   /**
+   * True when this surface's chat endpoint is metered by the Raya plan, so the
+   * composer should show what is left of the day. Off for the Schools staff
+   * chat, which is rate-limited but never plan-metered.
+   */
+  metered?: boolean;
+  /**
    * Extra fields merged into every chat/upload request — e.g. the room's
    * `roomId` for the private-room channel. Absent for the plain solo chat.
    */
@@ -64,6 +70,31 @@ export type ChatConfig = {
    */
   personalizedHooks?: () => Promise<{ greeting?: string; suggestions?: string[] } | null>;
 };
+
+/**
+ * The day's plan allowance for the chat, as the composer renders it. Only ever
+ * set when a limit both exists on the plan AND is being enforced — the server
+ * omits the headers below otherwise, precisely so the UI cannot announce a
+ * boundary that is not yet real.
+ */
+export type ChatQuota = { used: number; limit: number };
+
+/**
+ * Read the counter off a send response. Returns null when the response carries
+ * none, which is the common case and must stay distinguishable from zero:
+ * `Number(null)` is 0, so a naive read of two absent headers produces a
+ * perfectly plausible "0 of 0 left" and locks the composer of a user who has
+ * no limit at all.
+ */
+export function quotaFromHeaders(headers: Headers): ChatQuota | null {
+  const rawUsed = headers.get("x-raya-messages-used");
+  const rawLimit = headers.get("x-raya-messages-limit");
+  if (rawUsed == null || rawLimit == null) return null;
+  const used = Number(rawUsed);
+  const limit = Number(rawLimit);
+  if (!Number.isFinite(used) || !Number.isFinite(limit) || limit <= 0 || used < 0) return null;
+  return { used, limit };
+}
 
 export function titleFrom(text: string): string {
   return text.length > 60 ? `${text.slice(0, 57)}…` : text;

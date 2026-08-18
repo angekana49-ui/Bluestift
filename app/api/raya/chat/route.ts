@@ -8,7 +8,12 @@ import { routeTier } from "@/lib/raya/routing";
 import { kernel, clampHistory } from "@/lib/kernel/client";
 import { assertRoomOpen } from "@/lib/rooms";
 import { checkStrictUserRateLimit } from "@/lib/rate-limit";
-import { resolveRayaEntitlements, gateQuota, startOfDayIso } from "@/lib/entitlements";
+import {
+  resolveRayaEntitlements,
+  gateQuota,
+  startOfDayIso,
+  ENTITLEMENTS_ENFORCE,
+} from "@/lib/entitlements";
 import { reportError } from "@/lib/observability/report";
 import { persistAndGather, linkAttachments, replayReply } from "@/lib/raya/chat-context";
 import {
@@ -381,6 +386,20 @@ export async function POST(request: Request) {
       "x-conversation-id": convIdFinal,
       "x-message-id": userMsgId,
       "x-raya-model": model,
+      // The plan counter, so the composer can show what is left without a
+      // second request. `turnsToday` was read before this message was stored,
+      // so +1 is the count including it.
+      //
+      // Sent ONLY when a limit is both set and actually enforced. In monitor
+      // mode every turn goes through, so a counter would be announcing a
+      // boundary that does not exist yet — the absence of these headers is
+      // what tells the client there is nothing to count.
+      ...(ENTITLEMENTS_ENFORCE && ent.messagesPerDay != null
+        ? {
+            "x-raya-messages-used": String(turnsToday + 1),
+            "x-raya-messages-limit": String(ent.messagesPerDay),
+          }
+        : {}),
     },
   });
 }

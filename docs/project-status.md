@@ -763,14 +763,21 @@ progress curve / signal logging~~ (done).
    Every turn also records `tokens_used` from the provider's own counts, so
    these numbers can be checked against real cost rather than guessed at again.
 
-   **Two things to do before flipping `ENTITLEMENTS_ENFORCE=true`.** (a) The
-   chat UI surfaces a 429 as a raw error: a student at their limit needs a
-   counter and an upgrade path, not a red toast. (b) `components/raya/raya-app.tsx`
+   The chat UI carries it: the composer counts down over the last 10 messages
+   of the day, and reaching the limit shows what happened plus a link to the
+   plans instead of a red error line — the typed message goes back into the box
+   rather than being lost. It stays invisible until enforcement is on, because
+   the server only sends the counter headers when the quota is real.
+
+   **One thing left before flipping `ENTITLEMENTS_ENFORCE=true`.**
+   `components/raya/raya-app.tsx`
    (the marketing product shot) still shows "Sessions Raya solo illimitées" on
    its mock billing card — literally true, since conversations are uncapped,
    but worth rewording so nothing on the page reads as "chat as much as you
-   like". `email_usage_windows` stays unused: a token budget is the finer
-   instrument and now has real data to be built on.
+   like". Note also that the quota copy is English end to end, server message
+   included; translating it is one pass over both sides, not half of one.
+   `email_usage_windows` stays unused: a token budget is the finer instrument
+   and now has real data to be built on.
 5. ~~**CI + error monitoring**~~ — both are in. CI
    (`.github/workflows/ci.yml`): type-check, lint, 325 tests, and a build, on
    every PR and every push to main; no secrets needed — the build completes

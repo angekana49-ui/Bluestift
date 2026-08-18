@@ -80,6 +80,7 @@ export function ChatSurface({
     busy,
     uploading,
     error,
+    quota,
     voice,
     activeTitle,
     sessionFiles,
@@ -164,6 +165,7 @@ export function ChatSurface({
       pending={pending}
       onRemovePending={removePending}
       error={error}
+      quota={quota}
       extraAction={extraComposerAction}
     />
     </>

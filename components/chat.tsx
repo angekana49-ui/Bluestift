@@ -27,6 +27,8 @@ const RAYA_CONFIG: ChatConfig = {
     summarize: "/api/raya/conversations",
   },
   capabilities: { voice: true, files: true },
+  // Metered by the Raya plan — the composer shows what is left of the day.
+  metered: true,
   greeting: (name) => (name ? `What are we cracking today, ${name}?` : "What are we cracking today?"),
   emptyHint: "Tell me what you'd like to work on — or pick a quick start.",
   suggestions: ["Pick up where I left off", "Unstick me on something", "Quiz me", "Surprise me"],

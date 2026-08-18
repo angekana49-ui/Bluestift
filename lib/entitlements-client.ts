@@ -5,6 +5,8 @@ export type ClientEntitlements = {
   tier: RayaTier;
   enforce: boolean;
   ent: RayaEntitlements;
+  /** Day-scoped counters, for quotas the UI has to show a number for. */
+  usage?: { messagesToday: number };
 };
 
 let cache: ClientEntitlements | null = null;

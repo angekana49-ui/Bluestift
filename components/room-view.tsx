@@ -273,6 +273,8 @@ export function RoomView({
       files: "/api/raya/files",
     },
     capabilities: { voice: true, files: true },
+    // Same endpoint as the solo chat, so the same plan quota applies to it.
+    metered: true,
     greeting: (name) => (name ? `This stays between us, ${name}` : "Private line to Raya"),
     emptyHint: "Private to you and Raya. Ask anything about the room's topic — Raya can read the shared documents.",
     suggestions: ["Explain the key idea", "Quiz me on this", "Break down the shared docs"],
