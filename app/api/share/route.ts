@@ -62,7 +62,7 @@ export async function POST(request: Request) {
   void captureServer(user.id, "doc_shared", { brand, tier });
   // Never reflect Host/X-Forwarded-Host into a link: those headers are request
   // metadata, not an authority for choosing an externally visible origin.
-  return NextResponse.json({ token, url: `${siteUrl()}/s/${token}` });
+  return NextResponse.json({ token, url: `${siteUrl("bluestift")}/s/${token}` });
 }
 
 /**
@@ -94,7 +94,7 @@ export async function GET() {
       title: s.title,
       brand: s.brand,
       createdAt: s.created_at,
-      url: `${siteUrl()}/s/${s.token}`,
+      url: `${siteUrl("bluestift")}/s/${s.token}`,
     })),
   });
 }

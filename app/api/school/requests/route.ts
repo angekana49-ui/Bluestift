@@ -16,7 +16,7 @@ async function notifyDecision(teacherUserId: string, schoolName: string, approve
           `Your request to join ${schoolName} on Bluestift Schools was approved.`,
           "You can now open the school dashboard and start working with your classes.",
         ],
-        cta: { label: "Open your dashboard", url: `${siteUrl()}/school` },
+        cta: { label: "Open your dashboard", url: `${siteUrl("schools")}/school` },
       }
     : {
         subject: `Your request to ${schoolName}`,

@@ -8,7 +8,7 @@ et localisable, et il vaut mieux l'avoir écrit avant de bouger un DNS.
 
 | Origine | Ce qu'elle sert |
 |---|---|
-| `thebluestift.com` | le site public **et** `/research`, `/survey`, les pages légales, `/pricing`, `/contact`, `/s/<token>` |
+| `thebluestift.com` | le site public **et** `/research`, `/survey`, les pages légales, `/pricing`, `/contact`, `/s/<token>`, `/checkout/*` |
 | `raya.thebluestift.com` | le tuteur : `/chat`, `/rooms`, `/homework`, `/tools`, `/profile` |
 | `schools.thebluestift.com` | l'école : `/school`, `/school/enter` |
 
@@ -55,7 +55,7 @@ navigateur du projet :
 | `bluestift-dark` | `localStorage` | **non** | passer en cookie |
 | `bluestift-locale` | `localStorage` | **non** | passer en cookie |
 | `bluestift-locale-asked` | `localStorage` | **non** | passer en cookie |
-| `bs_analytics_consent` | `localStorage` **+** cookie | à moitié | ajouter `domain`, faire lire le cookie |
+| `bs_analytics_consent` | `localStorage` **+** cookie | à moitié | ~~lire le cookie~~ **fait** ; reste `domain` |
 | `bluestift-outbox` | `localStorage` | non | **laisser** — par produit, c'est correct |
 | `bluestift-blobs` | `IndexedDB` | non | **laisser** — idem |
 
@@ -63,11 +63,14 @@ Sans ces correctifs, un aller-retour site → Raya → école réinitialise le t
 la langue à chaque saut, et la barre de langue — rendue non bloquante justement
 pour ne pas gêner — réapparaît à chaque origine.
 
-Le cas du consentement mérite d'être lu de près, parce qu'il est déjà à moitié
-bon et complètement inopérant : `setConsent()` écrit **et** le `localStorage`
-**et** un cookie (`lib/analytics/consent.ts`), mais `getConsent()` ne lit que le
-`localStorage`. Le bandeau réapparaîtrait donc sur chaque origine alors que la
-décision de l'utilisateur est déjà là, dans le cookie, à côté. Deux lignes.
+**Le consentement est corrigé** (`lib/analytics/consent.ts`). `setConsent()`
+écrivait déjà **et** le `localStorage` **et** un cookie, mais `getConsent()` ne
+lisait que le premier : le bandeau serait réapparu sur chaque origine alors que
+la décision est là, dans le cookie, à côté. Il lit maintenant les deux. Ce
+n'était d'ailleurs pas qu'un problème de sous-domaines — en navigation privée
+l'écriture `localStorage` échoue, seul le cookie atterrit, et l'utilisateur
+reprenait le bandeau **à chaque visite**. Il reste à poser le `domain` sur le
+cookie le jour du découpage.
 
 L'outbox et le blob-store restent volontairement par origine : ce sont des
 données d'un produit en cours d'usage, pas des préférences. Une réponse mise en
@@ -94,8 +97,8 @@ placé là lirait la session de tous nos utilisateurs.
 | `components/ui/theme.tsx` | idem (même clé, deux hooks — ils doivent bouger ensemble) |
 | `lib/use-locale.ts` | `bluestift-locale` en cookie |
 | `components/site/LanguagePrompt.tsx` | `bluestift-locale-asked` en cookie (seul lecteur de la clé) |
-| `lib/analytics/consent.ts` | `domain` sur le cookie, et `getConsent()` lit le cookie |
-| `lib/email.ts` | `siteUrl()` doit devenir **par surface** — voir ci-dessous |
+| `lib/analytics/consent.ts` | ~~`getConsent()` lit le cookie~~ **fait** ; reste `domain` sur le cookie |
+| `lib/email.ts` | ~~`siteUrl()` par surface~~ **fait** — voir ci-dessous |
 | `next.config.ts` | redirections 308 `/chat` et `/school` de l'apex vers les sous-domaines (le CSP n'a pas à bouger — voir plus bas) |
 
 Le domaine doit venir d'une variable (`NEXT_PUBLIC_COOKIE_DOMAIN`), pas d'une
@@ -114,9 +117,30 @@ défini ⇒ pas d'attribut ⇒ comportement actuel.
 
 Ces trois-là n'atterrissent plus sur la même origine après le découpage. Un
 e-mail « Review requests » doit ouvrir `schools.`, un lien de partage doit ouvrir
-l'apex. `siteUrl()` doit donc prendre une surface en paramètre, comme
-`lib/theme-color.ts` a dû le faire pour les couleurs de chrome — même erreur,
-même correctif : une valeur unique pour ce qui est en réalité par surface.
+l'apex. Même erreur que `lib/theme-color.ts` avant sa correction, même remède :
+une valeur unique pour ce qui est en réalité par surface.
+
+**C'est fait.** `siteUrl(surface)` prend désormais une surface **obligatoire**,
+réutilisant le type `EmailBrand` qui existait déjà (`bluestift` | `raya` |
+`schools`) — « de quel produit s'agit-il ? » et « sur quelle origine ça vit ? »
+ont la même réponse, et les envois répondaient déjà à la première. Les sept
+appels sont nommés :
+
+| Appel | Surface | Pourquoi |
+|---|---|---|
+| e-mails école (3) | `schools` | même branche que le `brand` déjà passé |
+| liens de partage `/s/<token>` | `bluestift` | lecteur public, il vit sur le site |
+| retour de paiement + webhook | `bluestift` | inter-produits ; le webhook doit être **une** URL stable, l'agrégateur rappelle longtemps après |
+| reçu de paiement | `schools` / `raya` | suit `isB2b`, comme le `brand` juste au-dessus |
+
+Le paramètre est obligatoire exprès : c'est le compilateur qui attrapera le
+prochain lien ajouté, pas une relecture.
+
+Les deux variables produit (`NEXT_PUBLIC_RAYA_URL`, `NEXT_PUBLIC_SCHOOLS_URL`)
+retombent sur `NEXT_PUBLIC_SITE_URL`. Non définies — c'est l'état actuel — chaque
+appelant reçoit exactement la chaîne qu'il recevait avant. Un test le vérifie
+explicitement, parce que c'est la propriété qui rend ce changement livrable
+aujourd'hui.
 
 ### Ce qui marche déjà et n'a rien à faire
 

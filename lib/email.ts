@@ -137,7 +137,30 @@ export async function getUserEmail(userId: string): Promise<string | null> {
   }
 }
 
-/** The app's public base URL for links inside emails. */
-export function siteUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "https://app.bluestift.local";
+/**
+ * The public base URL for a link, per SURFACE.
+ *
+ * A single value was right while everything lived on one origin. It stops being
+ * right the moment the products split across thebluestift.com / raya. / schools.
+ * (docs/domains.md): a school email has to land on the school origin, a share
+ * link on the public site. The surface is named at the call site NOW, while
+ * every caller is still in view, so the split later is a matter of setting two
+ * env vars rather than of finding every link again.
+ *
+ * `EmailBrand` is reused rather than a new union because "which product is
+ * this?" and "which origin does it live on?" have the same answer, and the
+ * senders already answer the first one.
+ *
+ * Both product vars fall back to the site URL. Unset — which is the case today,
+ * on one origin — every caller gets exactly the string it got before.
+ */
+export function siteUrl(surface: EmailBrand): string {
+  const site = process.env.NEXT_PUBLIC_SITE_URL;
+  const raw =
+    surface === "raya"
+      ? (process.env.NEXT_PUBLIC_RAYA_URL ?? site)
+      : surface === "schools"
+        ? (process.env.NEXT_PUBLIC_SCHOOLS_URL ?? site)
+        : site;
+  return raw?.replace(/\/$/, "") ?? "https://app.bluestift.local";
 }

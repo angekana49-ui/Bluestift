@@ -143,7 +143,11 @@ export async function POST(request: Request) {
   });
   if (!paymentId) return NextResponse.json({ error: "Could not start checkout." }, { status: 500 });
 
-  const origin = siteUrl();
+  // "bluestift", not "schools", even on the B2B path: /checkout/return and the
+  // aggregator webhook are cross-product and stay on the public origin. The
+  // webhook in particular must be one stable URL — the aggregator calls it back
+  // long after the buyer's session is gone.
+  const origin = siteUrl("bluestift");
   try {
     const checkout = await provider.createCheckout({
       paymentId,

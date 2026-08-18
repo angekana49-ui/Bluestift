@@ -231,7 +231,12 @@ async function sendPaymentReceipt(p: PaymentRow): Promise<void> {
     subject: `Payment received — ${planName}`,
     heading: `Payment received — ${planName}`,
     lines,
-    cta: { label: "Open dashboard", url: `${siteUrl()}/${isB2b ? "school" : ""}` },
+    // The surface follows the same branch as the brand: a school receipt lands
+    // on the school origin, a personal one on Raya's.
+    cta: {
+      label: "Open dashboard",
+      url: `${siteUrl(isB2b ? "schools" : "raya")}/${isB2b ? "school" : ""}`,
+    },
   };
 
   await Promise.all(
