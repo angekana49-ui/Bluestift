@@ -8,6 +8,7 @@ import { routeTier } from "@/lib/raya/routing";
 import { kernel, clampHistory } from "@/lib/kernel/client";
 import { assertRoomOpen } from "@/lib/rooms";
 import { checkStrictUserRateLimit } from "@/lib/rate-limit";
+import { resolveRayaEntitlements, gateQuota, startOfDayIso } from "@/lib/entitlements";
 import { reportError } from "@/lib/observability/report";
 import { persistAndGather, linkAttachments, replayReply } from "@/lib/raya/chat-context";
 import {
@@ -21,16 +22,16 @@ import type { KernelMessage } from "@/lib/kernel/types";
 export const maxDuration = 60;
 
 /**
- * Daily ABUSE ceiling per user — not a plan quota. The Free card promises
- * "Unlimited AI tutor chat", and this does not take that back: it sits where
- * the existing 30/minute limiter sits, one category up.
+ * Daily ABUSE ceiling per user, distinct from the plan quota below it and from
+ * the 30/minute burst limit above it. This one is identical on every tier and
+ * is what still holds on the tiers whose plan quota is `null` (Max) — without
+ * it, "unmetered" would mean the 30/minute limiter alone permits 43,200 paid
+ * LLM calls per user per day.
  *
  * The arithmetic: a student in an intense session sends a message every 30
  * seconds for three straight hours — 360 turns. 600 is comfortably past any
- * human day and still bounds the two things that have no ceiling at all
- * otherwise, a client stuck in a retry loop and one credential being shared
- * around a class. Without it the 30/minute limiter alone permits 43,200 paid
- * LLM calls per user per day.
+ * human day and still bounds a client stuck in a retry loop and one credential
+ * being shared around a class.
  */
 const CHAT_TURNS_PER_DAY = 600;
 
@@ -120,10 +121,32 @@ export async function POST(request: Request) {
   // Who the student is (age band + school level) rides in this wave rather than
   // as its own hop, so calibrating Raya to a 12-year-old costs no latency. RLS
   // scopes the row to its owner; both columns are read-only to the client.
-  const [allowed, dayAllowed, roomMember, roomOpen, { profile, alerts, analysis }, instructions, learner] =
+  const [
+    allowed,
+    dayAllowed,
+    { ent, tier },
+    turnsToday,
+    roomMember,
+    roomOpen,
+    { profile, alerts, analysis },
+    instructions,
+    learner,
+  ] =
     await Promise.all([
       checkStrictUserRateLimit("raya_chat", user.id, 30, "1 minute"),
       checkStrictUserRateLimit("raya_chat_day", user.id, CHAT_TURNS_PER_DAY, "24 hours"),
+      // The plan's own message quota. Rides in this wave so metering costs no
+      // latency: the plan lookup is cached per instance, and the count is one
+      // indexed COUNT that runs alongside everything else.
+      resolveRayaEntitlements(user.id),
+      supabase
+        .schema("learning")
+        .from("messages")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("role", "user")
+        .gte("created_at", startOfDayIso())
+        .then((r) => r.count ?? 0),
       roomId
         ? supabase
             .schema("learning")
@@ -158,6 +181,20 @@ export async function POST(request: Request) {
       { status: 429 },
     );
   }
+  // The plan quota, which is a different thing from both limits above: it is
+  // what the forfait sells, so it names an upgrade rather than asking the
+  // student to wait. Counted BEFORE this message is stored, so a limit of N
+  // lets N through. Inert until ENTITLEMENTS_ENFORCE is on — until then it
+  // logs and reports what WOULD have been blocked.
+  const overMessages = gateQuota(turnsToday, ent.messagesPerDay, {
+    metric: "messages",
+    period: "day",
+    upgradeTo: "Plus",
+    scope: "raya_chat",
+    userId: user.id,
+    tier,
+  });
+  if (overMessages) return overMessages;
   if (!roomMember) {
     return NextResponse.json({ error: "You are not a member of this room." }, { status: 403 });
   }

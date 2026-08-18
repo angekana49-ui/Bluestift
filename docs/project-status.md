@@ -747,20 +747,30 @@ progress curve / signal logging~~ (done).
 2. ~~**"Raya" wordmark sweep**~~ — done (see §5).
 3. **Real payments** — get a merchant account, then exercise the CinetPay path
    end-to-end (the whole loop is written and idempotent; only keys are missing).
-4. **Usage limits / quotas** — partly closed. Both chat routes now carry a
-   per-user **daily ceiling** (600 turns/24h) alongside the existing 30/minute
-   burst limit; before that, the burst limit alone permitted 43,200 paid LLM
-   calls per user per day. And every chat turn now records `tokens_used` from
-   the provider's own counts, so "what does a user cost us" is answerable —
-   Gemini reports them by default, Groq on its final chunk.
-   **What is left is a decision, not code.** A per-TIER message quota is the
-   only thing that would truly cap spend, and it contradicts what the site
-   sells: the Free card says "Unlimited AI tutor chat — the core, always free"
-   and Max says "Priority, fully unmetered". `lib/entitlements.ts` states the
-   same principle as a design rule. Changing that is pricing, so it is yours;
-   `gateQuota` + a `messagesPerDay` field is a small change once decided.
-   `email_usage_windows` stays unused — a token-budget window is the finer
-   instrument, and it now has real numbers to be built on.
+4. ~~**Usage limits / quotas**~~ — the forfaits now set the limits.
+   `messagesPerDay` in the Raya grid (**Free 30 · Plus 300 · Max unlimited**),
+   enforced by `gateQuota` in `app/api/raya/chat/route.ts` against a count of
+   the day's messages, and printed on the pricing card **from the same field**
+   — the card cannot drift from what the gate enforces, and a test fails if it
+   does. Three layers, deliberately distinct:
+
+   | Layer | Value | Scope |
+   |---|---|---|
+   | burst limit | 30 / minute | every tier, anti-abuse |
+   | daily ceiling | 600 / 24 h | every tier, anti-abuse — what still holds where the plan quota is `null` |
+   | plan quota | 30 / 300 / ∞ per UTC day | the forfait |
+
+   Every turn also records `tokens_used` from the provider's own counts, so
+   these numbers can be checked against real cost rather than guessed at again.
+
+   **Two things to do before flipping `ENTITLEMENTS_ENFORCE=true`.** (a) The
+   chat UI surfaces a 429 as a raw error: a student at their limit needs a
+   counter and an upgrade path, not a red toast. (b) `components/raya/raya-app.tsx`
+   (the marketing product shot) still shows "Sessions Raya solo illimitées" on
+   its mock billing card — literally true, since conversations are uncapped,
+   but worth rewording so nothing on the page reads as "chat as much as you
+   like". `email_usage_windows` stays unused: a token budget is the finer
+   instrument and now has real data to be built on.
 5. ~~**CI + error monitoring**~~ — both are in. CI
    (`.github/workflows/ci.yml`): type-check, lint, 325 tests, and a build, on
    every PR and every push to main; no secrets needed — the build completes

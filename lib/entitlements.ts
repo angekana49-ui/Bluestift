@@ -11,13 +11,17 @@ import { captureServer } from "@/lib/analytics/server";
  *   - Schools (b2b): standard | plus | custom
  *
  * Design principles baked in from the pricing discussion:
- *   - The CHAT is never metered (core learning loop). Only artefacts
- *     (generations, exports), doc capacity (uploads) and premium features are
- *     gated. Chat abuse is handled by per-USER rate limits in the chat routes
- *     themselves — a burst window and a daily ceiling — never here. Those are
- *     ceilings on runaway clients and shared credentials, not plan quotas: they
- *     are the same for every tier, and the Free card's "Unlimited AI tutor
- *     chat" stays true.
+ *   - The CHAT is metered by plan (`messagesPerDay`), as of the pricing
+ *     decision that made the forfaits the source of the limits. It was
+ *     deliberately unmetered before, on the grounds that it is the core
+ *     learning loop; what changed is that the core learning loop is also the
+ *     only line item whose cost scales with use, so the forfait now has to
+ *     name it. Artefacts (generations, exports), doc capacity (uploads) and
+ *     premium features are gated as before.
+ *   - SEPARATELY, and independent of any plan: both chat routes carry per-USER
+ *     rate limits — a burst window and a daily ceiling. Those bound runaway
+ *     clients and shared credentials, are identical on every tier, and stay in
+ *     force on the tiers whose plan quota is `null`.
  *   - `null` on a numeric limit means UNLIMITED.
  *   - Feature flags are binary availability; numeric fields are quotas.
  *
@@ -40,6 +44,15 @@ export type RayaTier = "free" | "plus" | "max";
 
 export type RayaEntitlements = {
   // Chat
+  /**
+   * AI tutor messages per UTC calendar day. `null` = unlimited by plan — which
+   * is not unbounded: the chat routes' own daily ceiling still applies.
+   *
+   * Counted per UTC day rather than as a rolling 24h window because a student
+   * who runs out needs to know when they get it back, and "tomorrow" is an
+   * answer a rolling window cannot give.
+   */
+  messagesPerDay: number | null;
   /** Multiple AI modes/personas vs the default "Encouraging" persona only. */
   aiModes: boolean;
   voiceInput: boolean;
@@ -78,6 +91,10 @@ export type RayaEntitlements = {
 
 export const RAYA_ENTITLEMENTS: Record<RayaTier, RayaEntitlements> = {
   free: {
+    // Enough for a real study session every day, not enough to run a class on
+    // one free account. Deliberately the tightest number in the grid to move,
+    // because it is the one that carries an LLM bill.
+    messagesPerDay: 30,
     aiModes: false,
     voiceInput: false,
     attachmentMaxMb: 5,
@@ -104,6 +121,9 @@ export const RAYA_ENTITLEMENTS: Record<RayaTier, RayaEntitlements> = {
     kernelAnalysisPerWeek: 1,
   },
   plus: {
+    // Ten times Free and past any plausible human day: Plus should never feel
+    // like it is counting, while the number still exists to be enforced.
+    messagesPerDay: 300,
     aiModes: true,
     voiceInput: true,
     attachmentMaxMb: 20,
@@ -130,6 +150,10 @@ export const RAYA_ENTITLEMENTS: Record<RayaTier, RayaEntitlements> = {
     kernelAnalysisPerWeek: null,
   },
   max: {
+    // "Fully unmetered" stays literally true for Max. It is safe to leave
+    // unlimited here only because the routes' abuse ceiling is not a plan
+    // quota and applies anyway.
+    messagesPerDay: null,
     aiModes: true,
     voiceInput: true,
     attachmentMaxMb: 25,
@@ -262,7 +286,7 @@ export function rayaFeatureBullets(tier: RayaTier): string[] {
   switch (tier) {
     case "free":
       return [
-        "Unlimited AI tutor chat — the core, always free",
+        `${e.messagesPerDay} AI tutor messages / day — the core learning loop`,
         `${quota(e.generationsPerMonth, "study generations")} & ${quota(e.uploadsPerMonth, "uploads")} / month`,
         `${e.roomsPerMonth} study rooms / month · up to ${e.roomMaxParticipants} peers`,
         `${e.convHistoryDays}-day conversation history`,
@@ -271,6 +295,7 @@ export function rayaFeatureBullets(tier: RayaTier): string[] {
     case "plus":
       return [
         "Everything in Free, plus:",
+        `${quota(e.messagesPerDay, "AI tutor messages")} / day`,
         "Voice input & every AI tutor mode",
         `${quota(e.generationsPerMonth, "generations")} & ${quota(e.uploadsPerMonth, "uploads")} / month`,
         "Mind maps, PDF export, no watermark",
@@ -281,6 +306,7 @@ export function rayaFeatureBullets(tier: RayaTier): string[] {
     case "max":
       return [
         "Everything in Plus, plus:",
+        `${quota(e.messagesPerDay, "AI tutor messages")} / day`,
         "Unlimited generations & uploads",
         "Audio summaries & infographics",
         `Study rooms up to ${e.roomMaxParticipants} participants`,
@@ -507,12 +533,36 @@ export function startOfMonthIso(now = new Date()): string {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
 }
 
+/**
+ * ISO timestamp for the first instant of the current UTC day. Used by the chat
+ * message quota, which resets on a clock the student can predict.
+ *
+ * UTC, not local: it matches startOfMonthIso, and our markets sit at UTC+0/+1,
+ * so the reset lands within an hour of their midnight either way. A per-user
+ * timezone would be the correct fix if that ever stops being true.
+ */
+export function startOfDayIso(now = new Date()): string {
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+  ).toISOString();
+}
+
 /** ISO timestamp N days ago (rolling window, used for "per week" = last 7 days). */
 export function sinceDaysIso(days: number, now = new Date()): string {
   return new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString();
 }
 
 // ---- Gate helpers -----------------------------------------------------------
+
+/**
+ * How a period reads in a sentence shown to a customer. "this week"/"this
+ * month" work verbatim; "this day" does not, and this is the message someone
+ * sees at the moment they are blocked.
+ */
+function periodPhrase(period?: string): string {
+  if (!period) return "";
+  return period === "day" ? " today" : ` this ${period}`;
+}
 
 /** True when a numeric limit is set and already reached. null = unlimited. */
 export function overQuota(used: number, limit: number | null): boolean {
@@ -601,7 +651,7 @@ export function gateQuota(
   }
   return NextResponse.json(
     {
-      error: `You've reached your ${opts.metric} limit${opts.period ? ` this ${opts.period}` : ""} (${limit}). Upgrade to ${opts.upgradeTo ?? "a higher plan"} for more.`,
+      error: `You've reached your ${opts.metric} limit${periodPhrase(opts.period)} (${limit}). Upgrade to ${opts.upgradeTo ?? "a higher plan"} for more.`,
       code: "quota_reached",
       metric: opts.metric,
       used,
@@ -662,7 +712,7 @@ export function assertQuota(
     return;
   }
   throw new EntitlementError(
-    `You've reached your ${opts.metric} limit${opts.period ? ` this ${opts.period}` : ""} (${limit}). Upgrade to ${opts.upgradeTo ?? "a higher plan"} for more.`,
+    `You've reached your ${opts.metric} limit${periodPhrase(opts.period)} (${limit}). Upgrade to ${opts.upgradeTo ?? "a higher plan"} for more.`,
     "quota_reached",
   );
 }
