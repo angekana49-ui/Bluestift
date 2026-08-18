@@ -13,26 +13,43 @@
  * a media-keyed tag would be wrong precisely as often as a visitor's chosen mode
  * differs from their system's — and the toggle exists because those differ.
  *
- * The light value is also what app/layout.tsx declares statically. That is not a
- * duplicate but the correct first paint: both hooks render light on first pass
- * so the server HTML and the client agree, then read the stored preference in an
- * effect. This function is that effect's other half.
+ * The colours are per SURFACE, not one pair for the whole origin. The marketing
+ * site and the connected app keep separate palettes on purpose
+ * (components/site/theme.ts vs components/ui/tokens.ts) and their page grounds
+ * genuinely differ: the site opens on #eef3f9, the app on white. Sharing one
+ * value put a blue-grey status bar above a white app — the seam this module is
+ * supposed to remove.
  *
- * The two colours are the top of each page background — the status bar sits
- * against the top of the page, so that is the edge it has to match.
+ * Each colour is the TOP of its surface's page background, because that is the
+ * edge the status bar actually sits against.
  */
 
-/** components/site/theme.ts — light `pageBg`, first stop. */
-export const THEME_COLOR_LIGHT = "#eef3f9";
-/** components/site/theme.ts — dark `pageBg`, first stop. */
-export const THEME_COLOR_DARK = "#0a0f1e";
+export type ThemeColors = { light: string; dark: string };
 
-export function syncThemeColor(dark: boolean) {
+/** components/site/theme.ts — `pageBg`, first stop of each gradient. */
+export const SITE_THEME_COLORS: ThemeColors = { light: "#eef3f9", dark: "#0a0f1e" };
+/** components/ui/tokens.ts — `pageBase`. */
+export const APP_THEME_COLORS: ThemeColors = { light: "#ffffff", dark: "#0b111f" };
+
+/**
+ * The value app/layout.tsx declares statically, and the manifests' theme_color.
+ *
+ * It is the site's light colour because that is what the document first paints:
+ * every route is served by the root layout, both dark hooks render light on
+ * first pass so server and client agree, and the marketing site is the only
+ * surface a signed-out visitor can land on. `syncThemeColor` replaces it once
+ * the surface and the stored preference are both known.
+ */
+export const THEME_COLOR_LIGHT = SITE_THEME_COLORS.light;
+/** Kept exported so tests can assert the two are not the same value. */
+export const THEME_COLOR_DARK = SITE_THEME_COLORS.dark;
+
+export function syncThemeColor(dark: boolean, colors: ThemeColors) {
   if (typeof document === "undefined") return;
   const tag = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
   // No tag means the document was rendered without the viewport export that
   // declares it. Creating one here would paper over that; leaving it alone keeps
   // the missing declaration visible.
   if (!tag) return;
-  tag.content = dark ? THEME_COLOR_DARK : THEME_COLOR_LIGHT;
+  tag.content = dark ? colors.dark : colors.light;
 }

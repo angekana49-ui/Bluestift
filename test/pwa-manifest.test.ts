@@ -39,10 +39,21 @@ function png(file: string) {
   };
 }
 
-function hasNoAlpha(file: string, label: string) {
+/**
+ * Fully opaque — no alpha channel AND no palette transparency.
+ *
+ * Both halves are needed. Checking colour type alone can never fail here:
+ * scripts/process-logos.py writes every icon through Pillow's quantiser, so they
+ * are all type 3 (palette), and a palette image carries transparency in a
+ * separate tRNS chunk instead. The icons did in fact ship one — harmless, since
+ * no pixel used it, but the guard was vacuous and would have stayed silent if
+ * one ever did.
+ */
+function isFullyOpaque(file: string, label: string) {
   const meta = png(join(PUBLIC, file));
   expect(meta.colorType, `${label} has an alpha channel`).not.toBe(6);
   expect(meta.colorType, `${label} has an alpha channel`).not.toBe(4);
+  expect(meta.hasTrns, `${label} carries a tRNS chunk`).toBe(false);
   return meta;
 }
 
@@ -108,7 +119,7 @@ describe.each(APPS)("PWA manifest — $label", (app) => {
     for (const icon of maskable) {
       // A maskable icon is cropped to a platform shape. Any transparency in it
       // is cropped to transparent corners, which is worse than not shipping one.
-      const meta = hasNoAlpha(icon.src, icon.src);
+      const meta = isFullyOpaque(icon.src, icon.src);
       // Android guarantees only a centred circle of 80% diameter, so a maskable
       // icon has to be at least 192 to leave usable artwork after the crop.
       expect(meta.width).toBeGreaterThanOrEqual(192);
@@ -124,9 +135,8 @@ describe.each(APPS)("PWA manifest — $label", (app) => {
 
     // iOS composites a transparent icon onto BLACK rather than onto the icon's
     // own background, so alpha here shows up as a dark halo on the home screen.
-    const meta = hasNoAlpha(app.appleTouchIcon, app.appleTouchIcon);
+    const meta = isFullyOpaque(app.appleTouchIcon, app.appleTouchIcon);
     expect([meta.width, meta.height]).toEqual([180, 180]);
-    expect(meta.hasTrns, `${app.appleTouchIcon} carries a tRNS chunk`).toBe(false);
   });
 
   it("launches standalone, at the URL this app is for, inside its scope", async () => {
@@ -233,8 +243,10 @@ describe("PWA assets", () => {
   it("gives every geometry a query and a file nothing else shares", () => {
     const all = [...startupImages, ...rayaStartupImages];
 
+    // One query per geometry, shared across the apps — every app covers the same
+    // phones. Derived from the list rather than hardcoded to two apps.
     const media = all.map((i) => i.media);
-    expect(new Set(media).size, "two geometries share a media query").toBe(media.length / 2);
+    expect(new Set(media).size, "two geometries share a media query").toBe(startupImages.length);
 
     const urls = all.map((i) => i.url);
     expect(new Set(urls).size, "two launch screens share a filename").toBe(urls.length);

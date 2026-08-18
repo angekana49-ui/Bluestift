@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { getTheme, THEME_KEY, type AppTheme } from "./tokens";
-import { syncThemeColor } from "@/lib/theme-color";
+import { APP_THEME_COLORS, syncThemeColor } from "@/lib/theme-color";
 
 export type DarkModeValue = {
   dark: boolean;
@@ -44,9 +44,10 @@ export function useDarkMode(): DarkModeValue {
 
   // The browser's own chrome follows the toggle — and, via the storage listener
   // above, follows it across tabs too. Matters most here: this is the surface an
-  // installed PWA actually opens into.
+  // installed PWA actually opens into, and it uses the APP's page ground, which
+  // is white in light mode where the marketing site's is #eef3f9.
   useEffect(() => {
-    syncThemeColor(dark);
+    syncThemeColor(dark, APP_THEME_COLORS);
   }, [dark]);
 
   const setDark = useCallback((v: boolean) => {

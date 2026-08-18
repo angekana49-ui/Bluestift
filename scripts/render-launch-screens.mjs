@@ -44,10 +44,29 @@
  * 33 KB instead of 82.
  */
 
-import { chromium } from "playwright";
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+
+/**
+ * Resolved dynamically so a missing install explains itself. Playwright is not a
+ * devDependency: it is a ~100 MB browser automation library used by this one
+ * maintenance script, and the sibling generator (scripts/process-logos.py) sets
+ * the precedent of documenting its requirement rather than declaring it. The
+ * difference is that a bare `import` fails with ERR_MODULE_NOT_FOUND, which says
+ * nothing about what to do next.
+ */
+let chromium;
+try {
+  ({ chromium } = await import("playwright"));
+} catch {
+  console.error(
+    "This script needs Playwright, which is not a project dependency.\n" +
+      "  npm i -D playwright && npx playwright install chromium\n" +
+      "See the note above for why it is not declared.",
+  );
+  process.exit(1);
+}
 
 const ORIGIN = process.env.LAUNCH_ORIGIN ?? "http://localhost:3000";
 const OUT = join(process.cwd(), "public");

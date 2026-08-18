@@ -260,6 +260,9 @@ for src_name, out_name, global_clear in JOBS:
 #             s fits that circle when s <= 0.8/sqrt(2) ~= 0.566, so the artwork
 #             gets a wide margin and the background must run edge to edge —
 #             a transparent maskable icon is cropped to transparent corners.
+#             Written without an alpha channel for the same reason the Apple
+#             icon is: every pixel is opaque anyway, and shipping the channel
+#             left a tRNS entry in the palette that no test could rule out.
 #   apple     iOS ignores the manifest for the home screen and reads
 #             apple-touch-icon.png. It applies its own rounded-rect and does NOT
 #             reserve a safe zone, so the artwork can sit larger than maskable.
@@ -276,11 +279,11 @@ ICON_JOBS = [
     # (source, global_clear, out_name, size, margin, background, alpha)
     ("bird-blue-on-white.png", False, "icon-192.png", 192, MARGIN, None, True),
     ("bird-blue-on-white.png", False, "icon-512.png", 512, MARGIN, None, True),
-    ("bird-white-on-navy.png", True, "icon-maskable-512.png", 512, 0.40, NAVY, True),
+    ("bird-white-on-navy.png", True, "icon-maskable-512.png", 512, 0.40, NAVY, False),
     ("bird-white-on-navy.png", True, "apple-touch-icon.png", 180, 0.25, NAVY, False),
     ("flower-blue-on-white.png", False, "icon-raya-192.png", 192, MARGIN, None, True),
     ("flower-blue-on-white.png", False, "icon-raya-512.png", 512, MARGIN, None, True),
-    ("flower-white-on-navy.png", True, "icon-raya-maskable-512.png", 512, 0.40, NAVY, True),
+    ("flower-white-on-navy.png", True, "icon-raya-maskable-512.png", 512, 0.40, NAVY, False),
     ("flower-white-on-navy.png", True, "apple-touch-icon-raya.png", 180, 0.25, NAVY, False),
 ]
 

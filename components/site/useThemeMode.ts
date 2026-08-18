@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { syncThemeColor } from "@/lib/theme-color";
+import { SITE_THEME_COLORS, syncThemeColor } from "@/lib/theme-color";
 
 const THEME_KEY = "bluestift-dark";
 
@@ -30,7 +30,7 @@ export function useThemeMode() {
   // The browser's own chrome follows the toggle. Keyed on `isDark` rather than
   // done inside `toggle`, so the stored preference read above also lands.
   useEffect(() => {
-    syncThemeColor(isDark);
+    syncThemeColor(isDark, SITE_THEME_COLORS);
   }, [isDark]);
 
   const toggle = useCallback(() => {
