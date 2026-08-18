@@ -217,6 +217,29 @@ describe("PWA assets", () => {
     expect(srcs(raya)).not.toBe(srcs(bluestift));
   });
 
+  /**
+   * iOS resolves a launch image by evaluating these media queries against the
+   * device, and the queries are generated from one list of geometries — so what
+   * can actually go wrong is the LIST, not the query. A geometry entered twice,
+   * or two entries that describe the same phone, yields two identical queries
+   * and leaves the choice undefined; a URL collision between the two apps would
+   * have one silently overwrite the other on disk.
+   *
+   * The query shape itself was verified in a browser: each of the eleven
+   * geometries emulated in Chromium matched exactly one link, its own, 11/11.
+   * That needs a browser and a running server, so what is pinned here is the
+   * part a unit test can own.
+   */
+  it("gives every geometry a query and a file nothing else shares", () => {
+    const all = [...startupImages, ...rayaStartupImages];
+
+    const media = all.map((i) => i.media);
+    expect(new Set(media).size, "two geometries share a media query").toBe(media.length / 2);
+
+    const urls = all.map((i) => i.url);
+    expect(new Set(urls).size, "two launch screens share a filename").toBe(urls.length);
+  });
+
   it("bumps the service worker whenever the icons change", () => {
     // sw.js caches /public images cache-first with no revalidation, so an icon
     // that keeps its filename is served from the old cache forever — including

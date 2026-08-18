@@ -123,7 +123,7 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
     }) as const;
 
   return (
-    <SitePage active="Product" section="Feedback" signedIn={signedIn}>
+    <SitePage active="Feedback" section="Feedback" signedIn={signedIn}>
       {(t) => (
         <>
         <ParticleBurst particles={particles} />
