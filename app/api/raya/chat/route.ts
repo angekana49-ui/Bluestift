@@ -3,11 +3,12 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStudentRecommendations } from "@/lib/school-admin";
 import { buildRayaMessages } from "@/lib/raya/prompt";
-import { rayaStream } from "@/lib/raya/llm";
+import { rayaStream, type TokenUsage } from "@/lib/raya/llm";
 import { routeTier } from "@/lib/raya/routing";
 import { kernel, clampHistory } from "@/lib/kernel/client";
 import { assertRoomOpen } from "@/lib/rooms";
 import { checkStrictUserRateLimit } from "@/lib/rate-limit";
+import { reportError } from "@/lib/observability/report";
 import { persistAndGather, linkAttachments, replayReply } from "@/lib/raya/chat-context";
 import {
   getCognitiveContext,
@@ -18,6 +19,20 @@ import type { KernelMessage } from "@/lib/kernel/types";
 
 // Streaming LLM turn: give the function room to finish long replies on Vercel.
 export const maxDuration = 60;
+
+/**
+ * Daily ABUSE ceiling per user — not a plan quota. The Free card promises
+ * "Unlimited AI tutor chat", and this does not take that back: it sits where
+ * the existing 30/minute limiter sits, one category up.
+ *
+ * The arithmetic: a student in an intense session sends a message every 30
+ * seconds for three straight hours — 360 turns. 600 is comfortably past any
+ * human day and still bounds the two things that have no ceiling at all
+ * otherwise, a client stuck in a retry loop and one credential being shared
+ * around a class. Without it the 30/minute limiter alone permits 43,200 paid
+ * LLM calls per user per day.
+ */
+const CHAT_TURNS_PER_DAY = 600;
 
 /**
  * Light EMT classification of a Raya reply (kernel-handoff §7). Heuristic, not a
@@ -105,9 +120,10 @@ export async function POST(request: Request) {
   // Who the student is (age band + school level) rides in this wave rather than
   // as its own hop, so calibrating Raya to a 12-year-old costs no latency. RLS
   // scopes the row to its owner; both columns are read-only to the client.
-  const [allowed, roomMember, roomOpen, { profile, alerts, analysis }, instructions, learner] =
+  const [allowed, dayAllowed, roomMember, roomOpen, { profile, alerts, analysis }, instructions, learner] =
     await Promise.all([
       checkStrictUserRateLimit("raya_chat", user.id, 30, "1 minute"),
+      checkStrictUserRateLimit("raya_chat_day", user.id, CHAT_TURNS_PER_DAY, "24 hours"),
       roomId
         ? supabase
             .schema("learning")
@@ -131,6 +147,14 @@ export async function POST(request: Request) {
   if (!allowed) {
     return NextResponse.json(
       { error: "You're sending messages very fast — give it a second." },
+      { status: 429 },
+    );
+  }
+  // Worded differently from the burst limit on purpose: "give it a second" is
+  // wrong advice here, and support needs to tell the two apart.
+  if (!dayAllowed) {
+    return NextResponse.json(
+      { error: "You've hit today's message ceiling. It resets over the next 24 hours." },
       { status: 429 },
     );
   }
@@ -214,6 +238,7 @@ export async function POST(request: Request) {
   const routing = routeTier(profile, alerts);
   let model: string;
   let deltas: AsyncGenerator<string>;
+  let usage: TokenUsage;
   try {
     const out = await rayaStream(
       buildRayaMessages(
@@ -232,6 +257,7 @@ export async function POST(request: Request) {
     );
     model = out.model;
     deltas = out.stream;
+    usage = out.usage;
   } catch (e) {
     await linkPromise;
     return NextResponse.json(
@@ -262,6 +288,10 @@ export async function POST(request: Request) {
           role: "assistant",
           content: full,
           model_used: model,
+          // What the turn cost. Read AFTER the loop above, which is what filled
+          // it in. null when the provider did not say — an unmeasured turn must
+          // not be summed as a free one.
+          tokens_used: usage.total,
           emt_level: classifyEmt(full),
         });
         // Touch the conversation so it sorts to the top of the history list.
@@ -270,8 +300,14 @@ export async function POST(request: Request) {
           .from("conversations")
           .update({ updated_at: new Date().toISOString() })
           .eq("id", convIdFinal);
-      } catch {
-        // non-fatal
+      } catch (e) {
+        // Non-fatal for this response — the student already read the reply as
+        // it streamed. It is not nothing, though: the reply is now missing from
+        // the thread, so the next turn's history has a hole in it.
+        await reportError("chat.persist", e, {
+          severity: "warning",
+          tags: { conversationId: convIdFinal, model },
+        });
       }
       controller.close();
 

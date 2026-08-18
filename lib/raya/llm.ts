@@ -237,11 +237,37 @@ async function* sseData(start: StreamStart): AsyncGenerator<string> {
   }
 }
 
-async function* geminiDeltas(start: StreamStart): AsyncGenerator<string> {
+/**
+ * What one turn cost, in tokens. `null` means the provider did not tell us —
+ * never assume zero, or an unmeasured turn reads as a free one.
+ *
+ * Filled in AS THE STREAM DRAINS: the counts ride on the SSE payloads, so they
+ * only exist once the caller has consumed the deltas. Read it after the loop.
+ */
+export type TokenUsage = { prompt: number | null; completion: number | null; total: number | null };
+
+function emptyUsage(): TokenUsage {
+  return { prompt: null, completion: null, total: null };
+}
+
+function num(v: unknown): number | null {
+  return typeof v === "number" && Number.isFinite(v) ? v : null;
+}
+
+async function* geminiDeltas(start: StreamStart, usage: TokenUsage): AsyncGenerator<string> {
   for await (const data of sseData(start)) {
     if (!data) continue;
     try {
       const json = JSON.parse(data);
+      // Gemini repeats usageMetadata on each chunk with running totals, so the
+      // last one to arrive is the authoritative one — plain assignment, never
+      // accumulation, which would multiply the turn's cost by its chunk count.
+      const u = json?.usageMetadata;
+      if (u) {
+        usage.prompt = num(u.promptTokenCount) ?? usage.prompt;
+        usage.completion = num(u.candidatesTokenCount) ?? usage.completion;
+        usage.total = num(u.totalTokenCount) ?? usage.total;
+      }
       const text: string = (json?.candidates?.[0]?.content?.parts ?? [])
         .map((p: { text?: string }) => p.text ?? "")
         .join("");
@@ -252,11 +278,22 @@ async function* geminiDeltas(start: StreamStart): AsyncGenerator<string> {
   }
 }
 
-async function* groqDeltas(start: StreamStart): AsyncGenerator<string> {
+async function* groqDeltas(start: StreamStart, usage: TokenUsage): AsyncGenerator<string> {
   for await (const data of sseData(start)) {
     if (!data || data === "[DONE]") continue;
     try {
       const json = JSON.parse(data);
+      // Groq attaches the counts to the final chunk under x_groq; a plain
+      // OpenAI-compatible endpoint only sends `usage` when the request asked
+      // for it. We do NOT ask: this is the FALLBACK path, and adding an option
+      // an unknown base URL might reject would trade a measured turn for a
+      // failed one. Unmeasured stays null, which is what it means.
+      const u = json?.x_groq?.usage ?? json?.usage;
+      if (u) {
+        usage.prompt = num(u.prompt_tokens) ?? usage.prompt;
+        usage.completion = num(u.completion_tokens) ?? usage.completion;
+        usage.total = num(u.total_tokens) ?? usage.total;
+      }
       const text: string = json?.choices?.[0]?.delta?.content ?? "";
       if (text) yield text;
     } catch {
@@ -273,7 +310,10 @@ async function* groqDeltas(start: StreamStart): AsyncGenerator<string> {
 export async function rayaStream(
   messages: ChatMsg[],
   tier: ModelTier = "deep",
-): Promise<{ model: string; stream: AsyncGenerator<string> }> {
+): Promise<{ model: string; stream: AsyncGenerator<string>; usage: TokenUsage }> {
+  // One holder for the whole call: whichever provider ends up answering fills
+  // this in, and the caller reads it once the stream is drained.
+  const usage = emptyUsage();
   const gModel = geminiModel(tier);
   const qModel = groqModel(tier);
   const geminiKey = process.env.GEMINI_API_KEY;
@@ -305,7 +345,7 @@ export async function rayaStream(
       FIRST_BYTE_MS,
     );
     if (start) {
-      return { model: `gemini:${gModel}`, stream: geminiDeltas(start) };
+      return { model: `gemini:${gModel}`, stream: geminiDeltas(start, usage), usage };
     }
   }
 
@@ -330,7 +370,7 @@ export async function rayaStream(
       FIRST_BYTE_MS,
     );
     if (start) {
-      return { model: `groq:${qModel}`, stream: groqDeltas(start) };
+      return { model: `groq:${qModel}`, stream: groqDeltas(start, usage), usage };
     }
   }
 

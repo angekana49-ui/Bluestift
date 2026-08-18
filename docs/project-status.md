@@ -747,9 +747,20 @@ progress curve / signal logging~~ (done).
 2. ~~**"Raya" wordmark sweep**~~ — done (see §5).
 3. **Real payments** — get a merchant account, then exercise the CinetPay path
    end-to-end (the whole loop is written and idempotent; only keys are missing).
-4. **Usage limits / quotas** — `daily_message_count` / `email_usage_windows` are
-   still unenforced. This *stops being deferrable* now that paid plans exist:
-   there's no cost cap on Raya.
+4. **Usage limits / quotas** — partly closed. Both chat routes now carry a
+   per-user **daily ceiling** (600 turns/24h) alongside the existing 30/minute
+   burst limit; before that, the burst limit alone permitted 43,200 paid LLM
+   calls per user per day. And every chat turn now records `tokens_used` from
+   the provider's own counts, so "what does a user cost us" is answerable —
+   Gemini reports them by default, Groq on its final chunk.
+   **What is left is a decision, not code.** A per-TIER message quota is the
+   only thing that would truly cap spend, and it contradicts what the site
+   sells: the Free card says "Unlimited AI tutor chat — the core, always free"
+   and Max says "Priority, fully unmetered". `lib/entitlements.ts` states the
+   same principle as a design rule. Changing that is pricing, so it is yours;
+   `gateQuota` + a `messagesPerDay` field is a small change once decided.
+   `email_usage_windows` stays unused — a token-budget window is the finer
+   instrument, and it now has real numbers to be built on.
 5. ~~**CI + error monitoring**~~ — both are in. CI
    (`.github/workflows/ci.yml`): type-check, lint, 325 tests, and a build, on
    every PR and every push to main; no secrets needed — the build completes

@@ -13,7 +13,11 @@ import { captureServer } from "@/lib/analytics/server";
  * Design principles baked in from the pricing discussion:
  *   - The CHAT is never metered (core learning loop). Only artefacts
  *     (generations, exports), doc capacity (uploads) and premium features are
- *     gated. Chat abuse is handled by a separate per-IP rate-limit, not here.
+ *     gated. Chat abuse is handled by per-USER rate limits in the chat routes
+ *     themselves — a burst window and a daily ceiling — never here. Those are
+ *     ceilings on runaway clients and shared credentials, not plan quotas: they
+ *     are the same for every tier, and the Free card's "Unlimited AI tutor
+ *     chat" stays true.
  *   - `null` on a numeric limit means UNLIMITED.
  *   - Feature flags are binary availability; numeric fields are quotas.
  *
