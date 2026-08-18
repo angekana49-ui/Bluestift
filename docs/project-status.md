@@ -755,5 +755,9 @@ progress curve / signal logging~~ (done).
    that needs both.
 6. **Blocked on the Kernel** — per-concept trajectory curve, a real simulation
    endpoint, `update_concept_state` (needs `concept_id` on challenge questions).
-7. **Later** — social (`friendships`/`notifications`), remaining Tools
+7. **Domain split** — site / `raya.` / `schools.` on three origins, one repo,
+   one deployment. Decided, not applied; the browser state it breaks and the
+   order of operations are written up in `docs/domains.md`. Step 1 there is
+   origin-agnostic and ships safely before any DNS moves.
+8. **Later** — social (`friendships`/`notifications`), remaining Tools
    (TTS/infographic), public-site polish (post authoring, newsletter sending).
