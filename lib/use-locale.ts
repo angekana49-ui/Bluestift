@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { DEFAULT_LOCALE, LOCALE_KEY, normalizeLocale, type Locale } from "@/lib/locale";
+import { readPref, writePref } from "@/lib/shared-pref";
 
 export type LocaleValue = {
   locale: Locale;
@@ -9,21 +10,18 @@ export type LocaleValue = {
 };
 
 /**
- * App-language state, persisted to localStorage under the shared `bluestift-locale`
- * key (Raya + Schools stay in sync). Mirrors `useDarkMode`: the first render is
- * always the English default so SSR and the initial client render agree, then an
- * effect swaps in the stored preference and subscribes to cross-tab changes.
+ * App-language state under the shared `bluestift-locale` key (Raya + Schools
+ * stay in sync, and so do the origins once they split — see lib/shared-pref.ts).
+ * Mirrors `useDarkMode`: the first render is always the English default so SSR
+ * and the initial client render agree, then an effect swaps in the stored
+ * preference and subscribes to cross-tab changes.
  */
 export function useLocale(): LocaleValue {
   const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(LOCALE_KEY);
-      if (stored) setLocaleState(normalizeLocale(stored));
-    } catch {
-      /* localStorage unavailable — stay on the default */
-    }
+    const stored = readPref(LOCALE_KEY);
+    if (stored) setLocaleState(normalizeLocale(stored));
     const onStorage = (e: StorageEvent) => {
       if (e.key === LOCALE_KEY) setLocaleState(normalizeLocale(e.newValue));
     };
@@ -33,11 +31,7 @@ export function useLocale(): LocaleValue {
 
   const setLocale = useCallback((l: Locale) => {
     setLocaleState(l);
-    try {
-      localStorage.setItem(LOCALE_KEY, l);
-    } catch {
-      /* best-effort — the choice still applies this session */
-    }
+    writePref(LOCALE_KEY, l);
   }, []);
 
   return { locale, setLocale };

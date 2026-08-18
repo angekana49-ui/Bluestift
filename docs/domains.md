@@ -49,28 +49,41 @@ C'est le cœur du sujet. Les cookies traversent, `localStorage` et `IndexedDB`
 **jamais** — aucune option, aucun contournement propre. Inventaire de tout l'état
 navigateur du projet :
 
-| Clé | Support actuel | Traverse ? | À faire |
+| Clé | Support | Traverse ? | État |
 |---|---|---|---|
-| cookies Supabase (session) | cookie host-only | **non** | poser `domain: ".thebluestift.com"` |
-| `bluestift-dark` | `localStorage` | **non** | passer en cookie |
-| `bluestift-locale` | `localStorage` | **non** | passer en cookie |
-| `bluestift-locale-asked` | `localStorage` | **non** | passer en cookie |
-| `bs_analytics_consent` | `localStorage` **+** cookie | à moitié | ~~lire le cookie~~ **fait** ; reste `domain` |
-| `bluestift-outbox` | `localStorage` | non | **laisser** — par produit, c'est correct |
-| `bluestift-blobs` | `IndexedDB` | non | **laisser** — idem |
+| cookies Supabase (session) | cookie | oui, via `domain` | **fait** |
+| `bluestift-dark` | cookie + `localStorage` | oui | **fait** |
+| `bluestift-locale` | cookie + `localStorage` | oui | **fait** |
+| `bluestift-locale-asked` | cookie + `localStorage` | oui | **fait** |
+| `bs_analytics_consent` | cookie + `localStorage` | oui | **fait** |
+| `bluestift-outbox` | `localStorage` | non | **laissé** — par produit, c'est correct |
+| `bluestift-blobs` | `IndexedDB` | non | **laissé** — idem |
 
-Sans ces correctifs, un aller-retour site → Raya → école réinitialise le thème et
-la langue à chaque saut, et la barre de langue — rendue non bloquante justement
-pour ne pas gêner — réapparaît à chaque origine.
+Sans ces correctifs, un aller-retour site → Raya → école aurait réinitialisé le
+thème et la langue à chaque saut, et la barre de langue — rendue non bloquante
+justement pour ne pas gêner — serait réapparue à chaque origine.
 
-**Le consentement est corrigé** (`lib/analytics/consent.ts`). `setConsent()`
-écrivait déjà **et** le `localStorage` **et** un cookie, mais `getConsent()` ne
-lisait que le premier : le bandeau serait réapparu sur chaque origine alors que
-la décision est là, dans le cookie, à côté. Il lit maintenant les deux. Ce
-n'était d'ailleurs pas qu'un problème de sous-domaines — en navigation privée
-l'écriture `localStorage` échoue, seul le cookie atterrit, et l'utilisateur
-reprenait le bandeau **à chaque visite**. Il reste à poser le `domain` sur le
-cookie le jour du découpage.
+### Le store partagé : `lib/shared-pref.ts`
+
+Les quatre préférences passent par un seul module, qui écrit **les deux** stores
+et lit **le cookie d'abord**. Cet ordre est tout le sujet : après le découpage,
+chaque origine garde son propre `localStorage`, donc la copie locale est
+précisément celle qui peut être périmée. Passer en clair sur `raya.`, revenir sur
+le site, et une lecture storage-first rendrait le sombre abandonné la veille.
+Le cookie est le seul store que toutes les origines écrivent, donc le seul qui
+sache.
+
+`localStorage` reste écrit pour deux choses qu'un cookie ne sait pas faire :
+l'événement `storage`, qui est la synchro entre onglets sur laquelle les deux
+hooks de thème s'appuient déjà, et la survie quand les cookies sont refusés mais
+pas le stockage.
+
+Le module expose aussi `prefsUsable()`, qui teste un aller-retour réel dans
+chaque store — aucun des deux ne signale honnêtement son indisponibilité :
+`localStorage` lève, `document.cookie` accepte l'écriture et la jette. La barre
+de langue en a besoin pour distinguer « pas encore répondu » de « incapable de
+retenir une réponse ». Les deux remontent `null` par `readPref`, et sans cette
+distinction la barre s'afficherait à **chaque** chargement de page.
 
 L'outbox et le blob-store restent volontairement par origine : ce sont des
 données d'un produit en cours d'usage, pas des préférences. Une réponse mise en
@@ -89,22 +102,43 @@ placé là lirait la session de tous nos utilisateurs.
 
 ## Le code à toucher
 
+**L'étape 1 est terminée.** Tout ce qui suit est en place et **inerte** : sans
+les variables d'environnement, chaque appelant obtient exactement le
+comportement d'avant.
+
 | Fichier | Changement |
 |---|---|
+| `lib/shared-pref.ts` | **nouveau** — le store à deux étages, cookie prioritaire |
 | `lib/supabase/server.ts` | `cookieOptions: { domain }` sur `createServerClient` |
-| `lib/supabase/client.ts` | idem sur `createBrowserClient` |
-| `components/site/useThemeMode.ts` | `bluestift-dark` : cookie au lieu de `localStorage` |
-| `components/ui/theme.tsx` | idem (même clé, deux hooks — ils doivent bouger ensemble) |
-| `lib/use-locale.ts` | `bluestift-locale` en cookie |
-| `components/site/LanguagePrompt.tsx` | `bluestift-locale-asked` en cookie (seul lecteur de la clé) |
-| `lib/analytics/consent.ts` | ~~`getConsent()` lit le cookie~~ **fait** ; reste `domain` sur le cookie |
-| `lib/email.ts` | ~~`siteUrl()` par surface~~ **fait** — voir ci-dessous |
-| `next.config.ts` | redirections 308 `/chat` et `/school` de l'apex vers les sous-domaines (le CSP n'a pas à bouger — voir plus bas) |
+| `lib/supabase/client.ts` | idem sur `createBrowserClient` — **doit rester identique**, deux portées pour un même nom de cookie est le mode de panne à éviter |
+| `components/site/useThemeMode.ts` | `bluestift-dark` via `shared-pref` |
+| `components/ui/theme.tsx` | idem (même clé, deux hooks — ils devaient bouger ensemble) |
+| `lib/use-locale.ts` | `bluestift-locale` via `shared-pref` |
+| `components/site/LanguagePrompt.tsx` | `bluestift-locale-asked` + garde `prefsUsable()` |
+| `lib/analytics/consent.ts` | `getConsent()` lit le cookie d'abord — le store qui porte un **retrait** fait ailleurs |
+| `lib/email.ts` | `siteUrl()` par surface — voir ci-dessous |
+| `next.config.ts` | redirections 308 de l'apex vers les sous-domaines (le CSP n'a pas à bouger — voir plus bas) |
 
-Le domaine doit venir d'une variable (`NEXT_PUBLIC_COOKIE_DOMAIN`), pas d'une
-constante : en local et en preview Vercel il n'y a pas de domaine parent commun,
-et un `domain` posé sur `localhost` fait rejeter le cookie silencieusement. Non
-défini ⇒ pas d'attribut ⇒ comportement actuel.
+Les trois variables (`NEXT_PUBLIC_COOKIE_DOMAIN`, `NEXT_PUBLIC_RAYA_URL`,
+`NEXT_PUBLIC_SCHOOLS_URL`) ne sont pas des constantes exprès : en local et en
+preview Vercel il n'y a pas de domaine parent commun, et un `domain` posé sur
+`localhost` fait rejeter le cookie **silencieusement**. Non défini ⇒ pas
+d'attribut ⇒ comportement actuel.
+
+### Les redirections ne peuvent pas boucler
+
+Deux gardes, testées toutes les deux :
+
+- une règle n'est émise que si l'origine produit est **configurée**, donc les
+  redirections s'allument dans le même geste qui crée leur destination. Non
+  configurées, `redirects()` ne renvoie rien du tout ;
+- chaque règle est conditionnée à l'hôte de l'apex. Sans ça, une requête vers
+  `raya.thebluestift.com/chat` matcherait `/chat` et serait redirigée vers
+  `raya.thebluestift.com/chat` — une boucle, servie aux utilisateurs du produit,
+  le jour de la migration.
+
+Une variable produit qui pointe encore sur l'apex signifie que le produit n'a pas
+bougé : la règle est supprimée plutôt qu'émise vers elle-même.
 
 ### `siteUrl()` est le piège non évident
 
@@ -198,9 +232,9 @@ aucune installation à casser. C'est précisément la fenêtre pour le faire.
 Les étapes 1 et 2 ne sont visibles de personne. À partir de la 3, chaque étape
 remplace quelque chose qui sert déjà du public — d'où l'ordre.
 
-1. Rendre le code origine-agnostique (le tableau plus haut), **avec la variable
-   de domaine non définie**. Aucun changement de comportement : tout reste
-   déployable sur l'origine unique actuelle, et rien de ce qui suit n'est engagé.
+1. ~~Rendre le code origine-agnostique~~ — **fait**, avec les variables non
+   définies. Aucun changement de comportement : tout reste déployable sur
+   l'origine unique actuelle, et rien de ce qui suit n'est engagé.
 2. Créer le projet Vercel sur ce dépôt, écrire les redirections `/chat` et
    `/school` de l'apex vers les sous-domaines dans `next.config.ts`, et vérifier
    une preview complète. Les redirections sont inertes tant que le projet ne sert

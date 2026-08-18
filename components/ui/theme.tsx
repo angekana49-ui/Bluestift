@@ -10,6 +10,7 @@ import {
 } from "react";
 import { getTheme, THEME_KEY, type AppTheme } from "./tokens";
 import { APP_THEME_COLORS, syncThemeColor } from "@/lib/theme-color";
+import { readPref, writePref } from "@/lib/shared-pref";
 
 export type DarkModeValue = {
   dark: boolean;
@@ -19,22 +20,21 @@ export type DarkModeValue = {
 };
 
 /**
- * Dark-mode state, persisted to localStorage under the shared `bluestift-dark`
- * key (Raya + Schools stay in sync if a user has both open). The value is read
- * on mount only — the first render is always light (matching the reference
- * `hint-placeholder-val` default) so SSR and the initial client render agree,
- * then the effect swaps in the stored preference. Returns the resolved theme.
+ * Dark-mode state under the shared `bluestift-dark` key (Raya + Schools stay in
+ * sync if a user has both open, and across origins once they split — see
+ * lib/shared-pref.ts). The value is read on mount only — the first render is
+ * always light (matching the reference `hint-placeholder-val` default) so SSR
+ * and the initial client render agree, then the effect swaps in the stored
+ * preference. Returns the resolved theme.
  */
 export function useDarkMode(): DarkModeValue {
   const [dark, setDarkState] = useState(false);
 
   useEffect(() => {
-    try {
-      setDarkState(localStorage.getItem(THEME_KEY) === "1");
-    } catch {
-      /* localStorage unavailable — stay light */
-    }
-    // Keep both apps in sync across tabs/windows.
+    setDarkState(readPref(THEME_KEY) === "1");
+    // Keep both apps in sync across tabs/windows. This is why the preference is
+    // still written to localStorage and not to the cookie alone: cookies fire
+    // no event, so a toggle in one tab would never reach the others.
     const onStorage = (e: StorageEvent) => {
       if (e.key === THEME_KEY) setDarkState(e.newValue === "1");
     };
@@ -52,11 +52,7 @@ export function useDarkMode(): DarkModeValue {
 
   const setDark = useCallback((v: boolean) => {
     setDarkState(v);
-    try {
-      localStorage.setItem(THEME_KEY, v ? "1" : "0");
-    } catch {
-      /* ignore */
-    }
+    writePref(THEME_KEY, v ? "1" : "0");
   }, []);
 
   const toggle = useCallback(() => setDark(!dark), [dark, setDark]);
