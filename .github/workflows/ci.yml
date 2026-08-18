@@ -1,0 +1,78 @@
+# Every check a change has to pass, run on the change itself.
+#
+# Until this existed, 289 tests and a clean type-check were facts about whoever
+# last ran them locally, not about the branch. A PR could be merged red and
+# nobody would know.
+#
+# One job rather than four, because `npm ci` dominates the runtime and four
+# parallel jobs would pay for it four times. The cost of sharing a job is
+# fail-fast hiding later failures, so every step carries `if: '!cancelled()'`:
+# a run reports the type error AND the failing test AND the broken build in one
+# pass, instead of making you fix one thing per push to discover the next.
+name: CI
+
+# `push` is limited to main on purpose. Every other branch is covered by
+# `pull_request`, and listing both would double-run each push to a branch that
+# has a PR open — the push and the PR are different refs, so `concurrency` below
+# cannot collapse them. The trade is that a branch gets no CI until its PR
+# exists, which is the moment the result starts mattering to anyone else.
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+# A branch under active work supersedes its own earlier runs; nothing is learned
+# from finishing a check on a commit that has already been replaced.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Read-only: this workflow builds and tests, it never writes to the repo.
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # `npm ci` deliberately, not `npm install`: it installs the lockfile
+      # exactly and FAILS when package.json and package-lock.json disagree,
+      # which is the desync worth catching here.
+      #
+      # Note that this step reaches cdn.sheetjs.com, not just the npm registry —
+      # `xlsx` is pinned to a tarball URL (see package.json). If install fails
+      # on a branch that changed no dependencies, check that host before
+      # suspecting the branch.
+      - run: npm ci
+
+      - name: Type-check
+        if: '!cancelled()'
+        run: npm run typecheck
+
+      - name: Lint
+        if: '!cancelled()'
+        run: npm run lint
+
+      - name: Test
+        if: '!cancelled()'
+        run: npm test
+
+      # No secrets, and none needed: every route in this app is server-rendered
+      # on demand, so nothing reaches Supabase at build time and the build
+      # completes with the environment empty (verified by building with it
+      # unset). What this proves is that the code COMPILES and every server/
+      # client boundary is legal — the class of breakage tsc alone cannot see.
+      #
+      # It does NOT produce a deployable artifact: next.config.ts derives the
+      # CSP's connect-src from NEXT_PUBLIC_SUPABASE_URL, so this build's policy
+      # is missing the Supabase origin. Deploys build with a real environment.
+      - name: Build
+        if: '!cancelled()'
+        run: npm run build

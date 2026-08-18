@@ -750,9 +750,11 @@ progress curve / signal logging~~ (done).
 4. **Usage limits / quotas** — `daily_message_count` / `email_usage_windows` are
    still unenforced. This *stops being deferrable* now that paid plans exist:
    there's no cost cap on Raya.
-5. **CI + error monitoring** — 242 tests exist but nothing runs them on push, and
-   the money path (webhook idempotency, seat gate) is exactly the kind of code
-   that needs both.
+5. **~~CI~~ + error monitoring** — CI is in (`.github/workflows/ci.yml`:
+   type-check, lint, 289 tests, and a build, on every PR and every push to
+   main; no secrets needed — the build completes with an empty environment).
+   **Error monitoring is still missing**, and the money path (webhook
+   idempotency, seat gate) is exactly the kind of code that needs it.
 6. **Blocked on the Kernel** — per-concept trajectory curve, a real simulation
    endpoint, `update_concept_state` (needs `concept_id` on challenge questions).
 7. **Domain split** — site / `raya.` / `schools.` on three origins, one repo,
