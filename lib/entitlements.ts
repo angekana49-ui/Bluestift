@@ -11,12 +11,12 @@ import { captureServer } from "@/lib/analytics/server";
  *   - Schools (b2b): standard | plus | custom
  *
  * Design principles baked in from the pricing discussion:
- *   - The CHAT is metered by plan (`messagesPerDay`), as of the pricing
- *     decision that made the forfaits the source of the limits. It was
- *     deliberately unmetered before, on the grounds that it is the core
- *     learning loop; what changed is that the core learning loop is also the
- *     only line item whose cost scales with use, so the forfait now has to
- *     name it. Artefacts (generations, exports), doc capacity (uploads) and
+ *   - The CHAT stays UNMETERED ON EVERY PAID TIER — it is the core learning
+ *     loop and the thing the product sells, and metering it would be charging
+ *     for the part that is not the defensible one. `messagesPerDay` exists for
+ *     one reason: the free tier is also the only place where the one cost that
+ *     scales with use has no counterparty. So the cap sits there and nowhere
+ *     else. Artefacts (generations, exports), doc capacity (uploads) and
  *     premium features are gated as before.
  *   - SEPARATELY, and independent of any plan: both chat routes carry per-USER
  *     rate limits — a burst window and a daily ceiling. Those bound runaway
@@ -91,9 +91,9 @@ export type RayaEntitlements = {
 
 export const RAYA_ENTITLEMENTS: Record<RayaTier, RayaEntitlements> = {
   free: {
-    // Enough for a real study session every day, not enough to run a class on
-    // one free account. Deliberately the tightest number in the grid to move,
-    // because it is the one that carries an LLM bill.
+    // The ONLY tier with a chat cap, and only because a free account is the
+    // one place an LLM bill has nobody behind it. Enough for a real study
+    // session every day, not enough to run a class on one free account.
     messagesPerDay: 30,
     aiModes: false,
     voiceInput: false,
@@ -121,9 +121,10 @@ export const RAYA_ENTITLEMENTS: Record<RayaTier, RayaEntitlements> = {
     kernelAnalysisPerWeek: 1,
   },
   plus: {
-    // Ten times Free and past any plausible human day: Plus should never feel
-    // like it is counting, while the number still exists to be enforced.
-    messagesPerDay: 300,
+    // Unmetered, like Max: paying for Raya buys the tutor, not a number of
+    // turns with it. Bounded only by the routes' abuse ceiling, which is not a
+    // plan quota and applies to every tier.
+    messagesPerDay: null,
     aiModes: true,
     voiceInput: true,
     attachmentMaxMb: 20,
@@ -150,9 +151,7 @@ export const RAYA_ENTITLEMENTS: Record<RayaTier, RayaEntitlements> = {
     kernelAnalysisPerWeek: null,
   },
   max: {
-    // "Fully unmetered" stays literally true for Max. It is safe to leave
-    // unlimited here only because the routes' abuse ceiling is not a plan
-    // quota and applies anyway.
+    // "Fully unmetered" stays literally true for Max, as for Plus.
     messagesPerDay: null,
     aiModes: true,
     voiceInput: true,
@@ -280,13 +279,25 @@ function quota(n: number | null, noun: string): string {
   return n == null ? `Unlimited ${noun}` : `${n} ${noun}`;
 }
 
+/**
+ * The chat line on a pricing card, from the field the gate reads — so the card
+ * cannot promise what the gate would refuse. Unlimited says so in words rather
+ * than as "Unlimited messages / day", which reads like a limit that lost its
+ * number.
+ */
+function chatLine(e: RayaEntitlements): string {
+  return e.messagesPerDay == null
+    ? "Unlimited AI tutor chat"
+    : `${e.messagesPerDay} AI tutor messages / day`;
+}
+
 /** Pricing-card bullets for a Raya (b2c) tier, derived from RAYA_ENTITLEMENTS. */
 export function rayaFeatureBullets(tier: RayaTier): string[] {
   const e = RAYA_ENTITLEMENTS[tier];
   switch (tier) {
     case "free":
       return [
-        `${e.messagesPerDay} AI tutor messages / day — the core learning loop`,
+        `${chatLine(e)} — the core learning loop`,
         `${quota(e.generationsPerMonth, "study generations")} & ${quota(e.uploadsPerMonth, "uploads")} / month`,
         `${e.roomsPerMonth} study rooms / month · up to ${e.roomMaxParticipants} peers`,
         `${e.convHistoryDays}-day conversation history`,
@@ -295,7 +306,7 @@ export function rayaFeatureBullets(tier: RayaTier): string[] {
     case "plus":
       return [
         "Everything in Free, plus:",
-        `${quota(e.messagesPerDay, "AI tutor messages")} / day`,
+        chatLine(e),
         "Voice input & every AI tutor mode",
         `${quota(e.generationsPerMonth, "generations")} & ${quota(e.uploadsPerMonth, "uploads")} / month`,
         "Mind maps, PDF export, no watermark",
@@ -306,7 +317,6 @@ export function rayaFeatureBullets(tier: RayaTier): string[] {
     case "max":
       return [
         "Everything in Plus, plus:",
-        `${quota(e.messagesPerDay, "AI tutor messages")} / day`,
         "Unlimited generations & uploads",
         "Audio summaries & infographics",
         `Study rooms up to ${e.roomMaxParticipants} participants`,

@@ -748,17 +748,26 @@ progress curve / signal logging~~ (done).
 3. **Real payments** — get a merchant account, then exercise the CinetPay path
    end-to-end (the whole loop is written and idempotent; only keys are missing).
 4. ~~**Usage limits / quotas**~~ — the forfaits now set the limits.
-   `messagesPerDay` in the Raya grid (**Free 30 · Plus 300 · Max unlimited**),
-   enforced by `gateQuota` in `app/api/raya/chat/route.ts` against a count of
-   the day's messages, and printed on the pricing card **from the same field**
-   — the card cannot drift from what the gate enforces, and a test fails if it
-   does. Three layers, deliberately distinct:
+   `messagesPerDay` in the Raya grid, enforced by `gateQuota` in
+   `app/api/raya/chat/route.ts` against a count of the day's messages, and
+   printed on the pricing card **from the same field** — the card cannot drift
+   from what the gate enforces, and a test fails if it does.
+
+   **The cap exists on Free and nowhere else**, and the reason is not that Free
+   gets less. Chat is the core learning loop and the thing the product sells;
+   metering it on a paid plan charges for the part that is not the defensible
+   one. Free is capped because it is the only place where the one cost that
+   scales with use has nobody behind it. This reverses a per-tier ladder that
+   was briefly in place — the original design (commit `fa2863a`) had chat
+   unmetered by design, and that is what stands, narrowed to "paid tiers".
+
+   Three layers, deliberately distinct:
 
    | Layer | Value | Scope |
    |---|---|---|
    | burst limit | 30 / minute | every tier, anti-abuse |
-   | daily ceiling | 600 / 24 h | every tier, anti-abuse — what still holds where the plan quota is `null` |
-   | plan quota | 30 / 300 / ∞ per UTC day | the forfait |
+   | daily ceiling | 600 / 24 h | every tier, anti-abuse — the only bound on the paid tiers |
+   | plan quota | 30 / UTC day | **Free only** |
 
    Every turn also records `tokens_used` from the provider's own counts, so
    these numbers can be checked against real cost rather than guessed at again.
@@ -769,13 +778,8 @@ progress curve / signal logging~~ (done).
    rather than being lost. It stays invisible until enforcement is on, because
    the server only sends the counter headers when the quota is real.
 
-   **One thing left before flipping `ENTITLEMENTS_ENFORCE=true`.**
-   `components/raya/raya-app.tsx`
-   (the marketing product shot) still shows "Sessions Raya solo illimitées" on
-   its mock billing card — literally true, since conversations are uncapped,
-   but worth rewording so nothing on the page reads as "chat as much as you
-   like". Note also that the quota copy is English end to end, server message
-   included; translating it is one pass over both sides, not half of one.
+   Note that the quota copy is English end to end, server message included;
+   translating it is one pass over both sides, not half of one.
    `email_usage_windows` stays unused: a token budget is the finer instrument
    and now has real data to be built on.
 5. ~~**CI + error monitoring**~~ — both are in. CI

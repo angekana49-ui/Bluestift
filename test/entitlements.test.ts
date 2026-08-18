@@ -143,17 +143,22 @@ describe("monitor mode (ENTITLEMENTS_ENFORCE off by default)", () => {
 });
 
 /**
- * The chat message quota, added when the forfaits became the source of the
- * limits. Two things matter here beyond the numbers: the pricing card has to
- * say what the gate enforces (the card and the matrix are one source of
- * truth), and the day boundary has to be one a student can predict.
+ * The chat message quota. The cap exists on ONE tier and the reason is not
+ * "Free gets less": chat is the core learning loop and the thing the product
+ * sells, so metering it on a paid plan would be charging for the part that is
+ * not defensible. Free is capped because it is the only place where the cost
+ * that scales with use has nobody behind it.
+ *
+ * Beyond the numbers, two contracts: the pricing card has to say what the gate
+ * enforces, and the day boundary has to be one a student can predict.
  */
 describe("chat messages per day", () => {
-  it("ladders Free → Plus → unlimited on Max", () => {
+  it("caps the free tier and nothing else", () => {
     expect(RAYA_ENTITLEMENTS.free.messagesPerDay).toBe(30);
-    expect(RAYA_ENTITLEMENTS.plus.messagesPerDay).toBe(300);
-    // Max is unlimited BY PLAN. It is still bounded by the routes' own daily
-    // abuse ceiling, which is not a plan quota and applies to every tier.
+    // Regression guard on a decision that was made, reversed, and made again:
+    // a paid tier must not acquire a chat number. Both are still bounded by
+    // the routes' daily abuse ceiling, which is not a plan quota.
+    expect(RAYA_ENTITLEMENTS.plus.messagesPerDay).toBeNull();
     expect(RAYA_ENTITLEMENTS.max.messagesPerDay).toBeNull();
   });
 
@@ -163,18 +168,18 @@ describe("chat messages per day", () => {
     expect(overQuota(30, limit)).toBe(true); // the 31st
   });
 
-  it("shows the enforced number on the card instead of promising unlimited", () => {
+  it("states the number where there is one and promises unlimited where there is not", () => {
     const free = rayaFeatureBullets("free").join(" | ");
     expect(free).toContain(`${RAYA_ENTITLEMENTS.free.messagesPerDay} AI tutor messages / day`);
-    // Regression: the Free card used to read "Unlimited AI tutor chat", which
-    // a per-tier quota makes false.
-    expect(free).not.toMatch(/unlimited ai tutor chat/i);
+    expect(free).not.toMatch(/unlimited ai tutor/i);
 
+    // The paid cards must say it in words. "Unlimited AI tutor messages / day"
+    // — what a naive interpolation produces — reads like a limit that lost its
+    // number, on the one line that is supposed to remove the doubt.
     const plus = rayaFeatureBullets("plus").join(" | ");
-    expect(plus).toContain(`${RAYA_ENTITLEMENTS.plus.messagesPerDay} AI tutor messages / day`);
-
-    const max = rayaFeatureBullets("max").join(" | ");
-    expect(max).toContain("Unlimited AI tutor messages / day");
+    expect(plus).toContain("Unlimited AI tutor chat");
+    expect(plus).not.toMatch(/\d+ AI tutor messages/);
+    expect(plus).not.toContain("Unlimited AI tutor messages / day");
   });
 });
 
