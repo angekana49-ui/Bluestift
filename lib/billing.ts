@@ -1,9 +1,9 @@
 import "server-only";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { getAdminMembership } from "@/lib/school-admin";
-import { detectZone, type Zone } from "@/lib/billing/regions";
+import { detectZone, formatMoney, type Zone } from "@/lib/billing/regions";
 import { MIN_B2B_SEATS, termTotal } from "@/lib/billing/terms";
-import { invalidateEntitlements } from "@/lib/entitlements";
+import { invalidateEntitlements, normalizeRayaTier, normalizeSchoolTier } from "@/lib/entitlements";
 import { isPlatformOwner } from "@/lib/ops";
 
 /**
@@ -72,6 +72,47 @@ function mapPlan(r: PlanRow): BillingPlan {
 
 const PLAN_COLS =
   "id, name, description, category, tier, price, price_unit, billing_period, features, seat_limit, storage_gb";
+
+/**
+ * The one-line price summary the landing page's gateway cards show, built from
+ * the SAME rows /pricing and the checkout read. It used to be a string typed
+ * into the component, and it had already drifted from the catalogue twice by
+ * the time anyone looked — a marketing card must not be able to quote a price
+ * the checkout would not charge.
+ *
+ * Pure on purpose: the query lives in `pricingSummary` below, this is the part
+ * worth pinning. Returns null rather than a partial line when a tier is
+ * missing or has no price — an absent line is recoverable (the CTA still leads
+ * to /pricing, which is authoritative), a wrong one is not.
+ *
+ * Quoted in USD, like the card always was. The CFA-zone prices are resolved
+ * per request at /pricing, which is where the zone signals are available.
+ */
+export function pricingLine(audience: "b2c" | "b2b", plans: BillingPlan[]): string | null {
+  const signal = (p: BillingPlan) => [p.name, p.tier].filter(Boolean).join(" ");
+  const usd = (p: BillingPlan | undefined) =>
+    p && p.price != null ? formatMoney(p.price, "USD") : null;
+
+  if (audience === "b2c") {
+    const plus = usd(plans.find((p) => normalizeRayaTier(signal(p)) === "plus"));
+    const max = usd(plans.find((p) => normalizeRayaTier(signal(p)) === "max"));
+    return plus && max ? `Free · Plus ${plus} · Max ${max} / mo` : null;
+  }
+
+  // Custom is a quote, so it carries no number here even though it has a price.
+  const standard = usd(plans.find((p) => normalizeSchoolTier(signal(p)) === "standard"));
+  const plus = usd(plans.find((p) => normalizeSchoolTier(signal(p)) === "plus"));
+  return standard && plus ? `Standard ${standard} · Plus ${plus} / student / mo` : null;
+}
+
+/** `pricingLine` over the live catalogue. Never throws; null when unreadable. */
+export async function pricingSummary(audience: "b2c" | "b2b"): Promise<string | null> {
+  try {
+    return pricingLine(audience, await listPlans(audience));
+  } catch {
+    return null;
+  }
+}
 
 /** Active plans, optionally filtered by category (b2b for schools, b2c for students). */
 export async function listPlans(category?: "b2b" | "b2c"): Promise<BillingPlan[]> {

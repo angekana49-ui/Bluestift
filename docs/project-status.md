@@ -247,9 +247,17 @@ Next.js app  ──HTTP──▶  Kernel (FastAPI, Railway)
 - **Billing (admin_master)** — a **Billing** tab shows the current plan, a live
   **seat meter** (students used / contracted seats), and billing history. Six
   seeded plans in `schools.subscription_plans`, split by `price_unit`:
-  **B2C flat/month** — `student_free` (0), `student_plus` (6.99), `student_max`
-  (19.99); **B2B per student/month** (`price_unit='per_seat'`, price = per-seat
-  rate) — `school_standard` (1.5), `school_plus` (2.3), `school_custom` (3.0).
+  **B2C flat/month** — `student_free` ($0), `student_plus` ($8), `student_max`
+  ($20); **B2B per student/month** (`price_unit='per_seat'`, price = per-seat
+  rate) — `school_standard` ($2), `school_plus` ($4), `school_custom` ($6).
+  **These rows are the source of truth and they live in the database, not in
+  this repo** — no migration seeds them, so a price change is a write to
+  `schools.subscription_plans` and takes effect without a deploy. The numbers
+  above are a snapshot and can go stale; the code no longer can, since the
+  landing cards and /pricing both read the catalogue (`pricingLine`).
+  Regional CFA prices (`schools.plan_region_prices`) exist for the two school
+  plans only — `school_standard` and `school_plus` at 267 / 522 francs per seat
+  — so B2C in the franc zones pays the USD price.
   B2B `seat_limit` is NULL at plan level: the **contracted headcount is set per
   subscription at activation** and both caps joins (seat gate) and multiplies the
   price. Amount for the term = rate × students × months. **Billing basis = enrolled
