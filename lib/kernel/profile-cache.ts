@@ -20,9 +20,21 @@ import type { AnalyzeResponse, KernelAlert, LoadProfileResponse } from "./types"
  */
 type Entry = { profile: LoadProfileResponse | null; at: number; refreshing: boolean };
 const cache = new Map<string, Entry>();
-const TTL_MS = 60_000;
-const L2_TTL_MS = 5 * 60_000;
 const L2_READ_BUDGET_MS = 250;
+
+/**
+ * How long a cached profile may sit before a read is worth waking the Kernel.
+ *
+ * Deliberately long. The profile changes when the Kernel commits evidence, and
+ * both places that cause that — the post-conversation analyse and a graded
+ * submission — call invalidateProfile() directly, which refreshes immediately.
+ * What this bound covers is the one thing no event announces: K_effective
+ * decaying as a student forgets, which moves over days, not minutes.
+ */
+const STALE_REFRESH_MS = 6 * 60 * 60_000;
+
+/** Backoff before retrying a profile we have never managed to fetch. */
+const EMPTY_RETRY_MS = 10 * 60_000;
 
 // Latest pedagogical-safety alerts from the most recent /analyze, per user.
 const alertsCache = new Map<string, { alerts: KernelAlert[]; at: number }>();
@@ -104,7 +116,6 @@ export async function getCognitiveContext(userId: string): Promise<CognitiveCont
   let profile = l1?.profile ?? null;
   let alerts = l1Alerts?.alerts ?? null;
   let analysis = analysisCache.get(userId) ?? null;
-  let l1Fresh = l1 != null && now - l1.at <= TTL_MS;
 
   // L1 miss on any part → one bounded snapshot read fills all three.
   if ((!l1 || !l1Alerts || !analysis) && (profile === null || alerts === null || analysis === null)) {
@@ -124,7 +135,6 @@ export async function getCognitiveContext(userId: string): Promise<CognitiveCont
         profile = row.profile;
         const at = row.profile_updated_at ? Date.parse(row.profile_updated_at) : 0;
         cache.set(userId, { profile, at, refreshing: false });
-        l1Fresh = now - at <= L2_TTL_MS;
       }
       if (!l1Alerts && row.alerts) {
         alerts = row.alerts;
@@ -141,7 +151,7 @@ export async function getCognitiveContext(userId: string): Promise<CognitiveCont
   // table and this keeps the one clock that matters in one place.
   if (analysis && now - analysis.at > ANALYSIS_TTL_MS) analysis = null;
 
-  if (!l1Fresh) void refresh(userId);
+  if (shouldRefresh(cache.get(userId), now)) void refresh(userId);
   return { profile, alerts: alerts ?? [], analysis };
 }
 
@@ -186,6 +196,29 @@ export function setLatestAnalysis(userId: string, res: AnalyzeResponse): void {
       // best-effort
     }
   })();
+}
+
+/**
+ * Whether a background refresh is worth waking the Kernel for.
+ *
+ * This gate used to be "is the in-process L1 cold?", which on Vercel is true on
+ * nearly every request — so an ordinary chat message woke a sleeping Kernel
+ * container purely to warm a cache. Worse, the client's 6s budget is shorter
+ * than a Python cold start, so the call that woke the container usually timed
+ * out before it returned anything: the wake was billed and the cache stayed
+ * stale. The Kernel should run when an upper layer needs an answer, not
+ * because a serverless instance happened to be new.
+ */
+function shouldRefresh(entry: Entry | undefined, now: number): boolean {
+  if (entry?.refreshing) return false;
+  // Nothing cached at all: RAYA would run with no cognitive context, so one
+  // call is worth it. The entry timestamp doubles as the backoff clock, so a
+  // Kernel that is down — or simply has nothing for a brand-new student — is
+  // not retried on every turn.
+  if (!entry || entry.profile === null) {
+    return !entry || now - entry.at > EMPTY_RETRY_MS;
+  }
+  return now - entry.at > STALE_REFRESH_MS;
 }
 
 async function refresh(userId: string): Promise<void> {

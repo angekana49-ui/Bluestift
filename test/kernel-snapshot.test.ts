@@ -94,16 +94,39 @@ describe("getCognitiveContext", () => {
     expect(state.loadProfile).not.toHaveBeenCalled();
   });
 
-  it("a STALE L2 hit still serves instantly but refreshes in the background", async () => {
+  it("a minutes-old L2 hit serves instantly and does NOT wake the Kernel", async () => {
+    // This used to refresh, and that was the single biggest reason the Kernel
+    // was awake: on Vercel the in-process cache is cold on nearly every
+    // request, so ordinary chat turns woke a sleeping container to warm it.
+    // A profile only changes when the Kernel commits evidence, and those paths
+    // call invalidateProfile() themselves.
     const mod = await freshModule();
     state.selectRow = {
       profile: PROFILE,
       alerts: [],
-      profile_updated_at: new Date(Date.now() - 10 * 60_000).toISOString(),
+      profile_updated_at: new Date(Date.now() - 30 * 60_000).toISOString(),
       alerts_updated_at: null,
     };
     const ctx = await mod.getCognitiveContext("u1");
-    expect(ctx.profile).toEqual(PROFILE); // stale beats nothing
+    expect(ctx.profile).toEqual(PROFILE);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(state.loadProfile).not.toHaveBeenCalled();
+  });
+
+  it("a profile old enough to have decayed does refresh in the background", async () => {
+    // The one thing no event announces: K_effective falls as a student
+    // forgets. That drift is measured in days, so the bound is hours, not
+    // minutes — but it must still exist, or a quiet student's profile would
+    // be frozen at whatever it was the last time they were graded.
+    const mod = await freshModule();
+    state.selectRow = {
+      profile: PROFILE,
+      alerts: [],
+      profile_updated_at: new Date(Date.now() - 7 * 60 * 60_000).toISOString(),
+      alerts_updated_at: null,
+    };
+    const ctx = await mod.getCognitiveContext("u1");
+    expect(ctx.profile).toEqual(PROFILE); // stale beats nothing, served instantly
     await vi.waitFor(() => expect(state.loadProfile).toHaveBeenCalled());
   });
 
