@@ -33,7 +33,8 @@ const SOLO = [
 const SCHOOLS = [
   plan({ id: "school_standard", name: "Schools — Standard", tier: "standard", price: 2, priceUnit: "per_seat" }),
   plan({ id: "school_plus", name: "Schools — Plus", tier: "pro", price: 4, priceUnit: "per_seat" }),
-  plan({ id: "school_custom", name: "Schools — Custom", tier: "custom", price: 6, priceUnit: "per_seat" }),
+  // Bespoke: no catalogue price at all, because it is sized to the client.
+  plan({ id: "school_custom", name: "Schools — Custom", tier: "custom", price: null, priceUnit: "per_seat" }),
 ];
 
 describe("pricingLine", () => {
@@ -46,11 +47,16 @@ describe("pricingLine", () => {
     expect(pricingLine("b2c", raised)).toContain("Plus $12");
   });
 
-  it("quotes the school ladder per student, and leaves Custom without a number", () => {
-    const line = pricingLine("b2b", SCHOOLS);
+  it("quotes the school ladder per student", () => {
+    expect(pricingLine("b2b", SCHOOLS)).toBe("Standard $2 · Plus $4 / student / mo");
+  });
+
+  it("never quotes Custom, even if someone puts a number on it", () => {
+    // Custom is bespoke by definition — it has no catalogue price, and if a
+    // number ever lands on that row it is an internal reference, not an offer.
+    const numbered = SCHOOLS.map((p) => (p.id === "school_custom" ? { ...p, price: 6 } : p));
+    const line = pricingLine("b2b", numbered);
     expect(line).toBe("Standard $2 · Plus $4 / student / mo");
-    // Custom is a quote. Its price exists in the catalogue and must not surface
-    // here as if it were a list price.
     expect(line).not.toContain("$6");
   });
 

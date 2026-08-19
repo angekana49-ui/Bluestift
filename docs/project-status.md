@@ -249,7 +249,9 @@ Next.js app  ──HTTP──▶  Kernel (FastAPI, Railway)
   seeded plans in `schools.subscription_plans`, split by `price_unit`:
   **B2C flat/month** — `student_free` ($0), `student_plus` ($8), `student_max`
   ($20); **B2B per student/month** (`price_unit='per_seat'`, price = per-seat
-  rate) — `school_standard` ($2), `school_plus` ($4), `school_custom` ($6).
+  rate) — `school_standard` ($2), `school_plus` ($4), `school_custom` (**no
+  price**: bespoke, sized to the client, quoted not listed — the card sends it
+  to /contact and the checkout refuses it as `quote_only`).
   **These rows are the source of truth and they live in the database, not in
   this repo** — no migration seeds them, so a price change is a write to
   `schools.subscription_plans` and takes effect without a deploy. The numbers
