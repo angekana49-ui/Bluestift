@@ -750,10 +750,26 @@ activation, online checkout, regional price book). What's genuinely left:
 ~~public content site~~ (done), ~~conversation history / cognitive profile /
 progress curve / signal logging~~ (done).
 
-1. ~~**Commit the tree**~~ — done. Next on the same axis: **apply the two
-   unapplied migrations** (`20260813210000_kernel_latest_analysis`,
-   `20260813220000_training_on_by_default` — the second contains an `UPDATE`
-   touching adults who never chose), then deploy.
+1. ~~**Commit the tree**~~ — done. ~~**Apply the two unapplied
+   migrations**~~ — applied and verified against the live schema.
+
+   `kernel_latest_analysis` was not a pending nicety, it was an **active
+   regression**: `lib/kernel/profile-cache.ts` names `latest_analysis` in its
+   snapshot `SELECT`, and an unknown column fails the WHOLE query, not just
+   that column. The read is wrapped in `.catch(() => null)`, so the L2 cache
+   silently returned nothing — no profile, no alerts, no analysis — on every
+   cold start. Raya was starting each serverless instance without what she
+   knew about the student, and nothing said so.
+
+   `training_on_by_default` flipped the column default to true and ran its
+   backfill: of 4 accounts that had never expressed a choice, 3 have no
+   `birth_year` and were correctly left alone (the adult test requires one), 1
+   adult was switched on.
+
+   **Checking "is it applied" means checking the schema, not the filenames.**
+   The ledger records migration *names*, and several rows carry timestamps that
+   do not match the repo's file prefixes — which is how `recovery_key_hash`
+   came to be listed here as pending when its columns had existed all along.
 2. ~~**"Raya" wordmark sweep**~~ — done (see §5).
 3. **Real payments** — get a merchant account, then exercise the CinetPay path
    end-to-end (the whole loop is written and idempotent; only keys are missing).
