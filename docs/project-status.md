@@ -410,8 +410,7 @@ Next.js app  ──HTTP──▶  Kernel (FastAPI, Railway)
   documents** as context.
 
 ### Public site — `/`, `/research`, `/survey`, `/contact`, `/feedback`
-Lives in **`components/site/`** (the earlier `components/public/*` mockup build is
-archived under `docs/templates/`). **English copy, translated to FR/ES/DE** through
+Lives in **`components/site/`**. **English copy, translated to FR/ES/DE** through
 `lib/i18n` + `useTranslate`; day/night theme in `components/site/theme.ts`, held in
 React state and passed down — there is no CSS-variable theme for the site.
 - **One page template** (`components/site/layout.tsx`) owns every measure and the
