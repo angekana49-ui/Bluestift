@@ -31,7 +31,13 @@ function ArticleCard({ post, large }: { post: PublicResearchPost; large?: boolea
       style={{
         display: "block",
         background: T.white,
-        border: `1px solid ${T.border}`,
+        // Sides individually, never `border` plus a `borderLeft` override:
+        // React applies a shorthand and a longhand for the same property in no
+        // guaranteed order on rerender, so the accent edge can lose to the
+        // shorthand meant to sit under it.
+        borderTop: `1px solid ${T.border}`,
+        borderRight: `1px solid ${T.border}`,
+        borderBottom: `1px solid ${T.border}`,
         borderLeft: large ? `3px solid ${T.green}` : `1px solid ${T.border}`,
         borderRadius: 14,
         padding: large ? "24px 28px" : "18px 20px",
