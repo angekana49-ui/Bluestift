@@ -11,6 +11,7 @@ import {
   normalizeLocale,
   type Locale,
 } from "@/lib/locale";
+import { prefsUsable, readPref, writePref } from "@/lib/shared-pref";
 
 /**
  * First-visit language offer for the public site.
@@ -49,15 +50,16 @@ export function LanguagePrompt({ theme: t }: { theme: Theme }) {
   const firstBtn = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
-    let alreadyAnswered = true;
-    try {
-      alreadyAnswered = Boolean(
-        localStorage.getItem(LOCALE_KEY) || localStorage.getItem(LOCALE_ASKED_KEY),
-      );
-    } catch {
-      /* no localStorage (private mode, embedded webview) — don't nag */
-    }
-    if (alreadyAnswered) return;
+    // Both keys live in a cookie as well as localStorage (lib/shared-pref.ts),
+    // which is what stops this bar from reappearing on every origin once the
+    // products split: "already asked" has to travel with the visitor, or a
+    // three-origin visit would ask three times.
+    // Nothing can be stored (private mode, an embedded webview): stay quiet.
+    // Asking would be asking on EVERY page load, since the answer could not be
+    // recorded — the same reason the previous localStorage-only read defaulted
+    // to "already answered" when it threw.
+    if (!prefsUsable()) return;
+    if (readPref(LOCALE_KEY) || readPref(LOCALE_ASKED_KEY)) return;
     const preferred =
       typeof navigator !== "undefined"
         ? navigator.languages?.length
@@ -69,13 +71,7 @@ export function LanguagePrompt({ theme: t }: { theme: Theme }) {
   }, []);
 
   // Remember that we asked, whatever the outcome, so the prompt is a one-time event.
-  const markAsked = useCallback(() => {
-    try {
-      localStorage.setItem(LOCALE_ASKED_KEY, "1");
-    } catch {
-      /* best-effort */
-    }
-  }, []);
+  const markAsked = useCallback(() => writePref(LOCALE_ASKED_KEY, "1"), []);
 
   const dismiss = useCallback(() => {
     markAsked();

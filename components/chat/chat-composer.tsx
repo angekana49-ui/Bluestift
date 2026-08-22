@@ -41,6 +41,13 @@ export const COMPOSER_ACCEPT =
  * pins to the bottom edge with a top border. `extraAction` slots a surface-specific
  * control (e.g. the room's "Ask Raya") just before the send button.
  */
+/**
+ * How many messages left before the composer starts saying so. Flat rather
+ * than a fraction of the plan: the number that matters to a student is "am I
+ * about to run out", which is the same whether the plan is 30 or 300.
+ */
+const LOW_WATER = 10;
+
 export function ChatComposer({
   theme: t,
   centered,
@@ -55,6 +62,7 @@ export function ChatComposer({
   pending = [],
   onRemovePending,
   error,
+  quota,
   extraAction,
   disabled = false,
 }: {
@@ -71,10 +79,15 @@ export function ChatComposer({
   pending?: Attachment[];
   onRemovePending?: (id: string) => void;
   error?: string | null;
+  quota?: { used: number; limit: number } | null;
   extraAction?: ReactNode;
   disabled?: boolean;
 }) {
-  const sendIdle = busy || uploading || disabled || !input.trim();
+  // The day's plan allowance. `quota` is only ever set when a limit exists AND
+  // is enforced, so everything below is dead code until that is switched on.
+  const left = quota ? Math.max(0, quota.limit - quota.used) : null;
+  const spent = left === 0;
+  const sendIdle = busy || uploading || disabled || spent || !input.trim();
 
   // The input is a textarea so long messages wrap and the field grows with the
   // text (up to a cap, then it scrolls internally) instead of running off in one
@@ -105,6 +118,24 @@ export function ChatComposer({
               <AttachmentChip key={a.id} file={a} onRemove={() => onRemovePending?.(a.id)} busy={busy} />
             ))}
             {uploading && <span style={{ fontSize: text.xs, color: t.mutedLight }}>Reading the document…</span>}
+          </div>
+        )}
+
+        {/* the day's plan allowance — deliberately not styled as an error:
+            reaching it is the plan working, not something going wrong */}
+        {left != null && (spent || left <= LOW_WATER) && (
+          <div style={{ padding: "0 24px 8px", fontSize: text.sm, color: spent ? t.text : t.mutedLight }}>
+            {spent ? (
+              <>
+                That&apos;s your {quota?.limit} messages for today. They come back tomorrow —{" "}
+                <a href="/pricing" style={{ color: "inherit", textDecoration: "underline" }}>
+                  or take a bigger plan
+                </a>
+                .
+              </>
+            ) : (
+              `${left} message${left === 1 ? "" : "s"} left today`
+            )}
           </div>
         )}
 

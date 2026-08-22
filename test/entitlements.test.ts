@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   normalizeRayaTier,
   normalizeSchoolTier,
@@ -12,6 +12,8 @@ import {
   assertFeature,
   assertQuota,
   ENTITLEMENTS_ENFORCE,
+  startOfDayIso,
+  startOfMonthIso,
 } from "@/lib/entitlements";
 
 describe("tier normalization", () => {
@@ -137,5 +139,106 @@ describe("monitor mode (ENTITLEMENTS_ENFORCE off by default)", () => {
   it("assert helpers never throw while in monitor mode", () => {
     expect(() => assertFeature(false, { feature: "private_room" })).not.toThrow();
     expect(() => assertQuota(99, 3, { metric: "rooms" })).not.toThrow();
+  });
+});
+
+/**
+ * The chat message quota. The cap exists on ONE tier and the reason is not
+ * "Free gets less": chat is the core learning loop and the thing the product
+ * sells, so metering it on a paid plan would be charging for the part that is
+ * not defensible. Free is capped because it is the only place where the cost
+ * that scales with use has nobody behind it.
+ *
+ * Beyond the numbers, two contracts: the pricing card has to say what the gate
+ * enforces, and the day boundary has to be one a student can predict.
+ */
+describe("chat messages per day", () => {
+  it("caps the free tier and nothing else", () => {
+    expect(RAYA_ENTITLEMENTS.free.messagesPerDay).toBe(30);
+    // Regression guard on a decision that was made, reversed, and made again:
+    // a paid tier must not acquire a chat number. Both are still bounded by
+    // the routes' daily abuse ceiling, which is not a plan quota.
+    expect(RAYA_ENTITLEMENTS.plus.messagesPerDay).toBeNull();
+    expect(RAYA_ENTITLEMENTS.max.messagesPerDay).toBeNull();
+  });
+
+  it("counts before the message is stored, so a limit of N lets N through", () => {
+    const limit = RAYA_ENTITLEMENTS.free.messagesPerDay;
+    expect(overQuota(29, limit)).toBe(false); // the 30th message
+    expect(overQuota(30, limit)).toBe(true); // the 31st
+  });
+
+  it("states the number where there is one and promises unlimited where there is not", () => {
+    const free = rayaFeatureBullets("free").join(" | ");
+    expect(free).toContain(`${RAYA_ENTITLEMENTS.free.messagesPerDay} AI tutor messages / day`);
+    expect(free).not.toMatch(/unlimited ai tutor/i);
+
+    // The paid cards must say it in words. "Unlimited AI tutor messages / day"
+    // — what a naive interpolation produces — reads like a limit that lost its
+    // number, on the one line that is supposed to remove the doubt.
+    const plus = rayaFeatureBullets("plus").join(" | ");
+    expect(plus).toContain("Unlimited AI tutor chat");
+    expect(plus).not.toMatch(/\d+ AI tutor messages/);
+    expect(plus).not.toContain("Unlimited AI tutor messages / day");
+  });
+});
+
+describe("startOfDayIso", () => {
+  it("is midnight UTC of the day it is given, not the moment it is called", () => {
+    expect(startOfDayIso(new Date("2026-08-18T21:47:13.412Z"))).toBe("2026-08-18T00:00:00.000Z");
+    expect(startOfDayIso(new Date("2026-08-18T00:00:00.000Z"))).toBe("2026-08-18T00:00:00.000Z");
+  });
+
+  it("gives every instant of one day the same boundary, and the next day a new one", () => {
+    const morning = startOfDayIso(new Date("2026-03-01T06:00:00Z"));
+    const night = startOfDayIso(new Date("2026-03-01T23:59:59Z"));
+    expect(morning).toBe(night);
+    expect(startOfDayIso(new Date("2026-03-02T00:00:01Z"))).not.toBe(morning);
+  });
+
+  it("is a day boundary, not the month one", () => {
+    const mid = new Date("2026-08-18T10:00:00Z");
+    expect(startOfDayIso(mid)).not.toBe(startOfMonthIso(mid));
+  });
+});
+
+/**
+ * What a blocked student actually reads. Enforcement is off by default, so the
+ * message is unreachable in the default build — these load the module with the
+ * switch on, which is also the only coverage of the enforcing branch at all.
+ */
+describe("enforcement mode (ENTITLEMENTS_ENFORCE=true)", () => {
+  async function loadEnforcing() {
+    vi.resetModules();
+    vi.stubEnv("ENTITLEMENTS_ENFORCE", "true");
+    return import("@/lib/entitlements");
+  }
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  it("blocks a reached quota with a 429 worded for a daily period", async () => {
+    const { gateQuota } = await loadEnforcing();
+    const res = gateQuota(30, 30, { metric: "messages", period: "day", upgradeTo: "Plus" });
+    expect(res).not.toBeNull();
+    expect(res?.status).toBe(429);
+    const body = await res?.json();
+    expect(body.code).toBe("quota_reached");
+    expect(body.error).toContain("your messages limit today (30)");
+    // "this day" is what the old formatter produced.
+    expect(body.error).not.toContain("this day");
+  });
+
+  it("keeps the weekly and monthly wording it already had", async () => {
+    const { gateQuota } = await loadEnforcing();
+    const week = await gateQuota(5, 5, { metric: "exports", period: "week" })?.json();
+    expect(week.error).toContain("your exports limit this week (5)");
+  });
+
+  it("lets an unlimited plan through even while enforcing", async () => {
+    const { gateQuota } = await loadEnforcing();
+    expect(gateQuota(9_999, null, { metric: "messages", period: "day" })).toBeNull();
   });
 });

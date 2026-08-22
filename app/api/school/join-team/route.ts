@@ -37,7 +37,7 @@ async function notifyAdminsOfRequest(
       `${who}asked to join ${name} on Bluestift Schools and is waiting for your approval.`,
       "Open the Team page to approve or decline the request.",
     ],
-    cta: { label: "Review requests", url: `${siteUrl()}/school` },
+    cta: { label: "Review requests", url: `${siteUrl("schools")}/school` },
   };
   await Promise.all(
     adminIds.map(async (id) => {

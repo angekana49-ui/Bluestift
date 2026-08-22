@@ -3,11 +3,18 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStudentRecommendations } from "@/lib/school-admin";
 import { buildRayaMessages } from "@/lib/raya/prompt";
-import { rayaStream } from "@/lib/raya/llm";
+import { rayaStream, type TokenUsage } from "@/lib/raya/llm";
 import { routeTier } from "@/lib/raya/routing";
 import { kernel, clampHistory } from "@/lib/kernel/client";
 import { assertRoomOpen } from "@/lib/rooms";
 import { checkStrictUserRateLimit } from "@/lib/rate-limit";
+import {
+  resolveRayaEntitlements,
+  gateQuota,
+  startOfDayIso,
+  ENTITLEMENTS_ENFORCE,
+} from "@/lib/entitlements";
+import { reportError } from "@/lib/observability/report";
 import { persistAndGather, linkAttachments, replayReply } from "@/lib/raya/chat-context";
 import {
   getCognitiveContext,
@@ -18,6 +25,20 @@ import type { KernelMessage } from "@/lib/kernel/types";
 
 // Streaming LLM turn: give the function room to finish long replies on Vercel.
 export const maxDuration = 60;
+
+/**
+ * Daily ABUSE ceiling per user, distinct from the plan quota below it and from
+ * the 30/minute burst limit above it. This one is identical on every tier and
+ * is what still holds on the tiers whose plan quota is `null` (Max) — without
+ * it, "unmetered" would mean the 30/minute limiter alone permits 43,200 paid
+ * LLM calls per user per day.
+ *
+ * The arithmetic: a student in an intense session sends a message every 30
+ * seconds for three straight hours — 360 turns. 600 is comfortably past any
+ * human day and still bounds a client stuck in a retry loop and one credential
+ * being shared around a class.
+ */
+const CHAT_TURNS_PER_DAY = 600;
 
 /**
  * Light EMT classification of a Raya reply (kernel-handoff §7). Heuristic, not a
@@ -105,9 +126,32 @@ export async function POST(request: Request) {
   // Who the student is (age band + school level) rides in this wave rather than
   // as its own hop, so calibrating Raya to a 12-year-old costs no latency. RLS
   // scopes the row to its owner; both columns are read-only to the client.
-  const [allowed, roomMember, roomOpen, { profile, alerts, analysis }, instructions, learner] =
+  const [
+    allowed,
+    dayAllowed,
+    { ent, tier },
+    turnsToday,
+    roomMember,
+    roomOpen,
+    { profile, alerts, analysis },
+    instructions,
+    learner,
+  ] =
     await Promise.all([
       checkStrictUserRateLimit("raya_chat", user.id, 30, "1 minute"),
+      checkStrictUserRateLimit("raya_chat_day", user.id, CHAT_TURNS_PER_DAY, "24 hours"),
+      // The plan's own message quota. Rides in this wave so metering costs no
+      // latency: the plan lookup is cached per instance, and the count is one
+      // indexed COUNT that runs alongside everything else.
+      resolveRayaEntitlements(user.id),
+      supabase
+        .schema("learning")
+        .from("messages")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("role", "user")
+        .gte("created_at", startOfDayIso())
+        .then((r) => r.count ?? 0),
       roomId
         ? supabase
             .schema("learning")
@@ -134,6 +178,28 @@ export async function POST(request: Request) {
       { status: 429 },
     );
   }
+  // Worded differently from the burst limit on purpose: "give it a second" is
+  // wrong advice here, and support needs to tell the two apart.
+  if (!dayAllowed) {
+    return NextResponse.json(
+      { error: "You've hit today's message ceiling. It resets over the next 24 hours." },
+      { status: 429 },
+    );
+  }
+  // The plan quota, which is a different thing from both limits above: it is
+  // what the forfait sells, so it names an upgrade rather than asking the
+  // student to wait. Counted BEFORE this message is stored, so a limit of N
+  // lets N through. Inert until ENTITLEMENTS_ENFORCE is on — until then it
+  // logs and reports what WOULD have been blocked.
+  const overMessages = gateQuota(turnsToday, ent.messagesPerDay, {
+    metric: "messages",
+    period: "day",
+    upgradeTo: "Plus",
+    scope: "raya_chat",
+    userId: user.id,
+    tier,
+  });
+  if (overMessages) return overMessages;
   if (!roomMember) {
     return NextResponse.json({ error: "You are not a member of this room." }, { status: 403 });
   }
@@ -214,6 +280,7 @@ export async function POST(request: Request) {
   const routing = routeTier(profile, alerts);
   let model: string;
   let deltas: AsyncGenerator<string>;
+  let usage: TokenUsage;
   try {
     const out = await rayaStream(
       buildRayaMessages(
@@ -232,6 +299,7 @@ export async function POST(request: Request) {
     );
     model = out.model;
     deltas = out.stream;
+    usage = out.usage;
   } catch (e) {
     await linkPromise;
     return NextResponse.json(
@@ -262,6 +330,10 @@ export async function POST(request: Request) {
           role: "assistant",
           content: full,
           model_used: model,
+          // What the turn cost. Read AFTER the loop above, which is what filled
+          // it in. null when the provider did not say — an unmeasured turn must
+          // not be summed as a free one.
+          tokens_used: usage.total,
           emt_level: classifyEmt(full),
         });
         // Touch the conversation so it sorts to the top of the history list.
@@ -270,8 +342,14 @@ export async function POST(request: Request) {
           .from("conversations")
           .update({ updated_at: new Date().toISOString() })
           .eq("id", convIdFinal);
-      } catch {
-        // non-fatal
+      } catch (e) {
+        // Non-fatal for this response — the student already read the reply as
+        // it streamed. It is not nothing, though: the reply is now missing from
+        // the thread, so the next turn's history has a hole in it.
+        await reportError("chat.persist", e, {
+          severity: "warning",
+          tags: { conversationId: convIdFinal, model },
+        });
       }
       controller.close();
 
@@ -308,6 +386,20 @@ export async function POST(request: Request) {
       "x-conversation-id": convIdFinal,
       "x-message-id": userMsgId,
       "x-raya-model": model,
+      // The plan counter, so the composer can show what is left without a
+      // second request. `turnsToday` was read before this message was stored,
+      // so +1 is the count including it.
+      //
+      // Sent ONLY when a limit is both set and actually enforced. In monitor
+      // mode every turn goes through, so a counter would be announcing a
+      // boundary that does not exist yet — the absence of these headers is
+      // what tells the client there is nothing to count.
+      ...(ENTITLEMENTS_ENFORCE && ent.messagesPerDay != null
+        ? {
+            "x-raya-messages-used": String(turnsToday + 1),
+            "x-raya-messages-limit": String(ent.messagesPerDay),
+          }
+        : {}),
     },
   });
 }

@@ -7,11 +7,22 @@ import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
 import { MEASURE } from "./layout";
 
-// "Privacy" is a valid section (for SitePage's `active`) but intentionally not in
-// LINKS below — the privacy page has no nav pill, so nothing highlights for it.
+// "Privacy" and "Feedback" are valid sections (for SitePage's `active`) but
+// intentionally not in LINKS below — neither page has a nav pill, so nothing
+// highlights for them. That is the point: a page with no entry of its own must
+// name itself here rather than borrow a neighbour's. Feedback used to pass
+// "Product", which lit the Product pill and told the visitor they were on the
+// landing page while they were filling in a feedback form.
 // NOTE `label` stays the ENGLISH identity (pages pass it as `active`); only
 // `labelKey` is what the visitor actually reads.
-export type NavLink = "Product" | "Research" | "Survey" | "Pricing" | "Contact" | "Privacy";
+export type NavLink =
+  | "Product"
+  | "Research"
+  | "Survey"
+  | "Pricing"
+  | "Contact"
+  | "Privacy"
+  | "Feedback";
 
 const LINKS: { label: NavLink; labelKey: MessageKey; href: string }[] = [
   { label: "Product", labelKey: "site.nav.product", href: "/" },

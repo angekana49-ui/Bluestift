@@ -5,7 +5,7 @@ import { RayaText } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
 import Reveal from "./Reveal";
-import { SectionBlend, bandColumn, bandSection, eyebrow, lead, sectionH2, serifEm } from "./layout";
+import { SectionHeader, bandColumn, bandSection, bandTone, serifEm } from "./layout";
 
 /**
  * What the Cognitive Kernel actually stores, named field by field.
@@ -36,9 +36,25 @@ const ALERTS: { nameKey: MessageKey; signalKey: MessageKey; responseKey: Message
   { nameKey: "site.kernel.a5.name", signalKey: "site.kernel.a5.signal", responseKey: "site.kernel.a5.response" },
 ];
 
-export default function KernelSection({ theme: t }: { theme: Theme }) {
+export default function KernelSection({ theme: outer }: { theme: Theme }) {
   const tr = useTranslate();
 
+  /**
+   * The one inverted band on the page (see `Tone` in ./layout).
+   *
+   * It lands here rather than anywhere else because this is where the page stops
+   * describing the product and names the contract: four fields the Kernel really
+   * stores and five alerts it really raises. Giving that a dark plate says
+   * "engine room" before a word is read, and it breaks a run of eight
+   * near-white bands that had nothing else separating them.
+   *
+   * Everything below reads `t` — the theme the band hands back, which is the
+   * dark palette regardless of the page's mode. `outer` is only the input.
+   */
+  const { background, theme: t } = bandTone(outer, "ink");
+
+  // Keyed on the effective theme, not the page's, so these stay correct if the
+  // band's tone is ever changed.
   const accents = t.dark
     ? ["#7ab3f7", "#4e9bf5", "#34d399", "#c7d2e3"]
     : ["#173d8a", "#2f7fe0", "#059669", "#0b1220"];
@@ -46,20 +62,27 @@ export default function KernelSection({ theme: t }: { theme: Theme }) {
   const alertAccent = t.dark ? "#7ab3f7" : "#173d8a";
 
   return (
-    <section id="kernel" style={bandSection(t.sectionAltBg)}>
-      {/* Blends down from LadderSection (t.cardBg). */}
-      <SectionBlend from={t.cardBg} />
+    <section id="kernel" style={bandSection(background)}>
+      {/* No SectionBlend, deliberately. The blend fades the previous band's
+          colour down from the top edge, which over near-black would read as a
+          light leak rather than a transition. An inverted band wants a hard
+          edge on both sides — that is what makes it land as punctuation. */}
 
       <div style={bandColumn("wide")}>
-        <Reveal style={{ textAlign: "center", marginBottom: 48 }}>
-          <div style={eyebrow(t)}>{tr("site.kernel.eyebrow")}</div>
-          <h2 style={{ ...sectionH2(t), margin: "10px 0 0" }}>
-            {tr("site.kernel.title.a")}{" "}
-            <em style={serifEm}>{tr("site.kernel.title.em")}</em>
-          </h2>
-          <p style={lead(t)}>
-            <RayaText>{tr("site.kernel.sub")}</RayaText>
-          </p>
+        <Reveal>
+          <SectionHeader
+            t={t}
+            align="split"
+            gap={48}
+            eyebrow={tr("site.kernel.eyebrow")}
+            title={
+              <>
+                {tr("site.kernel.title.a")}{" "}
+                <em style={serifEm}>{tr("site.kernel.title.em")}</em>
+              </>
+            }
+            lead={<RayaText>{tr("site.kernel.sub")}</RayaText>}
+          />
         </Reveal>
 
         <div className="pub-grid-4" style={{ gap: 16 }}>

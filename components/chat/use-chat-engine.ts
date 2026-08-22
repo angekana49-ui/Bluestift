@@ -4,8 +4,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useVoiceRecorder } from "@/lib/use-voice-recorder";
 import { splitByMessage, type Attachment } from "@/components/attachment";
 import { netFetch, getJsonCached, invalidateCached } from "@/lib/net/client-fetch";
+import { getClientEntitlements } from "@/lib/entitlements-client";
 import { enqueueOutbox, removeFromOutbox, registerOutboxFlusher } from "@/lib/net/outbox";
-import { type ChatConfig, type Msg, type Conversation, type ConversationFile, titleFrom } from "./types";
+import {
+  type ChatConfig,
+  type ChatQuota,
+  type Msg,
+  type Conversation,
+  type ConversationFile,
+  quotaFromHeaders,
+  titleFrom,
+} from "./types";
 
 /**
  * The full conversation engine shared by the Raya chat and the Raya-for-Schools
@@ -24,6 +33,7 @@ import { type ChatConfig, type Msg, type Conversation, type ConversationFile, ti
 
 /** How long we wait for response headers before calling a send failed. */
 const SEND_TIMEOUT_MS = 20_000;
+
 
 export function useChatEngine({
   config,
@@ -52,6 +62,12 @@ export function useChatEngine({
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /**
+   * What the plan allows today. `null` means "nothing to show" and is the
+   * normal state: no limit on this tier, enforcement still off, or a surface
+   * that is not plan-metered at all. The composer only counts when this is set.
+   */
+  const [quota, setQuota] = useState<ChatQuota | null>(null);
 
   // Voice input: record → transcribe → send as a message.
   const voice = useVoiceRecorder((text) => onSend(text));
@@ -62,6 +78,22 @@ export function useChatEngine({
   const failedRef = useRef<Map<string, { text: string; files: Attachment[]; conversationId: string | null }>>(
     new Map(),
   );
+
+  // Seed the counter once, so a student who opens the app already near their
+  // limit sees it before typing rather than after being refused. Every later
+  // update rides on the send response's own headers — this is not polled.
+  const metered = config.metered === true;
+  useEffect(() => {
+    if (!metered) return;
+    let alive = true;
+    void getClientEntitlements().then((e) => {
+      if (!alive || !e || !e.enforce || e.ent.messagesPerDay == null) return;
+      setQuota({ used: e.usage?.messagesToday ?? 0, limit: e.ent.messagesPerDay });
+    });
+    return () => {
+      alive = false;
+    };
+  }, [metered]);
 
   function newChat() {
     if (busy) return;
@@ -244,6 +276,20 @@ export function useChatEngine({
         // empty message): the send will never succeed as-is, so roll it back
         // and say why. A 5xx is treated like a network failure below.
         if (res.status >= 400 && res.status < 500) {
+          // Reaching the plan's daily limit is not an error, it is the plan
+          // working. It gets the composer's quota notice (which carries the
+          // upgrade link) instead of a red line, and the typed text goes back
+          // into the box — the student did not do anything wrong, and losing
+          // what they wrote on top of being stopped would be its own insult.
+          if (data?.code === "quota_reached" && typeof data.limit === "number") {
+            setQuota({
+              used: typeof data.used === "number" ? data.used : data.limit,
+              limit: data.limit,
+            });
+            setInput(text);
+            rollback(clientMsgId, sentFiles);
+            return true;
+          }
           setError(data?.error ? `Raya error: ${data.error}` : `Request failed (${res.status}).`);
           rollback(clientMsgId, sentFiles);
           return true; // handled — not a retryable delivery failure
@@ -252,6 +298,11 @@ export function useChatEngine({
         setError(data?.error ? `Raya error: ${data.error}` : `Request failed (${res.status}).`);
         return false;
       }
+      // The server sends these only while the quota is both set and enforced,
+      // so their presence is the signal that there is something to count.
+      const fresh = quotaFromHeaders(res.headers);
+      if (fresh) setQuota(fresh);
+
       const convId = res.headers.get("x-conversation-id");
       if (convId) {
         setConversationId(convId);
@@ -343,6 +394,11 @@ export function useChatEngine({
   async function onSend(textArg?: string) {
     const text = (textArg ?? input).trim();
     if (!text || busy || uploading) return;
+    // Guarded here rather than in the composer so Enter, the send button, a
+    // finished voice transcription and an outbox replay all obey it — the
+    // server would refuse anyway, and a round trip that ends in the same
+    // notice only costs the student a flicker.
+    if (quota != null && quota.used >= quota.limit) return;
     const clientMsgId =
       typeof crypto !== "undefined" && "randomUUID" in crypto
         ? crypto.randomUUID()
@@ -406,6 +462,7 @@ export function useChatEngine({
     busy,
     uploading,
     error,
+    quota,
     voice,
     // derived
     activeTitle,

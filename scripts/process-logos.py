@@ -1,12 +1,22 @@
 """
 Turn the delivered logo crops in assets/logos into the canonical brand marks in
-public/. Run from the repo root:  python scripts/process-logos.py
+public/, and the home-screen icons the two manifests point at. Run from the repo
+root:
+  python scripts/process-logos.py
 Needs Pillow. The sources live outside /public deliberately — they are 1.5 MB of
 raw crops with no runtime use, and everything under /public is served publicly.
 
-AFTER RUNNING THIS, BUMP `VERSION` IN public/sw.js. The marks keep their
-filenames, and the service worker caches /public images with no revalidation, so
-returning visitors would otherwise keep the previous logo forever.
+The iOS launch screens are NOT made here — see scripts/render-launch-screens.mjs.
+They carry the wordmark set in IBM Plex Sans, and the only copy of that face in
+this repo is the woff2 next/font caches under a content hash, with the weight
+stripped from its name table. Picking one by guesswork would silently bake the
+wrong weight, so those are rendered in a browser instead, where the real font and
+the real 800-to-Bold fallback already resolve.
+
+AFTER RUNNING THIS, BUMP `VERSION` IN public/sw.js. The marks and icons keep
+their filenames, and the service worker caches /public images with no
+revalidation, so returning visitors would otherwise keep the previous logo
+forever — and an installed PWA would keep the previous home-screen icon.
 
 Each source is a screenshot-style crop: opaque baked background, off-centre,
 inconsistent aspect ratio, and (on the navy ones) leftover white strips from the
@@ -163,9 +173,13 @@ def drop_edge_strips(im):
     return dropped
 
 
-for src_name, out_name, global_clear in JOBS:
-    src = SRC / src_name
-    im = Image.open(src).convert("RGBA")
+def extract_art(src_name, global_clear):
+    """Source crop -> the artwork alone, transparent and trimmed to its bounds.
+
+    Steps 1-2 of the header comment. Returns (art, bg, cleared, strips, before)
+    or None when clearing left nothing behind.
+    """
+    im = Image.open(SRC / src_name).convert("RGBA")
     before = im.size
 
     cleared, bg = flood_background(im)
@@ -182,23 +196,106 @@ for src_name, out_name, global_clear in JOBS:
 
     bbox = im.getbbox()
     if not bbox:
-        print(f"!! {src_name}: nothing left after clearing — SKIPPED")
-        continue
-    art = im.crop(bbox)
+        return None
+    return im.crop(bbox), bg, cleared, len(dropped), before
 
-    side = int(max(art.size) * (1 + 2 * MARGIN))
-    canvas = Image.new("RGBA", (side, side), (0, 0, 0, 0))
+
+def square(art, size, margin, background=None):
+    """Centre the artwork on a square canvas and scale it to `size`.
+
+    `margin` is the free space on EACH side as a fraction of the artwork's long
+    edge, so the artwork ends up occupying 1/(1 + 2*margin) of the canvas.
+    `background` fills the canvas edge to edge; None leaves it transparent.
+    """
+    side = int(max(art.size) * (1 + 2 * margin))
+    canvas = Image.new("RGBA", (side, side), background or (0, 0, 0, 0))
     canvas.paste(art, ((side - art.width) // 2, (side - art.height) // 2), art)
+    return canvas.resize((size, size), Image.LANCZOS)
 
-    final = canvas.resize((SIZE, SIZE), Image.LANCZOS)
+
+def write(im, name, colors=COLORS, alpha=True):
+    """Quantise and write, mirroring how the marks are optimised."""
+    if not alpha:
+        # iOS composites a transparent apple-touch-icon onto black rather than
+        # onto the icon's own background, so that one ships without an alpha
+        # channel at all.
+        im = im.convert("RGB")
     # FASTOCTREE is the only Pillow quantiser that keeps the alpha channel; the
     # default (median cut) would flatten the transparency we just carved out.
-    final = final.quantize(colors=COLORS, method=Image.Quantize.FASTOCTREE)
-    dest = OUT / out_name
-    final.save(dest, "PNG", optimize=True)
+    # Fine for everything here, which is flat-colour artwork. It is NOT fine for
+    # a large smooth gradient — see scripts/render-launch-screens.mjs, which is
+    # why the launch screens are made elsewhere.
+    im = im.quantize(colors=colors, method=Image.Quantize.FASTOCTREE)
+    dest = OUT / name
+    im.save(dest, "PNG", optimize=True)
+    return dest.stat().st_size / 1024
 
-    kb = dest.stat().st_size / 1024
+
+for src_name, out_name, global_clear in JOBS:
+    got = extract_art(src_name, global_clear)
+    if not got:
+        print(f"!! {src_name}: nothing left after clearing — SKIPPED")
+        continue
+    art, bg, cleared, strips, before = got
+
+    kb = write(square(art, SIZE, MARGIN), out_name)
     print(
         f"{src_name:28} -> {out_name:24} bg={bg[:3]} cleared={cleared:>6} "
-        f"strips={len(dropped)} art={art.size} {before}->{SIZE}x{SIZE} {kb:.1f} KB"
+        f"strips={strips} art={art.size} {before}->{SIZE}x{SIZE} {kb:.1f} KB"
+    )
+
+
+# --------------------------------------------------------------- PWA icons ---
+#
+# The manifest (app/manifest.ts) needs sizes and framings the marks don't cover.
+# Same sources, same cleaning, different geometry — which is the reason they are
+# generated here rather than exported by hand: the marks and the icons must not
+# drift apart when the artwork is next redrawn.
+#
+# Three framings, because three different things crop them:
+#
+#   any       Launcher icon, shown as-is. Transparent, MARGIN like the marks.
+#   maskable  Android crops this to a platform shape (circle, squircle, …) and
+#             guarantees only a centred circle of 80% diameter. A square of side
+#             s fits that circle when s <= 0.8/sqrt(2) ~= 0.566, so the artwork
+#             gets a wide margin and the background must run edge to edge —
+#             a transparent maskable icon is cropped to transparent corners.
+#             Written without an alpha channel for the same reason the Apple
+#             icon is: every pixel is opaque anyway, and shipping the channel
+#             left a tRNS entry in the palette that no test could rule out.
+#   apple     iOS ignores the manifest for the home screen and reads
+#             apple-touch-icon.png. It applies its own rounded-rect and does NOT
+#             reserve a safe zone, so the artwork can sit larger than maskable.
+#
+# The navy matches theme.ts's ctaBg (#0b1220) and the inverted Kernel band, so
+# the installed icon and the product agree on what the brand's dark is.
+#
+# Two sets, because there are two installable apps: Bluestift (Schools, Rooms,
+# Tools — see app/manifest.ts) and Raya (app/raya-manifest). An installed icon
+# is the app's name on a home screen, so the tutor gets its own mark rather than
+# the company's.
+NAVY = (11, 18, 32, 255)
+ICON_JOBS = [
+    # (source, global_clear, out_name, size, margin, background, alpha)
+    ("bird-blue-on-white.png", False, "icon-192.png", 192, MARGIN, None, True),
+    ("bird-blue-on-white.png", False, "icon-512.png", 512, MARGIN, None, True),
+    ("bird-white-on-navy.png", True, "icon-maskable-512.png", 512, 0.40, NAVY, False),
+    ("bird-white-on-navy.png", True, "apple-touch-icon.png", 180, 0.25, NAVY, False),
+    ("flower-blue-on-white.png", False, "icon-raya-192.png", 192, MARGIN, None, True),
+    ("flower-blue-on-white.png", False, "icon-raya-512.png", 512, MARGIN, None, True),
+    ("flower-white-on-navy.png", True, "icon-raya-maskable-512.png", 512, 0.40, NAVY, False),
+    ("flower-white-on-navy.png", True, "apple-touch-icon-raya.png", 180, 0.25, NAVY, False),
+]
+
+for src_name, global_clear, out_name, size, margin, background, alpha in ICON_JOBS:
+    got = extract_art(src_name, global_clear)
+    if not got:
+        print(f"!! {src_name}: nothing left after clearing — SKIPPED")
+        continue
+    art = got[0]
+    occupies = 1 / (1 + 2 * margin)
+    kb = write(square(art, size, margin, background), out_name, alpha=alpha)
+    print(
+        f"{src_name:28} -> {out_name:24} art={art.size} -> {size}x{size} "
+        f"fills {occupies:.0%} alpha={alpha} {kb:.1f} KB"
     )

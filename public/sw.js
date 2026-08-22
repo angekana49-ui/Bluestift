@@ -26,7 +26,7 @@
 // marks did) would otherwise be served from the old cache forever. Bumping the
 // version renames the cache, and `activate` deletes every cache but the current
 // one — that is the only cache-bust this worker has.
-const VERSION = "v2";
+const VERSION = "v6";
 const STATIC_CACHE = `bluestift-static-${VERSION}`;
 const OFFLINE_URL = "/offline.html";
 /**

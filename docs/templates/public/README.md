@@ -1,9 +1,14 @@
 # Public site templates — design reference
 
 Copie **verbatim** des fichiers stylisés du site public (issus des mockups
-approuvés : `landing/research/survey-thebluestift.jsx`). Imports conservés tels
-quels — c'est un dossier de **référence** pour enrichir un nouveau template, pas
-du code branché. Les vrais fichiers vivent dans `components/public/` et `app/`.
+approuvés : `research/survey-thebluestift.jsx`). Imports conservés tels quels —
+c'est un dossier de **référence** pour enrichir un nouveau template, pas du code
+branché. Les vrais fichiers vivent dans `components/public/` et `app/`.
+
+> `landing.tsx` a été retiré : la landing a été refaite depuis (nouvelles
+> sections, système de mouvement, tons), et la copie gardait en plus une grille
+> de prix périmée — une référence fausse est pire que pas de référence. La
+> landing vivante est `components/site/LandingPage.tsx` et ses sections.
 
 ## Système de design
 
@@ -31,7 +36,6 @@ du code branché. Les vrais fichiers vivent dans `components/public/` et `app/`.
 | `theme.ts`            | **Tokens** (couleurs par surface, fonts). Le point de départ.|
 | `nav.tsx`             | Topbar partagée (pills, section label, CTA auth).           |
 | `footer.tsx`          | Footer partagé (grille `pub-footer-grid`).                  |
-| `landing.tsx`         | Landing `/` — hero nuage, feature strip, how-it-works, pricing. (copie de `app/page.tsx`) |
 | `research-view.tsx`   | `/research` — posts, "À la une", filtres type, newsletter, collaborations. |
 | `survey-view.tsx`     | `/survey` — flows prof/élève, done screen, mur "Expression libre". |
 | `contact-view.tsx`    | `/contact` — formulaire.                                    |

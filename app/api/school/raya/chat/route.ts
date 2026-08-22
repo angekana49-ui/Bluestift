@@ -2,13 +2,22 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { buildProfContext, buildSchoolContext, getAdminMembership } from "@/lib/school-admin";
-import { rayaStream, type ChatMsg } from "@/lib/raya/llm";
+import { rayaStream, type ChatMsg, type TokenUsage } from "@/lib/raya/llm";
 import { checkStrictUserRateLimit } from "@/lib/rate-limit";
+import { reportError } from "@/lib/observability/report";
 import { persistAndGather, linkAttachments, replayReply } from "@/lib/raya/chat-context";
 import { FORMATTING_RULES } from "@/lib/raya/prompt";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
+
+/**
+ * Daily ABUSE ceiling per staff user. Staff chat stays un-metered by plan — a
+ * head teacher is not rationed — but "un-metered" and "unbounded" are not the
+ * same thing: the 30/minute limiter alone allows 43,200 paid LLM calls per day
+ * from one account. Same posture and same number as the student path.
+ */
+const CHAT_TURNS_PER_DAY = 600;
 
 const SYSTEM = `You are Raya for Schools, an analytics assistant for a school staff member.
 Answer ONLY from the DATA SNAPSHOT and any attached documents below — never invent
@@ -59,10 +68,11 @@ export async function POST(request: Request) {
   // ── Wave 1: rate limit, membership, conversation ownership, and the
   // membership-dependent grounding (data snapshot + directives), in parallel ──
   const membershipPromise = getAdminMembership(user.id);
-  const [allowed, membership, convOk, context, directives] = await Promise.all([
-    // Anti-abuse rate-limit only — staff chat is never quota-metered. Keyed by
+  const [allowed, dayAllowed, membership, convOk, context, directives] = await Promise.all([
+    // Anti-abuse rate-limits only — staff chat is never quota-metered. Keyed by
     // user id so a school behind one shared NAT is never collectively throttled.
     checkStrictUserRateLimit("school_raya_chat", user.id, 30, "1 minute"),
+    checkStrictUserRateLimit("school_raya_chat_day", user.id, CHAT_TURNS_PER_DAY, "24 hours"),
     membershipPromise,
     // Only this user's own school-analytics conversations are writable here.
     requestedConvId
@@ -88,6 +98,14 @@ export async function POST(request: Request) {
   if (!allowed) {
     return NextResponse.json(
       { error: "You're sending messages very fast — give it a second." },
+      { status: 429 },
+    );
+  }
+  // Worded differently from the burst limit on purpose: "give it a second" is
+  // wrong advice here, and support needs to tell the two apart.
+  if (!dayAllowed) {
+    return NextResponse.json(
+      { error: "You've hit today's message ceiling. It resets over the next 24 hours." },
       { status: 429 },
     );
   }
@@ -157,10 +175,12 @@ export async function POST(request: Request) {
   // Start the stream (provider chosen here so we can't set headers later).
   let model: string;
   let deltas: AsyncGenerator<string>;
+  let usage: TokenUsage;
   try {
     const out = await rayaStream(messages);
     model = out.model;
     deltas = out.stream;
+    usage = out.usage;
   } catch (e) {
     await linkPromise;
     return NextResponse.json({ error: e instanceof Error ? e.message : "llm error" }, { status: 502 });
@@ -187,14 +207,23 @@ export async function POST(request: Request) {
           role: "assistant",
           content: full,
           model_used: model,
+          // What the turn cost. Read AFTER the loop above, which is what filled
+          // it in. null when the provider did not say — an unmeasured turn must
+          // not be summed as a free one.
+          tokens_used: usage.total,
         });
         await supabase
           .schema("learning")
           .from("conversations")
           .update({ updated_at: new Date().toISOString() })
           .eq("id", convIdFinal);
-      } catch {
-        // non-fatal
+      } catch (e) {
+        // Non-fatal for this response — the reply already streamed. It does
+        // leave a hole in the thread the next turn will read back.
+        await reportError("chat.persist", e, {
+          severity: "warning",
+          tags: { conversationId: convIdFinal, model, surface: "school" },
+        });
       }
       controller.close();
     },

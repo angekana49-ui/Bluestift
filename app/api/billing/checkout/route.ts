@@ -94,7 +94,19 @@ export async function POST(request: Request) {
 
   const resolved = await resolvePlanPriceForRequest(planId, declaredCountry, ipCountry);
   const rate = resolved?.price ?? null;
-  if (!resolved || rate == null || rate <= 0) {
+  // No listed price means QUOTED, not free. Schools Custom is bespoke by
+  // definition — sized to the client — so it carries no catalogue amount, and
+  // this endpoint is the only way to reach it: the pricing card already sends
+  // it to /contact rather than to a checkout. Answering "free" here would be
+  // the worst available wrong answer, and answering with an amount would sell
+  // a bespoke contract at a number nobody agreed to.
+  if (!resolved || rate == null) {
+    return NextResponse.json(
+      { error: "This plan is quoted, not sold online — talk to the team.", code: "quote_only" },
+      { status: 400 },
+    );
+  }
+  if (rate <= 0) {
     return NextResponse.json({ error: "This plan is free — no payment needed." }, { status: 400 });
   }
   const currency = resolved.currency;
@@ -143,7 +155,11 @@ export async function POST(request: Request) {
   });
   if (!paymentId) return NextResponse.json({ error: "Could not start checkout." }, { status: 500 });
 
-  const origin = siteUrl();
+  // "bluestift", not "schools", even on the B2B path: /checkout/return and the
+  // aggregator webhook are cross-product and stay on the public origin. The
+  // webhook in particular must be one stable URL — the aggregator calls it back
+  // long after the buyer's session is gone.
+  const origin = siteUrl("bluestift");
   try {
     const checkout = await provider.createCheckout({
       paymentId,

@@ -232,7 +232,18 @@ export const defaultConfig: SiteConfig = {
   },
 };
 
-export default function LandingPage({ signedIn, homeHref }: { signedIn?: boolean; homeHref?: string }) {
+export default function LandingPage({
+  signedIn,
+  homeHref,
+  soloPrices,
+  schoolPrices,
+}: {
+  signedIn?: boolean;
+  homeHref?: string;
+  /** Price lines resolved server-side from the plan catalogue; null when unreadable. */
+  soloPrices?: string | null;
+  schoolPrices?: string | null;
+}) {
   const { isDark, toggle } = useThemeMode();
   const t = getTheme(isDark);
 
@@ -271,7 +282,7 @@ export default function LandingPage({ signedIn, homeHref }: { signedIn?: boolean
           roadmap; it now lives at /research?tab=progress, linked from the
           footer, because it is a changelog and not part of the argument. */}
       <FaqSection theme={t} />
-      <PricingSection theme={t} />
+      <PricingSection theme={t} soloPrices={soloPrices} schoolPrices={schoolPrices} />
       <FinalCtaSection theme={t} signedIn={signedIn} homeHref={homeHref} />
       <Footer theme={t} variant="full" />
       {/* First visit only: asks the language instead of hiding a picker in the

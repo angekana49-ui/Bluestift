@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderEmail, sendEmail } from "@/lib/email";
+import { renderEmail, sendEmail, siteUrl } from "@/lib/email";
 
 describe("renderEmail", () => {
   it("renders heading, paragraphs, and an optional CTA button", () => {
@@ -82,5 +82,52 @@ describe("sendEmail safety", () => {
     const [, init] = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0];
     const body = JSON.parse((init as RequestInit).body as string);
     expect(body.from).toBe("Bluestift Schools <no-reply@bluestift.com>");
+  });
+});
+
+/**
+ * Link origins are per SURFACE, ready for the site / raya. / schools. split
+ * (docs/domains.md). The property that matters most is the LAST one: with the
+ * product vars unset — today, on a single origin — no caller's link changes.
+ */
+describe("siteUrl", () => {
+  const VARS = ["NEXT_PUBLIC_SITE_URL", "NEXT_PUBLIC_RAYA_URL", "NEXT_PUBLIC_SCHOOLS_URL"] as const;
+  const SURFACES = ["bluestift", "raya", "schools"] as const;
+
+  beforeEach(() => VARS.forEach((v) => delete process.env[v]));
+  afterEach(() => VARS.forEach((v) => delete process.env[v]));
+
+  it("sends each surface to its own origin", () => {
+    process.env.NEXT_PUBLIC_SITE_URL = "https://thebluestift.com";
+    process.env.NEXT_PUBLIC_RAYA_URL = "https://raya.thebluestift.com";
+    process.env.NEXT_PUBLIC_SCHOOLS_URL = "https://schools.thebluestift.com";
+    expect(siteUrl("bluestift")).toBe("https://thebluestift.com");
+    expect(siteUrl("raya")).toBe("https://raya.thebluestift.com");
+    expect(siteUrl("schools")).toBe("https://schools.thebluestift.com");
+  });
+
+  it("gives every surface the same origin while the product vars are unset", () => {
+    process.env.NEXT_PUBLIC_SITE_URL = "https://thebluestift.com";
+    const urls = SURFACES.map((s) => siteUrl(s));
+    expect(new Set(urls).size).toBe(1);
+    expect(urls[0]).toBe("https://thebluestift.com");
+  });
+
+  it("falls back per surface, so one origin can move before the other", () => {
+    process.env.NEXT_PUBLIC_SITE_URL = "https://thebluestift.com";
+    process.env.NEXT_PUBLIC_SCHOOLS_URL = "https://schools.thebluestift.com";
+    expect(siteUrl("schools")).toBe("https://schools.thebluestift.com");
+    expect(siteUrl("raya")).toBe("https://thebluestift.com");
+  });
+
+  it("drops a trailing slash on every surface, so callers can append a path", () => {
+    process.env.NEXT_PUBLIC_SITE_URL = "https://thebluestift.com/";
+    process.env.NEXT_PUBLIC_RAYA_URL = "https://raya.thebluestift.com/";
+    expect(`${siteUrl("bluestift")}/s/abc`).toBe("https://thebluestift.com/s/abc");
+    expect(`${siteUrl("raya")}/chat`).toBe("https://raya.thebluestift.com/chat");
+  });
+
+  it("never yields an empty origin when nothing is configured", () => {
+    for (const s of SURFACES) expect(siteUrl(s)).toMatch(/^https:\/\/\S+$/);
   });
 });

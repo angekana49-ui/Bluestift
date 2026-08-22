@@ -646,7 +646,12 @@ function SettingsView({ theme: t, dark, onToggleDark }: { theme: AppTheme; dark:
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: t.rowActiveBg, borderRadius: 12, padding: "14px 16px", marginBottom: 14 }}>
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, color: t.text }}>Plan Étudiant — Gratuit</div>
-            <div style={{ fontSize: 13, color: t.muted, marginTop: 2 }}>Sessions Raya solo illimitées</div>
+            {/* Mirrors RAYA_ENTITLEMENTS.free.messagesPerDay. Hardcoded because
+                lib/entitlements.ts is server-only and this is a client mockup —
+                if that number moves, move this one with it. It read "Sessions
+                Raya solo illimitées", which stopped being true when the free
+                tier got a chat cap. */}
+            <div style={{ fontSize: 13, color: t.muted, marginTop: 2 }}>30 messages Raya par jour</div>
           </div>
           <span style={{ fontSize: 13, background: t.ctaBg, color: t.ctaText, borderRadius: 99, padding: "8px 14px", fontWeight: 600, whiteSpace: "nowrap" }}>Passer à Classroom</span>
         </div>

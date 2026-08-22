@@ -6,7 +6,20 @@ import { RayaText, SchoolsName } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
 import { SectionBlend, bandColumn, bandSection, lead, sectionH2, serifEm } from "./layout";
 
-export default function PricingSection({ theme: t }: { theme: Theme }) {
+export default function PricingSection({
+  theme: t,
+  soloPrices,
+  schoolPrices,
+}: {
+  theme: Theme;
+  /**
+   * Price lines from the live plan catalogue (see `pricingLine` in lib/billing).
+   * Null when it could not be read — the line is then omitted rather than
+   * guessed: the CTA still leads to /pricing, which is authoritative.
+   */
+  soloPrices?: string | null;
+  schoolPrices?: string | null;
+}) {
   const tr = useTranslate();
   // Short scannable lines beat a paragraph — one idea per row, small accent dot.
   const lineList = (lines: string[], color: string, dot: string) => (
@@ -38,7 +51,11 @@ export default function PricingSection({ theme: t }: { theme: Theme }) {
     <div style={{ display: "flex", flexDirection: "column", background: t.cardBg, borderRadius: 24, padding: 28, boxShadow: t.cardShadowLg, position: "relative", overflow: "hidden" }}>
       <div style={{ position: "relative", fontSize: "1.5rem", fontWeight: 900, color: t.text, letterSpacing: "-0.02em" }}>{opts.title}</div>
       {lineList(opts.lines, t.muted, t.greenSolid)}
-      <div style={{ position: "relative", fontSize: 14, fontWeight: 600, color: t.wordmarkB, marginTop: 16 }}>{opts.meta}</div>
+      {/* Absent when the catalogue could not be read: the row collapses rather
+          than leaving a margin where a price used to be. */}
+      {opts.meta && (
+        <div style={{ position: "relative", fontSize: 14, fontWeight: 600, color: t.wordmarkB, marginTop: 16 }}>{opts.meta}</div>
+      )}
       <a href={opts.href} className="pub-press" style={{ position: "relative", display: "block", textAlign: "center", marginTop: 18, background: t.ctaBg, color: t.ctaText, borderRadius: 999, padding: "11px 20px", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
         {opts.cta}
       </a>
@@ -67,7 +84,7 @@ export default function PricingSection({ theme: t }: { theme: Theme }) {
               tr("site.pricing.solo.l3"),
               tr("site.pricing.solo.l4"),
             ],
-            meta: "Free · Plus $20 · Max $40 / mo",
+            meta: soloPrices ?? undefined,
             cta: tr("site.pricing.solo.cta"),
             href: "/pricing?for=solo",
           })}
@@ -88,7 +105,9 @@ export default function PricingSection({ theme: t }: { theme: Theme }) {
               "rgba(255,255,255,0.78)",
               t.greenSolid,
             )}
-            <div style={{ position: "relative", fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.9)", marginTop: 16 }}>Standard $2 · Plus $4 / student / mo</div>
+            {schoolPrices && (
+              <div style={{ position: "relative", fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.9)", marginTop: 16 }}>{schoolPrices}</div>
+            )}
             <a href="/pricing?for=schools" className="pub-press" style={{ position: "relative", display: "block", textAlign: "center", marginTop: 18, background: "white", color: "#0b1220", borderRadius: 999, padding: "11px 20px", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
               {tr("site.pricing.schools.cta")}
             </a>

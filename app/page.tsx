@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { resolveHome } from "@/lib/routing";
+import { pricingSummary } from "@/lib/billing";
 import LandingPage from "@/components/site/LandingPage";
 
 export default async function Home() {
@@ -16,5 +17,20 @@ export default async function Home() {
   // them to /onboarding at that point — never from the marketing site.
   const homeHref = user ? await resolveHome(user.id) : undefined;
 
-  return <LandingPage signedIn={!!user} homeHref={homeHref} />;
+  // The pricing cards' price lines come from the plan catalogue, not from
+  // strings in the component — resolved here because this is the server half,
+  // so the marketing page pays no client fetch and shows no loading state.
+  const [soloPrices, schoolPrices] = await Promise.all([
+    pricingSummary("b2c"),
+    pricingSummary("b2b"),
+  ]);
+
+  return (
+    <LandingPage
+      signedIn={!!user}
+      homeHref={homeHref}
+      soloPrices={soloPrices}
+      schoolPrices={schoolPrices}
+    />
+  );
 }

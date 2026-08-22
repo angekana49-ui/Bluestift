@@ -35,7 +35,7 @@ async function sendActivationReceipt(
     subject: `${planName} is active — ${schoolName}`,
     heading: `${planName} is active`,
     lines,
-    cta: { label: "View billing", url: `${siteUrl()}/school` },
+    cta: { label: "View billing", url: `${siteUrl("schools")}/school` },
   });
 }
 

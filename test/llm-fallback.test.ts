@@ -155,3 +155,100 @@ describe("rayaComplete deadline", () => {
     expect(model).toContain("groq");
   });
 });
+
+/**
+ * What a turn cost. The counts ride on the SSE payloads the delta parsers were
+ * already throwing away, so these pin two things: that they are read at all,
+ * and that "the provider said nothing" stays null rather than becoming a zero
+ * that would make an unmeasured turn look free.
+ */
+describe("rayaStream token usage", () => {
+  const geminiUsageEvent = (text: string, prompt: number, completion: number) =>
+    `data: ${JSON.stringify({
+      candidates: [{ content: { parts: [{ text }] } }],
+      usageMetadata: {
+        promptTokenCount: prompt,
+        candidatesTokenCount: completion,
+        totalTokenCount: prompt + completion,
+      },
+    })}\n`;
+
+  it("reads Gemini's counts off the stream", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => sseResponse([geminiUsageEvent("Hi", 120, 34)])));
+    const { stream, usage } = await rayaStream([{ role: "user", content: "hi" }]);
+    await collect(stream);
+    expect(usage).toEqual({ prompt: 120, completion: 34, total: 154 });
+  });
+
+  it("takes Gemini's running totals as totals, not as increments", async () => {
+    // Gemini repeats usageMetadata on every chunk with cumulative counts.
+    // Summing them would bill this turn 3× what it cost.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        sseResponse([
+          geminiUsageEvent("one ", 100, 5),
+          geminiUsageEvent("two ", 100, 12),
+          geminiUsageEvent("three", 100, 20),
+        ]),
+      ),
+    );
+    const { stream, usage } = await rayaStream([{ role: "user", content: "hi" }]);
+    await collect(stream);
+    expect(usage.total).toBe(120);
+  });
+
+  it("reads Groq's counts off the final chunk", async () => {
+    vi.stubEnv("GEMINI_API_KEY", "");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        sseResponse([
+          groqEvent("From Groq"),
+          `data: ${JSON.stringify({
+            choices: [{ delta: {} }],
+            x_groq: { usage: { prompt_tokens: 88, completion_tokens: 9, total_tokens: 97 } },
+          })}\n`,
+        ]),
+      ),
+    );
+    const { model, stream, usage } = await rayaStream([{ role: "user", content: "hi" }]);
+    expect(model).toContain("groq");
+    await collect(stream);
+    expect(usage).toEqual({ prompt: 88, completion: 9, total: 97 });
+  });
+
+  it("leaves the counts null when the provider reports none", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => sseResponse([geminiEvent("no counts here")])));
+    const { stream, usage } = await rayaStream([{ role: "user", content: "hi" }]);
+    await collect(stream);
+    // Not zero: an unmeasured turn is unknown, and summing it as free would
+    // understate exactly the cost this exists to reveal.
+    expect(usage).toEqual({ prompt: null, completion: null, total: null });
+  });
+
+  it("rejects a count that is not a number instead of coercing it", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        sseResponse([
+          `data: ${JSON.stringify({
+            candidates: [{ content: { parts: [{ text: "Hi" }] } }],
+            usageMetadata: { promptTokenCount: 10, candidatesTokenCount: null, totalTokenCount: "many" },
+          })}\n`,
+        ]),
+      ),
+    );
+    const { stream, usage } = await rayaStream([{ role: "user", content: "hi" }]);
+    await collect(stream);
+    expect(usage).toEqual({ prompt: 10, completion: null, total: null });
+  });
+
+  it("is only known once the stream has been drained", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => sseResponse([geminiUsageEvent("Hi", 10, 2)])));
+    const { stream, usage } = await rayaStream([{ role: "user", content: "hi" }]);
+    expect(usage.total).toBeNull(); // nothing consumed yet
+    await collect(stream);
+    expect(usage.total).toBe(12);
+  });
+});

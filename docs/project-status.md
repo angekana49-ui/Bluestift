@@ -1,6 +1,6 @@
  # Bluestift — project status
 
-_Last updated: 2026-08-16. Living summary of what's built, how it works, and what's next._
+_Last updated: 2026-08-18. Living summary of what's built, how it works, and what's next._
 
 > **This is Version 2 (V2) of RAYA and RAYA for Schools — a clean-slate rebuild.**
 > It is the ONLY version we show, demo, or sell. **V1 is dead product.** The V1 of RAYA
@@ -247,9 +247,19 @@ Next.js app  ──HTTP──▶  Kernel (FastAPI, Railway)
 - **Billing (admin_master)** — a **Billing** tab shows the current plan, a live
   **seat meter** (students used / contracted seats), and billing history. Six
   seeded plans in `schools.subscription_plans`, split by `price_unit`:
-  **B2C flat/month** — `student_free` (0), `student_plus` (6.99), `student_max`
-  (19.99); **B2B per student/month** (`price_unit='per_seat'`, price = per-seat
-  rate) — `school_standard` (1.5), `school_plus` (2.3), `school_custom` (3.0).
+  **B2C flat/month** — `student_free` ($0), `student_plus` ($8), `student_max`
+  ($20); **B2B per student/month** (`price_unit='per_seat'`, price = per-seat
+  rate) — `school_standard` ($2), `school_plus` ($4), `school_custom` (**no
+  price**: bespoke, sized to the client, quoted not listed — the card sends it
+  to /contact and the checkout refuses it as `quote_only`).
+  **These rows are the source of truth and they live in the database, not in
+  this repo** — no migration seeds them, so a price change is a write to
+  `schools.subscription_plans` and takes effect without a deploy. The numbers
+  above are a snapshot and can go stale; the code no longer can, since the
+  landing cards and /pricing both read the catalogue (`pricingLine`).
+  Regional CFA prices (`schools.plan_region_prices`) exist for the two school
+  plans only — `school_standard` and `school_plus` at 267 / 522 francs per seat
+  — so B2C in the franc zones pays the USD price.
   B2B `seat_limit` is NULL at plan level: the **contracted headcount is set per
   subscription at activation** and both caps joins (seat gate) and multiplies the
   price. Amount for the term = rate × students × months. **Billing basis = enrolled
@@ -740,20 +750,79 @@ activation, online checkout, regional price book). What's genuinely left:
 ~~public content site~~ (done), ~~conversation history / cognitive profile /
 progress curve / signal logging~~ (done).
 
-1. ~~**Commit the tree**~~ — done. Next on the same axis: **apply the two
-   unapplied migrations** (`20260813210000_kernel_latest_analysis`,
-   `20260813220000_training_on_by_default` — the second contains an `UPDATE`
-   touching adults who never chose), then deploy.
+1. ~~**Commit the tree**~~ — done. ~~**Apply the two unapplied
+   migrations**~~ — applied and verified against the live schema.
+
+   `kernel_latest_analysis` was not a pending nicety, it was an **active
+   regression**: `lib/kernel/profile-cache.ts` names `latest_analysis` in its
+   snapshot `SELECT`, and an unknown column fails the WHOLE query, not just
+   that column. The read is wrapped in `.catch(() => null)`, so the L2 cache
+   silently returned nothing — no profile, no alerts, no analysis — on every
+   cold start. Raya was starting each serverless instance without what she
+   knew about the student, and nothing said so.
+
+   `training_on_by_default` flipped the column default to true and ran its
+   backfill: of 4 accounts that had never expressed a choice, 3 have no
+   `birth_year` and were correctly left alone (the adult test requires one), 1
+   adult was switched on.
+
+   **Checking "is it applied" means checking the schema, not the filenames.**
+   The ledger records migration *names*, and several rows carry timestamps that
+   do not match the repo's file prefixes — which is how `recovery_key_hash`
+   came to be listed here as pending when its columns had existed all along.
 2. ~~**"Raya" wordmark sweep**~~ — done (see §5).
 3. **Real payments** — get a merchant account, then exercise the CinetPay path
    end-to-end (the whole loop is written and idempotent; only keys are missing).
-4. **Usage limits / quotas** — `daily_message_count` / `email_usage_windows` are
-   still unenforced. This *stops being deferrable* now that paid plans exist:
-   there's no cost cap on Raya.
-5. **CI + error monitoring** — 242 tests exist but nothing runs them on push, and
-   the money path (webhook idempotency, seat gate) is exactly the kind of code
-   that needs both.
+4. ~~**Usage limits / quotas**~~ — the forfaits now set the limits.
+   `messagesPerDay` in the Raya grid, enforced by `gateQuota` in
+   `app/api/raya/chat/route.ts` against a count of the day's messages, and
+   printed on the pricing card **from the same field** — the card cannot drift
+   from what the gate enforces, and a test fails if it does.
+
+   **The cap exists on Free and nowhere else**, and the reason is not that Free
+   gets less. Chat is the core learning loop and the thing the product sells;
+   metering it on a paid plan charges for the part that is not the defensible
+   one. Free is capped because it is the only place where the one cost that
+   scales with use has nobody behind it. This reverses a per-tier ladder that
+   was briefly in place — the original design (commit `fa2863a`) had chat
+   unmetered by design, and that is what stands, narrowed to "paid tiers".
+
+   Three layers, deliberately distinct:
+
+   | Layer | Value | Scope |
+   |---|---|---|
+   | burst limit | 30 / minute | every tier, anti-abuse |
+   | daily ceiling | 600 / 24 h | every tier, anti-abuse — the only bound on the paid tiers |
+   | plan quota | 30 / UTC day | **Free only** |
+
+   Every turn also records `tokens_used` from the provider's own counts, so
+   these numbers can be checked against real cost rather than guessed at again.
+
+   The chat UI carries it: the composer counts down over the last 10 messages
+   of the day, and reaching the limit shows what happened plus a link to the
+   plans instead of a red error line — the typed message goes back into the box
+   rather than being lost. It stays invisible until enforcement is on, because
+   the server only sends the counter headers when the quota is real.
+
+   Note that the quota copy is English end to end, server message included;
+   translating it is one pass over both sides, not half of one.
+   `email_usage_windows` stays unused: a token budget is the finer instrument
+   and now has real data to be built on.
+5. ~~**CI + error monitoring**~~ — both are in. CI
+   (`.github/workflows/ci.yml`): type-check, lint, 325 tests, and a build, on
+   every PR and every push to main; no secrets needed — the build completes
+   with an empty environment. Error monitoring
+   (`lib/observability/report.ts` + `instrumentation.ts`): every server error
+   Next.js catches is logged as one line of JSON, and the money path is
+   instrumented explicitly at each point where a failure used to be silent —
+   see `docs/observability.md`. **What is left is outside the repo**: pointing
+   an alert at it (a saved Vercel log query on `[bluestift.error]`, or an
+   `ERROR_WEBHOOK_URL`). Not covered: client-side errors and uptime.
 6. **Blocked on the Kernel** — per-concept trajectory curve, a real simulation
    endpoint, `update_concept_state` (needs `concept_id` on challenge questions).
-7. **Later** — social (`friendships`/`notifications`), remaining Tools
+7. **Domain split** — site / `raya.` / `schools.` on three origins, one repo,
+   one deployment. Decided, not applied; the browser state it breaks and the
+   order of operations are written up in `docs/domains.md`. Step 1 there is
+   origin-agnostic and ships safely before any DNS moves.
+8. **Later** — social (`friendships`/`notifications`), remaining Tools
    (TTS/infographic), public-site polish (post authoring, newsletter sending).
