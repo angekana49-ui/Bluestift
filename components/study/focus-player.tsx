@@ -1012,7 +1012,12 @@ export function MindMapView({
                   top: 26,
                   width: CARD_W,
                   background: t.cardBg,
-                  border: `1.5px solid ${hexToRgba(accent, t.dark ? 0.65 : 0.55)}`,
+                  // Sides listed individually: a `border` shorthand next to a
+                  // `borderTop` override is applied in an unguaranteed order on
+                  // rerender, and the accent cap is what loses.
+                  borderRight: `1.5px solid ${hexToRgba(accent, t.dark ? 0.65 : 0.55)}`,
+                  borderBottom: `1.5px solid ${hexToRgba(accent, t.dark ? 0.65 : 0.55)}`,
+                  borderLeft: `1.5px solid ${hexToRgba(accent, t.dark ? 0.65 : 0.55)}`,
                   borderTop: `3px solid ${accent}`,
                   borderRadius: 14,
                   padding: "10px 13px",

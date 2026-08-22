@@ -627,7 +627,14 @@ export function SocraticShot({ theme: t }: { theme: Theme }) {
                     maxWidth: "84%",
                     background: own ? t.ctaBg : t.cardBg,
                     color: own ? t.ctaText : t.text,
-                    border: own ? "none" : `1px solid ${t.cardBorder}`,
+                    // Sides are set one by one rather than as `border` plus a
+                    // `borderLeft` override: React warns when a shorthand and a
+                    // longhand for the same property are both animated across a
+                    // rerender, because the order they get applied in is not
+                    // guaranteed and the rung stripe can lose to the shorthand.
+                    borderTop: own ? "none" : `1px solid ${t.cardBorder}`,
+                    borderRight: own ? "none" : `1px solid ${t.cardBorder}`,
+                    borderBottom: own ? "none" : `1px solid ${t.cardBorder}`,
                     borderLeft: own ? "none" : `${uw(3)} solid ${turn.tone}`,
                     borderRadius: uw(12),
                     padding: `${uw(9)} ${uw(13)}`,

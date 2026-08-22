@@ -309,7 +309,9 @@ function BlockView({ b, t, first }: { b: Block; t: AppTheme; first: boolean }) {
         <hr
           style={{
             margin: "0.9em 0 0",
-            border: 0,
+            borderRight: 0,
+            borderBottom: 0,
+            borderLeft: 0,
             borderTop: `1px solid ${t.dark ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.12)"}`,
           }}
         />
