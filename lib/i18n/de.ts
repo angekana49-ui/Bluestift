@@ -48,7 +48,6 @@ export const de: Partial<Messages> = {
   "site.nav.signIn": "Anmelden",
   "site.nav.freeTrial": "Kostenlos testen",
   "site.nav.openApp": "App öffnen",
-  "site.nav.tagline": "KI-gestützte Diagnose-Engine für Schulen",
 
   "site.hero.eyebrow": "KI-Tutor · jedes Niveau, jedes Fach, überall",
   "site.hero.headline": "Alle haben eine KI. Niemand teilt eine.",
@@ -223,7 +222,6 @@ export const de: Partial<Messages> = {
   "site.pricing.solo.l3": "Lernräume und Gruppen-Challenges, live",
   "site.pricing.solo.l4": "Quiz, Zusammenfassungen, Lernkarten, Mindmaps",
   "site.pricing.solo.cta": "Solo-Tarife ansehen",
-  "site.pricing.schools.badge": "EMPFOHLEN",
   "site.pricing.schools.l1": "Eine Klasse, ein Jahrgang oder die ganze Schule",
   "site.pricing.schools.l2": "Lehrkraft-Dashboards + Analysen pro Klasse",
   "site.pricing.schools.l3": "LMS-Sync + Raya for Schools",

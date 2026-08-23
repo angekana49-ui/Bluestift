@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import SitePage from "@/components/site/SitePage";
 import type { Theme } from "@/components/site/theme";
 import { MEASURE, lead, pageColumn, pageH1, pageSection, serifEm } from "@/components/site/layout";
@@ -67,6 +67,67 @@ function Check({ color }: { color: string }) {
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, marginTop: 2 }}>
       <path d="M20 6 9 17l-5-5" stroke={color} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
+  );
+}
+
+/**
+ * The plan grid — a three-up grid on a desktop, a horizontal rail on a phone
+ * (see `.pub-rail` in globals.css), opened on the recommended tier.
+ *
+ * The opening position is the whole reason this is a component rather than a
+ * bare div. On a phone the rail starts at the first card, which puts the tier
+ * the ladder is built around off-screen; a visitor who never swipes never sees
+ * it. Anchoring to the middle card fixes that AND makes the shape of the offer
+ * legible immediately — a cheaper tier cut off to the left, a dearer one to the
+ * right, which is the one thing a stacked column can never show.
+ *
+ * It exists here, and not on the landing band, because there the three cards
+ * are three audiences rather than three rungs: nothing is recommended, so there
+ * is nothing to open on.
+ *
+ * Hooks live in this component on purpose — the grid is rendered inside
+ * SitePage's render prop, and a hook called in that callback would be
+ * registered against SitePage's own hook list.
+ */
+function PlanRail({
+  recIndex,
+  resetKey,
+  children,
+}: {
+  /** Index of the recommended card, or -1 when the ladder has no middle. */
+  recIndex: number;
+  /** Re-anchors when it changes — switching audience swaps every card, so the
+   *  scroll position left over from the previous set is meaningless. */
+  resetKey: string;
+  children: ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const rail = ref.current;
+    if (!rail || recIndex < 0) return;
+    // Only when it is actually a rail. Above 600px this is a plain grid with
+    // nothing to scroll, and the card is already on screen.
+    if (!window.matchMedia?.("(max-width: 600px)").matches) return;
+
+    const card = rail.children[recIndex] as HTMLElement | undefined;
+    if (!card) return;
+
+    // Measured from the two rects rather than computed from card width + gap:
+    // the offset has to agree with the rail's own padding and its snap line,
+    // and a measurement stays correct if either is ever retuned.
+    const delta = card.getBoundingClientRect().left - rail.getBoundingClientRect().left;
+    const pad = parseFloat(getComputedStyle(rail).paddingLeft) || 0;
+    // Assigned, never scrollTo({ behavior: "smooth" }): this is a starting
+    // position, not a movement. A rail that visibly slides after load reads as
+    // an animation the visitor arrived too late for.
+    rail.scrollLeft += delta - pad;
+  }, [recIndex, resetKey]);
+
+  return (
+    <div ref={ref} className="pub-grid-3 pub-rail" style={{ gap: 20, alignItems: "stretch" }}>
+      {children}
+    </div>
   );
 }
 
@@ -352,11 +413,19 @@ export function PricingView({
                 </div>
               </div>
 
-              <div className="pub-grid-3" style={{ gap: 20, alignItems: "stretch" }}>
+              {/* Rail on phones, as on the landing band. It matters more here:
+                  this is the page a visitor opens *to compare*, and these cards
+                  are the tallest on the site — a plan carries a price, a term
+                  toggle and its whole feature list, so stacked they are roughly
+                  a screen each and the comparison becomes a memory test.
+                  The section's `overflow: hidden` (see pageSection) is not a
+                  problem for the full-bleed: the rail's negative margin reaches
+                  the section's border-box edge exactly, never past it. */}
+              <PlanRail recIndex={recIndex} resetKey={audience}>
                 {plans.map((p, i) => (
                   <PlanCard key={p.id} t={t} plan={p} audience={audience} recommended={i === recIndex} />
                 ))}
-              </div>
+              </PlanRail>
 
               {/* Schools billing note — the explicit "you pay per effectif" agreement. */}
               {audience === "schools" && (

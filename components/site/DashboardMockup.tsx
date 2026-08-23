@@ -1,5 +1,14 @@
+import type { CSSProperties } from "react";
 import type { Theme } from "./theme";
 import { RayaName } from "@/components/ui/brand";
+
+/**
+ * Stagger, as an inline custom property the stylesheet reads as an
+ * animation-delay (see .pub-hero-* in globals.css). Same device as the product
+ * shots use, so one sequence can be written as numbers at the call site and
+ * read as a score, rather than as a pile of nth-child rules in the stylesheet.
+ */
+const at = (ms: number) => ({ "--d": `${ms}ms` }) as CSSProperties;
 
 type Bar = { sessions: number; quizzes: number; mastery: number };
 
@@ -25,16 +34,18 @@ const VIVID = {
 
 /** The floating product dashboard card inside the Home hero. */
 export default function DashboardMockup({ theme: t }: { theme: Theme }) {
-  const bar = (h: number, bg: string) => (
-    <div style={{ flex: 1, height: h, background: bg, borderRadius: "3px 3px 0 0" }} />
+  const bar = (h: number, bg: string, delay: number) => (
+    <div className="pub-hero-bar" style={{ ...at(delay), flex: 1, height: h, background: bg, borderRadius: "3px 3px 0 0" }} />
   );
 
   // One tile used to carry an infinite `shine` sweep. It drew the eye to the
   // tile with the least to say, forever, and made a static dashboard look like
   // a loading skeleton. The tiles are now plain — the numbers are the content.
-  const statTile = (label: string, value: string, sub: string, subColor: string) => (
+  const statTile = (label: string, value: string, sub: string, subColor: string, delay: number) => (
     <div
+      className="pub-hero-tile"
       style={{
+        ...at(delay),
         position: "relative",
         overflow: "hidden",
         border: `1px solid ${t.cardBorder}`,
@@ -50,16 +61,11 @@ export default function DashboardMockup({ theme: t }: { theme: Theme }) {
   );
 
   return (
-    <div
-      style={{
-        borderRadius: 32,
-        border: `1px solid ${t.cardBorder}`,
-        background: t.cardBg,
-        boxShadow: "0 40px 100px rgba(15,23,42,0.18)",
-        overflow: "hidden",
-        textAlign: "left",
-      }}
-    >
+    // Edge, elevation and radius belong to the BrowserFrame this is rendered
+    // inside (see HeroSection) — carrying its own as well drew two borders a
+    // pixel apart and stacked two shadows, which is the tell that a mockup was
+    // assembled rather than captured.
+    <div style={{ background: t.cardBg, textAlign: "left" }}>
       {/* Tab bar */}
       <div style={{ display: "flex", alignItems: "center", gap: 6, borderBottom: `1px solid ${t.cardBorder}`, padding: "12px 16px" }}>
         <span style={{ background: t.ctaBg, color: t.ctaText, borderRadius: 999, padding: "7px 14px", fontSize: 13, fontWeight: 500 }}>Overview</span>
@@ -86,10 +92,13 @@ export default function DashboardMockup({ theme: t }: { theme: Theme }) {
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
-            {statTile("Sessions today", "482", "+21% vs last month", "#10b981")}
-            {statTile("Students stuck", "6", "-2 since this morning", t.mutedLight)}
-            {statTile("Average mastery", "83%", "+12 points this month", t.mutedLight)}
-            {statTile("Active students", "1,204", "+340 this week", "#10b981")}
+            {/* The score starts at 700ms — while the frame's own rise (which
+                settles at 860ms) is still finishing, so the two read as one
+                arrival rather than as two waits. */}
+            {statTile("Sessions today", "482", "+21% vs last month", "#10b981", 700)}
+            {statTile("Students stuck", "6", "-2 since this morning", t.mutedLight, 760)}
+            {statTile("Average mastery", "83%", "+12 points this month", t.mutedLight, 820)}
+            {statTile("Active students", "1,204", "+340 this week", "#10b981", 880)}
           </div>
 
           {/* Bar chart */}
@@ -112,14 +121,18 @@ export default function DashboardMockup({ theme: t }: { theme: Theme }) {
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
-              {MONTHS.map((m) => {
+              {MONTHS.map((m, mi) => {
                 const c = m.current ? VIVID : PASTEL;
+                // Staggered by month, not by individual bar: eighteen separately
+                // timed bars is fussiness the eye reads as noise, where six
+                // groups read as the chart being drawn left to right.
+                const d = 900 + mi * 70;
                 return (
                   <div key={m.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, flex: 1 }}>
                     <div style={{ display: "flex", alignItems: "flex-end", gap: 2, width: "100%", height: 116 }}>
-                      {bar(m.bars.sessions, c.sessions)}
-                      {bar(m.bars.quizzes, c.quizzes)}
-                      {bar(m.bars.mastery, c.mastery)}
+                      {bar(m.bars.sessions, c.sessions, d)}
+                      {bar(m.bars.quizzes, c.quizzes, d)}
+                      {bar(m.bars.mastery, c.mastery, d)}
                     </div>
                     <span style={{ fontSize: 13, fontWeight: m.current ? 700 : 400, color: m.current ? t.text : t.mutedLight }}>{m.label}</span>
                   </div>
@@ -163,7 +176,7 @@ export default function DashboardMockup({ theme: t }: { theme: Theme }) {
                 </linearGradient>
               </defs>
               <path d="M 20 84 A 60 60 0 0 1 140 84" fill="none" stroke="#e2e8f0" strokeWidth="12" strokeLinecap="round" />
-              <path d="M 20 84 A 60 60 0 0 1 140 84" fill="none" stroke="url(#kernelGaugeFill)" strokeWidth="12" strokeLinecap="round" strokeDasharray="188" strokeDashoffset="50" />
+              <path className="pub-hero-gauge" d="M 20 84 A 60 60 0 0 1 140 84" fill="none" stroke="url(#kernelGaugeFill)" strokeWidth="12" strokeLinecap="round" strokeDasharray="188" strokeDashoffset="50" />
               <text x="80" y="64" textAnchor="middle" fontSize="22" fontWeight="700" fill={t.text}>1,204</text>
               <text x="80" y="79" textAnchor="middle" fontSize="8" fill={t.mutedLight}>students tracked</text>
             </svg>

@@ -66,7 +66,6 @@ export const en = {
   "site.nav.signIn": "Sign in",
   "site.nav.freeTrial": "Free trial",
   "site.nav.openApp": "Open app",
-  "site.nav.tagline": "AI-powered diagnostic engine for schools",
 
   // ── Public site: hero ─────────────────────────────────────────────
   "site.hero.eyebrow": "Students get why. Schools get the whole picture",
@@ -260,7 +259,6 @@ export const en = {
   "site.pricing.solo.l3": "Study Rooms and group challenges, live",
   "site.pricing.solo.l4": "Quizzes, summaries, flashcards, mind maps",
   "site.pricing.solo.cta": "See solo plans",
-  "site.pricing.schools.badge": "RECOMMENDED",
   "site.pricing.schools.l1": "A class, a grade, or a whole school",
   "site.pricing.schools.l2": "Teacher dashboards + per-class insights",
   "site.pricing.schools.l3": "LMS sync + Raya for Schools",

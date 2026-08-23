@@ -48,7 +48,6 @@ export const fr: Partial<Messages> = {
   "site.nav.signIn": "Se connecter",
   "site.nav.freeTrial": "Essai gratuit",
   "site.nav.openApp": "Ouvrir l’app",
-  "site.nav.tagline": "Le moteur de diagnostic IA pour les écoles",
 
   "site.hero.eyebrow": "Tuteur IA · tout niveau, toute matière, partout",
   "site.hero.headline": "Tout le monde a une IA. Personne n’en partage.",
@@ -223,7 +222,6 @@ export const fr: Partial<Messages> = {
   "site.pricing.solo.l3": "Salles d’étude et défis de groupe, en direct",
   "site.pricing.solo.l4": "Quiz, résumés, cartes mémo, cartes mentales",
   "site.pricing.solo.cta": "Voir les forfaits solo",
-  "site.pricing.schools.badge": "RECOMMANDÉ",
   "site.pricing.schools.l1": "Une classe, un niveau, ou tout l’établissement",
   "site.pricing.schools.l2": "Tableaux de bord profs + analyses par classe",
   "site.pricing.schools.l3": "Synchronisation LMS + Raya for Schools",

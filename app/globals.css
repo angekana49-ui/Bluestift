@@ -279,6 +279,67 @@ a {
   }
 }
 
+/* ---- Hero dashboard: the contents filling in ----
+   The frame arrives (.pub-hero-rise above, settling at 860ms) and the data
+   lands inside it. Starting at 700ms the two overlap deliberately: run strictly
+   back-to-back and the page reads as two separate waits rather than one arrival.
+
+   Same contract as .pub-hero-rise — pure CSS, unconditional, one-shot. Above
+   the fold there is no observer to wait for and nothing can be stranded hidden.
+
+   Deliberately NO count-up on the four figures, though that is the obvious
+   thing to reach for here. A number is server-rendered at its final value; a
+   hydration-driven count restarts it from zero, and hydration is not guaranteed
+   to land before first paint — on a mid-range phone it usually doesn't. The
+   visitor would watch 482 jump backwards to 0. The bars and the gauge make the
+   same "this is live data" claim with no value to contradict.
+
+   And nothing here loops. Three separate things on this page (a bobbing card, a
+   shine sweep, morphing blobs behind the pricing cards) were removed for
+   exactly that reason: motion with nothing to say pulls the eye off the thing
+   that does. This plays once and then holds still so the dashboard can be READ,
+   which is the only reason it is on the page. */
+.pub-hero-tile {
+  animation: heroTile var(--dur-enter) var(--ease-out) var(--d, 0ms) both;
+}
+@keyframes heroTile {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* Scale, not height: animating height relayouts the whole chart row every
+   frame, and the bars sit in a flex row that would reflow with it. */
+.pub-hero-bar {
+  transform-origin: bottom center;
+  animation: heroBar var(--dur-play) var(--ease-out) var(--d, 0ms) both;
+}
+@keyframes heroBar {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+/* The gauge sweeps to its reading. 188 is the arc's full dasharray, so `from`
+   is an empty gauge and the element's own dashoffset is where it stops. */
+.pub-hero-gauge {
+  animation: heroGauge 900ms var(--ease-out) 1080ms both;
+}
+@keyframes heroGauge {
+  from {
+    stroke-dashoffset: 188;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pub-hero-tile,
+  .pub-hero-bar,
+  .pub-hero-gauge {
+    animation: none;
+  }
+}
+
 /* The live dot on the room shot. The one loop kept on the whole site, because
    it is the only motion here that carries information: it means the session is
    live right now. */
@@ -309,13 +370,17 @@ a {
    the type into illegibility — the transcript alone still makes the point. */
 @media (max-width: 760px) {
   .pub-shot-wide {
-    /* Squarer than 21/9, because the transcript stacks into one column here and
-       needs the height its four turns actually occupy. */
-    aspect-ratio: 1 / 1 !important;
     /* Narrow the nominal design width the shot is drawn against, so the
        transcript scales UP to stay readable on a phone instead of shrinking
        with the container. See BASE_WIDE in ProductShots.tsx. */
     --shot-base-wide: 450;
+  }
+  /* Squarer than 21/9, because the transcript stacks into one column here and
+     needs the height its four turns actually occupy. Targets the screen rather
+     than the frame: the frame is now rail + screen, and overriding its ratio
+     would take the rail's height back out of the drawing. */
+  .pub-shot-wide .pub-shot-screen {
+    aspect-ratio: 1 / 1 !important;
   }
   .pub-shot-grid {
     grid-template-columns: 1fr !important;
@@ -459,6 +524,70 @@ a {
   }
   .pub-hide-sm {
     display: none !important;
+  }
+}
+
+/* ---- Card rails (phones only) ----
+   Below 600px a three- or four-up card grid collapses to one column. That is
+   the standard answer and it is the wrong one for cards that are PEERS: three
+   stacked pricing cards are most of a screen each, so comparing the second
+   against the third means holding the first in memory while thumbing past it.
+   The comparison the section exists to support is the thing the layout stops
+   supporting, and the page pays a full screen of scroll for the privilege.
+
+   A rail puts them back side by side at their designed proportions. The sizing
+   IS the affordance: at 78% the next card is visibly cut by the screen edge,
+   which says "the row continues" without a chevron, a dot strip or a hint of
+   copy. Nothing here animates and nothing auto-advances — the visitor's thumb
+   is the only thing that moves it, so there is no carousel to fight.
+
+   Opt-in, alongside the grid class, because it is only right for peers. Items
+   read in sequence, or of unequal weight, should still stack. Must stay after
+   the single-column rule above — same specificity, so source order is what
+   lets it win. */
+@media (max-width: 600px) {
+  .pub-rail {
+    grid-auto-flow: column;
+    grid-auto-columns: 78%;
+    grid-template-columns: none;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    /* Full-bleed past the page gutter, so a half-shown card reads as "more this
+       way" rather than as one cropped by accident. The inline padding puts the
+       first card back on the gutter line, and scroll-padding makes the snap
+       respect that same line instead of jamming the card to the screen edge. */
+    margin-inline: -24px;
+    padding-inline: 24px;
+    scroll-padding-inline: 24px;
+    /* `overflow-x` alone computes `overflow-y` to `auto` too, so the rail clips
+       vertically whether or not it was asked to. This is the clearance for what
+       sticks out: drop shadows below (weighted, since that is where they fall)
+       and the pricing card's "recommended" badge above, which hangs at
+       top: -12px and would otherwise be sliced along its top edge. */
+    padding-block: 16px 26px;
+    /* Visible by default — see the coarse-pointer override below. */
+    scrollbar-width: thin;
+  }
+  .pub-rail > * {
+    scroll-snap-align: start;
+  }
+}
+
+/* The scrollbar is hidden ONLY where a finger can do the scrolling.
+   Hiding it everywhere was wrong: this breakpoint is also what a desktop window
+   dragged narrow gets, and that is how the layout is usually looked at while
+   being built. With no bar there is no way to move the rail with a mouse and
+   nothing to say it moves at all — the half-cut card reads as a bug rather than
+   as an invitation. Touch keeps the clean edge because the thumb is the
+   affordance; everything else gets a bar it can actually grab. */
+@media (max-width: 600px) and (pointer: coarse) {
+  .pub-rail {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .pub-rail::-webkit-scrollbar {
+    display: none;
   }
 }
 @media (max-width: 760px) {

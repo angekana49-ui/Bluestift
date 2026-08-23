@@ -3,6 +3,7 @@
 import type { Theme } from "./theme";
 import { RayaText } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
+import BrowserFrame from "./DeviceFrame";
 import CloudBackground from "./CloudBackground";
 import DashboardMockup from "./DashboardMockup";
 import { GUTTER, LEAD, MEASURE, pageTop, sectionY } from "./layout";
@@ -114,7 +115,13 @@ export default function HeroSection({ theme: t }: { theme: Theme }) {
           thing this image is here to do, which is let you read it. It now
           arrives once, under the headline, and then holds still. */}
       <div className="pub-hero-rise" style={{ position: "relative", marginTop: 56, width: "100%", maxWidth: MEASURE.wide, zIndex: 1 }}>
-        <DashboardMockup theme={t} />
+        {/* The URL is the teacher dashboard's real address, not a placeholder —
+            it is the one line of copy on the page that says the product is
+            somewhere you could go, and inventing it would be the sort of detail
+            a visitor checks. */}
+        <BrowserFrame theme={t} url="schools.thebluestift.com">
+          <DashboardMockup theme={t} />
+        </BrowserFrame>
       </div>
     </section>
   );

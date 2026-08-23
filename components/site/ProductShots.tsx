@@ -170,8 +170,9 @@ function ShotFrame({
       style={{
         containerType: "inline-size",
         position: "relative",
-        aspectRatio: ratio,
         overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
         // A shot is a window onto the app, so it carries the app's own page
         // tint rather than the marketing card's white.
         background: t.dark
@@ -180,7 +181,48 @@ function ShotFrame({
         borderBottom: `1px solid ${t.cardBorder}`,
       }}
     >
-      <ShotLive.Provider value={live}>{children}</ShotLive.Provider>
+      {/* The window rail. Everything else in this file scales with the card via
+          u()/uw(); this deliberately does not, and is the one place raw px is
+          correct here. Chrome is not part of the composition — a real window's
+          title bar is the same height whether the window is wide or narrow, and
+          a rail that grew with the card would immediately read as drawn.
+          It costs no composition, either: `ratio` is declared on the screen
+          below rather than on this frame, so the rail ADDS its 24px to the
+          shot's height instead of taking them out of the drawing. Putting the
+          ratio on the frame is the obvious version and it is wrong — every
+          length inside a shot is width-derived, so the composition's height is
+          intrinsic, and a frame 24px shorter simply clips the last row off. */}
+      <div
+        aria-hidden
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 5,
+          height: 24,
+          flex: "none",
+          padding: "0 9px",
+          borderTop: "none",
+          borderRight: "none",
+          borderLeft: "none",
+          borderBottom: `1px solid ${t.dark ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.05)"}`,
+        }}
+      >
+        {[0, 1, 2].map((i) => (
+          <span
+            key={i}
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              background: t.dark ? "rgba(255,255,255,0.16)" : "rgba(15,23,42,0.12)",
+            }}
+          />
+        ))}
+      </div>
+
+      <div className="pub-shot-screen" style={{ position: "relative", aspectRatio: ratio }}>
+        <ShotLive.Provider value={live}>{children}</ShotLive.Provider>
+      </div>
     </div>
   );
 }

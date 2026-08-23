@@ -70,7 +70,7 @@ export default function FeaturesSection({ theme: t }: { theme: Theme }) {
           </div>
         </Reveal>
 
-        <div className="pub-grid-3" style={{ gap: 20 }}>
+        <div className="pub-grid-3 pub-rail" style={{ gap: 20 }}>
           {FEATURES.map((f, i) => (
             <Reveal key={f.titleKey} delay={i * 80}>
               <div

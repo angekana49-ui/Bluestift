@@ -74,7 +74,10 @@ export default function PricingSection({
           <p style={lead(t)}>{tr("site.pricing.sub")}</p>
         </div>
 
-        <div className="pub-grid-3" style={{ gap: 20, alignItems: "stretch" }}>
+        {/* Rail on phones: three plans are peers, and a visitor choosing between
+            them has to be able to hold two side by side. Stacked, the choice
+            becomes a memory test. */}
+        <div className="pub-grid-3 pub-rail" style={{ gap: 20, alignItems: "stretch" }}>
           {/* 1 — Solo (individual) */}
           {gatewayCard({
             title: tr("site.pricing.solo.title"),
@@ -90,10 +93,15 @@ export default function PricingSection({
           })}
 
           {/* 2 — Schools (recommended, dark) */}
+          {/* No "recommended" badge here, deliberately. These three cards are
+              three AUDIENCES — solo learner, school, bespoke — not three tiers
+              of one ladder. A visitor is not choosing the best value among
+              peers; they already know which one they are, and telling a teacher
+              that the school plan is "recommended" over the solo plan is not a
+              recommendation, it is noise in front of a decision that was never
+              theirs to make. The badge belongs on /pricing, where the three
+              cards ARE a ladder within one audience. */}
           <div style={{ display: "flex", flexDirection: "column", background: "#0b1220", color: "white", borderRadius: 24, padding: 28, position: "relative", boxShadow: "0 16px 40px rgba(15,23,42,0.25)" }}>
-            <span style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: "white", color: "#0b1220", fontSize: 13, fontWeight: 700, padding: "4px 12px", borderRadius: 999, letterSpacing: "0.1em", zIndex: 1 }}>
-              {tr("site.pricing.schools.badge")}
-            </span>
             <div style={{ position: "relative", fontSize: "1.5rem", fontWeight: 900, letterSpacing: "-0.02em" }}><SchoolsName /></div>
             {lineList(
               [

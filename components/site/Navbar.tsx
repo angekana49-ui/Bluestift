@@ -106,18 +106,16 @@ export default function Navbar({
             alt="BlueStift"
             style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
           />
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: "-0.02em", fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif" }}>
-              <span style={{ color: t.wordmarkA }}>Blue</span>
-              <span style={{ color: t.wordmarkB }}>Stift</span>
-              {section && <span style={{ fontWeight: 400, opacity: 0.6, marginLeft: 4, color: t.text }}>· {section}</span>}
-            </div>
-            {/* Hidden on phones: at 390px it wrapped onto four lines and pushed
-                the pill to a third of the screen height. The wordmark alone
-                identifies the site there. */}
-            <div className="pub-hide-sm" style={{ fontSize: 13, color: t.text }}>
-              {tr("site.nav.tagline")}
-            </div>
+          {/* Wordmark only. A tagline used to sit under it ("AI-powered
+              diagnostic engine for schools"), and it was the widest thing in the
+              bar by a distance — it set the brand block's width, so the whole
+              floating pill had to grow to hold a sentence nobody reads twice.
+              The hero states the same claim, in full, one scroll below. The bar
+              only has to say which site you are on. */}
+          <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: "-0.02em", fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif" }}>
+            <span style={{ color: t.wordmarkA }}>Blue</span>
+            <span style={{ color: t.wordmarkB }}>Stift</span>
+            {section && <span style={{ fontWeight: 400, opacity: 0.6, marginLeft: 4, color: t.text }}>· {section}</span>}
           </div>
         </Link>
 

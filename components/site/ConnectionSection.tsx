@@ -49,7 +49,7 @@ export default function ConnectionSection({ theme: t }: { theme: Theme }) {
           </p>
         </div>
 
-        <div className="pub-grid-3" style={{ gap: 20, alignItems: "stretch" }}>
+        <div className="pub-grid-3 pub-rail" style={{ gap: 20, alignItems: "stretch" }}>
           {STEPS.map((s, i) => (
             <Reveal key={s.n} delay={i * 80} style={{ height: "100%" }}>
             <div

@@ -85,7 +85,7 @@ export default function KernelSection({ theme: outer }: { theme: Theme }) {
           />
         </Reveal>
 
-        <div className="pub-grid-4" style={{ gap: 16 }}>
+        <div className="pub-grid-4 pub-rail" style={{ gap: 16 }}>
           {DIMENSIONS.map((d, i) => (
             <Reveal key={d.letter} delay={i * 70} style={{ height: "100%" }}>
             <div
