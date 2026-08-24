@@ -85,7 +85,7 @@ const ACCENT = {
  * Writing the sequence as numbers at the call site keeps each shot's timing
  * readable as a score — you can see the beats without cross-referencing CSS.
  */
-const at = (ms: number) => ({ "--d": `${ms}ms` }) as CSSProperties;
+export const at = (ms: number) => ({ "--d": `${ms}ms` }) as CSSProperties;
 
 /** True once the surrounding shot has started playing. Only ever true when
  *  motion is allowed, so consumers can treat it as "animate now". */
@@ -108,7 +108,7 @@ const ShotLive = createContext(false);
  * stops the moment the shot leaves the viewport rather than burning frames
  * behind the fold.
  */
-function useShotSequence(loopMs?: number) {
+export function useShotSequence(loopMs?: number) {
   const ref = useRef<HTMLDivElement>(null);
   const [live, setLive] = useState(false);
 
@@ -2259,7 +2259,7 @@ export function RungShot({ theme: t, rung }: { theme: Theme; rung: number }) {
   return (
     // 16/9 rather than the feature shots' 4/3, and the tightest ratio the four
     // turns fit in. It is the sticky stack that sets it: the last card pins at
-    // STICKY_BASE + 3 × HEADER_H = 260px down, so everything below that has to
+    // STICKY_BASE + 3 × STACK_STEP = 170px down, so everything below that has to
     // clear a laptop viewport (~640px) or the fourth rung gets cut in half at
     // exactly the moment the stack is meant to be readable.
     <ShotFrame theme={t} ratio="16 / 9" loopMs={cycle}>

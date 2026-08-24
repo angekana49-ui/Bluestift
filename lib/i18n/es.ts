@@ -120,6 +120,9 @@ export const es: Partial<Messages> = {
   "site.kernel.title.em": "cinco alertas.",
   "site.kernel.sub":
     "El núcleo no guarda una nota. Cada concepto lleva un vector de cuatro componentes y, en cuanto una señal se degrada, nombra el fallo para que Raya cambie de táctica en el turno siguiente.",
+  "site.kernel.map.title": "Todo gira alrededor de una sola persona.",
+  "site.kernel.map.body":
+    "Raya, la versión para clase, los deberes calificados: ninguno guarda su propia copia del estudiante. Todos escriben en el mismo perfil y lo releen antes de responder, mientras la conversación sigue abierta.",
   "site.kernel.k.name": "K · Conocimiento",
   "site.kernel.k.title": "Lo que se sostiene sin ayuda",
   "site.kernel.k.body": "El dominio de ese concepto concreto, en bruto y ajustado, recalculado tras cada intento.",
@@ -132,6 +135,9 @@ export const es: Partial<Messages> = {
   "site.kernel.m.name": "M · Mentalidad",
   "site.kernel.m.title": "La relación con el error",
   "site.kernel.m.body": "Si el esfuerzo se lee como información o como prueba de fracaso. Se sigue por alumno, no por concepto.",
+  "site.kernel.graph.title": "El fallo estaba en física. La causa, en matemáticas.",
+  "site.kernel.graph.body":
+    "Los conceptos se guardan como una estructura, no como un temario. Así que cuando algo se rompe, el Kernel no se detiene en el ejercicio fallado: retrocede por aquello en lo que ese concepto se apoya, hasta pisar terreno firme. Ese terreno suele estar en una asignatura donde nadie pensó en mirar.",
   "site.kernel.col.alert": "Alerta",
   "site.kernel.col.signal": "Señal detectada",
   "site.kernel.col.response": "Respuesta de Raya",

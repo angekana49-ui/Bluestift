@@ -120,6 +120,9 @@ export const de: Partial<Messages> = {
   "site.kernel.title.em": "fünf Warnsignale.",
   "site.kernel.sub":
     "Der Kern speichert keine Note. Jedes Konzept trägt einen vierteiligen Vektor — und sobald ein Signal kippt, benennt er das Problem, damit Raya schon im nächsten Zug die Taktik wechselt.",
+  "site.kernel.map.title": "Alles kreist um eine einzige Person.",
+  "site.kernel.map.body":
+    "Raya, die Klassenversion, die benoteten Aufgaben — keines davon hält eine eigene Kopie der lernenden Person. Alle schreiben in dasselbe Profil und lesen es zurück, bevor sie antworten, während das Gespräch noch läuft.",
   "site.kernel.k.name": "K · Wissen",
   "site.kernel.k.title": "Was ohne Hilfe trägt",
   "site.kernel.k.body": "Die Beherrschung genau dieses Konzepts, roh und angepasst, nach jedem Versuch neu berechnet.",
@@ -132,6 +135,9 @@ export const de: Partial<Messages> = {
   "site.kernel.m.name": "M · Haltung",
   "site.kernel.m.title": "Das Verhältnis zum Fehler",
   "site.kernel.m.body": "Ob Anstrengung als Information gilt oder als Beweis des Scheiterns. Pro Lernendem erfasst, nicht pro Konzept.",
+  "site.kernel.graph.title": "Der Fehler lag in Physik. Die Ursache in Mathematik.",
+  "site.kernel.graph.body":
+    "Konzepte liegen als Struktur vor, nicht als Lehrplan. Wenn etwas bricht, hält der Kernel deshalb nicht bei der misslungenen Aufgabe an: Er geht zurück über das, worauf das Konzept ruht, bis er auf tragfähigen Boden trifft. Dieser Boden liegt oft in einem Fach, in dem niemand nachgesehen hätte.",
   "site.kernel.col.alert": "Warnsignal",
   "site.kernel.col.signal": "Erkanntes Signal",
   "site.kernel.col.response": "Rayas Reaktion",

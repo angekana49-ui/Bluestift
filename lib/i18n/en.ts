@@ -147,6 +147,9 @@ export const en = {
   "site.kernel.title.em": "five alerts.",
   "site.kernel.sub":
     "The Kernel doesn’t store a grade. Every concept carries a four-part vector — and when a signal degrades it names the failure, so Raya can change tactic on the very next turn.",
+  "site.kernel.map.title": "Everything runs around one person.",
+  "site.kernel.map.body":
+    "Raya, the classroom version of Raya, the graded homework — not one of them keeps its own copy of a student. They all write into the same profile and read it back before they answer, while the conversation is still going.",
   "site.kernel.k.name": "K · Knowledge",
   "site.kernel.k.title": "What holds up without help",
   "site.kernel.k.body": "Mastery of that one concept, raw and adjusted, recomputed after each attempt.",
@@ -159,6 +162,9 @@ export const en = {
   "site.kernel.m.name": "M · Mindset",
   "site.kernel.m.title": "The relationship to error",
   "site.kernel.m.body": "Whether struggle reads as information or as proof of failure. Tracked per student, not per concept.",
+  "site.kernel.graph.title": "The failure was in physics. The cause was in maths.",
+  "site.kernel.graph.body":
+    "Concepts are stored as a structure, not as a syllabus. So when something breaks, the Kernel doesn’t stop at the exercise that broke — it walks back along whatever that concept rests on, until it reaches ground that holds. That ground is often in a subject nobody thought to check.",
   "site.kernel.col.alert": "Alert",
   "site.kernel.col.signal": "Signal detected",
   "site.kernel.col.response": "Raya’s response",

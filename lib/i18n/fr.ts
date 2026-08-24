@@ -120,6 +120,9 @@ export const fr: Partial<Messages> = {
   "site.kernel.title.em": "cinq alertes.",
   "site.kernel.sub":
     "Le noyau ne stocke pas une note. Chaque concept porte un vecteur à quatre composantes — et dès qu’un signal se dégrade, il nomme la défaillance, pour que Raya change de tactique dès le tour suivant.",
+  "site.kernel.map.title": "Tout tourne autour d’une seule personne.",
+  "site.kernel.map.body":
+    "Raya, la version pour les classes, les devoirs notés — aucun ne garde sa propre copie de l’élève. Tous écrivent dans le même profil et le relisent avant de répondre, pendant que la conversation est encore en cours.",
   "site.kernel.k.name": "K · Connaissance",
   "site.kernel.k.title": "Ce qui tient sans aide",
   "site.kernel.k.body": "La maîtrise de ce concept précis, brute et ajustée, recalculée après chaque tentative.",
@@ -132,6 +135,9 @@ export const fr: Partial<Messages> = {
   "site.kernel.m.name": "M · État d’esprit",
   "site.kernel.m.title": "Le rapport à l’erreur",
   "site.kernel.m.body": "L’effort est-il lu comme une information ou comme une preuve d’échec. Suivi par élève, pas par concept.",
+  "site.kernel.graph.title": "L’échec était en physique. La cause était en maths.",
+  "site.kernel.graph.body":
+    "Les concepts sont rangés comme une structure, pas comme un programme. Quand quelque chose casse, le Kernel ne s’arrête donc pas à l’exercice raté : il remonte ce sur quoi ce concept repose, jusqu’à retomber sur du solide. Ce solide est souvent dans une matière où personne n’avait pensé à regarder.",
   "site.kernel.col.alert": "Alerte",
   "site.kernel.col.signal": "Signal détecté",
   "site.kernel.col.response": "Réponse de Raya",

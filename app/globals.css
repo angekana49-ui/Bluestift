@@ -255,6 +255,749 @@ a {
   }
 }
 
+/* A fade with no movement, for elements that already own their `transform`.
+   `.shot-in` cannot be used on those: it drives transform too, wins on
+   specificity, and — because the entrance ends on `transform: none` with
+   `both` — permanently discards the positioning it overwrote. The system
+   map's nodes and labels are centred with translate(-50%, -50%), so they land
+   here instead. */
+.pub-shot-anim .shot-fade {
+  opacity: 0;
+}
+.pub-shot-anim.is-live .shot-fade {
+  animation: shotFade var(--dur-enter) var(--ease-out) var(--d, 0ms) both;
+}
+@keyframes shotFade {
+  to {
+    opacity: 1;
+  }
+}
+
+/* A fade that also ends. `.shot-fade` arrives and stays, which is right for
+   anything a sequence accumulates; this one is for the elements that have a
+   turn — a caption that belongs to one stretch of a tour and has to be gone
+   before the next stretch claims the same corner. `--dur-span` is the whole
+   life of the element, `--d` is when it starts. */
+.pub-shot-anim .shot-span {
+  opacity: 0;
+}
+.pub-shot-anim.is-live .shot-span {
+  animation: shotSpan var(--dur-span, 6000ms) var(--ease-out) var(--d, 0ms) both;
+}
+@keyframes shotSpan {
+  0% {
+    opacity: 0;
+  }
+  7% {
+    opacity: 1;
+  }
+  89% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Inside SVG, a transform resolves against the viewBox rather than against the
+   element, so `transform-origin: 50% 50%` lands in the middle of the drawing
+   and a scale meant as a pop reads as a slide across it. Anchor every animated
+   node to its own box. */
+.pub-graph-svg .shot-pick,
+.pub-graph-svg .shot-ring,
+.pub-graph-svg .shot-in,
+.pub-orbit-svg .shot-pick,
+.pub-orbit-svg .shot-in {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* A wire in the Kernel band's diagrams, drawing itself from source to target.
+   Every path that uses this declares `pathLength="100"`, so one rule can drive
+   edges of wildly different real lengths at the same speed without anything
+   here or in the component having to measure them. */
+.pub-shot-anim .shot-wire {
+  stroke-dashoffset: 100;
+}
+.pub-shot-anim.is-live .shot-wire {
+  animation: shotWire 620ms var(--ease-out) var(--d, 0ms) both;
+}
+@keyframes shotWire {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* A request travelling along one of those wires.
+   Hidden unconditionally, not just outside a running sequence: a static
+   diagram shows the wires, never a packet frozen halfway down one. That is
+   also why this is the only piece of the band that is pure decoration if you
+   read it wrong — it isn't. Each pulse is one real call, fired in the order
+   and direction the code fires it. */
+.shot-flow {
+  opacity: 0;
+}
+.pub-shot-anim.is-live .shot-flow {
+  animation: shotFlow var(--dur-flow, 900ms) linear var(--d, 0ms) both;
+}
+@keyframes shotFlow {
+  0% {
+    stroke-dashoffset: 119;
+    opacity: 0;
+  }
+  14% {
+    opacity: 1;
+  }
+  86% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+/* Traffic that never stops: the concept graph is a shared structure being
+   written to by everyone using it, and one packet crossing it once would be a
+   drawing of a demo rather than of the thing. Bounded by the shot's own
+   observer, which pauses the whole sequence off-screen. */
+.pub-shot-anim.is-live .shot-flow.is-loop {
+  animation-iteration-count: infinite;
+}
+
+/* The same idea as a packet, on a vertical HTML rail rather than an SVG path —
+   the trace diagram's segments. `--dur-run` is set per segment so the travel
+   time matches the gap between the two stages it joins. */
+.shot-run-y {
+  opacity: 0;
+}
+.pub-shot-anim.is-live .shot-run-y {
+  animation: shotRunY var(--dur-run, 700ms) var(--ease-out) var(--d, 0ms) both;
+}
+@keyframes shotRunY {
+  0% {
+    top: -24px;
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  82% {
+    opacity: 1;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+
+/* A stage of the trace lighting as the request reaches it. Colour, not
+   movement: the row is already in place and only its status is changing. */
+.pub-shot-anim .shot-glow {
+  opacity: 0;
+}
+.pub-shot-anim.is-live .shot-glow {
+  animation: shotGlow 1100ms var(--ease-out) var(--d, 0ms) both;
+}
+@keyframes shotGlow {
+  0% {
+    opacity: 0;
+    box-shadow: 0 0 0 0 transparent;
+  }
+  30% {
+    opacity: 1;
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--glow) 22%, transparent);
+  }
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+/* The two rings the diagnosis puts on a node — the failed attempt and the root
+   gap. They keep pulsing while the camera holds on them, because the camera
+   holds far longer than a single pop would last and a still ring at 2.4× reads
+   as an annotation someone drew rather than as a state the system is in. */
+.shot-ring {
+  opacity: 0;
+}
+.pub-shot-anim.is-live .shot-ring {
+  animation: shotRing 1700ms var(--ease-out) var(--d, 0ms) infinite both;
+}
+@keyframes shotRing {
+  0% {
+    opacity: 0;
+    transform: scale(0.55);
+  }
+  35% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
+/* ---- Kernel band: the loop ----
+
+   The learner in the middle, three shells around them, traffic on every bond.
+   It replaced a labelled trace of the pipeline — accurate, and nobody was ever
+   going to read it. A landing page gets one glance and a glance holds a shape,
+   not a list, so this one is a shape: everything is in orbit around one person
+   and none of it ever stops. */
+.pub-orbit-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Everything hangs off this group so the narrow layout can push the whole
+   composition in without a single coordinate in the component knowing. */
+.pub-orbit-fit {
+  transform-origin: var(--orbit-o);
+}
+
+/* SVG text carries its size in CSS rather than as an attribute, which is the
+   only way the phone layout can enlarge it: at 360px the drawing is scaled to
+   0.3 of its own units, and a 15px label would land at four and a half real
+   pixels. */
+.pub-orbit-hero {
+  font-family: var(--font-plex), "IBM Plex Sans", sans-serif;
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.pub-orbit-name {
+  font-family: var(--font-plex), "IBM Plex Sans", sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+}
+.pub-orbit-sub {
+  font-size: 12px;
+  font-weight: 400;
+}
+.pub-orbit-chip {
+  font-family: var(--font-plex), "IBM Plex Sans", sans-serif;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+.pub-orbit-side text {
+  text-anchor: middle;
+}
+
+/* Beads riding a shell. Dashes on a path rather than circles in a rotating
+   group: a rotation would take the labels round with it, and half of them
+   would arrive upside down. Every ring declares pathLength="100", so one rule
+   drives shells of completely different circumferences and each keeps its own
+   pace through --dur-orbit. */
+.pub-shot-anim.is-live .pub-orbit-run {
+  animation: orbitRun var(--dur-orbit, 12s) linear var(--d, 0ms) infinite both;
+}
+.pub-shot-anim.is-live .pub-orbit-run.is-back {
+  animation-name: orbitRunBack;
+}
+@keyframes orbitRun {
+  to {
+    stroke-dashoffset: -100;
+  }
+}
+@keyframes orbitRunBack {
+  to {
+    stroke-dashoffset: 100;
+  }
+}
+
+/* The learner, breathing. The one piece of motion in the drawing that isn't a
+   packet — it is the thing everything else is arranged around, so it should
+   look alive rather than look like a station. */
+.pub-orbit-halo {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.pub-shot-anim.is-live .pub-orbit-halo {
+  animation: orbitHalo 3.4s var(--ease-out) infinite both;
+}
+@keyframes orbitHalo {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.14);
+    opacity: 1;
+  }
+}
+
+/* The one sentence on the plate, in the bottom-left corner — which is not an
+   arbitrary corner. The outer shell's lower arc passes below y≈540 of the
+   viewBox out to x≈350, so a chip capped at 300px and two lines tall sits in
+   the gap the composition leaves rather than on top of the drawing. Widening
+   it puts it through the ring. */
+/* A node reacting to the pointer. The scale lives on a wrapping group, never
+   on the disc itself: `.shot-pick` drives `transform` on its own element and
+   settles on `transform: none` with `both`, so a hover transform sharing that
+   element would work exactly until the entrance finished and then never
+   again. */
+.pub-orbit-node {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 240ms var(--ease-out);
+  cursor: default;
+}
+.pub-orbit-node:hover {
+  transform: scale(1.13);
+}
+
+/* A ring leaving a node: an arrival landing, or the learner's heartbeat. Kept
+   separate from `.shot-ring` because these are the slow ones — several seconds
+   each, phased against one another, so the plate never blinks in unison. */
+.pub-orbit-beat {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+}
+.pub-shot-anim.is-live .pub-orbit-beat {
+  animation: orbitBeat var(--dur-beat, 3400ms) var(--ease-out) var(--d, 0ms) infinite both;
+}
+@keyframes orbitBeat {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  22% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2);
+  }
+}
+
+.pub-orbit-foot {
+  position: absolute;
+  left: 16px;
+  bottom: 14px;
+  border: 1px solid;
+  border-radius: 10px;
+  padding: 7px 12px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  max-width: 300px;
+}
+
+@media (max-width: 760px) {
+  /* The whole composition pushed in, and the second line of every label
+     dropped. What survives is the shape and the six names on it, which is the
+     half of this drawing that was ever going to work on a phone. */
+  .pub-orbit-fit {
+    transform: scale(1.18);
+  }
+  .pub-orbit-sub {
+    display: none;
+  }
+  .pub-orbit-hero {
+    font-size: 30px;
+  }
+  .pub-orbit-name {
+    font-size: 26px;
+  }
+  .pub-orbit-chip {
+    font-size: 20px;
+  }
+  /* The two outer nodes sit on the frame's edge once it is scaled. Anchoring
+     their labels inwards is what keeps them on the canvas. */
+  .pub-orbit-side-l text {
+    text-anchor: start;
+  }
+  .pub-orbit-side-r text {
+    text-anchor: end;
+  }
+  .pub-orbit-foot {
+    display: none;
+  }
+}
+
+/* ---- Kernel band: the concept graph ----
+   The camera is the illustration. The tour opens on the whole ontology, flies
+   to a failed attempt, and tracks the diagnosis backwards across a subject
+   boundary — which is the one inference in this product that cannot be got at
+   with a better prompt, so it is worth twenty-four seconds of screen time.
+
+   It is a transform on a group rather than an animated viewBox: viewBox is an
+   attribute and cannot be driven from CSS, and doing it in JS would put a
+   requestAnimationFrame loop on the landing page for something the compositor
+   will do on its own. */
+/* The drawing on top, the reading underneath it, both full width. The reading
+   used to be a 300px gutter beside the canvas, which cost the drawing a
+   quarter of its width — and the drawing's width is the whole reason its
+   labels are readable. */
+.pub-graph {
+  display: block;
+}
+.pub-graph-canvas {
+  position: relative;
+  min-width: 0;
+}
+.pub-graph-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.pub-graph-cam {
+  transform-origin: 0 0;
+  transform: var(--cam0);
+  /* An SVG group transform is not composited on its own. Saying so up front is
+     the difference between a thirty-second move that glides and one that
+     re-rasterises a hundred and fifty paths every frame. */
+  will-change: transform;
+}
+.pub-shot-anim.is-live .pub-graph-cam {
+  animation: graphCam 30s cubic-bezier(0.45, 0, 0.3, 1) 0ms both;
+}
+/* The holds are as important as the moves, and the ratio between them is the
+   whole thing. Every pair of identical percentages below is a beat the camera
+   sits still; every gap between a pair and the next is a move.
+   The moves are short on purpose — under a second for a one-bond hop. The
+   previous version spread the same distance over five seconds to avoid
+   lurching, and ended up creeping across thirty-three units at a rate the eye
+   reads as stationary. Move, then hold, is what reads as a step.
+   The two long moves are the ones that have somewhere to go: 55→61 crosses the
+   subject boundary, and 71→77 pulls back to show the whole path at once. */
+@keyframes graphCam {
+  0%,
+  10% {
+    transform: var(--cam0);
+  }
+  14%,
+  22% {
+    transform: var(--cam1);
+  }
+  25%,
+  33% {
+    transform: var(--cam2);
+  }
+  36%,
+  44% {
+    transform: var(--cam3);
+  }
+  47%,
+  55% {
+    transform: var(--cam4);
+  }
+  61%,
+  71% {
+    transform: var(--cam5);
+  }
+  77%,
+  88% {
+    transform: var(--cam6);
+  }
+  94%,
+  100% {
+    transform: var(--cam7);
+  }
+}
+
+/* The seam. See the note on `pub-graph-loop` in KernelDiagrams. */
+.pub-shot-anim.is-live .pub-graph-loop {
+  animation: graphLoop 30s linear 0ms both;
+}
+@keyframes graphLoop {
+  0%,
+  94% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* The subject, called out on the frame as the camera enters it. Big, quiet,
+   and top-right — the legend owns top-left and the counter owns the bottom. */
+.pub-graph-subject {
+  position: absolute;
+  right: clamp(14px, 1.8vw, 22px);
+  top: clamp(10px, 1.4vw, 16px);
+  max-width: 52%;
+  text-align: right;
+  pointer-events: none;
+}
+.pub-graph-subject b {
+  display: block;
+  font-family: var(--font-plex), "IBM Plex Sans", sans-serif;
+  font-size: clamp(21px, 3.3vw, 40px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  opacity: 0.72;
+}
+.pub-graph-subject span {
+  display: block;
+  margin-top: 2px;
+  font-size: clamp(9.5px, 1vw, 11.5px);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.pub-graph-zoom {
+  transform-origin: center;
+}
+
+/* ---- Picking a concept out of it ----
+   Everything on the plate stops the moment a pointer is on the drawing — not
+   only the camera. Nothing is more hostile than a picture that flies away from
+   the thing you just reached for, and the loop fade above would otherwise dim
+   the drawing out from under a pointer that had been resting on it for half a
+   minute.
+   `:has()` is what lets a hover inside the canvas reach the plate around it.
+   Where it is not supported the rule is simply dropped and the tour keeps
+   running under the pointer, which is the old behaviour rather than a break. */
+.pub-graph:has(.pub-graph-canvas:hover),
+.pub-graph:has(.pub-graph-canvas:hover) * {
+  animation-play-state: paused;
+}
+.pub-graph-base,
+.pub-graph-subj {
+  transition: opacity 200ms var(--ease-out);
+}
+.pub-graph-canvas.is-focus .pub-graph-base {
+  opacity: 0.26;
+}
+.pub-graph-hit circle {
+  cursor: pointer;
+}
+.pub-graph-key {
+  cursor: pointer;
+  transition: color 160ms var(--ease-out);
+}
+
+.pub-graph-legend,
+.pub-graph-count {
+  position: absolute;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 12px;
+  border: 1px solid;
+  border-radius: 10px;
+  padding: 7px 11px;
+  font-size: 10.5px;
+  line-height: 1.4;
+}
+.pub-graph-legend {
+  left: 14px;
+  top: 14px;
+}
+.pub-graph-count {
+  left: 14px;
+  bottom: 14px;
+  gap: 0 4px;
+}
+.pub-graph-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.pub-graph-legend i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* ---- The reading, under the drawing ----
+   It was a 300px gutter on the right. Two things were wrong with that: every
+   line broke three times, and a panel off to one side is something you read
+   INSTEAD of the drawing rather than with it. Full width underneath, filling
+   in step by step as the camera reaches each concept, means the sheet is being
+   written in front of you while you watch — and the two halves can never be
+   describing different moments.
+
+   The hover card lands in this same slot rather than beside it, so the two
+   readings can never crowd each other or stack up. */
+.pub-graph-strip {
+  padding: 16px clamp(14px, 2vw, 22px) 18px;
+  border-top: 1px solid var(--hud-edge);
+  min-width: 0;
+}
+
+/* What the strip is, and how to use the drawing — the two sentences that used
+   to be a chip floating over the picture. */
+.pub-graph-lede {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 18px;
+  margin-bottom: 11px;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+.pub-graph-lede span:first-child {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 11px;
+}
+
+/* One bar across the full width, running the length of the tour. The only
+   thing on the plate that says how much of the reasoning you have watched. */
+.pub-graph-rail {
+  display: block;
+  height: 3px;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.pub-graph-rail i {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+.pub-shot-anim.is-live .pub-graph-rail i {
+  animation: graphRail 30s linear both;
+}
+@keyframes graphRail {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* auto-fit rather than a fixed count: six steps is what this diagnosis
+   happens to have, and the row should not need editing when it is five. The
+   floor is 150px because that is what puts all six on one line inside the
+   1080px column — one row is what makes the reading scan as a sequence. */
+.pub-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px clamp(14px, 1.8vw, 24px);
+}
+.pub-step {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.pub-step-n {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+.pub-step-n b {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  font-size: 9.5px;
+  font-weight: 800;
+}
+.pub-step-n i {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.pub-step-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.3;
+  word-break: break-word;
+}
+.pub-step-body {
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+.pub-graph-foot {
+  margin-top: 16px;
+  padding-top: 13px;
+  border-top: 1px solid;
+  font-size: 11.5px;
+  line-height: 1.6;
+}
+
+/* ---- The card the strip becomes when a concept is picked ----
+   One row of ConceptStateOut. K and K′ are two bars of the same colour rather
+   than two printed numbers: the gap between them IS the forgetting model, and
+   a gap is something you see rather than read. */
+.pub-graph-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+  gap: 16px clamp(20px, 4vw, 56px);
+  align-items: start;
+}
+.pub-graph-card-id {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+.pub-graph-card-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+  gap: 9px clamp(18px, 3vw, 34px);
+  min-width: 0;
+}
+.pub-graph-card-note {
+  grid-column: 1 / -1;
+  margin-top: 2px;
+}
+.pub-hud-pill {
+  align-self: flex-start;
+  border: 1px solid;
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.pub-hud-metric {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) 32px;
+  align-items: center;
+  gap: 9px;
+  font-size: 11px;
+}
+.pub-hud-track {
+  height: 5px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.pub-hud-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  transition: width 220ms var(--ease-out);
+}
+
+@media (max-width: 620px) {
+  .pub-graph-card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  /* One fixed zoom pushed in under the camera, so every stop of the tour
+     becomes a tighter shot of the same tour instead of a second tour written
+     for phones. The wide stops crop; the close ones become legible. */
+  .pub-graph-zoom {
+    transform: scale(1.5);
+  }
+  .pub-graph-count {
+    display: none;
+  }
+}
+
 /* The first-visit language bar, settling in from the bottom edge rather than
    appearing on top of the page. Same reasoning as the hero: it mounts already
    in view, so it animates unconditionally and can never be left hidden. */
@@ -549,10 +1292,10 @@ a {
   position: sticky;
 }
 /* 720, not 860. The fallback exists for windows too narrow to hold a card
-   beside its own stacked headers — but at 860 it was switching the stack off on
+   beside its own stacked edges — but at 860 it was switching the stack off on
    ordinary laptop windows and half-width browsers, i.e. on exactly the readers
    who were meant to see it. The cards are sized to pile inside a short viewport
-   (see HEADER_H and the rung shot's ratio), so the stack survives much lower
+   (see STACK_STEP and the rung shot's ratio), so the stack survives much lower
    than it used to. */
 @media (max-width: 720px) {
   .pub-stack-card {
@@ -575,40 +1318,27 @@ a {
    load-bearing: with only `grid-column` set, auto-placement never moves
    backwards, so the shot would land on a second row underneath instead of
    beside. */
-/* The rung's number band. It alternates with the split below it, so the badge
-   always sits over the explanation rather than over the session — the four
-   numbers then zig-zag down the stack instead of stacking into one left rail,
-   which is the only way the pile reads as four cards and not as one card with
-   a repeating header. */
-.pub-rung-head {
-  display: flex;
-  align-items: center;
-  padding: 0 16px;
-}
-.pub-rung-head.is-flipped {
-  justify-content: flex-end;
-}
-/* Below the split's breakpoint the explanation is always first and always on
-   the left, so a right-hand badge would be pointing at nothing. */
-@media (max-width: 720px) {
-  .pub-rung-head.is-flipped {
-    justify-content: flex-start;
-  }
-}
-
 /* The min-height is what gives the card presence: its natural height is
    whatever the session shot happens to be (a 16/9 of half the column), which
-   left the explanation cramped against the edges. Held deliberately low —
-   every pixel added here is paid four times over, since the last card pins at
-   STICKY_BASE + 3 × HEADER_H and everything below it still has to clear a
-   laptop viewport. */
+   left the explanation cramped against the edges. It can afford to be generous
+   now: this used to sit under a 46px header band, so the card paid for both.
+   Merging the band's contents into this zone bought the height back, and the
+   stack's step dropped with it — the last card pins at STICKY_BASE + 3 ×
+   STACK_STEP, and everything below it still has to clear a laptop viewport. */
 .pub-rung-split {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* Not 1fr 1fr: the session is the half that has to stay legible — it holds
+     four turns of real chat at a scale set by its own width — while the
+     explanation is four lines that read fine narrower. The extra height the
+     merge freed goes into the shot rather than into empty space around it. */
+  grid-template-columns: 1fr 1.15fr;
   align-items: center;
   gap: clamp(16px, 2.4vw, 30px);
-  padding: clamp(16px, 2.6vw, 26px);
-  min-height: clamp(230px, 30vw, 306px);
+  padding: clamp(18px, 2.8vw, 30px);
+  min-height: clamp(240px, 31vw, 344px);
+}
+.pub-rung-split.is-flipped {
+  grid-template-columns: 1.15fr 1fr;
 }
 .pub-rung-split.is-flipped .pub-rung-shot {
   grid-column: 1;
@@ -621,7 +1351,8 @@ a {
 /* Same breakpoint the scroll-stack gives up at: below it the cards are a plain
    list, and a half-column that narrow would render the session illegible. */
 @media (max-width: 720px) {
-  .pub-rung-split {
+  .pub-rung-split,
+  .pub-rung-split.is-flipped {
     grid-template-columns: 1fr;
   }
   .pub-rung-split.is-flipped .pub-rung-shot,

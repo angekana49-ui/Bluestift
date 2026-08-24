@@ -4,28 +4,42 @@ import type { Theme } from "./theme";
 import { RayaText } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
+import { ConceptGraphShot, KernelLoopShot } from "./KernelDiagrams";
 import Reveal from "./Reveal";
-import { SectionHeader, bandColumn, bandSection, bandTone, serifEm } from "./layout";
+import { LEAD, SectionHeader, bandColumn, bandSection, bandTone, serifEm } from "./layout";
 
 /**
- * What the Cognitive Kernel actually stores, named field by field.
+ * What the Cognitive Kernel actually stores, and how it reaches the apps.
  *
  * The four letters are the real contract, not a metaphor: `ConceptStateOut`
  * carries `k_raw` / `k_effective`, `v_score` and `p_score` per concept, and
- * `MindsetOut.m_score` per student (`lib/kernel/types.ts`). The five alerts are
+ * `MindsetOut.m_score` per student (`lib/kernel/types.ts`) — which is why each
+ * card names its field rather than only its letter. The five alerts are
  * `KernelAlertType` verbatim, and each "response" column restates the handling
  * rule the tutor is given for that alert in `lib/raya/prompt.ts`
  * ("# Active safety alerts").
  *
  * Keep the two in sync: if the kernel contract gains or renames an alert, this
  * table is a public claim about the product and has to move with it.
+ *
+ * The section used to be those two lists and nothing else — an accurate
+ * description of a data structure, which is not the same as evidence that
+ * anything is running. The two drawings are the evidence: the first is the
+ * shape of the system, with the learner at the centre of it and traffic on
+ * every bond, and the second shows the one inference nothing else in the stack
+ * can produce — a cause in a different subject from the failure. See
+ * ./KernelDiagrams.
+ *
+ * The `site.kernel.map.*` keys are named for a drawing that no longer exists
+ * (there was a route map here once). They caption the loop now; renaming them
+ * would touch MessageKey and four locale files for nothing.
  */
 
-const DIMENSIONS: { letter: string; nameKey: MessageKey; titleKey: MessageKey; bodyKey: MessageKey }[] = [
-  { letter: "K", nameKey: "site.kernel.k.name", titleKey: "site.kernel.k.title", bodyKey: "site.kernel.k.body" },
-  { letter: "V", nameKey: "site.kernel.v.name", titleKey: "site.kernel.v.title", bodyKey: "site.kernel.v.body" },
-  { letter: "P", nameKey: "site.kernel.p.name", titleKey: "site.kernel.p.title", bodyKey: "site.kernel.p.body" },
-  { letter: "M", nameKey: "site.kernel.m.name", titleKey: "site.kernel.m.title", bodyKey: "site.kernel.m.body" },
+const DIMENSIONS: { letter: string; field: string; nameKey: MessageKey; titleKey: MessageKey; bodyKey: MessageKey }[] = [
+  { letter: "K", field: "k_raw · k_effective", nameKey: "site.kernel.k.name", titleKey: "site.kernel.k.title", bodyKey: "site.kernel.k.body" },
+  { letter: "V", field: "v_score", nameKey: "site.kernel.v.name", titleKey: "site.kernel.v.title", bodyKey: "site.kernel.v.body" },
+  { letter: "P", field: "p_score", nameKey: "site.kernel.p.name", titleKey: "site.kernel.p.title", bodyKey: "site.kernel.p.body" },
+  { letter: "M", field: "m_score", nameKey: "site.kernel.m.name", titleKey: "site.kernel.m.title", bodyKey: "site.kernel.m.body" },
 ];
 
 const ALERTS: { nameKey: MessageKey; signalKey: MessageKey; responseKey: MessageKey }[] = [
@@ -36,37 +50,77 @@ const ALERTS: { nameKey: MessageKey; signalKey: MessageKey; responseKey: Message
   { nameKey: "site.kernel.a5.name", signalKey: "site.kernel.a5.signal", responseKey: "site.kernel.a5.response" },
 ];
 
+const MONO = "ui-monospace,SFMono-Regular,Menlo,monospace";
+
 export default function KernelSection({ theme: outer }: { theme: Theme }) {
   const tr = useTranslate();
 
   /**
-   * The one inverted band on the page (see `Tone` in ./layout).
+   * This band used to be `ink` — permanently inverted, the same near-black in
+   * light mode and in dark. That was defensible while the section was two lists
+   * of text: a dark plate says "engine room" before a word is read.
    *
-   * It lands here rather than anywhere else because this is where the page stops
-   * describing the product and names the contract: four fields the Kernel really
-   * stores and five alerts it really raises. Giving that a dark plate says
-   * "engine room" before a word is read, and it breaks a run of eight
-   * near-white bands that had nothing else separating them.
+   * It stopped being defensible once the section became two drawings. An ink
+   * band renders identically in both modes by design, so half the visitors to
+   * the site would never see either diagram in the palette their page is in,
+   * and the two of them would sit inside the page looking like something
+   * pasted onto it. Following the page's own mode is what lets both drawings
+   * be seen in the palette the visitor chose — which is why every colour in
+   * ./KernelDiagrams comes in two.
    *
-   * Everything below reads `t` — the theme the band hands back, which is the
-   * dark palette regardless of the page's mode. `outer` is only the input.
+   * `base` rather than `tint`, for a boring reason: DifferentiatorsSection sits
+   * directly below and is already `tint`, and two adjacent bands on the same
+   * shade is the undifferentiated scroll the tone system exists to prevent.
+   * Above, LadderSection paints its own four-accent wash over `cardBg`, so it
+   * does not read as this band's shade even though it nominally is one.
+   *
+   * The page therefore has no inverted band any more. That is a real loss and
+   * it is a design decision, not an oversight — see the note in
+   * test/site-layout.test.ts.
    */
-  const { background, theme: t } = bandTone(outer, "ink");
+  const { background, theme: t } = bandTone(outer, "base");
 
-  // Keyed on the effective theme, not the page's, so these stay correct if the
-  // band's tone is ever changed.
+  // Both columns clear 4.5:1 on the card behind them; the letter badges carry
+  // `onAccent` on top, which is the other side of the same check.
   const accents = t.dark
-    ? ["#7ab3f7", "#4e9bf5", "#34d399", "#c7d2e3"]
-    : ["#173d8a", "#2f7fe0", "#059669", "#0b1220"];
+    ? ["#7ab3f7", "#a78bfa", "#34d399", "#fbbf24"]
+    : ["#1d4ed8", "#6d28d9", "#047857", "#b45309"];
   const onAccent = t.dark ? "#0b1220" : "#ffffff";
-  const alertAccent = t.dark ? "#7ab3f7" : "#173d8a";
+  const alertAccent = t.dark ? "#7ab3f7" : "#1d4ed8";
+
+  /** The plate both diagrams sit on — same chrome as the ladder's wide shot. */
+  const plate = {
+    marginTop: 20,
+    border: `1px solid ${t.cardBorder}`,
+    borderRadius: 22,
+    overflow: "hidden",
+    boxShadow: t.cardShadowLg,
+  } as const;
+
+  /** The line that says what the drawing under it is. */
+  const caption = (titleKey: MessageKey, bodyKey: MessageKey) => (
+    <div style={{ maxWidth: LEAD, marginTop: 56 }}>
+      <h3
+        style={{
+          ...serifEm,
+          fontWeight: 400,
+          fontSize: "clamp(1.35rem,2.6vw,1.8rem)",
+          lineHeight: 1.15,
+          letterSpacing: "-0.01em",
+          color: t.text,
+          margin: 0,
+        }}
+      >
+        {tr(titleKey)}
+      </h3>
+      <p style={{ fontSize: 15, color: t.muted, lineHeight: 1.7, margin: "10px 0 0" }}>
+        <RayaText>{tr(bodyKey)}</RayaText>
+      </p>
+    </div>
+  );
 
   return (
     <section id="kernel" style={bandSection(background)}>
-      {/* No SectionBlend, deliberately. The blend fades the previous band's
-          colour down from the top edge, which over near-black would read as a
-          light leak rather than a transition. An inverted band wants a hard
-          edge on both sides — that is what makes it land as punctuation. */}
 
       <div style={bandColumn("wide")}>
         <Reveal>
@@ -85,7 +139,18 @@ export default function KernelSection({ theme: outer }: { theme: Theme }) {
           />
         </Reveal>
 
-        <div className="pub-grid-4 pub-rail" style={{ gap: 16 }}>
+        {/* 1 — the shape of it. Placed before the four cards on purpose: the
+            letters mean very little until you can see who computes them and
+            who reads them back. */}
+        <Reveal>{caption("site.kernel.map.title", "site.kernel.map.body")}</Reveal>
+        <Reveal>
+          <div style={plate}>
+            <KernelLoopShot theme={t} />
+          </div>
+        </Reveal>
+
+        {/* 2 — the four fields, each named as the column it really is. */}
+        <div className="pub-grid-4 pub-rail" style={{ gap: 16, marginTop: 56 }}>
           {DIMENSIONS.map((d, i) => (
             <Reveal key={d.letter} delay={i * 70} style={{ height: "100%" }}>
             <div
@@ -99,22 +164,42 @@ export default function KernelSection({ theme: outer }: { theme: Theme }) {
                 boxShadow: t.cardShadow,
               }}
             >
-              <div
-                style={{
-                  width: 42,
-                  height: 42,
-                  borderRadius: 14,
-                  background: accents[i],
-                  color: onAccent,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
-                  fontWeight: 800,
-                  fontSize: 20,
-                }}
-              >
-                {d.letter}
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div
+                  style={{
+                    width: 42,
+                    height: 42,
+                    flex: "none",
+                    borderRadius: 14,
+                    background: accents[i],
+                    color: onAccent,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
+                    fontWeight: 800,
+                    fontSize: 20,
+                  }}
+                >
+                  {d.letter}
+                </div>
+                {/* The column it is stored in. A letter is a metaphor until it
+                    has a field name next to it; this is the cheapest way to
+                    say the four are a schema and not a diagram of one. */}
+                <code
+                  style={{
+                    fontFamily: MONO,
+                    fontSize: 11.5,
+                    color: t.mutedLight,
+                    background: t.inputFieldBg,
+                    border: `1px solid ${t.cardBorder}`,
+                    borderRadius: 8,
+                    padding: "4px 7px",
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {d.field}
+                </code>
               </div>
               <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", color: accents[i], marginTop: 16 }}>
                 {tr(d.nameKey)}
@@ -128,7 +213,18 @@ export default function KernelSection({ theme: outer }: { theme: Theme }) {
           ))}
         </div>
 
-        <div style={{ marginTop: 24, background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: 20, overflow: "hidden" }}>
+        {/* 3 — the graph, and the one inference the four numbers alone cannot
+            produce: `/load_profile` returns per-concept state, never the chain
+            between concepts (lib/kernel/profile-cache.ts says exactly that). */}
+        <Reveal>{caption("site.kernel.graph.title", "site.kernel.graph.body")}</Reveal>
+        <Reveal>
+          <div style={plate}>
+            <ConceptGraphShot theme={t} />
+          </div>
+        </Reveal>
+
+        {/* 4 — what the walk raises when it finds something. */}
+        <div style={{ marginTop: 56, background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: 20, overflow: "hidden" }}>
           <div
             className="pub-alert-row pub-alert-head"
             style={{

@@ -21,12 +21,13 @@ import { LEAD, SectionBlend, bandColumn, bandSection, eyebrow, lead, sectionH2, 
  * landing says. Naming the four rungs and what each one refuses to do is the
  * cheapest way to prove it isn't marketing.
  *
- * The scroll-stack: each card pins HEADER_H lower than the one before, so the
- * previous headers stay on screen and pile into a literal ladder while you
- * read. That only works if the sliver left showing is exactly the header strip
- * — hence STICKY_STEP === HEADER_H, and the header being a fixed-height band
- * rather than free-flowing padded content. It degrades to a plain list on short
- * viewports and under prefers-reduced-motion (see `.pub-stack-card`).
+ * The scroll-stack: each card pins STACK_STEP lower than the one before, so
+ * the cards already read stay on screen and pile into a literal ladder while
+ * you read the next. What each one leaves showing is its coloured top edge —
+ * enough to count the rungs and tell them apart, and cheap enough that four of
+ * them don't push the last card off the bottom of the screen. It degrades to a
+ * plain list on short viewports and under prefers-reduced-motion (see
+ * `.pub-stack-card`).
  *
  * Each card is split: the explanation on one side, the session that
  * demonstrates it on the other (RungShot — a real chat surface, one subject per
@@ -42,14 +43,18 @@ const RUNGS: { n: string; nameKey: MessageKey; titleKey: MessageKey; bodyKey: Me
 ];
 
 /**
- * Header band height, and therefore the offset between two pinned cards.
+ * The lip a pinned card leaves showing above the next one, and therefore the
+ * offset between two pinned cards.
  *
- * Every pixel here is paid four times over: the last card pins at
- * STICKY_BASE + 3 × HEADER_H, and everything below that has to still fit on
- * screen or the pile is never visible as a pile. 46 is the smallest band the
- * badge, the rung name and the segment gauge sit in comfortably.
+ * There used to be a 46px header band here to be that sliver, holding the rung
+ * number. It cost twice: 46px of every card spent on chrome, and 46px of step
+ * spent four times over — the last card pins at STICKY_BASE + 3 × STACK_STEP,
+ * and everything below it still has to clear a laptop viewport. The number
+ * moved into the card's own content and the band went with it. What shows now
+ * is the card's coloured top edge, which is all the sliver ever had to be once
+ * each rung carries its own hue.
  */
-const HEADER_H = 46;
+const STACK_STEP = 26;
 /** Clears the sticky navbar (top:12, ~60px tall) with a little air. */
 const STICKY_BASE = 92;
 
@@ -58,7 +63,7 @@ export default function LadderSection({ theme: t }: { theme: Theme }) {
 
   /**
    * One hue per rung, and it is the same hue everywhere that rung appears: the
-   * number badge, the card's gradient, the header sliver, and the italic title.
+   * number badge, the card's gradient, its top edge, and the italic title.
    * Four cards that stack on top of each other need to be told apart at a
    * glance, and colour does that faster than reading the number.
    *
@@ -68,17 +73,23 @@ export default function LadderSection({ theme: t }: { theme: Theme }) {
    * for a concept that has landed, which is the whole point of the last rung.
    *
    * Light mode gets dark accents (white glyph on top), dark mode light ones
-   * (dark glyph). Every light-mode value clears 5:1 on white, so the same
-   * colour is safe on the badge AND as heading text.
+   * (dark glyph). Every light-mode value clears 4.7:1 against the card at its
+   * most saturated corner, so the same colour is safe on the badge AND as
+   * heading text sitting on top of the gradient.
    */
   const accents = t.dark
     ? ["#a78bfa", "#7ab3f7", "#fbbf24", "#34d399"]
-    : ["#6d28d9", "#1f5fb0", "#9a4a08", "#047857"];
-  /** The same four as rgba, for tints. Kept separate from `accents` because a
-   *  tint needs the channels, not the hex. */
+    : ["#5b21b6", "#1a4f94", "#7c3a06", "#065f46"];
+  /**
+   * The channels the tints are mixed from — and in dark mode deliberately NOT
+   * the accent. Deepening a gradient there by pouring in more of a pale accent
+   * does the opposite of what it sounds like: it lightens the card, and walks
+   * the title's contrast down as it goes. Dark mode tints with the deep end of
+   * the same hue instead, so more opacity really does mean darker.
+   */
   const rgb = t.dark
-    ? ["167,139,250", "122,179,247", "251,191,36", "52,211,153"]
-    : ["109,40,217", "31,95,176", "154,74,8", "4,120,87"];
+    ? ["76,29,149", "23,58,109", "124,58,6", "6,78,59"]
+    : ["91,33,182", "26,79,148", "124,58,6", "6,95,70"];
   const tint = (i: number, a: number) => `rgba(${rgb[i]},${a})`;
   const onAccent = t.dark ? "#0b1220" : "#ffffff";
 
@@ -95,7 +106,7 @@ export default function LadderSection({ theme: t }: { theme: Theme }) {
           position: "absolute",
           inset: 0,
           pointerEvents: "none",
-          background: `linear-gradient(180deg, ${tint(0, t.dark ? 0.07 : 0.05)} 0%, ${tint(1, t.dark ? 0.07 : 0.055)} 34%, ${tint(2, t.dark ? 0.06 : 0.05)} 68%, ${tint(3, t.dark ? 0.06 : 0.05)} 100%)`,
+          background: `linear-gradient(180deg, ${tint(0, t.dark ? 0.2 : 0.08)} 0%, ${tint(1, t.dark ? 0.2 : 0.085)} 34%, ${tint(2, t.dark ? 0.17 : 0.075)} 68%, ${tint(3, t.dark ? 0.18 : 0.08)} 100%)`,
         }}
       />
       {/* Blends down from FeaturesSection (t.sectionAltBg), which sits above. */}
@@ -139,7 +150,7 @@ export default function LadderSection({ theme: t }: { theme: Theme }) {
               key={r.n}
               className="pub-stack-card"
               style={{
-                top: STICKY_BASE + i * HEADER_H,
+                top: STICKY_BASE + i * STACK_STEP,
                 zIndex: i + 1,
                 // Opaque on purpose: the card below has to disappear cleanly as
                 // this one slides over it. The rung's gradient is an rgba layer
@@ -151,67 +162,59 @@ export default function LadderSection({ theme: t }: { theme: Theme }) {
                 // stops rather than two: a single fade to transparent reads as
                 // a smudge in the corner, where a gradient that travels most of
                 // the card reads as the card having a colour.
-                background: `linear-gradient(${i % 2 === 1 ? 250 : 110}deg, ${tint(i, t.dark ? 0.2 : 0.15)} 0%, ${tint(i, t.dark ? 0.09 : 0.06)} 44%, transparent 82%), ${t.sectionAltBg}`,
-                border: `1px solid ${t.cardBorder}`,
+                background: `linear-gradient(${i % 2 === 1 ? 250 : 110}deg, ${tint(i, t.dark ? 0.55 : 0.22)} 0%, ${tint(i, t.dark ? 0.28 : 0.1)} 45%, transparent 88%), ${t.sectionAltBg}`,
+                // The rung's colour as a rule along the top edge — this is what
+                // shows as the pinned sliver now that the header band is gone,
+                // so it has to carry the hue on its own. Every side is set
+                // individually rather than `border` plus a `borderTop`
+                // override: a shorthand and a longhand for the same property
+                // both changing across the theme toggle is undefined order.
+                borderTop: `3px solid ${accents[i]}`,
+                borderRight: `1px solid ${t.cardBorder}`,
+                borderBottom: `1px solid ${t.cardBorder}`,
+                borderLeft: `1px solid ${t.cardBorder}`,
                 borderRadius: 18,
                 boxShadow: t.cardShadowLg,
                 overflow: "hidden",
                 marginBottom: i === RUNGS.length - 1 ? 0 : 18,
               }}
             >
-              <div
-                className={`pub-rung-head${i % 2 === 1 ? " is-flipped" : ""}`}
-                style={{
-                  height: HEADER_H,
-                  // The sliver carries the rung's colour along its own axis, so
-                  // four stacked headers read as four colours rather than four
-                  // grey strips with a coloured dot on them.
-                  background: `linear-gradient(${i % 2 === 1 ? 270 : 90}deg, ${tint(i, t.dark ? 0.22 : 0.16)} 0%, ${tint(i, t.dark ? 0.08 : 0.05)} 100%)`,
-                  borderBottom: `1px solid ${t.cardBorder}`,
-                }}
-              >
-                <span
-                  style={{
-                    width: 26,
-                    height: 26,
-                    flex: "none",
-                    borderRadius: 9,
-                    background: accents[i],
-                    color: onAccent,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
-                    fontWeight: 800,
-                    fontSize: 12,
-                  }}
-                >
-                  {r.n}
-                </span>
-                {/* The rung's name used to sit here and now opens the
-                    explanation instead. What's left is the band's real job:
-                    it IS the stacked sliver — four of these pile up as you
-                    scroll, and the number is the only thing that has to stay
-                    legible at 46px. It changes sides with the split below it
-                    (see .pub-rung-head), so it always sits over the
-                    explanation and the four numbers zig-zag down the pile
-                    instead of lining up into one rail. A four-segment climbing
-                    gauge also lived here; four ascending bars in the corner of
-                    a header is the universal signal-strength glyph, so on a
-                    page about a tutor it read as network status. */}
-              </div>
-
               {/* Explanation and session, alternating sides. `is-flipped`
                   swaps the two cells in CSS; the markup order never changes,
                   so the narrow layout always reads text first. */}
               <div className={`pub-rung-split${i % 2 === 1 ? " is-flipped" : ""}`}>
                 <div className="pub-rung-text">
-                  {/* The rung's name, moved down out of the header band. It
-                      used to carry the accent to tie the explanation back to
-                      its sliver; the title below does that now, and two
-                      coloured lines stacked would leave nothing for the eye to
-                      land on first. */}
-                  <div style={{ ...eyebrow(t), marginBottom: 6 }}>{tr(r.nameKey)}</div>
+                  {/* The number and the rung's name, on one line. Both used to
+                      live in a 46px band above, which spent that height on
+                      chrome and spent it again four times over in the stack's
+                      step. Here they cost a single line of the content they
+                      were labelling. The number still changes sides with every
+                      card, because the whole column does. */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                    <span
+                      style={{
+                        width: 26,
+                        height: 26,
+                        flex: "none",
+                        borderRadius: 9,
+                        background: accents[i],
+                        color: onAccent,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
+                        fontWeight: 800,
+                        fontSize: 12,
+                      }}
+                    >
+                      {r.n}
+                    </span>
+                    {/* The rung's name. It used to carry the accent to tie the
+                        explanation back to its sliver; the badge beside it and
+                        the title below do that now, and three coloured things
+                        in a row would leave nothing for the eye to land on. */}
+                    <div style={eyebrow(t)}>{tr(r.nameKey)}</div>
+                  </div>
                   <h3
                     style={{
                       // The site's own display italic — the same face that

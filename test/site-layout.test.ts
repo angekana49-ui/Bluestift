@@ -147,7 +147,14 @@ describe("public site layout template", () => {
    * mode from here is the opposite one: `ink` looks good, so it gets reached for
    * again, and a second one turns an accent into a stripe.
    *
-   * One is the decision. This is where it is written down.
+   * One is the ceiling. This is where it is written down.
+   *
+   * It is currently zero. The Kernel band gave `ink` up when it grew its two
+   * diagrams: an ink band renders identically in light and dark by design, so
+   * half of the site's visitors would have seen neither drawing in the palette
+   * their own page was in. If a dark moment is wanted back here, the band to
+   * give it to is a text-only one — the assertion below is a ceiling, not a
+   * requirement to have one.
    */
   it("inverts at most one band", () => {
     const inkBands = files.flatMap((file) => {
@@ -155,6 +162,9 @@ describe("public site layout template", () => {
       return [...src.matchAll(/bandTone\([^)]*"ink"\)/g)].map(() => file.replace(process.cwd(), ""));
     });
 
-    expect(inkBands, `Only one band may use tone "ink":\n${inkBands.join("\n")}`).toHaveLength(1);
+    expect(
+      inkBands.length,
+      `At most one band may use tone "ink": ${inkBands.join(", ")}`,
+    ).toBeLessThanOrEqual(1);
   });
 });
