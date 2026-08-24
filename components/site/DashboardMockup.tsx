@@ -1,6 +1,47 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import type { Theme } from "./theme";
-import { RayaName } from "@/components/ui/brand";
+import { RayaName, SchoolsName } from "@/components/ui/brand";
+import {
+  IconBilling,
+  IconChat,
+  IconClasses,
+  IconKernel,
+  IconOverview,
+  IconRooms,
+  IconSettings,
+  IconSummary,
+} from "@/components/ui/icons";
+
+/**
+ * The Schools dashboard, as it appears in the hero.
+ *
+ * This is a MOCKUP, not a capture: the figures are invented and generous, the
+ * way a product shot's figures always are. What is not free to be invented is
+ * the *shape*. A drawing whose job is "this is what Schools looks like" fails
+ * the moment a visitor opens the product and finds a different application —
+ * and the browser frame around it (see DeviceFrame) makes that promise louder,
+ * not quieter.
+ *
+ * So everything structural below is traced from the real admin dashboard:
+ *
+ *  - the left sidebar and its eight nav items, in order, with the same icons
+ *    (`navItems` in components/school-admin.tsx, the admin branch)
+ *  - the four KPI tiles and their labels — Students / Active (7d) / Struggling
+ *    / Average mastery (`OverviewView`)
+ *  - the "{school} · by class" list, which is what the overview actually
+ *    renders (`OverviewClassRow`): counts, an alert pill, a mastery bar
+ *  - the right panel: mastery gauge, then Alerts, then the weakest classes
+ *    (`OverviewRightPanel`)
+ *
+ * An earlier version of this file drew a horizontal tab bar (Overview /
+ * Sessions / Students / Kernel) over a six-month "Sessions vs. mastery"
+ * histogram. None of it existed: the app has no tab bar, no sessions counter
+ * and no monthly chart. It read as a generic SaaS dashboard, which is the one
+ * thing this image must not do.
+ *
+ * If the admin nav or the overview gains a surface, this drawing is a public
+ * claim about the product and has to move with it.
+ */
 
 /**
  * Stagger, as an inline custom property the stylesheet reads as an
@@ -10,44 +51,54 @@ import { RayaName } from "@/components/ui/brand";
  */
 const at = (ms: number) => ({ "--d": `${ms}ms` }) as CSSProperties;
 
-type Bar = { sessions: number; quizzes: number; mastery: number };
-
-const MONTHS: { label: string; bars: Bar; current?: boolean }[] = [
-  { label: "Jan", bars: { sessions: 41, quizzes: 27, mastery: 12 } },
-  { label: "Feb", bars: { sessions: 53, quizzes: 34, mastery: 17 } },
-  { label: "Mar", bars: { sessions: 46, quizzes: 37, mastery: 22 } },
-  { label: "Apr", bars: { sessions: 67, quizzes: 40, mastery: 28 } },
-  { label: "May", bars: { sessions: 88, quizzes: 50, mastery: 40 } },
-  { label: "Jun", bars: { sessions: 108, quizzes: 67, mastery: 55 }, current: true },
+/** The admin sidebar, item for item. "Classes & codes" is the real label — the
+ *  tab manages both — and LMS stays absent here because it is hidden in the
+ *  app until the Google OAuth integration is provisioned. */
+const NAV: { key: string; label: ReactNode; icon: ReactNode }[] = [
+  { key: "overview", label: "Overview", icon: <IconOverview size={15} /> },
+  { key: "manage", label: "Classes & codes", icon: <IconClasses size={15} /> },
+  { key: "team", label: "Team", icon: <IconRooms size={15} /> },
+  { key: "insights", label: "Insights", icon: <IconKernel size={15} /> },
+  { key: "raya", label: <RayaName />, icon: <IconChat size={15} /> },
+  { key: "reports", label: "Reports", icon: <IconSummary size={15} /> },
+  { key: "billing", label: "Billing", icon: <IconBilling size={15} /> },
+  { key: "settings", label: "Settings", icon: <IconSettings size={15} /> },
 ];
 
-const PASTEL = {
-  sessions: "linear-gradient(180deg,#b7bdf7,#9aa1ef)",
-  quizzes: "linear-gradient(180deg,#fdc48a,#fbab5c)",
-  mastery: "linear-gradient(180deg,#a7ecc3,#7fe0a3)",
-};
-const VIVID = {
-  sessions: "linear-gradient(180deg,#8b5cf6,#4f46e5)",
-  quizzes: "linear-gradient(180deg,#fb923c,#f97316)",
-  mastery: "linear-gradient(180deg,#4ade80,#22c55e)",
-};
+const SCHOOL = "Northgate Academy";
 
-/** The floating product dashboard card inside the Home hero. */
+const TOTALS = { students: 1204, active: 482, alerts: 47, mastery: 0.83 };
+
+const CLASSES: { name: string; students: number; active: number; alerts: number; mastery: number }[] = [
+  { name: "Year 9 · Mathematics", students: 128, active: 96, alerts: 3, mastery: 0.88 },
+  { name: "Year 10 · Physics", students: 112, active: 74, alerts: 12, mastery: 0.71 },
+  { name: "Year 8 · French", students: 141, active: 103, alerts: 0, mastery: 0.61 },
+  { name: "Year 11 · Biology", students: 96, active: 88, alerts: 0, mastery: 0.84 },
+];
+
+/** The app's own thresholds (`masteryColor` in components/school-admin.tsx). */
+const masteryColor = (m: number) => (m >= 0.7 ? "#22c55e" : m >= 0.5 ? "#f59e0b" : "#ef4444");
+const pct = (m: number) => `${Math.round(m * 100)}%`;
+
 export default function DashboardMockup({ theme: t }: { theme: Theme }) {
-  const bar = (h: number, bg: string, delay: number) => (
-    <div className="pub-hero-bar" style={{ ...at(delay), flex: 1, height: h, background: bg, borderRadius: "3px 3px 0 0" }} />
-  );
+  const panel: CSSProperties = { border: `1px solid ${t.cardBorder}`, borderRadius: 18, padding: 14 };
+  const panelTitle: CSSProperties = {
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: "0.1em",
+    textTransform: "uppercase",
+    color: t.muted,
+    marginBottom: 10,
+  };
 
   // One tile used to carry an infinite `shine` sweep. It drew the eye to the
   // tile with the least to say, forever, and made a static dashboard look like
   // a loading skeleton. The tiles are now plain — the numbers are the content.
-  const statTile = (label: string, value: string, sub: string, subColor: string, delay: number) => (
+  const statTile = (label: string, value: string, delay: number) => (
     <div
       className="pub-hero-tile"
       style={{
         ...at(delay),
-        position: "relative",
-        overflow: "hidden",
         border: `1px solid ${t.cardBorder}`,
         borderRadius: 16,
         background: t.inputFieldBg,
@@ -55,8 +106,7 @@ export default function DashboardMockup({ theme: t }: { theme: Theme }) {
       }}
     >
       <div style={{ fontSize: 13, color: t.muted }}>{label}</div>
-      <div style={{ fontSize: 23, fontWeight: 600 }}>{value}</div>
-      <div style={{ fontSize: 13, color: subColor }}>{sub}</div>
+      <div style={{ fontSize: 23, fontWeight: 600, marginTop: 2 }}>{value}</div>
     </div>
   );
 
@@ -65,121 +115,232 @@ export default function DashboardMockup({ theme: t }: { theme: Theme }) {
     // inside (see HeroSection) — carrying its own as well drew two borders a
     // pixel apart and stacked two shadows, which is the tell that a mockup was
     // assembled rather than captured.
-    <div style={{ background: t.cardBg, textAlign: "left" }}>
-      {/* Tab bar */}
-      <div style={{ display: "flex", alignItems: "center", gap: 6, borderBottom: `1px solid ${t.cardBorder}`, padding: "12px 16px" }}>
-        <span style={{ background: t.ctaBg, color: t.ctaText, borderRadius: 999, padding: "7px 14px", fontSize: 13, fontWeight: 500 }}>Overview</span>
-        <span style={{ color: t.mutedLight, padding: "7px 14px", fontSize: 13 }}>Sessions</span>
-        <span style={{ color: t.mutedLight, padding: "7px 14px", fontSize: 13 }}>Students</span>
-        <span style={{ color: t.mutedLight, padding: "7px 14px", fontSize: 13 }}>Kernel</span>
-        <span
-          className="pub-hide-sm"
-          style={{ marginLeft: "auto", color: t.mutedLight, fontSize: 13, border: `1px solid ${t.inputBorder}`, borderRadius: 999, padding: "6px 12px", background: t.inputFieldBg }}
-        >
-          Search students, classes…
-        </span>
-      </div>
+    <div style={{ display: "flex", background: t.cardBg, textAlign: "left" }}>
+      {/* ── Sidebar ───────────────────────────────────────────────────────
+          Hidden below 760px, in step with `.dash-grid` collapsing: the real
+          shell turns this into an overlay drawer at its own breakpoint, and a
+          194px rail inside an already-narrow drawing would leave the content
+          with nothing. */}
+      <aside
+        className="pub-dash-aside"
+        style={{
+          width: 194,
+          flex: "none",
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
+          padding: "14px 12px",
+          background: t.inputFieldBg,
+          borderRight: `1px solid ${t.cardBorder}`,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "2px 8px 14px" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={t.dark ? "/bluestift-mark-dark.png" : "/bluestift-mark.png"}
+            alt=""
+            style={{ width: 26, height: 26, borderRadius: 8, objectFit: "cover", flex: "none" }}
+          />
+          <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: "-0.01em", fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif" }}>
+            <SchoolsName />
+          </span>
+        </div>
 
-      <div className="dash-grid" style={{ display: "grid", gridTemplateColumns: "1.75fr 1fr", gap: 16, padding: 20 }}>
-        {/* Left column */}
-        <div style={{ border: `1px solid ${t.cardBorder}`, borderRadius: 20, padding: 18 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
-            <div>
-              <div style={{ fontSize: 18, fontWeight: 600 }}>Teaching overview</div>
-              <div style={{ fontSize: 13, color: t.muted, marginTop: 2 }}>Real-time signals across every class you track.</div>
+        {NAV.map((n) => {
+          const active = n.key === "overview";
+          return (
+            <div
+              key={n.key}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                borderRadius: 10,
+                padding: "7px 9px",
+                fontSize: 13,
+                fontWeight: active ? 600 : 400,
+                color: active ? t.text : t.mutedLight,
+                background: active ? t.cardBg : "transparent",
+                border: `1px solid ${active ? t.cardBorder : "transparent"}`,
+              }}
+            >
+              {n.icon}
+              {n.label}
             </div>
-            <span style={{ background: t.ctaBg, color: t.ctaText, borderRadius: 999, padding: "6px 12px", fontSize: 13, alignSelf: "flex-start" }}>Share</span>
-          </div>
+          );
+        })}
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+        {/* The profile chip pinned to the foot of the rail — the signed-in
+            person and their school's plan, exactly as SidebarProfile shows it. */}
+        <div style={{ marginTop: "auto", display: "flex", alignItems: "center", gap: 9, paddingTop: 14 }}>
+          <span
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: "50%",
+              background: "#2f7fe0",
+              color: "#fff",
+              fontSize: 11,
+              fontWeight: 700,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flex: "none",
+            }}
+          >
+            AD
+          </span>
+          <span style={{ minWidth: 0, lineHeight: 1.3 }}>
+            <span style={{ display: "block", fontSize: 13, fontWeight: 600 }}>Amina Diallo</span>
+            <span style={{ display: "block", fontSize: 12, color: t.mutedLight }}>School plan</span>
+          </span>
+        </div>
+      </aside>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {/* ── Header ──────────────────────────────────────────────────────
+            The header brands the SCHOOL (logo + name), the sidebar brands the
+            product. That split is the real shell's, and it is the reason the
+            wordmark isn't repeated here. */}
+        <div style={{ display: "flex", alignItems: "center", gap: 11, borderBottom: `1px solid ${t.cardBorder}`, padding: "13px 18px" }}>
+          <span
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: 9,
+              background: "#2f7fe0",
+              color: "#fff",
+              fontSize: 13,
+              fontWeight: 700,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flex: "none",
+            }}
+          >
+            NA
+          </span>
+          <span style={{ minWidth: 0, lineHeight: 1.25 }}>
+            <span style={{ display: "block", fontSize: 17, fontWeight: 800, fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif" }}>{SCHOOL}</span>
+            <span style={{ display: "block", fontSize: 13, color: t.muted, fontWeight: 500 }}>Overview</span>
+          </span>
+        </div>
+
+        <div className="dash-grid" style={{ display: "grid", gridTemplateColumns: "1.75fr 1fr", gap: 16, padding: 18 }}>
+          {/* Left column */}
+          <div style={{ minWidth: 0 }}>
             {/* The score starts at 700ms — while the frame's own rise (which
                 settles at 860ms) is still finishing, so the two read as one
                 arrival rather than as two waits. */}
-            {statTile("Sessions today", "482", "+21% vs last month", "#10b981", 700)}
-            {statTile("Students stuck", "6", "-2 since this morning", t.mutedLight, 760)}
-            {statTile("Average mastery", "83%", "+12 points this month", t.mutedLight, 820)}
-            {statTile("Active students", "1,204", "+340 this week", "#10b981", 880)}
-          </div>
-
-          {/* Bar chart */}
-          <div style={{ border: `1px solid ${t.cardBorder}`, borderRadius: 18, padding: 14 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-              <span style={{ fontSize: 14, fontWeight: 600 }}>Sessions vs. mastery</span>
-              <div style={{ display: "flex", gap: 10, fontSize: 13, color: t.mutedLight }}>
-                <span>
-                  <span style={{ display: "inline-block", width: 8, height: 8, background: "#4f46e5", borderRadius: 2, marginRight: 4 }} />
-                  Sessions
-                </span>
-                <span className="pub-hide-sm">
-                  <span style={{ display: "inline-block", width: 8, height: 8, background: "#f97316", borderRadius: 2, marginRight: 4 }} />
-                  Quizzes
-                </span>
-                <span className="pub-hide-sm">
-                  <span style={{ display: "inline-block", width: 8, height: 8, background: "#22c55e", borderRadius: 2, marginRight: 4 }} />
-                  Mastery
-                </span>
-              </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 10, marginBottom: 16 }}>
+              {statTile("Students", TOTALS.students.toLocaleString("en-US"), 700)}
+              {statTile("Active (7d)", TOTALS.active.toLocaleString("en-US"), 760)}
+              {statTile("Struggling", String(TOTALS.alerts), 820)}
+              {statTile("Average mastery", pct(TOTALS.mastery), 880)}
             </div>
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
-              {MONTHS.map((m, mi) => {
-                const c = m.current ? VIVID : PASTEL;
-                // Staggered by month, not by individual bar: eighteen separately
-                // timed bars is fussiness the eye reads as noise, where six
-                // groups read as the chart being drawn left to right.
-                const d = 900 + mi * 70;
-                return (
-                  <div key={m.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "flex-end", gap: 2, width: "100%", height: 116 }}>
-                      {bar(m.bars.sessions, c.sessions, d)}
-                      {bar(m.bars.quizzes, c.quizzes, d)}
-                      {bar(m.bars.mastery, c.mastery, d)}
+
+            <div style={{ fontSize: 14, fontWeight: 700, margin: "0 0 10px" }}>{SCHOOL} · by class</div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {CLASSES.map((c, i) => (
+                <div
+                  key={c.name}
+                  className="pub-hero-tile"
+                  style={{ ...at(920 + i * 70), ...panel, display: "flex", alignItems: "center", gap: 12, padding: "11px 14px" }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.name}</div>
+                    <div style={{ fontSize: 13, color: t.mutedLight }}>
+                      {c.students} students · {c.active} active
                     </div>
-                    <span style={{ fontSize: 13, fontWeight: m.current ? 700 : 400, color: m.current ? t.text : t.mutedLight }}>{m.label}</span>
                   </div>
-                );
-              })}
-            </div>
-            <div style={{ textAlign: "center", marginTop: 8 }}>
-              <span style={{ background: t.ctaBg, color: t.ctaText, borderRadius: 999, padding: "6px 12px", fontSize: 13 }}>June 2026 — Mastery climbing</span>
+
+                  {c.alerts > 0 && (
+                    <span
+                      className="pub-hide-sm"
+                      style={{
+                        flex: "none",
+                        background: t.dark ? "#3a1a1a" : "#fee2e2",
+                        color: "#dc2626",
+                        borderRadius: 999,
+                        padding: "2px 9px",
+                        fontSize: 12,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {c.alerts} alerts
+                    </span>
+                  )}
+
+                  <span style={{ display: "flex", alignItems: "center", gap: 8, flex: "none" }}>
+                    <span style={{ display: "block", width: 62, height: 6, borderRadius: 99, background: t.dark ? "rgba(255,255,255,0.10)" : "#e2e8f0", overflow: "hidden" }}>
+                      <span
+                        className="pub-hero-fill"
+                        style={{ ...at(980 + i * 70), display: "block", width: pct(c.mastery), height: "100%", background: masteryColor(c.mastery) }}
+                      />
+                    </span>
+                    <span style={{ fontSize: 13, width: 34, textAlign: "right" }}>{pct(c.mastery)}</span>
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
 
-        {/* Right column */}
-        <div className="pub-hide-sm" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <div style={{ border: `1px solid ${t.cardBorder}`, borderRadius: 18, padding: 14 }}>
-            <div style={{ background: t.inputFieldBg, borderRadius: 14, padding: 10 }}>
-              <div style={{ fontSize: 13, color: t.muted }}>Still stuck on fractions?</div>
-              <div style={{ fontSize: 13, fontWeight: 600, marginTop: 3 }}>Let&apos;s try a different way.</div>
+          {/* Right column — the overview's right panel, in its real order. */}
+          <div className="pub-hide-sm" style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
+            <div style={panel}>
+              <div style={panelTitle}>Kernel — overall mastery</div>
+              <svg viewBox="0 0 160 96" style={{ width: "100%", display: "block" }}>
+                <defs>
+                  <linearGradient id="kernelGaugeFill" x1="0" x2="1" y1="0" y2="0">
+                    <stop offset="0%" stopColor="#f97316" />
+                    <stop offset="45%" stopColor="#fbbf24" />
+                    <stop offset="75%" stopColor="#84cc16" />
+                    <stop offset="100%" stopColor="#22c55e" />
+                  </linearGradient>
+                </defs>
+                <path d="M 20 84 A 60 60 0 0 1 140 84" fill="none" stroke={t.dark ? "rgba(255,255,255,0.10)" : "#e2e8f0"} strokeWidth="12" strokeLinecap="round" />
+                {/* 188 is the arc's full dasharray, so the offset is the app's
+                    own `188 * (1 - avgMastery)` — not a hand-picked number. */}
+                <path
+                  className="pub-hero-gauge"
+                  d="M 20 84 A 60 60 0 0 1 140 84"
+                  fill="none"
+                  stroke="url(#kernelGaugeFill)"
+                  strokeWidth="12"
+                  strokeLinecap="round"
+                  strokeDasharray="188"
+                  strokeDashoffset={Math.round(188 * (1 - TOTALS.mastery))}
+                />
+                <text x="80" y="64" textAnchor="middle" fontSize="22" fontWeight="700" fill={t.text}>
+                  {pct(TOTALS.mastery)}
+                </text>
+                <text x="80" y="79" textAnchor="middle" fontSize="8" fill={t.mutedLight}>
+                  {TOTALS.students.toLocaleString("en-US")} students tracked
+                </text>
+              </svg>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
-              <span style={{ width: 26, height: 26, borderRadius: "50%", background: "#6366f1", color: "white", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>AI</span>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 600 }}><RayaName />&apos;s suggestions</div>
-                <div style={{ fontSize: 13, color: t.muted }}>Tailored explanation in seconds.</div>
+
+            <div style={panel}>
+              <div style={panelTitle}>Alerts</div>
+              <div style={{ background: t.inputFieldBg, borderRadius: 12, padding: 10 }}>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>{TOTALS.alerts} students struggling</div>
+                <div style={{ fontSize: 13, color: t.muted, marginTop: 2 }}>{TOTALS.active} active over 7 days</div>
               </div>
             </div>
-          </div>
 
-          <div style={{ border: `1px solid ${t.cardBorder}`, borderRadius: 18, padding: 14 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-              <span style={{ fontSize: 14, fontWeight: 600 }}>Kernel mastery</span>
-              <span style={{ fontSize: 13, color: t.mutedLight }}>Updated just now</span>
+            <div style={panel}>
+              <div style={panelTitle}>Needs attention</div>
+              {[...CLASSES]
+                .sort((a, b) => a.mastery - b.mastery)
+                .slice(0, 2)
+                .map((c) => (
+                  <div key={c.name} style={{ display: "flex", alignItems: "baseline", gap: 8, fontSize: 13, marginTop: 6 }}>
+                    <span style={{ flex: 1, minWidth: 0, color: t.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.name}</span>
+                    <span style={{ fontWeight: 600, color: masteryColor(c.mastery) }}>{pct(c.mastery)}</span>
+                  </div>
+                ))}
             </div>
-            <svg viewBox="0 0 160 96" style={{ width: "100%", display: "block" }}>
-              <defs>
-                <linearGradient id="kernelGaugeFill" x1="0" x2="1" y1="0" y2="0">
-                  <stop offset="0%" stopColor="#f97316" />
-                  <stop offset="45%" stopColor="#fbbf24" />
-                  <stop offset="75%" stopColor="#84cc16" />
-                  <stop offset="100%" stopColor="#22c55e" />
-                </linearGradient>
-              </defs>
-              <path d="M 20 84 A 60 60 0 0 1 140 84" fill="none" stroke="#e2e8f0" strokeWidth="12" strokeLinecap="round" />
-              <path className="pub-hero-gauge" d="M 20 84 A 60 60 0 0 1 140 84" fill="none" stroke="url(#kernelGaugeFill)" strokeWidth="12" strokeLinecap="round" strokeDasharray="188" strokeDashoffset="50" />
-              <text x="80" y="64" textAnchor="middle" fontSize="22" fontWeight="700" fill={t.text}>1,204</text>
-              <text x="80" y="79" textAnchor="middle" fontSize="8" fill={t.mutedLight}>students tracked</text>
-            </svg>
           </div>
         </div>
       </div>

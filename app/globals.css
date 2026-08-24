@@ -235,6 +235,26 @@ a {
   }
 }
 
+/* Raya's reply arriving token by token, which is what the surface actually
+   does — `components/chat/` streams the response and paints it as it lands.
+   One span per word with its own `--d`, so a bubble fills instead of appearing
+   whole. The student's messages never carry this: their text is sent complete,
+   and the difference between the two sides is the point.
+
+   The words hold their box from the first frame (opacity, not display), so a
+   bubble never grows mid-stream and never reflows the thread under it. */
+.pub-shot-anim .shot-word {
+  opacity: 0;
+}
+.pub-shot-anim.is-live .shot-word {
+  animation: shotWord 220ms var(--ease-out) var(--d, 0ms) both;
+}
+@keyframes shotWord {
+  to {
+    opacity: 1;
+  }
+}
+
 /* The first-visit language bar, settling in from the bottom edge rather than
    appearing on top of the page. Same reasoning as the hero: it mounts already
    in view, so it animates unconditionally and can never be left hidden. */
@@ -309,15 +329,16 @@ a {
   }
 }
 
-/* Scale, not height: animating height relayouts the whole chart row every
-   frame, and the bars sit in a flex row that would reflow with it. */
-.pub-hero-bar {
-  transform-origin: bottom center;
-  animation: heroBar var(--dur-play) var(--ease-out) var(--d, 0ms) both;
+/* The per-class mastery bars fill from their left edge. Scale, not width:
+   animating width relayouts the row every frame, and each bar sits in a flex
+   row that would reflow with it. */
+.pub-hero-fill {
+  transform-origin: left center;
+  animation: heroFill var(--dur-play) var(--ease-out) var(--d, 0ms) both;
 }
-@keyframes heroBar {
+@keyframes heroFill {
   from {
-    transform: scaleY(0);
+    transform: scaleX(0);
   }
 }
 
@@ -334,10 +355,43 @@ a {
 
 @media (prefers-reduced-motion: reduce) {
   .pub-hero-tile,
-  .pub-hero-bar,
+  .pub-hero-fill,
   .pub-hero-gauge {
     animation: none;
   }
+}
+
+/* ---- Loading choreography ----
+   The one place a shot depicts LOADING rather than arrival. A skeleton (or a
+   typing indicator) sits in the same grid cell as the real content and clears
+   on the beat the content resolves, so the drawing reads as data coming in
+   over a wire instead of as a finished picture fading up.
+
+   `display: none` by default is what keeps that honest: outside a running
+   sequence — reduced motion, no JS, a shot already on screen at mount — the
+   placeholder never renders at all, so it can never strand as a skeleton
+   waiting on a resolve that will not come. */
+.shot-out {
+  display: none;
+}
+.pub-shot-anim .shot-out {
+  display: block;
+}
+.pub-shot-anim.is-live .shot-out {
+  animation: shotOut var(--dur-enter) var(--ease-out) var(--d, 0ms) both;
+}
+@keyframes shotOut {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+/* The composing dots. A loop, like the room's live dot below — and justified
+   the same way: it means "answering right now", and it is bounded, because the
+   .shot-out around it removes it when the reply lands. */
+.shot-dot {
+  animation: shotPulse 1.1s var(--ease-out) infinite;
 }
 
 /* The live dot on the room shot. The one loop kept on the whole site, because
@@ -364,10 +418,11 @@ a {
 }
 
 /* ---- Product shots: layout ----
-   The wide 21/9 transcript plate is drawn as a two-column composition. Below
-   the breakpoint there isn't the width to keep both columns readable at once,
-   so the escalation aside drops and the frame squares up rather than shrinking
-   the type into illegibility — the transcript alone still makes the point. */
+   The wide 21/9 plate is drawn as the app's three-column screen — sidebar,
+   chat, "For you" panel. Below the breakpoint there isn't the width to keep
+   three columns readable at once, so both `.pub-shot-aside` panels drop and the
+   frame squares up rather than shrinking the type into illegibility — the
+   transcript alone still makes the point. */
 @media (max-width: 760px) {
   .pub-shot-wide {
     /* Narrow the nominal design width the shot is drawn against, so the
@@ -493,7 +548,13 @@ a {
 .pub-stack-card {
   position: sticky;
 }
-@media (max-width: 860px) {
+/* 720, not 860. The fallback exists for windows too narrow to hold a card
+   beside its own stacked headers — but at 860 it was switching the stack off on
+   ordinary laptop windows and half-width browsers, i.e. on exactly the readers
+   who were meant to see it. The cards are sized to pile inside a short viewport
+   (see HEADER_H and the rung shot's ratio), so the stack survives much lower
+   than it used to. */
+@media (max-width: 720px) {
   .pub-stack-card {
     position: static !important;
   }
@@ -501,6 +562,72 @@ a {
 @media (prefers-reduced-motion: reduce) {
   .pub-stack-card {
     position: static !important;
+  }
+}
+
+/* A rung card's two halves: the explanation, and the session that demonstrates
+   it. Odd rungs mirror, so the eye crosses the stack instead of running down
+   one edge and the four cards can't be mistaken for one repeated card.
+
+   DOM order is always text-then-shot — the order it has to collapse to when
+   the split gives way — and the mirror is done by placing both cells
+   explicitly rather than by reordering the markup. Both `grid-row` values are
+   load-bearing: with only `grid-column` set, auto-placement never moves
+   backwards, so the shot would land on a second row underneath instead of
+   beside. */
+/* The rung's number band. It alternates with the split below it, so the badge
+   always sits over the explanation rather than over the session — the four
+   numbers then zig-zag down the stack instead of stacking into one left rail,
+   which is the only way the pile reads as four cards and not as one card with
+   a repeating header. */
+.pub-rung-head {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+}
+.pub-rung-head.is-flipped {
+  justify-content: flex-end;
+}
+/* Below the split's breakpoint the explanation is always first and always on
+   the left, so a right-hand badge would be pointing at nothing. */
+@media (max-width: 720px) {
+  .pub-rung-head.is-flipped {
+    justify-content: flex-start;
+  }
+}
+
+/* The min-height is what gives the card presence: its natural height is
+   whatever the session shot happens to be (a 16/9 of half the column), which
+   left the explanation cramped against the edges. Held deliberately low —
+   every pixel added here is paid four times over, since the last card pins at
+   STICKY_BASE + 3 × HEADER_H and everything below it still has to clear a
+   laptop viewport. */
+.pub-rung-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: clamp(16px, 2.4vw, 30px);
+  padding: clamp(16px, 2.6vw, 26px);
+  min-height: clamp(230px, 30vw, 306px);
+}
+.pub-rung-split.is-flipped .pub-rung-shot {
+  grid-column: 1;
+  grid-row: 1;
+}
+.pub-rung-split.is-flipped .pub-rung-text {
+  grid-column: 2;
+  grid-row: 1;
+}
+/* Same breakpoint the scroll-stack gives up at: below it the cards are a plain
+   list, and a half-column that narrow would render the session illegible. */
+@media (max-width: 720px) {
+  .pub-rung-split {
+    grid-template-columns: 1fr;
+  }
+  .pub-rung-split.is-flipped .pub-rung-shot,
+  .pub-rung-split.is-flipped .pub-rung-text {
+    grid-column: 1;
+    grid-row: auto;
   }
 }
 @media (max-width: 900px) {
@@ -593,6 +720,12 @@ a {
 @media (max-width: 760px) {
   .dash-grid {
     grid-template-columns: 1fr !important;
+  }
+  /* The hero dashboard's sidebar, at the same breakpoint its grid collapses:
+     the real shell turns the rail into an overlay drawer here, and keeping a
+     194px rail beside a single-column body would leave the body nothing. */
+  .pub-dash-aside {
+    display: none !important;
   }
   .pub-alert-row {
     grid-template-columns: 1fr;

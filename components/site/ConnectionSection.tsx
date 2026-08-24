@@ -5,6 +5,7 @@ import { RayaText } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
 import Reveal from "./Reveal";
+import { FocusShot, GuidedShot, ReturnShot } from "./ProductShots";
 import { SectionBlend, bandColumn, bandSection, lead, sectionH2, serifEm } from "./layout";
 
 /**
@@ -18,16 +19,26 @@ import { SectionBlend, bandColumn, bandSection, lead, sectionH2, serifEm } from 
  *
  * So this section states the loop the product already implements: teacher
  * intent travels down through Raya (class_instructions / school_directives,
- * shown to the student as an explicit banner), and cognitive state travels back
- * up (the Kernel's per-concept mastery, not transcripts). The "understanding,
- * not surveillance" line is a product commitment, not a slogan: the teacher
- * surfaces read derived state, never the student's conversations.
+ * which enter the tutor's system prompt as advisory guidance), and cognitive
+ * state travels back up (the Kernel's per-concept mastery, not transcripts).
+ * The "understanding, not surveillance" line is a product commitment, not a
+ * slogan: the teacher surfaces read derived state, never the conversations.
+ *
+ * Each step carries its own shot, and the three are deliberately not one
+ * diagram: the claim is that intent crosses between two people who never see
+ * each other's screen, so the illustration has to be BOTH screens — the
+ * teacher's composer, the student's session, the teacher's list again.
  */
 
-const STEPS: { n: string; titleKey: MessageKey; bodyKey: MessageKey }[] = [
-  { n: "1", titleKey: "site.connection.step1.title", bodyKey: "site.connection.step1.body" },
-  { n: "2", titleKey: "site.connection.step2.title", bodyKey: "site.connection.step2.body" },
-  { n: "3", titleKey: "site.connection.step3.title", bodyKey: "site.connection.step3.body" },
+const STEPS: {
+  n: string;
+  titleKey: MessageKey;
+  bodyKey: MessageKey;
+  Shot: (props: { theme: Theme }) => React.ReactElement;
+}[] = [
+  { n: "1", titleKey: "site.connection.step1.title", bodyKey: "site.connection.step1.body", Shot: FocusShot },
+  { n: "2", titleKey: "site.connection.step2.title", bodyKey: "site.connection.step2.body", Shot: GuidedShot },
+  { n: "3", titleKey: "site.connection.step3.title", bodyKey: "site.connection.step3.body", Shot: ReturnShot },
 ];
 
 export default function ConnectionSection({ theme: t }: { theme: Theme }) {
@@ -58,35 +69,41 @@ export default function ConnectionSection({ theme: t }: { theme: Theme }) {
                 height: "100%",
                 display: "flex",
                 flexDirection: "column",
+                overflow: "hidden",
                 background: t.sectionAltBg,
                 border: `1px solid ${t.cardBorder}`,
                 borderRadius: 22,
                 boxShadow: t.cardShadowSm,
-                padding: 24,
               }}
             >
-              <div
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 999,
-                  background: t.ctaBg,
-                  color: t.ctaText,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 14,
-                  fontWeight: 700,
-                  marginBottom: 16,
-                  flex: "none",
-                }}
-              >
-                {s.n}
+              {/* The surface this step happens on, above the words that name
+                  it — same arrangement the feature cards use, so the two bands
+                  read as one grammar rather than two. */}
+              <s.Shot theme={t} />
+              <div style={{ padding: 24 }}>
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 999,
+                    background: t.ctaBg,
+                    color: t.ctaText,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 14,
+                    fontWeight: 700,
+                    marginBottom: 16,
+                    flex: "none",
+                  }}
+                >
+                  {s.n}
+                </div>
+                <div style={{ fontSize: 17, fontWeight: 600, color: t.text }}>{tr(s.titleKey)}</div>
+                <p style={{ fontSize: 15, color: t.muted, lineHeight: 1.7, margin: "8px 0 0" }}>
+                  <RayaText>{tr(s.bodyKey)}</RayaText>
+                </p>
               </div>
-              <div style={{ fontSize: 17, fontWeight: 600, color: t.text }}>{tr(s.titleKey)}</div>
-              <p style={{ fontSize: 15, color: t.muted, lineHeight: 1.7, margin: "8px 0 0" }}>
-                <RayaText>{tr(s.bodyKey)}</RayaText>
-              </p>
             </div>
             </Reveal>
           ))}
