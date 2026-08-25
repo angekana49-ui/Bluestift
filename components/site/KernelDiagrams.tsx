@@ -54,7 +54,7 @@ const DEG = Math.PI / 180;
  * screen of the app"; putting one here would claim the architecture is
  * something you can open, which it isn't.
  */
-function DiagramFrame({
+export function DiagramFrame({
   theme: t,
   loopMs,
   restartKey,
@@ -890,6 +890,8 @@ export function kernelInk(t: Theme) {
   return {
     /** The nucleus of the loop — the one person everything orbits. */
     learner: palette(t).learner,
+    /** The other person, in the colour the loop already gives the school side. */
+    teacher: palette(t).teacher,
     /** The two clusters the worked example crosses between. */
     physics: s("physics"),
     math: s("math"),

@@ -157,16 +157,15 @@ export const es: Partial<Messages> = {
   "site.kernel.a5.signal": "«Se me dan mal las mates»: rendirse antes del primer intento.",
   "site.kernel.a5.response": "Primero una reformulación centrada en el método, antes de proponer cualquier intento nuevo.",
 
-  "site.diff.title.a":"¿Por qué no",
-  "site.diff.title.em": "los demás?",
-  "site.diff.sub": "La diferencia no es la IA. Eso ya lo tiene todo el mundo. Es lo que cruza entre vosotros.",
-  "site.diff.general.label": "Asistentes generalistas",
-  "site.diff.general.verdict": "Brillantes con el alumno. Invisibles para su profesor.",
-  "site.diff.teacher.label": "Kits de IA para profesores",
-  "site.diff.teacher.verdict": "Brillantes para el profesor. Invisibles para sus alumnos.",
-  "site.diff.fixed.label": "Plataformas adaptativas cerradas",
-  "site.diff.fixed.verdict": "Un camino rígido, sobre el temario de otro.",
-  "site.diff.raya.verdict": "Una IA que ambos comparten. Lo comprendido circula.",
+  "site.pos.eyebrow": "Dónde encaja",
+  "site.pos.title.a": "La capa entre",
+  "site.pos.title.em": "las dos que ya pagáis.",
+  "site.pos.sub":
+    "Vuestro LMS registra lo que se hizo, los días en que hay algo que entregar. Un tutor ayuda en el momento, y después el momento pasa. Ninguno de los dos guarda lo que un alumno comprendió de verdad — así que un martes cualquiera, sin entregas y sin sesión abierta, no hay nada que leer.",
+  "site.pos.note.model":
+    "Todo en esta categoría funciona sobre modelos frontier comprados. Esto también, a los mismos proveedores. El modelo es el suelo — no es entre modelos que se elige. Es entre los registros que se levantan encima.",
+  "site.pos.note.privacy":
+    "Y ese registro es estrecho a propósito. Un profesor ve que las derivadas están frágiles. No ve lo que se dijo — o sea, menos de lo que su cuaderno de notas actual ya sabe del mismo alumno.",
 
   "site.roadmap.eyebrow": "Hoja de ruta",
   "site.roadmap.title.a": "En qué punto está",

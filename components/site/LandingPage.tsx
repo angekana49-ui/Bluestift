@@ -276,6 +276,8 @@ export default function LandingPage({
           comparison, not after it. */}
       <LadderSection theme={t} />
       <KernelSection theme={t} />
+      {/* Was the ✕/✓ comparison; it states the product's position now. Same
+          component, so the order and the tone sequence are unchanged. */}
       <DifferentiatorsSection theme={t} />
       {/* Objection handling: the five that come back from every school. The
           sixth — "is any of this real yet?" — used to be answered here by the

@@ -157,16 +157,15 @@ export const de: Partial<Messages> = {
   "site.kernel.a5.signal": "„Ich bin einfach schlecht in Mathe“ — aufgeben vor dem ersten Versuch.",
   "site.kernel.a5.response": "Zuerst eine auf die Methode gerichtete Einordnung, bevor ein neuer Versuch vorgeschlagen wird.",
 
-  "site.diff.title.a":"Warum nicht",
-  "site.diff.title.em": "die anderen?",
-  "site.diff.sub": "Der Unterschied ist nicht die KI. Die haben inzwischen alle. Es ist das, was zwischen euch übergeht.",
-  "site.diff.general.label": "Allgemeine Assistenten",
-  "site.diff.general.verdict": "Brillant mit den Lernenden. Unsichtbar für ihre Lehrkraft.",
-  "site.diff.teacher.label": "KI-Werkzeugkästen für Lehrkräfte",
-  "site.diff.teacher.verdict": "Brillant für die Lehrkraft. Unsichtbar für ihre Lernenden.",
-  "site.diff.fixed.label": "Starre adaptive Plattformen",
-  "site.diff.fixed.verdict": "Ein starrer Pfad, auf fremdem Lehrplan.",
-  "site.diff.raya.verdict": "Eine KI, die beide teilen. Verstandenes wandert mit.",
+  "site.pos.eyebrow": "Wo das sitzt",
+  "site.pos.title.a": "Die Schicht zwischen",
+  "site.pos.title.em": "den beiden, die ihr schon zahlt.",
+  "site.pos.sub":
+    "Euer LMS hält fest, was getan wurde — an den Tagen, an denen etwas fällig ist. Ein Tutor hilft im Moment, und dann ist der Moment vorbei. Keines von beiden bewahrt, was Lernende tatsächlich verstanden haben — an einem gewöhnlichen Dienstag, ohne Abgabe und ohne laufende Sitzung, gibt es also nichts zu lesen.",
+  "site.pos.note.model":
+    "Alles in dieser Kategorie läuft auf eingekauften Frontier-Modellen. Dieses auch, bei denselben Anbietern. Das Modell ist der Boden — zwischen Modellen wird nicht entschieden. Zwischen dem, was darüber festgehalten wird, schon.",
+  "site.pos.note.privacy":
+    "Und dieser Datensatz ist absichtlich schmal. Eine Lehrkraft sieht, dass Ableitungen brüchig sind. Sie sieht nicht, was gesagt wurde — also weniger, als das vorhandene Notenbuch über dieselbe Person ohnehin weiß.",
 
   "site.roadmap.eyebrow": "Roadmap",
   "site.roadmap.title.a": "Wo das Produkt",

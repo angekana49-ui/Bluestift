@@ -674,11 +674,35 @@ const ROOM_TURNS: { who: "other" | "me" | "raya"; name: string; text: string }[]
 
 const roomBeat = (i: number) => 420 + i * 340;
 
+/** Who is actually in the room, which room-view computes the same way from the
+ *  channel's presence state (`onlineCount`). */
+const ROOM_ONLINE = ROOM_MEMBERS.filter((m) => m.online).length;
+
+/**
+ * The session clock, one second per second.
+ *
+ * A room timer is a real thing this product enforces — the room goes read-only
+ * when it runs out — and a frozen one is the single most obviously drawn pixel
+ * in this shot. Six samples cross-fading at exactly 1000ms, so for the six
+ * seconds anyone is actually looking at this card the clock is right. It stops
+ * after that rather than looping: a countdown that jumped back up would undo
+ * the very thing it was added to fix.
+ */
+const ROOM_CLOCK = ["24:31", "24:30", "24:29", "24:28", "24:27", "24:26"];
+
 /**
  * A room mid-session (components/room-view.tsx + rooms/room-group-chat.tsx):
  * the real chrome — title, subject, member count, session timer — the five
  * channels, and the group thread with per-sender name labels and Raya
  * answering the room rather than one student in a private corner.
+ *
+ * The three things that make it read as running rather than transcribed are all
+ * things room-view genuinely has, and two of them had been drawn and then lost:
+ * presence (`presenceState` → a pulsing dot on the count and on each member who
+ * is here), the session clock (which this product enforces, so a frozen one was
+ * a lie), and Raya composing before she answers. The fourth is a half-typed
+ * message in the composer, which is not a feature at all — just the shape a
+ * room has when somebody is about to get it.
  */
 export function RoomShot({ theme: t }: { theme: Theme }) {
   // The three bubble tones the room uses — mine, another member's, Raya's —
@@ -698,23 +722,45 @@ export function RoomShot({ theme: t }: { theme: Theme }) {
     lineHeight: 1.5,
   });
 
-  const avatar = (initials: string, bg: string) => (
-    <span
-      style={{
-        flex: "none",
-        width: u(17),
-        height: u(17),
-        borderRadius: u(999),
-        background: bg,
-        color: "#fff",
-        fontSize: u(7),
-        fontWeight: 700,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      {initials}
+  // The roster's avatar, and — for a member the channel says is here — the
+  // app's own presence dot on the corner of it. Raya never carries one: she is
+  // not a tracked member, and a dot on her would be claiming a presence the
+  // real room does not report.
+  const avatar = (initials: string, bg: string, online?: boolean) => (
+    <span style={{ flex: "none", position: "relative", display: "inline-flex" }}>
+      <span
+        style={{
+          width: u(17),
+          height: u(17),
+          borderRadius: u(999),
+          background: bg,
+          color: "#fff",
+          fontSize: u(7),
+          fontWeight: 700,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {initials}
+      </span>
+      {online && (
+        <span
+          className="pub-shot-live-dot"
+          style={{
+            position: "absolute",
+            right: `-${u(1)}`,
+            bottom: 0,
+            width: u(6),
+            height: u(6),
+            borderRadius: u(999),
+            background: ACCENT.green,
+            // Rings against the shot's own ground, not the card's, so the dot
+            // reads as sitting on the avatar rather than punched through it.
+            border: `${u(1.5)} solid ${t.dark ? "#0f1930" : "#f7fafd"}`,
+          }}
+        />
+      )}
     </span>
   );
 
@@ -737,14 +783,27 @@ export function RoomShot({ theme: t }: { theme: Theme }) {
         >
           <div style={{ display: "flex", alignItems: "center", gap: u(6) }}>
             <span style={{ fontSize: u(12.5), fontWeight: 800, color: t.text, letterSpacing: "-0.01em" }}>Trigonometry</span>
-            <span style={{ flex: 1, minWidth: 0, fontSize: u(8.5), color: t.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              Mathematics · 5 members
+            {/* Subject, roster size, and who is here — the three things the real
+                chrome carries. The live count is the one number in this shot
+                that comes from the socket rather than the database, so it gets
+                the app's own pulsing dot in front of it. */}
+            <span style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: u(4), fontSize: u(8.5), color: t.muted, whiteSpace: "nowrap", overflow: "hidden" }}>
+              <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
+                Mathematics · {ROOM_MEMBERS.length} members
+              </span>
+              <span
+                className="pub-shot-live-dot"
+                style={{ flex: "none", width: u(5), height: u(5), borderRadius: u(999), background: ACCENT.green }}
+              />
+              <span style={{ flex: "none", fontWeight: 600, color: t.text }}>{ROOM_ONLINE} online</span>
             </span>
             <span
               className="shot-in"
               style={{
                 ...at(140),
                 flex: "none",
+                display: "grid",
+                justifyItems: "end",
                 fontSize: u(8),
                 fontWeight: 700,
                 fontVariantNumeric: "tabular-nums",
@@ -755,7 +814,18 @@ export function RoomShot({ theme: t }: { theme: Theme }) {
                 padding: `${u(2)} ${u(7)}`,
               }}
             >
-              ⏱ 24:31 left
+              {ROOM_CLOCK.map((c, i) => (
+                <span
+                  key={c}
+                  /* The last reading stays; the ones before it hand over. Same
+                     shape as the Kernel band's gauge — a chain of `shot-span`
+                     closed by something that does not fade back out. */
+                  className={i === ROOM_CLOCK.length - 1 ? "shot-fade" : "shot-span"}
+                  style={{ ...at(140 + i * 1000), gridArea: "1 / 1", ["--dur-span" as string]: "1260ms" }}
+                >
+                  ⏱ {c} left
+                </span>
+              ))}
             </span>
           </div>
 
@@ -820,7 +890,9 @@ export function RoomShot({ theme: t }: { theme: Theme }) {
                   maxWidth: "88%",
                 }}
               >
-                {m.who === "raya" ? avatar("R", ACCENT.indigo) : avatar(who?.initials ?? "", who?.bg ?? t.muted)}
+                {m.who === "raya"
+                  ? avatar("R", ACCENT.indigo)
+                  : avatar(who?.initials ?? "", who?.bg ?? t.muted, who?.online)}
                 <div style={{ display: "flex", flexDirection: "column", alignItems: mine ? "flex-end" : "flex-start", gap: u(2), minWidth: 0 }}>
                   <span style={{ fontSize: u(7), color: t.mutedLight }}>
                     {m.who === "raya" ? <RayaName /> : m.name}
@@ -852,7 +924,12 @@ export function RoomShot({ theme: t }: { theme: Theme }) {
           {/* The composer, with the action that makes this a room and not a
               chat: bringing Raya in is something a member does on purpose. */}
           <div className="shot-in" style={{ ...at(roomBeat(4)), marginTop: "auto", display: "flex", alignItems: "center", gap: u(5) }}>
-            <span
+            {/* The last beat of the room, and the only one that is about a
+                person rather than the product: Noah's answer lands, and you are
+                already halfway through generalising it. Nothing here is a
+                feature claim — it is text in an input, which is what a room
+                looks like when it is working. */}
+            <div
               style={{
                 flex: 1,
                 minWidth: 0,
@@ -861,11 +938,29 @@ export function RoomShot({ theme: t }: { theme: Theme }) {
                 borderRadius: u(999),
                 padding: `${u(6)} ${u(10)}`,
                 fontSize: u(8.5),
-                color: t.inputPlaceholder,
+                overflow: "hidden",
               }}
             >
-              Message the room…
-            </span>
+              <Resolving
+                delay={roomBeat(5)}
+                placeholder={<span style={{ color: t.inputPlaceholder, whiteSpace: "nowrap" }}>Message the room…</span>}
+              >
+                <span style={{ color: t.text, whiteSpace: "nowrap" }}>
+                  so cos(150°) is negative for the same reason
+                  <i
+                    className="pub-shot-caret"
+                    style={{
+                      display: "inline-block",
+                      width: u(1.5),
+                      height: u(9),
+                      marginLeft: u(2),
+                      verticalAlign: "-0.1em",
+                      background: t.text,
+                    }}
+                  />
+                </span>
+              </Resolving>
+            </div>
             <span style={{ ...ghostPill(t), color: t.text, padding: `${u(5)} ${u(9)}` }}>
               Ask <RayaName />
             </span>

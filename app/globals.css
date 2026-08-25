@@ -116,6 +116,238 @@ a {
   display: none;
 }
 
+/* ---- Where this sits: three lanes on one axis of time ----
+   The whole argument is that two of the three lanes are discontinuous and one
+   is not, so the only motion here is the term going past and the state drawing
+   itself under it. Nothing else moves: a lane that decorated itself would be
+   competing with the one line that is supposed to be read. */
+.pub-pos-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* SVG text carries its size in CSS, not as an attribute — it is the only way
+   the phone layout can enlarge it independently of the drawing's scale. */
+.pub-pos-lane {
+  font-family: var(--font-plex), "IBM Plex Sans", sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.pub-pos-sub {
+  font-size: 12.5px;
+}
+.pub-pos-say {
+  font-size: 13.5px;
+}
+.pub-pos-mark {
+  font-size: 13px;
+  font-weight: 700;
+}
+/* The one number in the drawing that changes while you watch it, so it is
+   sized to be the thing you watch. */
+.pub-pos-gauge {
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* The crest of the mass, drawing itself as the head passes. pathLength="100"
+   on the path, so this one rule works whatever the real length of the curve
+   turns out to be when the session data behind it changes. It runs the whole
+   term rather than stopping at the readout: the columns underneath are what
+   arrive in two phases, and an edge without a body under it reads as a line. */
+.pub-shot-anim .pub-pos-draw {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+}
+.pub-shot-anim.is-live .pub-pos-draw {
+  animation: posDraw 8300ms linear var(--d, 0ms) both;
+}
+@keyframes posDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* The reading head: across the term to the readout, then it stays there. It
+   parks rather than running off the end, because the whole second half of this
+   drawing is about that one day. Linear — a head that eased would be claiming
+   the term itself had a shape. */
+.pub-shot-anim .pub-pos-head {
+  opacity: 0;
+}
+.pub-shot-anim.is-live .pub-pos-head {
+  animation: posHead var(--dur-head, 5600ms) linear 1000ms both;
+}
+@keyframes posHead {
+  0% {
+    transform: translateX(200px);
+    opacity: 0;
+  }
+  4% {
+    opacity: 1;
+  }
+  100% {
+    /* x(READ_W) in PositionShot — the head parks on the day being read. */
+    transform: translateX(760px);
+    opacity: 1;
+  }
+}
+
+/* A session: an impulse that rises where it stands and dies there. Deliberately
+   NOT filled at either end — a bar that stayed behind would be drawing the
+   opposite of what this rail exists to say. Scaled from its foot on the rail,
+   so it grows upward toward the mass it feeds rather than out of its middle. */
+.pub-shot-anim .pub-pos-burst {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: bottom;
+}
+.pub-shot-anim.is-live .pub-pos-burst {
+  animation: posBurst 1500ms var(--ease-out) var(--d, 0ms) both;
+}
+@keyframes posBurst {
+  0% {
+    opacity: 0;
+    transform: scaleY(0.15);
+  }
+  18% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  62% {
+    opacity: 0.85;
+    transform: scaleY(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scaleY(0.9);
+  }
+}
+
+/* The branch: the same ten days, read in time. Drawn on rather than faded in,
+   because "it climbs" is the whole content of it — and it reuses posDraw, so
+   the branch and the crest above it are literally the same gesture at two
+   speeds rather than two effects that happen to look alike. */
+.pub-shot-anim .pub-pos-ghost {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+}
+.pub-shot-anim.is-live .pub-pos-ghost {
+  animation: posDraw 1500ms var(--ease-out) var(--d, 0ms) both;
+}
+
+/* ---- The level progressing, under the plate ----
+   Three readings off the same model as the curve, so this is a zoom into the
+   drawing rather than a second claim sitting under it. */
+.pub-pos-next {
+  padding: 14px clamp(14px, 2vw, 22px) 16px;
+  border-top: 1px solid;
+}
+.pub-pos-next-h {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.pub-pos-next-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(10px, 2vw, 20px);
+  margin-top: 12px;
+}
+.pub-pos-next-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.pub-pos-next-when {
+  font-size: 11.5px;
+}
+.pub-pos-next-k {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.pub-pos-next-say {
+  font-size: 12px;
+}
+.pub-pos-next-bar {
+  display: block;
+  height: 5px;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 5px;
+}
+.pub-pos-next-bar > i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+/* The bar grows from its own left edge. It is a separate element from the cell
+   on purpose: `.shot-in` ends on `transform: none`, so a cell that also had to
+   carry this scale would land on one of the two and drop the other. */
+.pub-shot-anim .pub-pos-next-bar > i {
+  transform-origin: left center;
+}
+.pub-shot-anim.is-live .pub-pos-next-bar > i {
+  animation: posGrow 700ms var(--ease-out) var(--d, 0ms) both;
+}
+@keyframes posGrow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.pub-pos-next-note {
+  display: block;
+  margin-top: 13px;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.pub-pos-foot {
+  padding: 12px clamp(14px, 2vw, 22px) 14px;
+  border-top: 1px solid;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+@media (max-width: 760px) {
+  /* The lane names and the readout are the two things that survive a phone.
+     Everything is enlarged against the drawing rather than the drawing being
+     redrawn, so there is one composition rather than two. */
+  .pub-pos-lane {
+    font-size: 30px;
+  }
+  .pub-pos-sub,
+  .pub-pos-say,
+  .pub-pos-mark {
+    font-size: 22px;
+  }
+  .pub-pos-gauge {
+    font-size: 62px;
+  }
+  /* The strip below is real HTML, so it does not scale with the drawing — it
+     just has three narrow columns to live in. The number stays the largest
+     thing in its cell; the words around it give way. */
+  .pub-pos-next-k {
+    font-size: 22px;
+  }
+  .pub-pos-next-when,
+  .pub-pos-next-say {
+    font-size: 11px;
+  }
+}
+
 /* ---- Motion system ----
    One vocabulary for every moving thing on the public site, so the page reads
    as one object rather than a dozen effects that happen to share a page.
@@ -1242,15 +1474,34 @@ a {
   animation: shotPulse 1.1s var(--ease-out) infinite;
 }
 
-/* The live dot on the room shot. The one loop kept on the whole site, because
-   it is the only motion here that carries information: it means the session is
-   live right now. */
+/* The live dot on the room shot — on the chrome's online count, and on the
+   corner of every member the channel says is here. The one loop kept on the
+   whole site, because it is the only motion here that carries information: it
+   means the session is live right now. */
 .pub-shot-live-dot {
   animation: shotPulse 2s var(--ease-out) infinite;
 }
 
+/* The caret in that room's composer. Justified the same way — someone is
+   mid-sentence — and a hard blink rather than a fade, because that is what a
+   text cursor does and a pulsing one would read as a decoration. */
+.pub-shot-caret {
+  animation: shotCaret 1.05s steps(1, end) infinite;
+}
+@keyframes shotCaret {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  55%,
+  100% {
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .pub-shot-live-dot {
+  .pub-shot-live-dot,
+  .pub-shot-caret {
     animation: none;
   }
 }

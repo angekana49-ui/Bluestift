@@ -31,9 +31,9 @@ export default function FaqSection({ theme: t }: { theme: Theme }) {
       {/* This section used to have no top blend, correctly: it followed
           DifferentiatorsSection when that band was also t.cardBg, and fading a
           colour over an identical background paints a band rather than a
-          transition. Differentiators is now tint (it absorbs the step down from
-          the inverted Kernel above it), so there is a real edge here again and
-          the blend has work to do. */}
+          transition. Differentiators is tint now — it breaks up a run of three
+          card-coloured bands between the Kernel and here — so there is a real
+          edge again and the blend has work to do. */}
       <SectionBlend from={t.sectionAltBg} />
 
       <div style={bandColumn("text")}>

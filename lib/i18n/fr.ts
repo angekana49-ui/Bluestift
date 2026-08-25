@@ -157,16 +157,15 @@ export const fr: Partial<Messages> = {
   "site.kernel.a5.signal": "« Je suis nul en maths » — abandonner avant la première tentative.",
   "site.kernel.a5.response": "Un recadrage centré sur la méthode d’abord, avant toute nouvelle tentative.",
 
-  "site.diff.title.a": "Pourquoi pas",
-  "site.diff.title.em": "les autres ?",
-  "site.diff.sub": "La différence n’est pas l’IA. Tout le monde en a une désormais. C’est ce qui circule entre vous.",
-  "site.diff.general.label": "Assistants généralistes",
-  "site.diff.general.verdict": "Excellents avec l’élève. Invisibles pour son professeur.",
-  "site.diff.teacher.label": "Boîtes à outils IA pour profs",
-  "site.diff.teacher.verdict": "Excellentes pour le professeur. Invisibles pour ses élèves.",
-  "site.diff.fixed.label": "Plateformes adaptatives figées",
-  "site.diff.fixed.verdict": "Un parcours rigide, sur le programme de quelqu’un d’autre.",
-  "site.diff.raya.verdict": "Une IA partagée des deux côtés. Ce qui est compris circule.",
+  "site.pos.eyebrow": "Où ça se situe",
+  "site.pos.title.a": "La couche entre",
+  "site.pos.title.em": "les deux que vous payez déjà.",
+  "site.pos.sub":
+    "Votre LMS enregistre ce qui a été fait, les jours où un travail est dû. Un tuteur aide sur l’instant, puis l’instant est passé. Ni l’un ni l’autre ne garde ce qu’un élève a réellement compris — donc un mardi ordinaire, sans devoir à rendre et sans session en cours, il n’y a rien à lire.",
+  "site.pos.note.model":
+    "Tout dans cette catégorie tourne sur des modèles frontier achetés. Nous aussi, chez les mêmes fournisseurs. Le modèle est le socle — ce n’est pas entre eux qu’on choisit. C’est entre les enregistrements posés au-dessus.",
+  "site.pos.note.privacy":
+    "Et cet enregistrement est étroit, volontairement. Un professeur voit que les dérivées sont fragiles. Il ne voit pas ce qui a été dit — soit moins que ce que son carnet de notes actuel sait déjà du même élève.",
 
   "site.roadmap.eyebrow": "Feuille de route",
   "site.roadmap.title.a": "Où en est vraiment",

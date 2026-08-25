@@ -185,16 +185,28 @@ export const en = {
   "site.kernel.a5.response": "Process-focused reassurance first, before any new attempt is proposed.",
 
   // ── Public site: differentiators ──────────────────────────────────
-  "site.diff.title.a": "Why not the",
-  "site.diff.title.em": "others?",
-  "site.diff.sub": "The difference isn’t the AI. Everyone has that now. It’s what crosses between you.",
-  "site.diff.general.label": "General assistants",
-  "site.diff.general.verdict": "Brilliant with the student. Invisible to their teacher.",
-  "site.diff.teacher.label": "Teacher AI toolkits",
-  "site.diff.teacher.verdict": "Brilliant for the teacher. Invisible to their students.",
-  "site.diff.fixed.label": "Fixed adaptive platforms",
-  "site.diff.fixed.verdict": "One rigid path, on somebody else’s curriculum.",
-  "site.diff.raya.verdict": "One AI both sides share. What’s understood travels.",
+  // This band states a POSITION; it does not run a comparison, and it should
+  // not be turned back into one. A ✕/✓ table scoring four competitors defined
+  // the product by negation, told a teacher who uses one of them daily that
+  // their choice was bad, and — since this runs on bought frontier models —
+  // invited "he is attacking the API he pays for". Claims of the form "they
+  // cannot do X" also expire: that happened here once already, when frontier
+  // models shipped long context and killed the old "the difference is the
+  // memory" line. A layer is a product shape, and a shape does not expire.
+  //
+  // Nothing below names a competitor. The two notes are the only claims, both
+  // checkable — the second one inside this repo, where lib/school-admin.ts
+  // reads concept and mindset state, insights and follow-ups, and no message
+  // table at all.
+  "site.pos.eyebrow": "Where this sits",
+  "site.pos.title.a": "The layer between",
+  "site.pos.title.em": "the two you already buy.",
+  "site.pos.sub":
+    "Your LMS records what was done, on the days work is due. A tutor helps in the moment, and then the moment is over. Neither one keeps what a student actually understood — so on an ordinary Tuesday, with nothing due and no session running, there is nothing to read.",
+  "site.pos.note.model":
+    "Everything in this category runs on bought frontier models. So does this, from the same suppliers. The model is the floor — it is not what anyone is choosing between. The record above it is.",
+  "site.pos.note.privacy":
+    "And that record is narrow on purpose. A teacher sees that derivatives are fragile. A teacher does not see what was said — which is less than the gradebook they already have knows about the same student.",
 
   // ── Public site: roadmap ──────────────────────────────────────────
   // Must track docs/project-status.md. Payments stay "in progress" until live
