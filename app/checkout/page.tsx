@@ -6,7 +6,7 @@ import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { getAdminMembership } from "@/lib/school-admin";
 import { resolvePlanPriceForRequest } from "@/lib/billing";
 import { ipCountryFromHeaders, formatMoney } from "@/lib/billing/regions";
-import { getPaymentProvider, type PaymentChannel } from "@/lib/billing/payments";
+import { getPaymentProvider, sandboxBlockedInProd, type PaymentChannel } from "@/lib/billing/payments";
 import { isAnnualTerm, termTotal } from "@/lib/billing/terms";
 import { CheckoutPanel } from "@/components/checkout/CheckoutPanel";
 
@@ -100,6 +100,16 @@ export default async function CheckoutPage({
 
   const provider = getPaymentProvider();
   const channels = [...provider.supportedChannels] as PaymentChannel[];
+  /**
+   * The same condition /api/billing/checkout refuses on, asked here instead.
+   *
+   * The API already returned a clean 503 for this, but only after the visitor
+   * had signed in, chosen a channel and pressed pay — so the one page in the
+   * funnel that knew payments were off was the last one they reached. This is
+   * the honest place for it: the order summary still renders, because what they
+   * came to see is what it would cost, and that part is true either way.
+   */
+  const paymentsOff = provider.id === "sandbox" && sandboxBlockedInProd();
 
   return (
     <main style={shell}>
@@ -130,7 +140,43 @@ export default async function CheckoutPage({
           </div>
         </div>
 
-        {!user ? (
+        {/* Checked before the sign-in prompt on purpose: sending someone to
+            create an account for a purchase that cannot complete is worse than
+            no checkout at all. */}
+        {paymentsOff ? (
+          <div
+            style={{
+              border: "1px solid #e6ebf3",
+              background: "#f6f8fc",
+              borderRadius: 14,
+              padding: "16px 18px",
+              textAlign: "center",
+            }}
+          >
+            <p style={{ fontSize: 15, fontWeight: 700, color: "#0b1220", margin: "0 0 6px" }}>
+              Online payment isn&apos;t open yet.
+            </p>
+            <p style={{ fontSize: 14.5, color: "#475569", lineHeight: 1.6, margin: "0 0 14px" }}>
+              The price above is the real one. We&apos;re finishing the payment channel — until it&apos;s live,
+              schools are activated by hand and it takes a day.
+            </p>
+            <Link
+              href="/contact"
+              style={{
+                display: "inline-block",
+                background: "#0b1220",
+                color: "#fff",
+                borderRadius: 999,
+                padding: "11px 26px",
+                fontSize: 15,
+                fontWeight: 600,
+                textDecoration: "none",
+              }}
+            >
+              Talk to us
+            </Link>
+          </div>
+        ) : !user ? (
           <div style={{ textAlign: "center" }}>
             <p style={{ fontSize: 15, color: "#334155", lineHeight: 1.6, margin: "0 0 14px" }}>
               Sign in to complete your purchase.
