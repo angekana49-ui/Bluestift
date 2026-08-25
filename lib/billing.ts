@@ -74,41 +74,63 @@ const PLAN_COLS =
   "id, name, description, category, tier, price, price_unit, billing_period, features, seat_limit, storage_gb";
 
 /**
- * The one-line price summary the landing page's gateway cards show, built from
- * the SAME rows /pricing and the checkout read. It used to be a string typed
- * into the component, and it had already drifted from the catalogue twice by
- * the time anyone looked — a marketing card must not be able to quote a price
- * the checkout would not charge.
+ * What a lane costs to enter: an amount, its unit, and the rest of the ladder.
  *
- * Pure on purpose: the query lives in `pricingSummary` below, this is the part
- * worth pinning. Returns null rather than a partial line when a tier is
- * missing or has no price — an absent line is recoverable (the CTA still leads
- * to /pricing, which is authoritative), a wrong one is not.
+ * Built from the SAME rows /pricing and the checkout read. The figure used to
+ * be a string typed into the component, and it had already drifted from the
+ * catalogue twice by the time anyone looked — a marketing card must not be able
+ * to quote a price the checkout would not charge.
  *
- * Quoted in USD, like the card always was. The CFA-zone prices are resolved
- * per request at /pricing, which is where the zone signals are available.
+ * This replaced `pricingLine`, which spelled the whole ladder out in one string
+ * ("Standard $2 · Plus $4 / student / mo"). That is a sentence, not a price,
+ * and it forced the card to set the strongest number on the site in muted 14px.
+ * The landing's three cards are three AUDIENCES, so a visitor already knows
+ * which lane they are standing in; what they want from the card is the floor of
+ * that lane, big enough to read, with the ladder as a footnote under it.
+ *
+ * Pure on purpose: the query lives in `pricingEntry` below, this is the part
+ * worth pinning. Returns null rather than a partial figure when a tier is
+ * missing or has no price — an absent number is recoverable (the CTA still
+ * leads to /pricing, which is authoritative), a wrong one is not.
+ *
+ * Quoted in USD, like the card always was. The CFA-zone prices are resolved per
+ * request at /pricing, which is where the zone signals are available.
  */
-export function pricingLine(audience: "b2c" | "b2b", plans: BillingPlan[]): string | null {
+export function pricingFrom(
+  audience: "b2c" | "b2b",
+  plans: BillingPlan[],
+): { amount: string; unit: string; rest: string | null } | null {
   const signal = (p: BillingPlan) => [p.name, p.tier].filter(Boolean).join(" ");
   const usd = (p: BillingPlan | undefined) =>
     p && p.price != null ? formatMoney(p.price, "USD") : null;
 
   if (audience === "b2c") {
+    const free = plans.some((p) => normalizeRayaTier(signal(p)) === "free");
     const plus = usd(plans.find((p) => normalizeRayaTier(signal(p)) === "plus"));
     const max = usd(plans.find((p) => normalizeRayaTier(signal(p)) === "max"));
-    return plus && max ? `Free · Plus ${plus} · Max ${max} / mo` : null;
+    // "Free" only counts as the floor if a free plan is really in the
+    // catalogue — otherwise the headline would be advertising a plan nobody
+    // can sign up for.
+    if (!free || !plus) return null;
+    return {
+      amount: "Free",
+      unit: "to start",
+      rest: max ? `then Plus ${plus} · Max ${max} / mo` : `then Plus ${plus} / mo`,
+    };
   }
 
-  // Custom is a quote, so it carries no number here even though it has a price.
-  const standard = usd(plans.find((p) => normalizeSchoolTier(signal(p)) === "standard"));
+  const base = usd(plans.find((p) => normalizeSchoolTier(signal(p)) === "standard"));
   const plus = usd(plans.find((p) => normalizeSchoolTier(signal(p)) === "plus"));
-  return standard && plus ? `Standard ${standard} · Plus ${plus} / student / mo` : null;
+  if (!base) return null;
+  return { amount: base, unit: "per student / month", rest: plus ? `Plus ${plus} / student / mo` : null };
 }
 
-/** `pricingLine` over the live catalogue. Never throws; null when unreadable. */
-export async function pricingSummary(audience: "b2c" | "b2b"): Promise<string | null> {
+/** `pricingFrom` over the live catalogue. Never throws; null when unreadable. */
+export async function pricingEntry(
+  audience: "b2c" | "b2b",
+): Promise<{ amount: string; unit: string; rest: string | null } | null> {
   try {
-    return pricingLine(audience, await listPlans(audience));
+    return pricingFrom(audience, await listPlans(audience));
   } catch {
     return null;
   }

@@ -10,7 +10,7 @@ import LadderSection from "./LadderSection";
 import KernelSection from "./KernelSection";
 import DifferentiatorsSection from "./DifferentiatorsSection";
 import FaqSection from "./FaqSection";
-import PricingSection from "./PricingSection";
+import PricingSection, { type EntryPrice } from "./PricingSection";
 import FinalCtaSection from "./FinalCtaSection";
 import Footer from "./Footer";
 import { LanguagePrompt } from "./LanguagePrompt";
@@ -235,14 +235,14 @@ export const defaultConfig: SiteConfig = {
 export default function LandingPage({
   signedIn,
   homeHref,
-  soloPrices,
-  schoolPrices,
+  soloPrice,
+  schoolPrice,
 }: {
   signedIn?: boolean;
   homeHref?: string;
-  /** Price lines resolved server-side from the plan catalogue; null when unreadable. */
-  soloPrices?: string | null;
-  schoolPrices?: string | null;
+  /** Entry prices resolved server-side from the plan catalogue; null when unreadable. */
+  soloPrice?: EntryPrice | null;
+  schoolPrice?: EntryPrice | null;
 }) {
   const { isDark, toggle } = useThemeMode();
   const t = getTheme(isDark);
@@ -284,7 +284,7 @@ export default function LandingPage({
           roadmap; it now lives at /research?tab=progress, linked from the
           footer, because it is a changelog and not part of the argument. */}
       <FaqSection theme={t} />
-      <PricingSection theme={t} soloPrices={soloPrices} schoolPrices={schoolPrices} />
+      <PricingSection theme={t} soloPrice={soloPrice} schoolPrice={schoolPrice} />
       <FinalCtaSection theme={t} signedIn={signedIn} homeHref={homeHref} />
       <Footer theme={t} variant="full" />
       {/* First visit only: asks the language instead of hiding a picker in the

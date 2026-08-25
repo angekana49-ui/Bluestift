@@ -110,7 +110,12 @@ export const en = {
     "Revise as a group in real time, with Raya in the room and documents everyone can work from. Learning is social — the tutor shouldn’t put you alone in a corner.",
   "site.features.challenges.title": "Challenges & Tools",
   "site.features.challenges.desc":
-    "Quizzes, tests and group challenges with live standings, plus summaries, flashcards and mind maps from any lesson. Every attempt feeds the same profile.",
+    // Opens on what the card DRAWS. The shot beside this is the Tools Studio,
+    // and a description that led with live standings was promising a
+    // leaderboard next to a picture of a quiz generator. Both are real — the
+    // standings are in components/room-challenges.tsx — so the fix is the order,
+    // not the claim. The title still says "Challenges & Tools", covering both.
+    "Summaries, flashcards and mind maps from any lesson, plus quizzes, tests and group challenges with live standings. Every attempt feeds the same profile.",
 
   // ── Public site: the Socratic ladder (lib/raya/prompt.ts) ─────────
   // The four rungs are the tutor's real escalation policy. Don't soften them
@@ -140,11 +145,18 @@ export const en = {
     "This isn’t a setting a school switches on. Raya is built so it cannot hand over a finished answer — and its feedback targets the method, never the person, per Carol Dweck’s work: “this one trips a lot of people up”, never “you’re gifted”.",
 
   // ── Public site: the Cognitive Kernel (lib/kernel/types.ts) ───────
-  // K/V/P/M are real fields (k_raw, v_score, p_score, m_score) and the five
+  // K/V/P/M are real fields (k_raw, v_score, p_score, m_score) and the seven
   // alerts are KernelAlertType verbatim. Keep this table in sync with them.
+  //
+  // It said five for a while, and the table listed five, because the last two
+  // are not about the student at all — they are the Kernel declining to trust
+  // its own number. That is a reason to publish them, not to omit them: on a
+  // page selling measurement, the alert that says "this measurement is
+  // unreliable" is the one a sceptical teacher is looking for. Both are in
+  // lib/raya/prompt.ts (priorities 6 and 7) and lib/kernel/risk.ts.
   "site.kernel.eyebrow": "Cognitive Kernel",
   "site.kernel.title.a": "Four dimensions,",
-  "site.kernel.title.em": "five alerts.",
+  "site.kernel.title.em": "seven alerts.",
   "site.kernel.sub":
     "The Kernel doesn’t store a grade. Every concept carries a four-part vector — and when a signal degrades it names the failure, so Raya can change tactic on the very next turn.",
   "site.kernel.map.title": "Everything runs around one person.",
@@ -183,6 +195,13 @@ export const en = {
   "site.kernel.a5.name": "Fixed mindset",
   "site.kernel.a5.signal": "“I’m just bad at maths” — giving up before the first attempt.",
   "site.kernel.a5.response": "Process-focused reassurance first, before any new attempt is proposed.",
+  // The last two are the Kernel about itself, not about the student.
+  "site.kernel.a6.name": "Unstable estimate",
+  "site.kernel.a6.signal": "The number keeps moving instead of settling — right, then wrong, then right, on the same concept.",
+  "site.kernel.a6.response": "Raya asks for one clean attempt with no hints, and nothing is built on that concept until it holds still.",
+  "site.kernel.a7.name": "Outside the calibration",
+  "site.kernel.a7.signal": "This student doesn’t behave like the population the parameters were fitted on.",
+  "site.kernel.a7.response": "Raya goes by what this turn shows rather than the stored number, and won’t raise difficulty on the strength of it.",
 
   // ── Public site: differentiators ──────────────────────────────────
   // This band states a POSITION; it does not run a comparison, and it should
@@ -223,7 +242,7 @@ export const en = {
   "site.roadmap.status.coming": "Coming",
   "site.roadmap.i1.title": "Socratic sessions & Cognitive Kernel",
   "site.roadmap.i1.body":
-    "The Pump → Hint → Assertion → Summary ladder, the per-concept vector and the five pedagogical alerts, running in every session.",
+    "The Pump → Hint → Assertion → Summary ladder, the per-concept vector and the seven alerts, running in every session.",
   "site.roadmap.i2.title": "Schools workspace",
   "site.roadmap.i2.body":
     "Self-serve onboarding, admin and teacher roles, classes, invite codes and team joins, and insights by class and subject.",
@@ -240,23 +259,39 @@ export const en = {
   "site.roadmap.i6.body": "Importing classes and rosters from the environment a school already runs, instead of retyping them.",
 
   // ── Public site: FAQ ──────────────────────────────────────────────
+  // Keys are named for their question, not numbered. The set changes when the
+  // page's argument changes, and a `q3` that no longer sits third is worse than
+  // a rename — the numbers stopped meaning anything the first time one moved.
+  //
+  // Two questions were dropped rather than answered twice. "Does Raya replace
+  // the teacher?" is what the hero and the whole connection band are about, and
+  // "what if the student just asks for the answer?" is what the ladder band
+  // demonstrates on four rungs with a live transcript. A FAQ that restates the
+  // page is where a sceptical reader stops believing the page.
+  //
+  // What replaced them is what a sceptic actually arrives with, hardest first:
+  // the model is bought, this competes with an LMS we already pay for, and you
+  // are training on our children. All three are answerable from this repo.
   "site.faq.title.a": "Frequently asked",
   "site.faq.title.em": "questions.",
-  "site.faq.q1": "Does Raya replace the teacher?",
-  "site.faq.a1":
-    "No. It absorbs the repetition and the diagnosis, and hands back the part a teacher does better than any model: deciding what to do about what it found.",
-  "site.faq.q2": "What does a teacher actually see?",
-  "site.faq.a2":
+  "site.faq.model.q": "Isn’t this ChatGPT with a system prompt?",
+  "site.faq.model.a":
+    "The model underneath is a bought frontier model. So is theirs — that part is the floor, not the difference. What sits on top is a record: every attempt is scored concept by concept into one profile that the student’s tutor and their teacher both read. A prompt is not a record, and it is gone when the tab closes.",
+  "site.faq.lms.q": "We already pay for an LMS. Why another tool?",
+  "site.faq.lms.a":
+    "This isn’t one and doesn’t want to be. Your LMS records what was set and what was handed in; this records what was understood, which is a column no gradebook has ever had. They connect rather than compete — Google Classroom signs in and your classes and rosters come from where they already live.",
+  "site.faq.sees.q": "What does a teacher actually see?",
+  "site.faq.sees.a":
     "Which concepts a student has secured, which are still shaky, and the prerequisite blocking the rest — never their conversations with Raya. A student who feels read stops admitting what they don’t understand.",
-  "site.faq.q3": "What if the student just asks for the answer?",
-  "site.faq.a3":
-    "Raya can’t give it — the guardrail is structural, not a setting. And a correct answer with no reasoning behind it doesn’t raise mastery either.",
-  "site.faq.q4": "Do we have to import our curriculum?",
-  "site.faq.a4":
+  "site.faq.training.q": "Is our students’ work used to train models?",
+  "site.faq.training.a":
+    "No, unless an adult has switched it on for their own account. The age is checked before the consent box is even read, so a minor’s account cannot be enrolled at all — not even by ticking it. If that check can’t be completed, the answer is no.",
+  "site.faq.curriculum.q": "Do we have to import our curriculum?",
+  "site.faq.curriculum.a":
     "No. Concepts are extracted from the documents you upload and attached to the existing graph. One lesson is enough to start.",
-  "site.faq.q5": "Does it work on a weak connection?",
-  "site.faq.a5":
-    "Yes. The interface is light, the student works in their own language, and the profile lives server-side — the device stores and recomputes nothing.",
+  "site.faq.offline.q": "Does it work on a weak connection?",
+  "site.faq.offline.a":
+    "Yes. The interface is light and it is cached on the device after the first visit, so it opens without waiting for the network. The profile stays server-side, so nothing heavy is recomputed on a cheap phone.",
 
   // ── Public site: closing CTA ──────────────────────────────────────
   // Offer wording must match the hero chips. There is no fixed-length trial.
@@ -281,6 +316,13 @@ export const en = {
   "site.pricing.schools.l2": "Teacher dashboards + per-class insights",
   "site.pricing.schools.l3": "LMS sync + Raya for Schools",
   "site.pricing.schools.l4": "Billed per enrolled student",
+  // Schools only, and true of the catalogue rather than of a plan we intend to
+  // build: plan_region_prices carries explicit XAF/XOF amounts for both school
+  // tiers, and lib/billing/regions.ts lists the fourteen countries. Individual
+  // plans are one price worldwide — deliberately, so this line must not creep
+  // onto the Solo card.
+  "site.pricing.schools.region":
+    "Schools across the fourteen CFA-franc countries are billed in local currency, at a local rate.",
   "site.pricing.schools.cta": "See school plans",
   "site.pricing.custom.title": "Custom",
   "site.pricing.custom.l1": "The full engine, tuned to your school",

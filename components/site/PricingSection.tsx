@@ -6,21 +6,45 @@ import { RayaText, SchoolsName } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
 import { SectionBlend, bandColumn, bandSection, lead, sectionH2, serifEm } from "./layout";
 
+export type EntryPrice = { amount: string; unit: string; rest: string | null };
+
 export default function PricingSection({
   theme: t,
-  soloPrices,
-  schoolPrices,
+  soloPrice,
+  schoolPrice,
 }: {
   theme: Theme;
   /**
-   * Price lines from the live plan catalogue (see `pricingLine` in lib/billing).
-   * Null when it could not be read — the line is then omitted rather than
-   * guessed: the CTA still leads to /pricing, which is authoritative.
+   * The entry price for each lane, from the live plan catalogue (see
+   * `pricingFrom` in lib/billing). Null when it could not be read — the figure
+   * is then omitted rather than guessed: the CTA still leads to /pricing,
+   * which is authoritative.
    */
-  soloPrices?: string | null;
-  schoolPrices?: string | null;
+  soloPrice?: EntryPrice | null;
+  schoolPrice?: EntryPrice | null;
 }) {
   const tr = useTranslate();
+
+  /**
+   * The number, at the size a number is worth.
+   *
+   * It used to be one muted 14px line spelling out the whole ladder. That is a
+   * sentence, not a price — and the figure it was hiding is $2 per student per
+   * month, which is the strongest single fact on this page. A card that sells a
+   * lane should lead with the floor of that lane and leave the ladder as a
+   * footnote under it.
+   */
+  const priceBlock = (p: EntryPrice, tone: string, sub: string) => (
+    <div style={{ position: "relative", marginTop: 18 }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+        <span style={{ fontSize: "2.1rem", fontWeight: 900, letterSpacing: "-0.03em", color: tone, lineHeight: 1 }}>
+          {p.amount}
+        </span>
+        <span style={{ fontSize: 14, fontWeight: 600, color: sub }}>{p.unit}</span>
+      </div>
+      {p.rest && <div style={{ fontSize: 13, color: sub, marginTop: 6 }}>{p.rest}</div>}
+    </div>
+  );
   // Short scannable lines beat a paragraph — one idea per row, small accent dot.
   const lineList = (lines: string[], color: string, dot: string) => (
     <ul style={{ position: "relative", listStyle: "none", margin: "14px 0 0", padding: 0, display: "flex", flexDirection: "column", gap: 9, flex: 1 }}>
@@ -53,9 +77,7 @@ export default function PricingSection({
       {lineList(opts.lines, t.muted, t.greenSolid)}
       {/* Absent when the catalogue could not be read: the row collapses rather
           than leaving a margin where a price used to be. */}
-      {opts.meta && (
-        <div style={{ position: "relative", fontSize: 14, fontWeight: 600, color: t.wordmarkB, marginTop: 16 }}>{opts.meta}</div>
-      )}
+      {opts.meta}
       <a href={opts.href} className="pub-press" style={{ position: "relative", display: "block", textAlign: "center", marginTop: 18, background: t.ctaBg, color: t.ctaText, borderRadius: 999, padding: "11px 20px", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
         {opts.cta}
       </a>
@@ -87,7 +109,7 @@ export default function PricingSection({
               tr("site.pricing.solo.l3"),
               tr("site.pricing.solo.l4"),
             ],
-            meta: soloPrices ?? undefined,
+            meta: soloPrice ? priceBlock(soloPrice, t.text, t.muted) : undefined,
             cta: tr("site.pricing.solo.cta"),
             href: "/pricing?for=solo",
           })}
@@ -113,9 +135,16 @@ export default function PricingSection({
               "rgba(255,255,255,0.78)",
               t.greenSolid,
             )}
-            {schoolPrices && (
-              <div style={{ position: "relative", fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.9)", marginTop: 16 }}>{schoolPrices}</div>
-            )}
+            {schoolPrice && priceBlock(schoolPrice, "#ffffff", "rgba(255,255,255,0.72)")}
+            {/* The one line that answers "exorbitant" for the market this is
+                built for, and it is not a promise — schools.plan_region_prices
+                carries explicit XAF/XOF amounts for both school tiers, and
+                lib/billing/regions.ts lists the fourteen countries they cover.
+                Local currency, not an FX conversion: both franc zones are
+                pegged to the euro, so the amount is a real local price. */}
+            <div style={{ position: "relative", fontSize: 13, color: "rgba(255,255,255,0.72)", marginTop: 10, lineHeight: 1.55 }}>
+              {tr("site.pricing.schools.region")}
+            </div>
             <a href="/pricing?for=schools" className="pub-press" style={{ position: "relative", display: "block", textAlign: "center", marginTop: 18, background: "white", color: "#0b1220", borderRadius: 999, padding: "11px 20px", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
               {tr("site.pricing.schools.cta")}
             </a>

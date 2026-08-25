@@ -89,7 +89,7 @@ export const fr: Partial<Messages> = {
     "Réviser en groupe et en temps réel, avec Raya dans la salle et des documents que tout le monde peut exploiter. Apprendre est social — le tuteur ne devrait pas vous isoler dans un coin.",
   "site.features.challenges.title": "Défis et outils",
   "site.features.challenges.desc":
-    "Quiz, tests et défis de groupe avec classement en direct, plus des résumés, des cartes mémo et des cartes mentales à partir de n’importe quel cours. Chaque tentative alimente le même profil.",
+    "Résumés, cartes mémo et cartes mentales à partir de n’importe quel cours, plus des quiz, des tests et des défis de groupe avec classement en direct. Chaque tentative alimente le même profil.",
 
   "site.ladder.eyebrow": "Modèle pédagogique",
   "site.ladder.title.a": "Une échelle à gravir, pas un",
@@ -117,7 +117,7 @@ export const fr: Partial<Messages> = {
 
   "site.kernel.eyebrow": "Noyau cognitif",
   "site.kernel.title.a": "Quatre dimensions,",
-  "site.kernel.title.em": "cinq alertes.",
+  "site.kernel.title.em": "sept alertes.",
   "site.kernel.sub":
     "Le noyau ne stocke pas une note. Chaque concept porte un vecteur à quatre composantes — et dès qu’un signal se dégrade, il nomme la défaillance, pour que Raya change de tactique dès le tour suivant.",
   "site.kernel.map.title": "Tout tourne autour d’une seule personne.",
@@ -156,6 +156,13 @@ export const fr: Partial<Messages> = {
   "site.kernel.a5.name": "État d’esprit fixe",
   "site.kernel.a5.signal": "« Je suis nul en maths » — abandonner avant la première tentative.",
   "site.kernel.a5.response": "Un recadrage centré sur la méthode d’abord, avant toute nouvelle tentative.",
+  // Les deux dernières portent sur le noyau lui-même, pas sur l’élève.
+  "site.kernel.a6.name": "Estimation instable",
+  "site.kernel.a6.signal": "Le nombre bouge au lieu de se poser — juste, puis faux, puis juste, sur le même concept.",
+  "site.kernel.a6.response": "Raya demande une tentative propre, sans indice, et rien ne se construit sur ce concept tant qu’il ne tient pas en place.",
+  "site.kernel.a7.name": "Hors calibration",
+  "site.kernel.a7.signal": "Cet élève ne se comporte pas comme la population sur laquelle les paramètres ont été ajustés.",
+  "site.kernel.a7.response": "Raya s’appuie sur ce que montre le tour en cours plutôt que sur le nombre stocké, et refuse d’augmenter la difficulté sur cette base.",
 
   "site.pos.eyebrow": "Où ça se situe",
   "site.pos.title.a": "La couche entre",
@@ -177,7 +184,7 @@ export const fr: Partial<Messages> = {
   "site.roadmap.status.coming": "À venir",
   "site.roadmap.i1.title": "Séances socratiques et noyau cognitif",
   "site.roadmap.i1.body":
-    "L’échelle Amorce → Indice → Assertion → Synthèse, le vecteur par concept et les cinq alertes pédagogiques, actifs à chaque séance.",
+    "L’échelle Amorce → Indice → Assertion → Synthèse, le vecteur par concept et les sept alertes, actifs à chaque séance.",
   "site.roadmap.i2.title": "Espace établissement",
   "site.roadmap.i2.body":
     "Inscription autonome, rôles admin et professeur, classes, codes d’invitation et rattachement d’équipe, analyses par classe et par matière.",
@@ -195,21 +202,24 @@ export const fr: Partial<Messages> = {
 
   "site.faq.title.a": "Questions",
   "site.faq.title.em": "fréquentes.",
-  "site.faq.q1": "Raya remplace-t-elle le professeur ?",
-  "site.faq.a1":
-    "Non. Elle absorbe la répétition et le diagnostic, et rend au professeur ce qu’il fait mieux que n’importe quel modèle : décider quoi faire de ce qui a été trouvé.",
-  "site.faq.q2": "Que voit réellement un professeur ?",
-  "site.faq.a2":
+  "site.faq.model.q": "N’est-ce pas ChatGPT avec un prompt système ?",
+  "site.faq.model.a":
+    "Le modèle en dessous est un modèle de pointe acheté. Le leur aussi — c’est le plancher, pas la différence. Ce qui est posé dessus est un relevé : chaque tentative est évaluée concept par concept dans un profil unique, que le tuteur de l’élève et son professeur lisent tous les deux. Un prompt n’est pas un relevé, et il disparaît à la fermeture de l’onglet.",
+  "site.faq.lms.q": "Nous payons déjà un LMS. Pourquoi un outil de plus ?",
+  "site.faq.lms.a":
+    "Ce n’en est pas un et ça ne cherche pas à l’être. Votre LMS enregistre ce qui a été donné et ce qui a été rendu ; ceci enregistre ce qui a été compris, une colonne qu’aucun carnet de notes n’a jamais eue. Les deux se connectent au lieu de se concurrencer — Google Classroom se relie, et vos classes et vos listes viennent d’où elles vivent déjà.",
+  "site.faq.sees.q": "Que voit réellement un professeur ?",
+  "site.faq.sees.a":
     "Quels concepts un élève a solidement acquis, lesquels restent fragiles, et le prérequis qui bloque le reste — jamais ses conversations avec Raya. Un élève qui se sent lu cesse d’avouer ce qu’il ne comprend pas.",
-  "site.faq.q3": "Et si l’élève demande simplement la réponse ?",
-  "site.faq.a3":
-    "Raya ne peut pas la donner — le garde-fou est structurel, pas une option. Et une bonne réponse sans raisonnement derrière n’augmente pas la maîtrise non plus.",
-  "site.faq.q4": "Faut-il importer notre programme ?",
-  "site.faq.a4":
+  "site.faq.training.q": "Le travail de nos élèves sert-il à entraîner des modèles ?",
+  "site.faq.training.a":
+    "Non, sauf si un adulte l’a activé pour son propre compte. L’âge est vérifié avant même que la case de consentement soit lue : le compte d’un mineur ne peut pas être enrôlé, même en la cochant. Et si cette vérification n’aboutit pas, la réponse est non.",
+  "site.faq.curriculum.q": "Faut-il importer notre programme ?",
+  "site.faq.curriculum.a":
     "Non. Les concepts sont extraits des documents que vous déposez et rattachés au graphe existant. Un seul cours suffit pour démarrer.",
-  "site.faq.q5": "Est-ce que ça marche avec une connexion faible ?",
-  "site.faq.a5":
-    "Oui. L’interface est légère, l’élève travaille dans sa langue, et le profil vit côté serveur — l’appareil ne stocke ni ne recalcule rien.",
+  "site.faq.offline.q": "Est-ce que ça marche avec une connexion faible ?",
+  "site.faq.offline.a":
+    "Oui. L’interface est légère et elle est mise en cache sur l’appareil dès la première visite : elle s’ouvre sans attendre le réseau. Le profil reste côté serveur, donc rien de lourd n’est recalculé sur un téléphone d’entrée de gamme.",
 
   "site.finalCta.title.a": "Essayez Raya avec",
   "site.finalCta.title.em": "une classe.",
@@ -231,6 +241,8 @@ export const fr: Partial<Messages> = {
   "site.pricing.schools.l2": "Tableaux de bord profs + analyses par classe",
   "site.pricing.schools.l3": "Synchronisation LMS + Raya for Schools",
   "site.pricing.schools.l4": "Facturé par élève inscrit",
+  "site.pricing.schools.region":
+    "Les établissements des quatorze pays de la zone franc CFA sont facturés en monnaie locale, à un tarif local.",
   "site.pricing.schools.cta": "Voir les forfaits établissement",
   "site.pricing.custom.title": "Sur mesure",
   "site.pricing.custom.l1": "Tout le moteur, réglé pour votre établissement",

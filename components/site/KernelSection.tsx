@@ -14,10 +14,10 @@ import { LEAD, SectionHeader, bandColumn, bandSection, bandTone, serifEm } from 
  * The four letters are the real contract, not a metaphor: `ConceptStateOut`
  * carries `k_raw` / `k_effective`, `v_score` and `p_score` per concept, and
  * `MindsetOut.m_score` per student (`lib/kernel/types.ts`) — which is why each
- * card names its field rather than only its letter. The five alerts are
- * `KernelAlertType` verbatim, and each "response" column restates the handling
- * rule the tutor is given for that alert in `lib/raya/prompt.ts`
- * ("# Active safety alerts").
+ * card names its field rather than only its letter. The seven alerts are
+ * `KernelAlertType` verbatim, in the tutor's own priority order, and each
+ * "response" column restates the handling rule the tutor is given for that
+ * alert in `lib/raya/prompt.ts` ("# Active alerts").
  *
  * Keep the two in sync: if the kernel contract gains or renames an alert, this
  * table is a public claim about the product and has to move with it.
@@ -48,9 +48,31 @@ const ALERTS: { nameKey: MessageKey; signalKey: MessageKey; responseKey: Message
   { nameKey: "site.kernel.a3.name", signalKey: "site.kernel.a3.signal", responseKey: "site.kernel.a3.response" },
   { nameKey: "site.kernel.a4.name", signalKey: "site.kernel.a4.signal", responseKey: "site.kernel.a4.response" },
   { nameKey: "site.kernel.a5.name", signalKey: "site.kernel.a5.signal", responseKey: "site.kernel.a5.response" },
+  /**
+   * The last two are the Kernel about itself rather than about the student, and
+   * the table listed five for exactly that reason. Wrong instinct: the alert
+   * that says "do not trust this number" is the one a sceptical teacher is
+   * looking for on a page selling measurement, and a claim of seven that can be
+   * checked against lib/kernel/types.ts is worth more than a tidy five.
+   */
+  { nameKey: "site.kernel.a6.name", signalKey: "site.kernel.a6.signal", responseKey: "site.kernel.a6.response" },
+  { nameKey: "site.kernel.a7.name", signalKey: "site.kernel.a7.signal", responseKey: "site.kernel.a7.response" },
 ];
 
 const MONO = "ui-monospace,SFMono-Regular,Menlo,monospace";
+
+/**
+ * The post-it stack's geometry.
+ *
+ * `BASE` clears the sticky navbar the way the ladder's does. `STEP` is what a
+ * pinned card leaves showing, and unlike the ladder's 26px it has to be enough
+ * to READ: the badge and the field name are the card's identity, and a fan of
+ * four anonymous coloured edges would be decoration. 66px is that row plus the
+ * card's top padding — so the last card pins at 92 + 3 × 66 = 290, which still
+ * leaves a laptop viewport room for the whole of it.
+ */
+const POSTIT_BASE = 92;
+const POSTIT_STEP = 66;
 
 export default function KernelSection({ theme: outer }: { theme: Theme }) {
   const tr = useTranslate();
@@ -198,20 +220,48 @@ export default function KernelSection({ theme: outer }: { theme: Theme }) {
           </div>
         </Reveal>
 
-        {/* 2 — the four fields, each named as the column it really is. */}
-        <div className="pub-grid-4 pub-rail" style={{ gap: 16, marginTop: 56 }}>
+        {/* 2 — the four fields, each named as the column it really is.
+            The ladder's own mechanism (`.pub-stack-card`), with one change: the
+            cards do not land square on each other. Each is thrown a little to
+            its own side and left at an angle, so a pinned card leaves a whole
+            coloured corner showing rather than a three-pixel rule, and the four
+            end up as a fan you can count at a glance.
+            The version before this drove the same four cards from scroll
+            progress inside a pinned block, which worked and cost 138vh of empty
+            page to do it. This costs the height the cards already had. */}
+        <div style={{ marginTop: 56 }}>
           {DIMENSIONS.map((d, i) => (
-            <Reveal key={d.letter} delay={i * 70} style={{ height: "100%" }}>
-            <div
-              className="pub-lift"
-              style={{
-                height: "100%",
-                background: t.cardBg,
-                border: `1px solid ${t.cardBorder}`,
-                borderRadius: 20,
-                padding: 22,
-                boxShadow: t.cardShadow,
-              }}
+            <article
+              key={d.letter}
+              className="pub-stack-card pub-postit"
+              style={
+                {
+                  // Right, left, right, left — K goes one way and V comes back
+                  // the other, so two adjacent cards can never read as one.
+                  ["--side" as string]: i % 2 === 0 ? 1 : -1,
+                  top: POSTIT_BASE + i * POSTIT_STEP,
+                  zIndex: i + 1,
+                  // Opaque, so the card underneath disappears cleanly as this
+                  // one slides over it — the tint is an image ON TOP of a solid
+                  // colour, never the background itself.
+                  backgroundColor: t.cardBg,
+                  backgroundImage: `linear-gradient(180deg, ${accents[i]}14, transparent 150px)`,
+                  // The whole outline in the field's own colour. With four cards
+                  // overlapping at angles, an uncoloured stack reads as one
+                  // thick card; the outline is what says where each one ends.
+                  // Sides set individually rather than `border` plus an
+                  // override: a shorthand and a longhand for the same property
+                  // both changing across the theme toggle is undefined order.
+                  borderTop: `3px solid ${accents[i]}`,
+                  borderRight: `1.5px solid ${accents[i]}`,
+                  borderBottom: `1.5px solid ${accents[i]}`,
+                  borderLeft: `1.5px solid ${accents[i]}`,
+                  borderRadius: 18,
+                  padding: 22,
+                  boxShadow: `0 20px 42px -22px ${accents[i]}99, ${t.cardShadowLg}`,
+                  marginBottom: i === DIMENSIONS.length - 1 ? 0 : 16,
+                } as React.CSSProperties
+              }
             >
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div
@@ -257,8 +307,7 @@ export default function KernelSection({ theme: outer }: { theme: Theme }) {
               <p style={{ fontSize: 14.5, color: t.muted, lineHeight: 1.65, margin: "8px 0 0" }}>
                 <RayaText>{tr(d.bodyKey)}</RayaText>
               </p>
-            </div>
-            </Reveal>
+            </article>
           ))}
         </div>
 

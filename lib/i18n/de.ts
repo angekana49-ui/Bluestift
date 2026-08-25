@@ -89,7 +89,7 @@ export const de: Partial<Messages> = {
     "Gemeinsam in Echtzeit wiederholen, mit Raya im Raum und Dokumenten, mit denen alle arbeiten können. Lernen ist sozial — ein Tutor sollte dich nicht allein in die Ecke setzen.",
   "site.features.challenges.title": "Challenges & Werkzeuge",
   "site.features.challenges.desc":
-    "Quiz, Tests und Gruppen-Challenges mit Live-Rangliste, dazu Zusammenfassungen, Lernkarten und Mindmaps aus jeder Lektion. Jeder Versuch fließt in dasselbe Profil.",
+    "Zusammenfassungen, Lernkarten und Mindmaps aus jeder Lektion, dazu Quiz, Tests und Gruppen-Challenges mit Live-Rangliste. Jeder Versuch fließt in dasselbe Profil.",
 
   "site.ladder.eyebrow": "Pädagogisches Modell",
   "site.ladder.title.a": "Eine Leiter zum Steigen, kein",
@@ -117,7 +117,7 @@ export const de: Partial<Messages> = {
 
   "site.kernel.eyebrow": "Kognitiver Kern",
   "site.kernel.title.a": "Vier Dimensionen,",
-  "site.kernel.title.em": "fünf Warnsignale.",
+  "site.kernel.title.em": "sieben Warnsignale.",
   "site.kernel.sub":
     "Der Kern speichert keine Note. Jedes Konzept trägt einen vierteiligen Vektor — und sobald ein Signal kippt, benennt er das Problem, damit Raya schon im nächsten Zug die Taktik wechselt.",
   "site.kernel.map.title": "Alles kreist um eine einzige Person.",
@@ -156,6 +156,13 @@ export const de: Partial<Messages> = {
   "site.kernel.a5.name": "Starre Haltung",
   "site.kernel.a5.signal": "„Ich bin einfach schlecht in Mathe“ — aufgeben vor dem ersten Versuch.",
   "site.kernel.a5.response": "Zuerst eine auf die Methode gerichtete Einordnung, bevor ein neuer Versuch vorgeschlagen wird.",
+  // Die letzten beiden betreffen den Kern selbst, nicht die Lernenden.
+  "site.kernel.a6.name": "Instabile Schätzung",
+  "site.kernel.a6.signal": "Der Wert wandert, statt sich zu setzen — richtig, dann falsch, dann richtig, beim selben Konzept.",
+  "site.kernel.a6.response": "Raya bittet um einen sauberen Versuch ohne Hinweise, und auf diesem Konzept wird nichts aufgebaut, solange es nicht still hält.",
+  "site.kernel.a7.name": "Außerhalb der Kalibrierung",
+  "site.kernel.a7.signal": "Diese Person verhält sich nicht wie die Population, auf die die Parameter angepasst wurden.",
+  "site.kernel.a7.response": "Raya geht nach dem, was dieser Zug zeigt, statt nach dem gespeicherten Wert — und erhöht die Schwierigkeit nicht auf dessen Grundlage.",
 
   "site.pos.eyebrow": "Wo das sitzt",
   "site.pos.title.a": "Die Schicht zwischen",
@@ -177,7 +184,7 @@ export const de: Partial<Messages> = {
   "site.roadmap.status.coming": "Geplant",
   "site.roadmap.i1.title": "Sokratische Sitzungen und kognitiver Kern",
   "site.roadmap.i1.body":
-    "Die Leiter Anstoß → Hinweis → Aussage → Zusammenfassung, der Vektor pro Konzept und die fünf pädagogischen Warnsignale — in jeder Sitzung aktiv.",
+    "Die Leiter Anstoß → Hinweis → Aussage → Zusammenfassung, der Vektor pro Konzept und die sieben Warnsignale — in jeder Sitzung aktiv.",
   "site.roadmap.i2.title": "Schul-Arbeitsbereich",
   "site.roadmap.i2.body":
     "Selbstständige Einrichtung, Rollen für Verwaltung und Lehrkräfte, Klassen, Einladungscodes und Team-Beitritte, Auswertungen nach Klasse und Fach.",
@@ -195,21 +202,24 @@ export const de: Partial<Messages> = {
 
   "site.faq.title.a": "Häufige",
   "site.faq.title.em": "Fragen.",
-  "site.faq.q1": "Ersetzt Raya die Lehrkraft?",
-  "site.faq.a1":
-    "Nein. Sie übernimmt Wiederholung und Diagnose und gibt der Lehrkraft zurück, was diese besser kann als jedes Modell: entscheiden, was mit dem Befund geschieht.",
-  "site.faq.q2": "Was sieht eine Lehrkraft tatsächlich?",
-  "site.faq.a2":
+  "site.faq.model.q": "Ist das nicht ChatGPT mit einem System-Prompt?",
+  "site.faq.model.a":
+    "Das Modell darunter ist ein zugekauftes Spitzenmodell. Deren Modell auch — das ist der Boden, nicht der Unterschied. Darüber liegt eine Aufzeichnung: Jeder Versuch wird Konzept für Konzept in ein einziges Profil bewertet, das der Tutor und die Lehrkraft beide lesen. Ein Prompt ist keine Aufzeichnung, und er ist weg, sobald der Tab schließt.",
+  "site.faq.lms.q": "Wir zahlen bereits für ein LMS. Warum noch ein Werkzeug?",
+  "site.faq.lms.a":
+    "Das hier ist keins und will keins sein. Euer LMS hält fest, was aufgegeben und was abgegeben wurde; das hier hält fest, was verstanden wurde — eine Spalte, die kein Notenbuch je hatte. Beide verbinden sich, statt zu konkurrieren: Google Classroom wird angebunden, Klassen und Listen kommen von dort, wo sie ohnehin leben.",
+  "site.faq.sees.q": "Was sieht eine Lehrkraft tatsächlich?",
+  "site.faq.sees.a":
     "Welche Konzepte gesichert sind, welche noch wackeln und welche Voraussetzung den Rest blockiert — nie die Gespräche mit Raya. Wer sich gelesen fühlt, gibt nicht mehr zu, was er nicht versteht.",
-  "site.faq.q3": "Und wenn einfach nach der Antwort gefragt wird?",
-  "site.faq.a3":
-    "Raya kann sie nicht geben — die Schranke ist strukturell, keine Einstellung. Und eine richtige Antwort ohne Begründung hebt die Beherrschung ebenfalls nicht an.",
-  "site.faq.q4": "Müssen wir unseren Lehrplan importieren?",
-  "site.faq.a4":
+  "site.faq.training.q": "Wird die Arbeit unserer Schülerinnen und Schüler zum Modelltraining genutzt?",
+  "site.faq.training.a":
+    "Nein, außer eine erwachsene Person schaltet es für ihr eigenes Konto ein. Das Alter wird geprüft, bevor das Einwilligungsfeld überhaupt gelesen wird: Das Konto einer minderjährigen Person lässt sich gar nicht einbeziehen, auch nicht durch Ankreuzen. Und schlägt diese Prüfung fehl, lautet die Antwort nein.",
+  "site.faq.curriculum.q": "Müssen wir unseren Lehrplan importieren?",
+  "site.faq.curriculum.a":
     "Nein. Konzepte werden aus den hochgeladenen Dokumenten gewonnen und an den bestehenden Graphen gehängt. Eine einzige Unterrichtsstunde reicht zum Start.",
-  "site.faq.q5": "Funktioniert es bei schwacher Verbindung?",
-  "site.faq.a5":
-    "Ja. Die Oberfläche ist leicht, gearbeitet wird in der eigenen Sprache, und das Profil liegt auf dem Server — das Gerät speichert und rechnet nichts.",
+  "site.faq.offline.q": "Funktioniert es bei schwacher Verbindung?",
+  "site.faq.offline.a":
+    "Ja. Die Oberfläche ist leicht und liegt nach dem ersten Besuch im Cache des Geräts — sie öffnet, ohne aufs Netz zu warten. Das Profil bleibt auf dem Server, also wird auf einem günstigen Telefon nichts Schweres neu berechnet.",
 
   "site.finalCta.title.a": "Raya mit",
   "site.finalCta.title.em": "einer Klasse testen.",
@@ -231,6 +241,8 @@ export const de: Partial<Messages> = {
   "site.pricing.schools.l2": "Lehrkraft-Dashboards + Analysen pro Klasse",
   "site.pricing.schools.l3": "LMS-Sync + Raya for Schools",
   "site.pricing.schools.l4": "Abrechnung je eingeschriebener Person",
+  "site.pricing.schools.region":
+    "Schulen in den vierzehn Ländern der CFA-Franc-Zone werden in Landeswährung und zu einem lokalen Tarif abgerechnet.",
   "site.pricing.schools.cta": "Schul-Tarife ansehen",
   "site.pricing.custom.title": "Individuell",
   "site.pricing.custom.l1": "Die volle Engine, auf deine Schule abgestimmt",

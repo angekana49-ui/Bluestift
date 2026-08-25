@@ -61,10 +61,12 @@ a {
   text-decoration: none;
 }
 
-/* ---- Public site helpers (responsive grids for inline-styled pages) ---- */
+/* ---- Public site helpers (responsive grids for inline-styled pages) ----
+   There was a .pub-grid-4 here for the Kernel band's K/V/P/M row. That row is
+   a post-it stack now (see .pub-postit) and nothing else on the site laid four
+   cards across, so the rule and its two breakpoints went with it. */
 .pub-grid-2,
-.pub-grid-3,
-.pub-grid-4 {
+.pub-grid-3 {
   display: grid;
   gap: 12px;
 }
@@ -73,10 +75,6 @@ a {
 }
 .pub-grid-3 {
   grid-template-columns: repeat(3, 1fr);
-}
-.pub-grid-4 {
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0;
 }
 /* Asymmetric band header (see SectionHeader in components/site/layout.tsx):
    title left, lead right, bottom-aligned so the two blocks share a baseline
@@ -319,6 +317,93 @@ a {
   border-top: 1px solid;
   font-size: 12px;
   line-height: 1.55;
+}
+
+/* ---- FAQ, as native <details> ----
+   No JavaScript, no aria-expanded to keep in sync, and the answers are in the
+   server-rendered HTML whether or not they are open — which is what makes
+   collapsing them safe here at all. */
+.pub-faq-q {
+  /* Both are needed: `list-style` kills the marker in Firefox and Chrome, the
+     pseudo-element is the only thing that removes it in older WebKit. */
+  list-style: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 19px 24px;
+  cursor: pointer;
+  font-size: 16.5px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.pub-faq-q::-webkit-details-marker {
+  display: none;
+}
+.pub-faq-mark {
+  flex: none;
+  font-size: 21px;
+  font-weight: 400;
+  line-height: 1.1;
+  transition: transform 200ms var(--ease-out);
+}
+.pub-faq[open] .pub-faq-mark {
+  transform: rotate(45deg);
+}
+.pub-faq-a {
+  padding: 0 24px 20px;
+  font-size: 15px;
+  line-height: 1.7;
+  /* The open state is instant — <details> has no height to animate without
+     ::details-content — so the answer arrives on its own beat instead, which
+     is what stops the panel from looking like it jumped. */
+  animation: faqIn 200ms var(--ease-out) both;
+}
+@keyframes faqIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pub-faq-mark {
+    transition: none;
+  }
+  .pub-faq-a {
+    animation: none;
+  }
+}
+
+/* ---- Post-it stack (the Kernel's K/V/P/M) ----
+   The ladder's own mechanism, `.pub-stack-card`, with one change: the cards do
+   not land square on each other. Each is thrown a little to its own side and
+   left at an angle, so what a pinned card leaves showing is a whole coloured
+   corner rather than a rule along its top edge, and four of them end up as a
+   fan you can count at a glance.
+
+   Worth recording what this replaced, because the replaced thing worked. Scroll
+   progress drove a stack inside a pinned block: it read well and it cost 138vh
+   of empty page to do it, on the longest band of the site. Sticky cards in
+   normal flow buy the same one-at-a-time reading for the height the cards
+   already occupied, minus their overlap. The effect was never the expensive
+   part — the artificial runway underneath it was.
+
+   `--side` is 1 or -1, inline, per card. */
+.pub-postit {
+  max-width: 560px;
+  margin-left: auto;
+  margin-right: auto;
+  transform: translateX(calc(34px * var(--side, 1))) rotate(calc(1.7deg * var(--side, 1)));
+}
+
+/* The two cases where .pub-stack-card gives up its sticky positioning and the
+   cards fall back to a plain list. A list of tilted cards is not a fan, it is a
+   crooked list — and on a narrow screen the throw would push a card past the
+   edge and put a horizontal scrollbar on the whole page. */
+@media (max-width: 720px), (prefers-reduced-motion: reduce) {
+  .pub-postit {
+    transform: none;
+  }
 }
 
 @media (max-width: 760px) {
@@ -1718,12 +1803,8 @@ a {
   }
 }
 @media (max-width: 900px) {
-  .pub-grid-3,
-  .pub-grid-4 {
+  .pub-grid-3 {
     grid-template-columns: repeat(2, 1fr);
-  }
-  .pub-grid-4 {
-    gap: 12px;
   }
   .pub-footer-grid {
     grid-template-columns: 1fr 1fr;
@@ -1732,8 +1813,7 @@ a {
 }
 @media (max-width: 600px) {
   .pub-grid-2,
-  .pub-grid-3,
-  .pub-grid-4 {
+  .pub-grid-3 {
     grid-template-columns: 1fr;
   }
   .pub-hide-sm {

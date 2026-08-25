@@ -89,7 +89,7 @@ export const es: Partial<Messages> = {
     "Repasad en grupo y en tiempo real, con Raya en la sala y documentos que todos pueden usar. Aprender es social — el tutor no debería dejarte solo en un rincón.",
   "site.features.challenges.title": "Retos y herramientas",
   "site.features.challenges.desc":
-    "Cuestionarios, exámenes y retos en grupo con clasificación en vivo, más resúmenes, tarjetas y mapas mentales de cualquier lección. Cada intento alimenta el mismo perfil.",
+    "Resúmenes, tarjetas y mapas mentales de cualquier lección, más cuestionarios, exámenes y retos en grupo con clasificación en vivo. Cada intento alimenta el mismo perfil.",
 
   "site.ladder.eyebrow": "Modelo pedagógico",
   "site.ladder.title.a": "Una escalera que se sube, no un",
@@ -117,7 +117,7 @@ export const es: Partial<Messages> = {
 
   "site.kernel.eyebrow": "Núcleo cognitivo",
   "site.kernel.title.a": "Cuatro dimensiones,",
-  "site.kernel.title.em": "cinco alertas.",
+  "site.kernel.title.em": "siete alertas.",
   "site.kernel.sub":
     "El núcleo no guarda una nota. Cada concepto lleva un vector de cuatro componentes y, en cuanto una señal se degrada, nombra el fallo para que Raya cambie de táctica en el turno siguiente.",
   "site.kernel.map.title": "Todo gira alrededor de una sola persona.",
@@ -156,6 +156,13 @@ export const es: Partial<Messages> = {
   "site.kernel.a5.name": "Mentalidad fija",
   "site.kernel.a5.signal": "«Se me dan mal las mates»: rendirse antes del primer intento.",
   "site.kernel.a5.response": "Primero una reformulación centrada en el método, antes de proponer cualquier intento nuevo.",
+  // Las dos últimas hablan del núcleo mismo, no del estudiante.
+  "site.kernel.a6.name": "Estimación inestable",
+  "site.kernel.a6.signal": "El número se mueve en lugar de asentarse: bien, luego mal, luego bien, sobre el mismo concepto.",
+  "site.kernel.a6.response": "Raya pide un intento limpio, sin pistas, y no se construye nada sobre ese concepto hasta que se estabilice.",
+  "site.kernel.a7.name": "Fuera de calibración",
+  "site.kernel.a7.signal": "Este estudiante no se comporta como la población con la que se ajustaron los parámetros.",
+  "site.kernel.a7.response": "Raya se guía por lo que muestra este turno y no por el número guardado, y no sube la dificultad apoyándose en él.",
 
   "site.pos.eyebrow": "Dónde encaja",
   "site.pos.title.a": "La capa entre",
@@ -177,7 +184,7 @@ export const es: Partial<Messages> = {
   "site.roadmap.status.coming": "Próximamente",
   "site.roadmap.i1.title": "Sesiones socráticas y núcleo cognitivo",
   "site.roadmap.i1.body":
-    "La escalera Impulso → Pista → Afirmación → Síntesis, el vector por concepto y las cinco alertas pedagógicas, activos en cada sesión.",
+    "La escalera Impulso → Pista → Afirmación → Síntesis, el vector por concepto y las siete alertas, activos en cada sesión.",
   "site.roadmap.i2.title": "Espacio para centros",
   "site.roadmap.i2.body":
     "Alta autónoma, roles de administración y profesorado, clases, códigos de invitación y altas de equipo, y análisis por clase y materia.",
@@ -195,21 +202,24 @@ export const es: Partial<Messages> = {
 
   "site.faq.title.a": "Preguntas",
   "site.faq.title.em": "frecuentes.",
-  "site.faq.q1": "¿Raya sustituye al profesor?",
-  "site.faq.a1":
-    "No. Absorbe la repetición y el diagnóstico, y devuelve al profesor lo que hace mejor que cualquier modelo: decidir qué hacer con lo que se ha encontrado.",
-  "site.faq.q2": "¿Qué ve realmente un profesor?",
-  "site.faq.a2":
+  "site.faq.model.q": "¿No es ChatGPT con un prompt de sistema?",
+  "site.faq.model.a":
+    "El modelo de debajo es un modelo de frontera comprado. El suyo también: esa parte es el suelo, no la diferencia. Lo que va encima es un registro: cada intento se evalúa concepto a concepto en un único perfil que leen tanto el tutor del alumno como su profesor. Un prompt no es un registro, y desaparece al cerrar la pestaña.",
+  "site.faq.lms.q": "Ya pagamos un LMS. ¿Por qué otra herramienta?",
+  "site.faq.lms.a":
+    "Esto no lo es ni pretende serlo. Vuestro LMS registra lo que se mandó y lo que se entregó; esto registra lo que se entendió, una columna que ningún cuaderno de notas ha tenido nunca. Se conectan en vez de competir: Google Classroom se enlaza y vuestras clases y listas vienen de donde ya viven.",
+  "site.faq.sees.q": "¿Qué ve realmente un profesor?",
+  "site.faq.sees.a":
     "Qué conceptos ha asegurado un alumno, cuáles siguen frágiles y el prerrequisito que bloquea el resto; nunca sus conversaciones con Raya. Un alumno que se siente leído deja de admitir lo que no entiende.",
-  "site.faq.q3": "¿Y si el alumno simplemente pide la respuesta?",
-  "site.faq.a3":
-    "Raya no puede darla: la barrera es estructural, no una opción. Y una respuesta correcta sin razonamiento detrás tampoco sube el dominio.",
-  "site.faq.q4": "¿Hay que importar nuestro currículo?",
-  "site.faq.a4":
+  "site.faq.training.q": "¿El trabajo de nuestros alumnos sirve para entrenar modelos?",
+  "site.faq.training.a":
+    "No, salvo que un adulto lo active en su propia cuenta. La edad se comprueba antes incluso de leer la casilla de consentimiento: la cuenta de un menor no puede inscribirse, ni marcándola. Y si esa comprobación no se completa, la respuesta es no.",
+  "site.faq.curriculum.q": "¿Hay que importar nuestro currículo?",
+  "site.faq.curriculum.a":
     "No. Los conceptos se extraen de los documentos que subes y se enlazan con el grafo existente. Basta con una lección para empezar.",
-  "site.faq.q5": "¿Funciona con mala conexión?",
-  "site.faq.a5":
-    "Sí. La interfaz es ligera, el alumno trabaja en su idioma y el perfil vive en el servidor: el dispositivo no guarda ni recalcula nada.",
+  "site.faq.offline.q": "¿Funciona con mala conexión?",
+  "site.faq.offline.a":
+    "Sí. La interfaz es ligera y queda en caché en el dispositivo desde la primera visita: abre sin esperar a la red. El perfil sigue en el servidor, así que nada pesado se recalcula en un móvil básico.",
 
   "site.finalCta.title.a": "Prueba Raya con",
   "site.finalCta.title.em": "una clase.",
@@ -231,6 +241,8 @@ export const es: Partial<Messages> = {
   "site.pricing.schools.l2": "Paneles para profesores + análisis por clase",
   "site.pricing.schools.l3": "Sincronización LMS + Raya for Schools",
   "site.pricing.schools.l4": "Facturado por alumno matriculado",
+  "site.pricing.schools.region":
+    "Los centros de los catorce países de la zona del franco CFA se facturan en moneda local, a una tarifa local.",
   "site.pricing.schools.cta": "Ver planes para centros",
   "site.pricing.custom.title": "A medida",
   "site.pricing.custom.l1": "El motor completo, ajustado a tu centro",
