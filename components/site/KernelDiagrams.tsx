@@ -57,15 +57,24 @@ const DEG = Math.PI / 180;
 function DiagramFrame({
   theme: t,
   loopMs,
+  restartKey,
   className,
   children,
 }: {
   theme: Theme;
-  loopMs: number;
+  /**
+   * Replay the whole plate on this cycle. Only for a drawing that finishes and
+   * would otherwise sit there as a still — a drawing whose motion is already
+   * endless must not set it, because a replay it does not need is a hard cut
+   * it cannot hide.
+   */
+  loopMs?: number;
+  /** Changing this replays the whole plate from the top. See useShotSequence. */
+  restartKey?: unknown;
   className?: string;
   children: ReactNode;
 }) {
-  const { ref } = useShotSequence(loopMs);
+  const { ref } = useShotSequence(loopMs, restartKey);
   return (
     <div
       ref={ref}
@@ -317,8 +326,16 @@ export function KernelLoopShot({ theme: t }: { theme: Theme }) {
     [135, 225],
   ].map(([a, b]) => ring(SH[1].rx, SH[1].ry, a, b, 28));
 
+  /*
+   * No `loopMs`. Every packet, bead, halo and heartbeat in here is already
+   * `infinite`, so after the two-second entrance this drawing never becomes a
+   * still and has nothing to be replayed for. It replayed every ninety seconds
+   * anyway, which bought nothing and cost a hard cut: the entrances snap back
+   * to opacity 0 and fade in again, over a picture that was mid-orbit. The
+   * replay exists for shots that finish. This one does not finish.
+   */
   return (
-    <DiagramFrame theme={t} loopMs={90000}>
+    <DiagramFrame theme={t}>
       <svg viewBox={`0 0 ${OW} ${OH}`} className="pub-orbit-svg" aria-hidden>
         {/* One group so the narrow layout can push the whole composition in
             without any of the geometry below knowing about it. */}
@@ -600,7 +617,10 @@ export function KernelLoopShot({ theme: t }: { theme: Theme }) {
         </g>
       </svg>
 
-      <div className="pub-orbit-foot shot-fade" style={{ ...at(2400), color: t.mutedLight, background: t.cardBg, borderColor: t.cardBorder }}>
+      {/* No background of its own: a bar under the picture is a caption on the
+          same plate, where the chip it replaced was a card floating over it and
+          needed to be opaque to be readable. Same rule as the graph's strip. */}
+      <div className="pub-orbit-foot shot-fade" style={{ ...at(2400), color: t.mutedLight, borderColor: t.cardBorder }}>
         Updated mid-conversation, read back before the next answer.
       </div>
     </DiagramFrame>
@@ -627,7 +647,11 @@ type Subject = "math" | "physics" | "chemistry" | "biology" | "history";
 
 const SUBJECT_COLOR: Record<Subject, { dark: string; light: string }> = {
   math: { dark: "#4C9BE8", light: "#1e6fc4" },
-  physics: { dark: "#E8954C", light: "#b4620d" },
+  // Nudged down from #b4620d, which measured 4.47:1 on white — fine as a fill,
+  // three hundredths short as text, and the band's caption now sets a subject
+  // name in this colour at 21.6px. #ae5e0c clears 4.5:1 on the page white AND
+  // on the shot's own gradient, so the one value is safe wherever it lands.
+  physics: { dark: "#E8954C", light: "#ae5e0c" },
   chemistry: { dark: "#a78bfa", light: "#6d28d9" },
   biology: { dark: "#34d399", light: "#0f766e" },
   history: { dark: "#f472b6", light: "#be185d" },
@@ -741,54 +765,34 @@ function chain(from: number, to: number) {
 }
 
 /**
- * The five concepts the diagnosis runs through.
+ * The bonds that cross a subject.
  *
- * Picked by position rather than written as coordinates, so the story stays
- * attached to the drawing: move a cluster and the named atoms move with it
- * instead of pointing at empty lattice.
+ * They are the reason there is one graph and not one per course, they are the
+ * only kind of edge a syllabus never writes down, and they are curved so you
+ * can tell at a glance which links the Kernel inferred and which ones came out
+ * of a curriculum. The first one is the story.
  */
-const CAUSE_SIDE = near(692, 212, "physics"); // acceleration, on the maths-facing edge
-const ROOT = near(446, 322, "math"); // derivative_functions
-const SECURE = [near(392, 356, "math"), near(360, 300, "math")];
+const BRIDGE_SPEC: [[number, number, Subject], [number, number, Subject]][] = [
+  [[446, 322, "math"], [688, 205, "physics"]],
+  [[230, 180, "history"], [300, 300, "math"]],
+  [[400, 445, "math"], [575, 495, "biology"]],
+  [[845, 255, "physics"], [1010, 395, "chemistry"]],
+  [[735, 530, "biology"], [950, 505, "chemistry"]],
+  [[770, 285, "physics"], [650, 470, "biology"]],
+  [[430, 300, "math"], [700, 240, "physics"]],
+  [[250, 160, "history"], [690, 180, "physics"]],
+  [[280, 415, "math"], [600, 545, "biology"]],
+  [[800, 140, "physics"], [1050, 410, "chemistry"]],
+];
+
+const BRIDGES = BRIDGE_SPEC.map(([a, b], i) => ({
+  a: near(a[0], a[1], a[2]),
+  b: near(b[0], b[1], b[2]),
+  bow: i % 2 ? 0.15 : -0.15,
+}));
 
 /**
- * newtons_laws — an atom exactly three bonds from acceleration.
- *
- * Three is a decision about legibility, not about the model. The walk used to
- * run six hops through concepts the drawing never named, and what you actually
- * saw was a red line wandering off into a cluster: the steps were all there and
- * not one of them was readable. Three hops between four named concepts is a
- * chain a person can follow at the speed the camera moves, and every atom it
- * lands on gets a number and a name on the way past.
- */
-const FAILED = (() => {
-  let ring = [CAUSE_SIDE];
-  const seen = new Set(ring);
-  for (let d = 0; d < 3 && ring.length; d++) {
-    const next: number[] = [];
-    for (const i of ring) {
-      for (const j of ADJ[i]) {
-        if (seen.has(j)) continue;
-        seen.add(j);
-        next.push(j);
-      }
-    }
-    ring = next;
-  }
-  if (!ring.length) return near(834, 170, "physics");
-  // Of the atoms at that distance, the one furthest up and to the right, so
-  // the walk travels back down towards maths instead of sideways.
-  return ring.reduce(
-    (best, i) => (MOL.atoms[i].x - MOL.atoms[i].y > MOL.atoms[best].x - MOL.atoms[best].y ? i : best),
-    ring[0],
-  );
-})();
-
-/** newtons_laws → … → acceleration, along real bonds, then across to maths. */
-const WALK = chain(FAILED, CAUSE_SIDE);
-
-/**
- * A name for every concept in the graph, not just the five the story names.
+ * A name for every concept in the graph, not just the ones a story names.
  *
  * This is what makes the drawing worth pointing at. A hundred anonymous dots
  * are a texture; a hundred named prerequisites are an ontology, and the
@@ -836,6 +840,357 @@ const VOCAB: Record<Subject, string[]> = {
   ],
 };
 
+const SUBJECTS = Object.keys(SUBJECT_COLOR) as Subject[];
+
+/** How a subject is written when it is said out loud rather than keyed. */
+const SUBJECT_NAME: Record<Subject, string> = {
+  math: "Mathematics",
+  physics: "Physics",
+  chemistry: "Chemistry",
+  biology: "Biology",
+  history: "History",
+};
+
+/**
+ * Everything, filed by subject.
+ *
+ * Grouping the drawing this way costs nothing (the clusters do not overlap, so
+ * one subject's atoms sitting above another's bonds is invisible) and buys the
+ * legend its filter: dimming a whole subject becomes one opacity on one group
+ * instead of a conditional on two hundred and fifty elements.
+ */
+const GROUPED = SUBJECTS.map((s) => ({
+  s,
+  rings: MOL.rings.filter((r) => r.s === s),
+  bonds: MOL.bonds.filter(([i]) => MOL.atoms[i].s === s),
+  atoms: MOL.atoms.map((a, i) => ({ a, i })).filter(({ a }) => a.s === s),
+}));
+
+/** Which bridges touch a given atom — for the focus layer. */
+const BRIDGE_AT = (i: number) => BRIDGES.filter((b) => b.a === i || b.b === i);
+
+const BRIDGE_C = { dark: "#E8454C", light: "#c62828" };
+const FAIL_C = { dark: "#f87171", light: "#dc2626" };
+const SECURE_C = { dark: "#4ade80", light: "#15803d" };
+
+/**
+ * The colours the section's own prose may borrow from the drawings.
+ *
+ * Exported rather than re-typed next door, because the whole value of colouring
+ * a caption is that it is the SAME colour as the thing it describes. A heading
+ * that says "the cause was in maths" in a blue two shades off the maths cluster
+ * underneath it is worse than a black one — it implies a code and then breaks
+ * it. Keeping one table means a palette change moves the prose with the ink.
+ *
+ * Every value here is already load-bearing inside the drawings and has been
+ * checked as text against both modes; nothing new is introduced.
+ */
+export function kernelInk(t: Theme) {
+  const s = (k: Subject) => (t.dark ? SUBJECT_COLOR[k].dark : SUBJECT_COLOR[k].light);
+  return {
+    /** The nucleus of the loop — the one person everything orbits. */
+    learner: palette(t).learner,
+    /** The two clusters the worked example crosses between. */
+    physics: s("physics"),
+    math: s("math"),
+    /** The curved links, and the only lines in the graph no syllabus writes. */
+    bridge: t.dark ? BRIDGE_C.dark : BRIDGE_C.light,
+  };
+}
+
+/**
+ * The camera stops, written as transforms.
+ *
+ * With `transform-origin: 0 0`, `scale(s) translate(tx,ty)` puts the point
+ * (cx,cy) in the middle of the frame when tx = W/2s − cx. Deriving them from
+ * the atom coordinates keeps the tour honest: move a cluster and the shot
+ * framing it moves too, instead of drifting off the thing it was aimed at.
+ */
+const shot = (cx: number, cy: number, s: number) =>
+  `scale(${s}) translate(${(W / (2 * s) - cx).toFixed(1)}px, ${(H / (2 * s) - cy).toFixed(1)}px)`;
+
+const WIDE = shot(W / 2, H / 2, 1);
+/** What a stop can see, so a label can be checked against it before it ships. */
+const frame = (cx: number, cy: number, s: number) => ({
+  x0: cx - W / (2 * s),
+  x1: cx + W / (2 * s),
+  y0: cy - H / (2 * s),
+  y1: cy + H / (2 * s),
+});
+
+/**
+ * Beats, in ms, against a 30 s tour, pinned to the camera stops in
+ * `@keyframes graphCam`. Each `step` is one hop landing: a bond that draws
+ * itself and stays drawn, a packet that runs it exactly once, and the number
+ * of that step appearing inside the concept it arrives at.
+ *
+ * The packets deliberately do NOT loop. Three looping highlights end up all
+ * running at once within a few seconds, which is precisely how a sequence of
+ * steps turns back into a red smear.
+ *
+ * `graphLoop` in the stylesheet dims the whole plate over the last second and
+ * a half, so when the sequence is torn down and restarted the restart lands on
+ * an empty frame rather than cutting from a finished picture to a blank one.
+ */
+const G = {
+  bonds: 260,
+  bridges: 1300,
+  step: [4400, 7700, 11000, 14300] as const,
+  cross: 16600,
+  root: 18700,
+  secure: 23400,
+  foot: 25600,
+  cycle: 30000,
+};
+
+/* ─────────────────────────── the worked cases ─────────────────────────── */
+
+/**
+ * A diagnosis the tour can play, written as data.
+ *
+ * Only the prose is typed out. Every atom, every camera stop and every label
+ * position is derived from the lattice, which is the only reason there are
+ * three of these and not one: the first version had five hand-measured label
+ * offsets, and adding a second case meant measuring five more by hand and
+ * re-checking every camera crop by hand. Now a case is a bridge, a direction,
+ * five names and six sentences.
+ *
+ * All three cross a subject boundary, because that is the claim. A diagnosis
+ * that stayed inside its own course would be something a syllabus could have
+ * told you.
+ */
+type CaseSpec = {
+  id: string;
+  chip: string;
+  /** The crossing that carries the cause. `from` says which end fails. */
+  bridge: number;
+  from: Subject;
+  /** Which way to walk back into the failing subject to find the attempt. */
+  away: [number, number];
+  /** Four names along the walk, then the root gap. */
+  names: [string, string, string, string, string];
+  /** What the two subject callouts say under their names. */
+  note: [string, string];
+  /** One line per step, six of them. */
+  body: [string, string, string, string, string, string];
+  kicker: [string, string, string, string, string, string];
+  alert: string;
+  confidence: string;
+};
+
+const SPECS: CaseSpec[] = [
+  {
+    id: "mechanics",
+    chip: "Physics · mechanics",
+    bridge: 0,
+    from: "physics",
+    away: [1, -1],
+    names: ["newtons_laws", "free_body_diagrams", "kinematic_equations", "acceleration", "derivative_functions"],
+    note: ["where the session broke", "where it actually broke"],
+    kicker: ["Failed", "Sits on", "Which sits on", "And that on", "Root cause", "Already solid"],
+    body: [
+      "Missed twice on the same exercise, four days apart.",
+      "Checked first, and fine. The forces were drawn correctly.",
+      "Also solid on its own. Still not the thing that broke.",
+      "Shaky — but it fails the same way every time, so it is a symptom.",
+      "Another subject. The derivative under the acceleration never held.",
+      "Open the session here. Reteaching them would spend the hour on something known.",
+    ],
+    alert: "re_emergence_error",
+    confidence: "0.82",
+  },
+  {
+    id: "thermo",
+    chip: "Chemistry · thermochemistry",
+    bridge: 3,
+    from: "chemistry",
+    away: [1, 1],
+    names: ["thermochemistry", "reaction_rates", "chemical_equilibrium", "oxidation_numbers", "conservation_of_energy"],
+    note: ["where the session broke", "where it actually broke"],
+    kicker: ["Failed", "Sits on", "Which sits on", "And that on", "Root cause", "Already solid"],
+    body: [
+      "Right answer, wrong sign, three times running.",
+      "Fluent. Rates were never the difficulty here.",
+      "Held up under questioning, including the awkward case.",
+      "Reliable. Which rules out the obvious explanation.",
+      "Not chemistry. Energy in and energy out was never a closed book.",
+      "The way in. Both were solid last week and are solid now.",
+    ],
+    alert: "false_mastery",
+    confidence: "0.76",
+  },
+  {
+    id: "respiration",
+    chip: "Biology · respiration",
+    bridge: 4,
+    from: "biology",
+    away: [-1, 1],
+    names: ["cellular_respiration", "atp", "enzymes", "cell_membrane", "redox_reactions"],
+    note: ["where the session broke", "where it actually broke"],
+    kicker: ["Failed", "Sits on", "Which sits on", "And that on", "Root cause", "Already solid"],
+    body: [
+      "Can recite the stages. Cannot say why any of them happen.",
+      "Named correctly every time. Recall was never the problem.",
+      "Fine, and asked about unprompted — a good sign.",
+      "Solid. The transport story is not where this comes apart.",
+      "Another subject. Respiration is a redox chain, and redox never landed.",
+      "Start from these. They are the half of the chain that already works.",
+    ],
+    alert: "passive_dependency",
+    confidence: "0.79",
+  },
+];
+
+/**
+ * The atom exactly three bonds from the crossing, inside the failing subject.
+ *
+ * Three is a decision about legibility, not about the model. The walk used to
+ * run six hops through concepts the drawing never named, and what you saw was
+ * a red line wandering off into a cluster: every step was there and not one of
+ * them was readable. Three hops between four named concepts is a chain a
+ * person can follow at the speed the camera moves.
+ */
+function threeBondsFrom(start: number, s: Subject, away: [number, number]) {
+  let ring = [start];
+  const seen = new Set(ring);
+  for (let d = 0; d < 3 && ring.length; d++) {
+    const next: number[] = [];
+    for (const i of ring) {
+      for (const j of ADJ[i]) {
+        if (seen.has(j) || MOL.atoms[j].s !== s) continue;
+        seen.add(j);
+        next.push(j);
+      }
+    }
+    ring = next;
+  }
+  if (!ring.length) return start;
+  // Of the atoms at that distance, the one furthest along the given heading,
+  // so the walk travels back towards the boundary instead of sideways.
+  const score = (i: number) => MOL.atoms[i].x * away[0] + MOL.atoms[i].y * away[1];
+  return ring.reduce((best, i) => (score(i) > score(best) ? i : best), ring[0]);
+}
+
+/** Two concepts sitting behind the root gap, far enough apart to label. */
+function groundBehind(root: number) {
+  const near2: number[] = [];
+  for (const a of ADJ[root]) {
+    for (const b of ADJ[a]) {
+      if (b !== root && !ADJ[root].includes(b) && !near2.includes(b)) near2.push(b);
+    }
+  }
+  const pool = near2.length >= 2 ? near2 : ADJ[root];
+  let best: [number, number] = [pool[0], pool[1] ?? pool[0]];
+  let bd = -1;
+  for (let i = 0; i < pool.length; i++) {
+    for (let j = i + 1; j < pool.length; j++) {
+      const d = (MOL.atoms[pool[i]].x - MOL.atoms[pool[j]].x) ** 2 + (MOL.atoms[pool[i]].y - MOL.atoms[pool[j]].y) ** 2;
+      if (d > bd) {
+        bd = d;
+        best = [pool[i], pool[j]];
+      }
+    }
+  }
+  return best;
+}
+
+/**
+ * Where each name goes, solved rather than measured.
+ *
+ * A label is about a hundred and seventy units wide and two concepts on the
+ * walk are thirty-three units apart, so any fixed rule — alternate above and
+ * below, push away from the centre — puts two of them on top of each other
+ * sooner or later. This tries a fixed ladder of offsets and takes the first
+ * that clears every label already placed, every numbered node, and the crop of
+ * the camera stop that reveals it. Deterministic, so the answer is the same on
+ * the server and in the browser, and cheap enough that adding a fourth case
+ * costs nothing.
+ */
+const TRIES: [number, number, "start" | "middle" | "end"][] = [
+  [0, -30, "middle"], [0, 40, "middle"],
+  [20, 5, "start"], [-20, 5, "end"],
+  [18, -26, "start"], [-18, -26, "end"],
+  [18, 36, "start"], [-18, 36, "end"],
+  [0, -50, "middle"], [0, 58, "middle"],
+  [28, 5, "start"], [-28, 5, "end"],
+  [26, -34, "start"], [-26, -34, "end"],
+  [26, 44, "start"], [-26, 44, "end"],
+];
+
+type Box = { x0: number; x1: number; y0: number; y1: number };
+const hits = (a: Box, b: Box) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+
+function placeLabel(
+  i: number,
+  taken: Box[],
+  nodes: Box[],
+  view: { x0: number; x1: number; y0: number; y1: number },
+) {
+  const a = MOL.atoms[i];
+  const w = NAMES[i].length * 15 * 0.6;
+  for (const [dx, dy, anchor] of TRIES) {
+    const cx = a.x + dx;
+    const cy = a.y + dy;
+    const x0 = anchor === "start" ? cx : anchor === "end" ? cx - w : cx - w / 2;
+    const box = { x0, x1: x0 + w, y0: cy - 13, y1: cy + 4 };
+    // 12 units of air inside the crop, so nothing sits on the frame edge.
+    if (box.x0 < view.x0 + 12 || box.x1 > view.x1 - 12) continue;
+    if (box.y0 < view.y0 + 12 || box.y1 > view.y1 - 12) continue;
+    if ([...taken, ...nodes].some((o) => hits(box, o))) continue;
+    return { dx, dy, anchor, box };
+  }
+
+  // The ladder can genuinely run out — a concept in the middle of a cluster
+  // with two numbered neighbours has most of its neighbourhood spoken for. Walk
+  // outwards in rings until something clears, rather than dropping the label
+  // somewhere blind and hoping: the blind fallback put a name straight through
+  // the numbered node above it, and it took a headless check to notice.
+  for (const r of [34, 44, 56, 70, 86]) {
+    for (let k = 0; k < 16; k++) {
+      // Start at 12 o'clock and alternate sides, so a label lands as close to
+      // straight above or below its concept as the crowding allows.
+      const ang = (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 22.5 - 90;
+      const dx = Math.cos(ang * DEG) * r;
+      const dy = Math.sin(ang * DEG) * r + 5;
+      const anchor = dx > 8 ? "start" : dx < -8 ? "end" : "middle";
+      const cx = a.x + dx;
+      const x0 = anchor === "start" ? cx : anchor === "end" ? cx - w : cx - w / 2;
+      const box = { x0, x1: x0 + w, y0: a.y + dy - 13, y1: a.y + dy + 4 };
+      if (box.x0 < view.x0 + 12 || box.x1 > view.x1 - 12) continue;
+      if (box.y0 < view.y0 + 12 || box.y1 > view.y1 - 12) continue;
+      if ([...taken, ...nodes].some((o) => hits(box, o))) continue;
+      return { dx, dy, anchor: anchor as "start" | "middle" | "end", box };
+    }
+  }
+
+  // Genuinely nowhere to put it. Flagged so a case added later fails loudly
+  // rather than shipping a name printed over a node.
+  const x0 = a.x - w / 2;
+  return { dx: 0, dy: -30, anchor: "middle" as const, box: { x0, x1: x0 + w, y0: a.y - 43, y1: a.y - 26 }, over: true };
+}
+
+/** One case, fully resolved: atoms, camera, beats, label placement. */
+function buildCase(spec: CaseSpec) {
+  const b = BRIDGES[spec.bridge];
+  const causeSide = MOL.atoms[b.a].s === spec.from ? b.a : b.b;
+  const root = causeSide === b.a ? b.b : b.a;
+  const failed = threeBondsFrom(causeSide, spec.from, spec.away);
+  const walk = chain(failed, causeSide);
+  const secure = groundBehind(root);
+  const marked = [...walk, root, ...secure];
+  return { spec, bridge: b, causeSide, root, failed, walk, secure, marked };
+}
+
+const CASES = SPECS.map(buildCase);
+
+/**
+ * The names, forced onto the atoms each case runs through.
+ *
+ * Everything else gets its subject's vocabulary in lattice order. The concepts
+ * a story names have to sit where the camera is pointing, so they are swapped
+ * into place — and the one they displace takes the name that was there, so no
+ * concept in the graph ever loses its name or gets a second one.
+ */
 const NAMES: string[] = (() => {
   const taken: Partial<Record<Subject, number>> = {};
   const out = MOL.atoms.map((a) => {
@@ -843,27 +1198,81 @@ const NAMES: string[] = (() => {
     taken[a.s] = n + 1;
     return VOCAB[a.s][n] ?? `${a.s}_concept_${n}`;
   });
-  // The five the tour aims at have to sit on the atoms it aims at, so they get
-  // swapped into place rather than left to the order of the lattice.
-  // The two the walk passes through get named too. An unnamed stop is the
-  // reason the old version read as wandering rather than as reasoning.
-  for (const [idx, name] of [
-    [FAILED, "newtons_laws"],
-    [WALK[1], "free_body_diagrams"],
-    [WALK[2], "kinematic_equations"],
-    [CAUSE_SIDE, "acceleration"],
-    [ROOT, "derivative_functions"],
-    [SECURE[0], "function_variation"],
-    [SECURE[1], "graphing_functions"],
-  ] as [number, string][]) {
-    if (idx === undefined) continue;
-    const cur = out.indexOf(name);
-    if (cur === idx) continue;
-    if (cur >= 0) out[cur] = out[idx];
-    out[idx] = name;
+  for (const c of CASES) {
+    const forced: [number, string][] = [
+      [c.walk[0], c.spec.names[0]],
+      [c.walk[1], c.spec.names[1]],
+      [c.walk[2], c.spec.names[2]],
+      [c.causeSide, c.spec.names[3]],
+      [c.root, c.spec.names[4]],
+    ];
+    for (const [idx, name] of forced) {
+      if (idx === undefined) continue;
+      const cur = out.indexOf(name);
+      if (cur === idx) continue;
+      if (cur >= 0) out[cur] = out[idx];
+      out[idx] = name;
+    }
   }
   return out;
 })();
+
+/**
+ * Per-case camera, beats and label placement.
+ *
+ * Split out from `buildCase` only because the label solver reads NAMES, and
+ * NAMES cannot exist until every case has claimed its atoms.
+ */
+const TOURS = CASES.map((c) => {
+  const A = c.walk.map((i) => MOL.atoms[i]);
+  const AR = MOL.atoms[c.root];
+  const A0 = A[0];
+  const near3 = 3;
+  const cam = [
+    WIDE,
+    shot(A[0].x, A[0].y, near3),
+    shot(A[1].x, A[1].y, near3),
+    shot(A[2].x, A[2].y, near3),
+    shot(A[3].x, A[3].y, near3),
+    shot(AR.x, AR.y, 2.8),
+    shot((AR.x + A0.x) / 2, (AR.y + A0.y) / 2, 1.45),
+    WIDE,
+  ];
+  const views = [
+    frame(A[0].x, A[0].y, near3),
+    frame(A[1].x, A[1].y, near3),
+    frame(A[2].x, A[2].y, near3),
+    frame(A[3].x, A[3].y, near3),
+    frame(AR.x, AR.y, 2.8),
+    frame((AR.x + A0.x) / 2, (AR.y + A0.y) / 2, 1.45),
+  ];
+
+  // The numbered nodes are obstacles for every label, including their own.
+  const nodes: Box[] = [...c.walk, c.root].map((i) => ({
+    x0: MOL.atoms[i].x - 14,
+    x1: MOL.atoms[i].x + 14,
+    y0: MOL.atoms[i].y - 14,
+    y1: MOL.atoms[i].y + 14,
+  }));
+
+  const taken: Box[] = [];
+  const marks = c.marked.map((i, k) => {
+    const step = k < 4 ? k : k === 4 ? 4 : 5;
+    const at = k < 4 ? G.step[k] + 400 : k === 4 ? G.root : G.secure + (k - 5) * 300;
+    const p = placeLabel(i, taken, nodes, views[step]);
+    taken.push(p.box);
+    return { i, n: k < 5 ? k + 1 : 0, at, dx: p.dx, dy: p.dy, anchor: p.anchor, over: !!p.over };
+  });
+
+  return {
+    cam,
+    marks,
+    call: [
+      { s: c.spec.from, name: SUBJECT_NAME[c.spec.from], note: c.spec.note[0], at: 2600, span: 14600 },
+      { s: MOL.atoms[c.root].s, name: SUBJECT_NAME[MOL.atoms[c.root].s], note: c.spec.note[1], at: 16800, span: 9400 },
+    ],
+  };
+});
 
 /**
  * Per-concept state, the shape `/load_profile` returns it in.
@@ -900,147 +1309,20 @@ const STATE: CState[] = MOL.atoms.map((_, i) => {
   };
 });
 
-// The five the panel quotes carry the numbers the panel quotes.
-STATE[ROOT] = { k: 0.41, ke: 0.28, v: 0.28, p: 0.33, days: 11 };
-STATE[FAILED] = { k: 0.52, ke: 0.44, v: 0.31, p: 0.22, days: 4 };
-STATE[CAUSE_SIDE] = { k: 0.58, ke: 0.49, v: 0.4, p: 0.36, days: 6 };
-STATE[SECURE[0]] = { k: 0.86, ke: 0.83, v: 0.71, p: 0.79, days: 3 };
-STATE[SECURE[1]] = { k: 0.91, ke: 0.88, v: 0.74, p: 0.84, days: 2 };
+// Every concept a case names carries numbers that agree with what the panel
+// says about it. A root gap has to read as a gap when you hover it, and the
+// two "already solid" concepts have to read as secure — otherwise the drawing
+// and the words beside it are describing different students.
+for (const c of CASES) {
+  STATE[c.root] = { k: 0.41, ke: 0.28, v: 0.28, p: 0.33, days: 11 };
+  STATE[c.failed] = { k: 0.52, ke: 0.44, v: 0.31, p: 0.22, days: 4 };
+  STATE[c.causeSide] = { k: 0.58, ke: 0.49, v: 0.4, p: 0.36, days: 6 };
+  STATE[c.secure[0]] = { k: 0.86, ke: 0.83, v: 0.71, p: 0.79, days: 3 };
+  STATE[c.secure[1]] = { k: 0.91, ke: 0.88, v: 0.74, p: 0.84, days: 2 };
+}
 
 /** The three bands `status` collapses to, and what each one looks like. */
 const statusOf = (i: number) => (STATE[i].ke < 0.4 ? "gap" : STATE[i].ke < 0.72 ? "developing" : "secure");
-
-/**
- * The bonds that cross a subject.
- *
- * They are the reason there is one graph and not one per course, they are the
- * only kind of edge a syllabus never writes down, and they are curved so you
- * can tell at a glance which links the Kernel inferred and which ones came out
- * of a curriculum. The first one is the story.
- */
-const BRIDGE_SPEC: [[number, number, Subject], [number, number, Subject]][] = [
-  [[446, 322, "math"], [688, 205, "physics"]],
-  [[230, 180, "history"], [300, 300, "math"]],
-  [[400, 445, "math"], [575, 495, "biology"]],
-  [[845, 255, "physics"], [1010, 395, "chemistry"]],
-  [[735, 530, "biology"], [950, 505, "chemistry"]],
-  [[770, 285, "physics"], [650, 470, "biology"]],
-  [[430, 300, "math"], [700, 240, "physics"]],
-  [[250, 160, "history"], [690, 180, "physics"]],
-  [[280, 415, "math"], [600, 545, "biology"]],
-  [[800, 140, "physics"], [1050, 410, "chemistry"]],
-];
-
-const BRIDGES = BRIDGE_SPEC.map(([a, b], i) => ({
-  a: near(a[0], a[1], a[2]),
-  b: near(b[0], b[1], b[2]),
-  bow: i % 2 ? 0.15 : -0.15,
-}));
-
-const SUBJECTS = Object.keys(SUBJECT_COLOR) as Subject[];
-
-/**
- * Everything, filed by subject.
- *
- * Grouping the drawing this way costs nothing (the clusters do not overlap, so
- * one subject's atoms sitting above another's bonds is invisible) and buys the
- * legend its filter: dimming a whole subject becomes one opacity on one group
- * instead of a conditional on two hundred and fifty elements.
- */
-const GROUPED = SUBJECTS.map((s) => ({
-  s,
-  rings: MOL.rings.filter((r) => r.s === s),
-  bonds: MOL.bonds.filter(([i]) => MOL.atoms[i].s === s),
-  atoms: MOL.atoms.map((a, i) => ({ a, i })).filter(({ a }) => a.s === s),
-}));
-
-/** Which bridges touch a given atom — for the focus layer. */
-const BRIDGE_AT = (i: number) => BRIDGES.filter((b) => b.a === i || b.b === i);
-
-const BRIDGE_C = { dark: "#E8454C", light: "#c62828" };
-const FAIL_C = { dark: "#f87171", light: "#dc2626" };
-const SECURE_C = { dark: "#4ade80", light: "#15803d" };
-
-/**
- * The camera stops, written as transforms.
- *
- * With `transform-origin: 0 0`, `scale(s) translate(tx,ty)` puts the point
- * (cx,cy) in the middle of the frame when tx = W/2s − cx. Deriving them from
- * the atom coordinates keeps the tour honest: move a cluster and the shot
- * framing it moves too, instead of drifting off the thing it was aimed at.
- */
-const shot = (cx: number, cy: number, s: number) =>
-  `scale(${s}) translate(${(W / (2 * s) - cx).toFixed(1)}px, ${(H / (2 * s) - cy).toFixed(1)}px)`;
-
-const WIDE = shot(W / 2, H / 2, 1);
-const A0 = MOL.atoms[WALK[0]];
-const A1 = MOL.atoms[WALK[1] ?? WALK[0]];
-const A2 = MOL.atoms[WALK[2] ?? WALK[0]];
-const A3 = MOL.atoms[CAUSE_SIDE];
-const AR = MOL.atoms[ROOT];
-
-/**
- * A stop per step, and that is the whole fix.
- *
- * The middle of the tour used to be one long pure pan held for five seconds —
- * written that way on purpose, to avoid a zoom lurching underneath a
- * translation. It backfired completely: two consecutive concepts are one bond
- * apart, thirty-three units, and creeping across that distance over five
- * seconds works out at twenty-seven pixels a second. That is slower than a
- * clock hand. The camera was travelling and it read as standing still.
- *
- * A short move followed by a real hold is what reads as a step. Each hop now
- * gets its own stop at the same scale, reached in under a second and then held
- * still for two and a half — so the eye is moved, and then given something to
- * look at. The one long move left is the bridge, which is the only moment in
- * the tour that deserves one.
- *
- * The close scales are what they are because the canvas grew. At 780px wide a
- * 2.2 read as a real dive; at 1080px the same number lands barely tighter than
- * the wide stop, because every atom is already half again as big at rest — so
- * the zoom was still happening and had stopped being visible.
- */
-const CAM = [
-  WIDE,
-  shot(A0.x, A0.y, 3),
-  shot(A1.x, A1.y, 3),
-  shot(A2.x, A2.y, 3),
-  shot(A3.x, A3.y, 3),
-  shot(AR.x + 28, AR.y - 4, 2.8),
-  shot((AR.x + A0.x) / 2, (AR.y + A0.y) / 2 + 30, 1.45),
-  WIDE,
-];
-
-/**
- * Beats, in ms, against a 30 s tour, pinned to the camera stops in
- * `@keyframes graphCam`. Each `step` is one hop landing: a bond that draws
- * itself and stays drawn, a packet that runs it exactly once, and a numbered
- * badge on the concept it arrives at.
- *
- * The packets deliberately do NOT loop. Three looping highlights end up all
- * running at once within a few seconds, which is precisely how a sequence of
- * steps turns back into a red smear.
- *
- * `fade` is the seam. The whole plate dims out over the last second and a
- * half, so when the sequence is torn down and restarted the restart lands on
- * an empty frame instead of cutting from a finished picture to a blank one.
- */
-const G = {
-  bonds: 260,
-  bridges: 1300,
-  step: [4400, 7700, 11000, 14300] as const,
-  cross: 16600,
-  root: 18700,
-  secure: 23400,
-  foot: 25600,
-  cycle: 30000,
-};
-
-/** When each subject's name is called out, and for how long. */
-const SUBJ_CALL = [
-  { s: "physics" as Subject, name: "Physics", note: "where the session broke", at: 2600, span: 14600 },
-  { s: "math" as Subject, name: "Mathematics", note: "where it actually broke", at: 16800, span: 9400 },
-];
 
 /**
  * The whole ontology, and one diagnosis computed against it.
@@ -1084,6 +1366,36 @@ export function ConceptGraphShot({ theme: t }: { theme: Theme }) {
   const focus = hover ?? pin;
 
   /**
+   * Which of the three worked diagnoses is playing.
+   *
+   * One example proves the mechanism exists; three prove it is a mechanism and
+   * not a demo built around a single lucky pair of concepts. They run on the
+   * same graph, and each one crosses a different boundary — physics into
+   * maths, chemistry into physics, biology into chemistry.
+   *
+   * A switch does two things, and it needs both.
+   *
+   * The keys below remount the animated subtrees, so the new example is drawn
+   * by elements that are unambiguously at zero rather than by reused ones
+   * carrying the previous run's phase. And `ex` goes to the frame as its
+   * restart key, which resets the thirty-second loop clock — without that the
+   * new run inherits the remains of the cycle it interrupted, so a switch made
+   * late in a tour plays for a second and then throws itself back to the start.
+   *
+   * Remounting alone was the old behaviour, and it left the clock desynced.
+   * Resetting the clock alone leaves the reuse, which is worse: the two subject
+   * callouts share one absolute corner, and one of them holding a stale phase
+   * prints both names on top of each other.
+   */
+  const [ex, setEx] = useState(0);
+  const kase = CASES[ex];
+  const tour = TOURS[ex];
+  // Aliased at their old names so the drawing below reads as one diagnosis
+  // rather than as a lookup repeated ninety times.
+  const { walk: WALK, root: ROOT, causeSide: CAUSE_SIDE, failed: FAILED, secure: SECURE, bridge: XBRIDGE } = kase;
+  const CAM = tour.cam;
+
+  /**
    * Bonds picked to carry a permanent pulse — other people's sessions.
    *
    * Fourteen, not twenty-six. The point of these is that the graph is shared
@@ -1123,109 +1435,42 @@ export function ConceptGraphShot({ theme: t }: { theme: Theme }) {
    * `concept` is read out of NAMES rather than typed, so the text can never
    * drift from the atom the badge is actually sitting on.
    */
-  const STEPS: { at: number; n: number; kicker: string; concept: string; accent: string; body: string }[] = [
-    {
-      at: G.step[0],
-      n: 1,
-      kicker: "Failed",
-      concept: NAMES[WALK[0]],
-      accent: fail,
-      body: "Missed twice on the same exercise, four days apart.",
-    },
-    {
-      at: G.step[1],
-      n: 2,
-      kicker: "Sits on",
-      concept: NAMES[WALK[1]],
-      accent: t.text,
-      body: "Checked first, and fine. The forces were drawn correctly.",
-    },
-    {
-      at: G.step[2],
-      n: 3,
-      kicker: "Which sits on",
-      concept: NAMES[WALK[2]],
-      accent: t.text,
-      body: "Also solid on its own. Still not the thing that broke.",
-    },
-    {
-      at: G.step[3],
-      n: 4,
-      kicker: "And that on",
-      concept: NAMES[CAUSE_SIDE],
-      accent: t.orangeText,
-      body: "Shaky — but it fails the same way every time, so it is a symptom.",
-    },
-    {
-      at: G.root,
-      n: 5,
-      kicker: "Root cause",
-      concept: NAMES[ROOT],
-      accent: fail,
-      body: "Another subject. The derivative under the acceleration never held.",
-    },
-    {
-      at: G.secure,
-      n: 6,
-      kicker: "Already solid",
-      concept: `${NAMES[SECURE[0]]} · ${NAMES[SECURE[1]]}`,
-      accent: secure,
-      body: "Open the session here. Reteaching them would spend the hour on something known.",
-    },
+  /** The six rows of the reading, built from the case that is playing. */
+  const tint = [fail, t.text, t.text, t.orangeText, fail, secure];
+  const concept = [
+    NAMES[WALK[0]],
+    NAMES[WALK[1]],
+    NAMES[WALK[2]],
+    NAMES[CAUSE_SIDE],
+    NAMES[ROOT],
+    `${NAMES[SECURE[0]]} · ${NAMES[SECURE[1]]}`,
   ];
+  const STEPS = kase.spec.body.map((body, k) => ({
+    at: k < 4 ? G.step[k] : k === 4 ? G.root : G.secure,
+    n: k + 1,
+    kicker: kase.spec.kicker[k],
+    concept: concept[k],
+    accent: tint[k],
+    body,
+  }));
 
   /**
-   * The concepts that get a name printed on the canvas, and exactly where.
+   * The concepts that get a name printed on the canvas.
    *
-   * Every offset here is measured, not guessed. Alternating a label above and
-   * below its atom looks like it should work and does not: consecutive
-   * concepts on the walk are one bond apart — thirty-three units — while a
-   * label at this size is a hundred and seventy units wide, so two of them
-   * land on top of each other however you flip them. Each one is pushed off in
-   * its own direction and anchored to the side it is pushed towards, and the
-   * step badge always goes on the side the label is not.
-   *
-   * `dx`/`dy` are from the atom; `bx`/`by` place the badge. Changing a cluster
-   * origin means re-checking these.
+   * The offsets are solved at module load, not written here — see `placeLabel`.
+   * They used to be five hand-measured numbers, which was fine for one worked
+   * example and became five more numbers per example after that, each needing
+   * its own check against its own camera crop. `over` is the solver admitting
+   * it could not find a clear spot; it never fires today, and if it starts to
+   * it means a case was added whose cluster is too tight to label.
    */
-  type Mark = {
-    i: number;
-    n: number;
-    at: number;
-    dx: number;
-    dy: number;
-    anchor: "start" | "middle" | "end";
-    bx: number;
-    by: number;
-    tint: string;
-  };
-  const PLACE: [number, number, Mark["anchor"], number, number][] = [
-    [0, -34, "middle", -20, -16],
-    [18, 10, "start", 20, -16],
-    // -10 rather than -18: at scale 3 the frame is 400 units wide, and the
-    // longer offset put this label's left edge eleven units from the crop.
-    [-10, -8, "end", -20, 16],
-    [0, 44, "middle", 20, 16],
-  ];
-  const MARKED: Mark[] = [
-    ...WALK.map((i, k) => ({
-      i,
-      n: k + 1,
-      at: G.step[k] + 400,
-      dx: PLACE[k][0],
-      dy: PLACE[k][1],
-      anchor: PLACE[k][2],
-      bx: PLACE[k][3],
-      by: PLACE[k][4],
-      tint: k === 0 ? fail : t.text,
-    })),
-    { i: ROOT, n: 5, at: G.root, dx: 14, dy: 30, anchor: "start", bx: -20, by: -18, tint: fail },
-    { i: SECURE[0], n: 0, at: G.secure, dx: -14, dy: 34, anchor: "end", bx: 0, by: 0, tint: secure },
-    { i: SECURE[1], n: 0, at: G.secure + 300, dx: 0, dy: -26, anchor: "middle", bx: 0, by: 0, tint: secure },
-  ];
+  const MARKED = tour.marks.map((m) => ({
+    ...m,
+    tint: m.n === 0 ? secure : m.n === 1 ? fail : m.n === 5 ? fail : t.text,
+  }));
 
   return (
-    <DiagramFrame theme={t} loopMs={G.cycle}>
+    <DiagramFrame theme={t} loopMs={G.cycle} restartKey={ex}>
       {/* `pub-graph-loop` dims the whole plate over the last second and a half
           of the cycle. The replay works by tearing the `is-live` class off and
           putting it back, which rewinds every animation inside at once — from
@@ -1242,7 +1487,14 @@ export function ConceptGraphShot({ theme: t }: { theme: Theme }) {
                 shot of the same tour rather than a second tour written for
                 phones. */}
             <g className="pub-graph-zoom">
+              {/* Keyed on the case, and it has to stay that way.
+                  Reusing these elements across a switch looks like the cheaper
+                  option and is not: an element carrying a running animation
+                  keeps running it when its `--d` changes underneath, so the
+                  new example inherits the old one's phase. A fresh element is
+                  the only thing that is unambiguously at zero. */}
               <g
+                key={kase.spec.id}
                 className="pub-graph-cam"
                 style={
                   {
@@ -1430,7 +1682,7 @@ export function ConceptGraphShot({ theme: t }: { theme: Theme }) {
                   <path
                     className="shot-wire"
                     style={at(G.cross)}
-                    d={arc(BRIDGES[0].b, BRIDGES[0].a, BRIDGES[0].bow)}
+                    d={arc(XBRIDGE.b, XBRIDGE.a, XBRIDGE.bow)}
                     pathLength={100}
                     strokeDasharray="100"
                     fill="none"
@@ -1441,7 +1693,7 @@ export function ConceptGraphShot({ theme: t }: { theme: Theme }) {
                   <path
                     className="shot-flow"
                     style={{ ...at(G.cross), ["--dur-flow" as string]: "1400ms" }}
-                    d={arc(BRIDGES[0].b, BRIDGES[0].a, BRIDGES[0].bow)}
+                    d={arc(XBRIDGE.b, XBRIDGE.a, XBRIDGE.bow)}
                     pathLength={100}
                     strokeDasharray="30 110"
                     fill="none"
@@ -1509,13 +1761,34 @@ export function ConceptGraphShot({ theme: t }: { theme: Theme }) {
                       </text>
                       {m.n > 0 && (
                         <>
-                          <circle cx={MOL.atoms[m.i].x + m.bx} cy={MOL.atoms[m.i].y + m.by} r={10} fill={m.tint} />
+                          {/* The step number IS the node — same centre, drawn
+                              over it. It used to be a filled disc set twenty
+                              units off to one side, and in a picture made
+                              entirely of filled discs that can only read as one
+                              more concept: it faked a node and it faked a bend
+                              in the path. Nothing here is beside anything now.
+
+                              The disc keeps the SUBJECT colour rather than
+                              taking the diagnosis red, because watching the
+                              numbers change colour between 4 and 5 is the
+                              cheapest possible way to land "and the cause was
+                              in another subject". The halo is the plate
+                              colour, so the lattice passes behind it instead
+                              of through it. */}
+                          <circle
+                            cx={MOL.atoms[m.i].x}
+                            cy={MOL.atoms[m.i].y}
+                            r={11}
+                            fill={col(MOL.atoms[m.i].s)}
+                            stroke={t.cardBg}
+                            strokeWidth={2.5}
+                          />
                           <text
-                            x={MOL.atoms[m.i].x + m.bx}
-                            y={MOL.atoms[m.i].y + m.by + 4}
+                            x={MOL.atoms[m.i].x}
+                            y={MOL.atoms[m.i].y + 4.6}
                             textAnchor="middle"
                             fill={t.cardBg}
-                            fontSize={12}
+                            fontSize={13}
                             fontWeight={800}
                             fontFamily={MONO}
                           >
@@ -1623,10 +1896,16 @@ export function ConceptGraphShot({ theme: t }: { theme: Theme }) {
               the cause was in maths". Naming the subject as the camera enters
               it means that sentence can be got without ever reading the key.
               Set outside the camera group so it stays a caption on the frame
-              rather than a label that flies about with the drawing. */}
-          {SUBJ_CALL.map((sc) => (
+              rather than a label that flies about with the drawing.
+
+              Keyed on the case as well as the subject: both callouts sit in
+              this same absolute corner and cross-fade, so an element reused
+              from the previous case — where it had a different delay and a
+              different span — can hold its old phase and print one subject on
+              top of the other. */}
+          {tour.call.map((sc) => (
             <div
-              key={sc.s}
+              key={`${kase.spec.id}-${sc.s}`}
               className="pub-graph-subject shot-span"
               style={{ ...at(sc.at), ["--dur-span" as string]: `${sc.span}ms` }}
             >
@@ -1657,14 +1936,38 @@ export function ConceptGraphShot({ theme: t }: { theme: Theme }) {
                 </span>
               </div>
 
+              {/* Three worked cases on the same graph. One would prove the
+                  mechanism exists; three prove it is a mechanism rather than a
+                  demo assembled around one lucky pair of concepts — and each
+                  crosses a different boundary, so the claim is not "physics
+                  rests on maths" but "the cause is wherever it is". */}
+              <div className="pub-graph-cases">
+                {CASES.map((c, i) => (
+                  <button
+                    key={c.spec.id}
+                    type="button"
+                    className={`pub-graph-case${i === ex ? " is-on" : ""}`}
+                    onClick={() => setEx(i)}
+                    style={{
+                      borderColor: i === ex ? col(c.spec.from) : t.cardBorder,
+                      color: i === ex ? col(c.spec.from) : t.muted,
+                      background: i === ex ? "transparent" : t.cardBg,
+                    }}
+                  >
+                    <i style={{ background: col(c.spec.from) }} />
+                    {c.spec.chip}
+                  </button>
+                ))}
+              </div>
+
               {/* One bar across the whole width, running the length of the
                   tour. It is the only thing on the plate that says how much of
                   the reasoning you have already watched. */}
-              <span className="pub-graph-rail" style={{ background: t.inputFieldBg }}>
+              <span key={`r${kase.spec.id}`} className="pub-graph-rail" style={{ background: t.inputFieldBg }}>
                 <i style={{ background: fail }} />
               </span>
 
-              <div className="pub-steps">
+              <div key={kase.spec.id} className="pub-steps">
                 {STEPS.map((s) => (
                   <div key={s.n} className="pub-step shot-fade" style={at(s.at)}>
                     <span className="pub-step-n" style={{ color: t.mutedLight }}>
@@ -1682,9 +1985,10 @@ export function ConceptGraphShot({ theme: t }: { theme: Theme }) {
               </div>
 
               <div className="pub-graph-foot shot-fade" style={{ ...at(G.foot), color: t.mutedLight, borderColor: t.cardBorder }}>
-                Alert raised: <b style={{ color: t.orangeText, fontFamily: MONO }}>re_emergence_error</b> — they had this
-                once and it came back wrong, so it gets retaught rather than revised. Confidence{" "}
-                <b style={{ color: t.text }}>0.82</b>, back before the next answer was written.
+                Alert raised: <b style={{ color: t.orangeText, fontFamily: MONO }}>{kase.spec.alert}</b> · confidence{" "}
+                <b style={{ color: t.text }}>{kase.spec.confidence}</b> · walked{" "}
+                <b style={{ color: t.text }}>{WALK.length + 1}</b> concepts across{" "}
+                <b style={{ color: t.text }}>2</b> subjects, and back before the next answer was written.
               </div>
             </>
           ) : (

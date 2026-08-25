@@ -1,6 +1,15 @@
 "use client";
 
-import { createContext, useContext, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import type { Theme } from "./theme";
 import { RayaName } from "@/components/ui/brand";
 // The app's own icons, not a second set drawn for the site. They take a `style`
@@ -104,13 +113,40 @@ const ShotLive = createContext(false);
  * a shot the page holds on screen far longer than the sequence lasts. The
  * ladder pins each rung card for most of a scroll, so a two-second exchange
  * played once is over before the card is even read — a still is what the
- * visitor gets. Looping there is the session running, not decoration, and it
- * stops the moment the shot leaves the viewport rather than burning frames
- * behind the fold.
+ * visitor gets. Looping there is the session running, not decoration.
+ *
+ * The replay is triggered by the cycle animation's own `animationend`, not by
+ * a timer running alongside it. Two clocks was the old design and it could not
+ * be made to work: the sequence ends on the document timeline and a timer
+ * fires whenever the main thread is free, so on a busy frame the replay lands
+ * late — after the plate has already faded out — and the lateness is a visible
+ * hole at the seam. See `shotCycle` in globals.css.
+ *
+ * `restartKey` is for a shot whose subject can be changed from outside — the
+ * Kernel graph, where picking a different worked example has to start that
+ * example from the top. There is nothing to reset beside the CSS any more: the
+ * cycle IS one of the animations, so rewinding the sequence rewinds the clock.
  */
-export function useShotSequence(loopMs?: number) {
+export function useShotSequence(loopMs?: number, restartKey?: unknown) {
   const ref = useRef<HTMLDivElement>(null);
   const [live, setLive] = useState(false);
+
+  /**
+   * One rewind of every animation inside.
+   *
+   * They are all scoped to `.is-live`, so dropping the class rewinds them at
+   * once. The offsetWidth read between the two writes is load-bearing: without
+   * it the browser coalesces them into no change at all and nothing restarts.
+   */
+  const rewind = useCallback(() => {
+    const el = ref.current;
+    // Never opted in: motion is off, or the shot was already on screen at
+    // mount and is showing its finished state.
+    if (!el?.classList.contains("pub-shot-anim")) return;
+    el.classList.remove("is-live");
+    void el.offsetWidth;
+    el.classList.add("is-live");
+  }, []);
 
   useEffect(() => {
     const el = ref.current;
@@ -121,42 +157,58 @@ export function useShotSequence(loopMs?: number) {
     if (el.getBoundingClientRect().top < window.innerHeight * 0.92) return;
 
     el.classList.add("pub-shot-anim");
-    let timer = 0;
+    if (loopMs) {
+      el.style.setProperty("--loop", `${loopMs}ms`);
+      el.classList.add("is-cycling");
+    }
+
+    // The one animation whose only job is to be a cycle long. Filtered by name
+    // AND by target: every entrance inside this shot also bubbles an
+    // animationend up to here, and a stray one would replay the tour early.
+    const onEnd = (e: AnimationEvent) => {
+      if (e.animationName === "shotCycle" && e.target === el) rewind();
+    };
+    el.addEventListener("animationend", onEnd);
+
     const io = new IntersectionObserver(
       (entries) => {
         const onScreen = entries.some((e) => e.isIntersecting);
-        if (!onScreen) {
-          // Out of view: hold the finished state and stop the clock.
-          window.clearInterval(timer);
-          timer = 0;
-          return;
-        }
+        // Behind the fold nothing is paid for. Paused rather than rewound, so
+        // scrolling back finds the shot where it was rather than restarted —
+        // and the cycle animation is paused with everything else, which is what
+        // keeps the replay from firing at a moment nobody is watching.
+        el.classList.toggle("is-idle", !onScreen);
+        if (!onScreen) return;
         el.classList.add("is-live");
         setLive(true);
-        if (!loopMs) {
-          // One-shot: replaying on every scroll-by is what makes this cheap.
-          io.disconnect();
-          return;
-        }
-        if (timer) return;
-        timer = window.setInterval(() => {
-          // Every animation inside is scoped to `.is-live`, so dropping the
-          // class rewinds all of them at once. The offsetWidth read between
-          // the two writes is load-bearing: without it the browser coalesces
-          // them into no change at all and nothing restarts.
-          el.classList.remove("is-live");
-          void el.offsetWidth;
-          el.classList.add("is-live");
-        }, loopMs);
       },
       { threshold: 0.35 },
     );
     io.observe(el);
     return () => {
       io.disconnect();
-      window.clearInterval(timer);
+      el.removeEventListener("animationend", onEnd);
     };
-  }, [loopMs]);
+  }, [loopMs, rewind]);
+
+  /**
+   * The subject changed under us: replay from the top.
+   *
+   * Skipped on mount — the observer owns the first run, and firing here as
+   * well would restart the sequence in the same frame it started.
+   */
+  const mounted = useRef(false);
+  useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true;
+      return;
+    }
+    // Only replay something that is already playing. Putting `is-live` on a
+    // shot the observer has not reached yet would spend its entrance off
+    // screen, and the visitor would scroll down to a finished still.
+    if (!ref.current?.classList.contains("is-live")) return;
+    rewind();
+  }, [restartKey, rewind]);
 
   return { ref, live };
 }

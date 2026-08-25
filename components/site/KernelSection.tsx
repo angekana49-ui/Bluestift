@@ -4,7 +4,7 @@ import type { Theme } from "./theme";
 import { RayaText } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
-import { ConceptGraphShot, KernelLoopShot } from "./KernelDiagrams";
+import { ConceptGraphShot, KernelLoopShot, kernelInk } from "./KernelDiagrams";
 import Reveal from "./Reveal";
 import { LEAD, SectionHeader, bandColumn, bandSection, bandTone, serifEm } from "./layout";
 
@@ -88,6 +88,20 @@ export default function KernelSection({ theme: outer }: { theme: Theme }) {
   const onAccent = t.dark ? "#0b1220" : "#ffffff";
   const alertAccent = t.dark ? "#7ab3f7" : "#1d4ed8";
 
+  /**
+   * The drawings' own colours, borrowed by the prose above them.
+   *
+   * The italics in this band are the only sentences on the page that name
+   * something the reader is about to see — the person at the centre of the
+   * loop, the two subjects the diagnosis crosses between. Setting them in the
+   * colour that thing is drawn in turns each heading into the legend for the
+   * picture underneath it, so the code is learned before it has to be used
+   * rather than looked up afterwards in a key.
+   *
+   * Imported, not re-typed: see kernelInk in ./KernelDiagrams.
+   */
+  const ink = kernelInk(t);
+
   /** The plate both diagrams sit on — same chrome as the ladder's wide shot. */
   const plate = {
     marginTop: 20,
@@ -97,8 +111,37 @@ export default function KernelSection({ theme: outer }: { theme: Theme }) {
     boxShadow: t.cardShadowLg,
   } as const;
 
-  /** The line that says what the drawing under it is. */
-  const caption = (titleKey: MessageKey, bodyKey: MessageKey) => (
+  /**
+   * A two-sentence heading, each half in the colour of the subject it names.
+   *
+   * "The failure was in physics. The cause was in maths." is the single
+   * sentence this whole band exists to land, and it is the right moment to
+   * teach the graph's colour code: the reader meets orange and blue as words
+   * a moment before meeting them as clusters, so the drawing needs no key.
+   *
+   * All four locales write it as two sentences. If one ever stops doing so the
+   * split fails closed and the heading is simply one colour — never a sentence
+   * chopped in a place that means nothing.
+   */
+  const twoTone = (text: string, a: string, b: string) => {
+    const cut = text.indexOf(". ");
+    if (cut < 0) return <span style={{ color: a }}>{text}</span>;
+    return (
+      <>
+        <span style={{ color: a }}>{text.slice(0, cut + 1)}</span>{" "}
+        <span style={{ color: b }}>{text.slice(cut + 2)}</span>
+      </>
+    );
+  };
+
+  /**
+   * The line that says what the drawing under it is.
+   *
+   * `tint` is one colour, or two for a heading that names two things. It is
+   * never optional: an uncoloured italic here would be the only one in the
+   * band, and a lone exception reads as an oversight rather than as restraint.
+   */
+  const caption = (titleKey: MessageKey, bodyKey: MessageKey, tint: string | [string, string]) => (
     <div style={{ maxWidth: LEAD, marginTop: 56 }}>
       <h3
         style={{
@@ -107,11 +150,11 @@ export default function KernelSection({ theme: outer }: { theme: Theme }) {
           fontSize: "clamp(1.35rem,2.6vw,1.8rem)",
           lineHeight: 1.15,
           letterSpacing: "-0.01em",
-          color: t.text,
+          color: typeof tint === "string" ? tint : undefined,
           margin: 0,
         }}
       >
-        {tr(titleKey)}
+        {typeof tint === "string" ? tr(titleKey) : twoTone(tr(titleKey), tint[0], tint[1])}
       </h3>
       <p style={{ fontSize: 15, color: t.muted, lineHeight: 1.7, margin: "10px 0 0" }}>
         <RayaText>{tr(bodyKey)}</RayaText>
@@ -132,7 +175,10 @@ export default function KernelSection({ theme: outer }: { theme: Theme }) {
             title={
               <>
                 {tr("site.kernel.title.a")}{" "}
-                <em style={serifEm}>{tr("site.kernel.title.em")}</em>
+                {/* The alerts are the half of the contract that acts, so the
+                    band's one emphasis carries the colour an alert is drawn in
+                    everywhere else on the page rather than a decorative one. */}
+                <em style={{ ...serifEm, color: t.orangeText }}>{tr("site.kernel.title.em")}</em>
               </>
             }
             lead={<RayaText>{tr("site.kernel.sub")}</RayaText>}
@@ -142,7 +188,10 @@ export default function KernelSection({ theme: outer }: { theme: Theme }) {
         {/* 1 — the shape of it. Placed before the four cards on purpose: the
             letters mean very little until you can see who computes them and
             who reads them back. */}
-        <Reveal>{caption("site.kernel.map.title", "site.kernel.map.body")}</Reveal>
+        {/* In the learner's own colour: the sentence is about the person at
+            the centre, and the person at the centre is drawn in that purple
+            three inches below it. */}
+        <Reveal>{caption("site.kernel.map.title", "site.kernel.map.body", ink.learner)}</Reveal>
         <Reveal>
           <div style={plate}>
             <KernelLoopShot theme={t} />
@@ -216,7 +265,9 @@ export default function KernelSection({ theme: outer }: { theme: Theme }) {
         {/* 3 — the graph, and the one inference the four numbers alone cannot
             produce: `/load_profile` returns per-concept state, never the chain
             between concepts (lib/kernel/profile-cache.ts says exactly that). */}
-        <Reveal>{caption("site.kernel.graph.title", "site.kernel.graph.body")}</Reveal>
+        {/* Physics then maths, in the two cluster colours, in that order —
+            which is also the order the tour walks them. */}
+        <Reveal>{caption("site.kernel.graph.title", "site.kernel.graph.body", [ink.physics, ink.math])}</Reveal>
         <Reveal>
           <div style={plate}>
             <ConceptGraphShot theme={t} />

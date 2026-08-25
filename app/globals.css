@@ -178,6 +178,55 @@ a {
    Per-element stagger arrives as `--d` (an inline animation-delay), which is
    what lets one sequence be written as data in the component rather than as a
    pile of nth-child rules here. */
+
+/* ---- The cycle, as an animation rather than as a timer ----
+
+   A looping shot used to be replayed by a setInterval sitting beside the
+   animations. Two clocks: the sequence ends at exactly its duration on the
+   document timeline, the timer fires whenever the main thread gets to it. On a
+   busy frame the timer arrives late — and by then the plate has already faded
+   out and is holding at opacity 0, so every millisecond of that lateness is a
+   visible black hole at the seam. Worse, the two feed each other: the heavier
+   the drawing, the later the timer, the bigger the hole.
+
+   This animation does nothing (`outline-color` on an element with no outline —
+   inert, and unlike opacity or z-index it creates no stacking context). Its
+   only job is to be exactly one cycle long so `animationend` can fire on the
+   same clock the sequence runs on. No drift, no background-tab throttling, and
+   nothing to keep in sync with anything.
+
+   `--loop` and `is-cycling` are both set from ProductShots.tsx; the duration is
+   never defaulted, because a 0ms cycle would end instantly and replay forever. */
+.pub-shot-anim.is-live.is-cycling {
+  animation: shotCycle var(--loop) linear both;
+}
+@keyframes shotCycle {
+  from,
+  to {
+    outline-color: transparent;
+  }
+}
+
+/* ---- Off screen: hold the frame and stop paying for it ----
+
+   The note above has always said the sequence "stops the moment the shot leaves
+   the viewport rather than burning frames behind the fold". It did not: leaving
+   the viewport stopped the replay clock and nothing else, so every infinite
+   animation on the page — beads, pulses, heartbeats, hundreds of SVG nodes —
+   kept running for the rest of the session once scrolled past.
+
+   Pausing rather than rewinding, so a shot scrolled back into view continues
+   where it was instead of jumping.
+
+   `!important` is load-bearing and not laziness: every rule above sets
+   animation-play-state implicitly through the `animation` shorthand, so any of
+   them appearing later in this file would quietly out-cascade a plain
+   declaration here. */
+.pub-shot-anim.is-idle,
+.pub-shot-anim.is-idle * {
+  animation-play-state: paused !important;
+}
+
 .pub-shot-anim .shot-in {
   opacity: 0;
   transform: translateY(5px);
@@ -575,16 +624,23 @@ a {
   }
 }
 
+/* The one caption on this drawing. It used to float in the bottom-left corner
+   of it, and that corner is only empty at full width: the SVG scales with the
+   column while a chip sized in px does not, so the narrower the window the
+   more of the drawing a fixed 300px box covers — until it is sitting on the
+   outer shell and on M. A caption that hides the thing it is captioning is
+   worse than no caption.
+
+   Sinking it into the SVG would fix the scaling and break the legibility
+   instead: at 360px this drawing is about 0.3 of its own units, and a 12-unit
+   line would land at under four real pixels. So it is a bar under the picture.
+   It cannot reach the drawing at any width, and it survives on phones — where
+   the floating version was deleted outright rather than solved. */
 .pub-orbit-foot {
-  position: absolute;
-  left: 16px;
-  bottom: 14px;
-  border: 1px solid;
-  border-radius: 10px;
-  padding: 7px 12px;
+  padding: 11px clamp(14px, 2vw, 22px) 13px;
+  border-top: 1px solid;
   font-size: 11.5px;
-  line-height: 1.45;
-  max-width: 300px;
+  line-height: 1.5;
 }
 
 @media (max-width: 760px) {
@@ -613,9 +669,6 @@ a {
   }
   .pub-orbit-side-r text {
     text-anchor: end;
-  }
-  .pub-orbit-foot {
-    display: none;
   }
 }
 
@@ -664,7 +717,18 @@ a {
    lurching, and ended up creeping across thirty-three units at a rate the eye
    reads as stationary. Move, then hold, is what reads as a step.
    The two long moves are the ones that have somewhere to go: 55→61 crosses the
-   subject boundary, and 71→77 pulls back to show the whole path at once. */
+   subject boundary, and 85→90 pulls back to show the whole path at once.
+
+   That last one used to arrive at 94%, and the loop fade below also starts at
+   94%. The pull-back — the one shot the whole tour is built to deliver — was
+   therefore playing entirely inside the fade to zero, so what the eye actually
+   read was "the camera went somewhere and then the picture died". It now lands
+   at 90% and holds at full opacity for a beat before the fade begins at 96%.
+   The time came out of the 77→88 hold, which was the longest in the piece.
+
+   These percentages and the millisecond delays in G (KernelDiagrams) are two
+   clocks describing one timeline, joined only by the 30s here. Moving either
+   one alone desyncs the reading from the camera. */
 @keyframes graphCam {
   0%,
   10% {
@@ -691,10 +755,10 @@ a {
     transform: var(--cam5);
   }
   77%,
-  88% {
+  85% {
     transform: var(--cam6);
   }
-  94%,
+  90%,
   100% {
     transform: var(--cam7);
   }
@@ -704,11 +768,17 @@ a {
 .pub-shot-anim.is-live .pub-graph-loop {
   animation: graphLoop 30s linear 0ms both;
 }
+/* Reaching zero at 99% rather than at 100% buys the seam three hundred
+   milliseconds of already-black. The replay is triggered by animationend now,
+   which is exact, but a class swap still costs a frame or two — and landing
+   those inside a stretch that is dark anyway is the difference between a seam
+   you cannot see and one you can. */
 @keyframes graphLoop {
   0%,
-  94% {
+  96% {
     opacity: 1;
   }
+  99%,
   100% {
     opacity: 0;
   }
@@ -838,6 +908,41 @@ a {
   text-transform: uppercase;
   letter-spacing: 0.12em;
   font-size: 11px;
+}
+
+/* The three worked cases. Chips rather than tabs: a tab claims the thing under
+   it is a different panel, and this is the same graph being read three ways. */
+.pub-graph-cases {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 13px;
+}
+.pub-graph-case {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  transition:
+    color 160ms var(--ease-out),
+    border-color 160ms var(--ease-out);
+}
+.pub-graph-case i {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  opacity: 0.55;
+}
+.pub-graph-case.is-on i {
+  opacity: 1;
 }
 
 /* One bar across the full width, running the length of the tour. The only
