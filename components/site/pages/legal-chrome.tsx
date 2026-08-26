@@ -3,7 +3,7 @@
 import SitePage from "@/components/site/SitePage";
 import type { NavLink } from "@/components/site/Navbar";
 import type { Theme } from "@/components/site/theme";
-import { pageColumn, pageH1, pageSection, serifEm } from "@/components/site/layout";
+import { GUTTER, MEASURE, PAGE_BOTTOM, pageH1, pageSection, serifEm } from "@/components/site/layout";
 
 /**
  * Shared chrome for the four legal pages (Privacy, Terms, DPA, Sub-processors).
@@ -25,6 +25,9 @@ import { pageColumn, pageH1, pageSection, serifEm } from "@/components/site/layo
  * are wide enough to survive being glanced at, and h2 carries a rule so the
  * top-level sections are findable at a scroll.
  */
+/** Inset between the sheet's edge and the document's measure. */
+const SHEET_PAD = 34;
+
 export const h2 = (t: Theme) =>
   ({
     fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
@@ -149,19 +152,58 @@ export function LegalShell({
   children: (t: Theme) => React.ReactNode;
 }) {
   return (
-    // `plain`: these are documents, not marketing surfaces — see SitePage.
-    <SitePage active={active} section={section} signedIn={signedIn} surface="plain">
+    /*
+     * The sky is back on these four, on a sheet.
+     *
+     * They ran on `plain` — no sky at all — and the reason given was legibility:
+     * five screens of body copy over a photograph of varying luminance. That
+     * reason was right about the problem and wrong about the fix. The choice was
+     * never sky-or-prose; it was prose-on-a-photograph or prose-on-a-sheet, and
+     * every other surface on this site already solved it the second way.
+     *
+     * So the page gets the pinned sky and the document gets its own opaque card
+     * floating on it. Nothing is ever set over the clouds: the text sits on flat
+     * cardBg from the first line to the last, which also settles the drift the
+     * old note worried about — pageBg gets bluer as it descends, this does not.
+     * The sky shows down both margins and behind the footer, which is where a
+     * reader's eye rests rather than reads.
+     *
+     * The measure is unchanged at exactly MEASURE.prose. The card is that plus
+     * its own padding, so widening the shell did not quietly widen the lines:
+     * 680px at 15px is ~80 characters and the layout notes call that the top of
+     * the comfortable range. Padding shrinks with the viewport so a phone does
+     * not pay GUTTER and the card's inset twice.
+     */
+    <SitePage active={active} section={section} signedIn={signedIn}>
       {(t) => (
         <section style={pageSection}>
-          <div style={pageColumn("prose")}>
-            <h1 style={pageH1(t)}>
-              {title}{" "}
-              <em style={{ ...serifEm, color: t.wordmarkB }}>{accent}</em>
-            </h1>
-            <p style={{ fontSize: 14, color: t.muted, margin: "0 0 40px" }}>
-              Last updated {updated}
-            </p>
-            {children(t)}
+          <div
+            style={{
+              maxWidth: MEASURE.prose + 2 * SHEET_PAD,
+              margin: "0 auto",
+              width: "100%",
+              boxSizing: "border-box",
+              paddingBottom: PAGE_BOTTOM,
+            }}
+          >
+            <div
+              style={{
+                background: t.cardBg,
+                border: `1px solid ${t.cardBorder}`,
+                borderRadius: 20,
+                boxShadow: t.cardShadowLg,
+                padding: `clamp(${GUTTER}px, 4vw, ${SHEET_PAD}px)`,
+              }}
+            >
+              <h1 style={pageH1(t)}>
+                {title}{" "}
+                <em style={{ ...serifEm, color: t.wordmarkB }}>{accent}</em>
+              </h1>
+              <p style={{ fontSize: 14, color: t.muted, margin: "0 0 40px" }}>
+                Last updated {updated}
+              </p>
+              {children(t)}
+            </div>
           </div>
         </section>
       )}

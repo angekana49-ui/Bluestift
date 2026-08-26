@@ -8,34 +8,28 @@ import Footer from "./Footer";
 import CloudBackground from "./CloudBackground";
 
 /**
- * Page shell for the Research/Survey/Contact/Feedback pattern: the fixed
- * viewport-pinned sky + shared navbar + simple footer. Children are given the
- * active theme via a render prop; each child section must set
- * position:relative + zIndex:1 so it paints above the fixed sky.
+ * Page shell for every standalone page — Research, Survey, Contact, Feedback,
+ * Pricing and the four legal documents: the fixed viewport-pinned sky + shared
+ * navbar + simple footer. Children are given the active theme via a render
+ * prop; each child section must set position:relative + zIndex:1 so it paints
+ * above the fixed sky.
  *
- * `surface` decides whether that sky appears, and the two cases are genuinely
- * different kinds of page rather than a taste setting:
- *
- *  - `sky` — a marketing surface. Short, promotional, and the photograph is
- *    doing work: it is the brand, and there is little text for it to sit under.
- *  - `plain` — a document. The legal pages are ~5 screens of dense prose, and a
- *    viewport-pinned photograph behind that is a legibility problem (body copy
- *    over varying luminance) before it is a taste one. It also undercuts the
- *    text: a privacy policy is a record, and these are careful, specific
- *    documents that read as less serious than they are with a stock sky behind
- *    them. `plain` gives them a flat reading surface instead.
+ * There used to be a second mode here, `plain`, which dropped the sky for the
+ * legal pages on the grounds that five screens of body copy over a photograph
+ * of varying luminance is a legibility problem. It is — but the fix for that is
+ * a sheet between the prose and the photograph, not the loss of the sky, and
+ * LegalShell now does exactly that. Nothing asked for `plain` afterwards, so it
+ * went. If a page ever needs a flat surface again, put the sheet on it.
  */
 export default function SitePage({
   active,
   section,
   signedIn,
-  surface = "sky",
   children,
 }: {
   active: NavLink;
   section?: string;
   signedIn?: boolean;
-  surface?: "sky" | "plain";
   children: (t: Theme) => ReactNode;
 }) {
   const { isDark, toggle } = useThemeMode();
@@ -48,10 +42,7 @@ export default function SitePage({
           fontFamily: "var(--font-inter),'Inter',sans-serif",
           color: t.text,
           minHeight: "100vh",
-          // A document gets a flat surface, not the page gradient: pageBg runs
-          // to #c9d9ea by its last stop, so over a 5-screen legal page the prose
-          // would drift onto steadily bluer ground as the reader descends.
-          background: surface === "plain" ? t.cardBg : t.pageBg,
+          background: t.pageBg,
           transition: "background 0.4s ease, color 0.4s ease",
           position: "relative",
           // See LandingPage: `.pub-lift`'s hover elevation has to reach CSS as a
@@ -60,7 +51,7 @@ export default function SitePage({
         } as CSSProperties
       }
     >
-      {surface === "sky" ? <CloudBackground theme={t} variant="fixed" /> : null}
+      <CloudBackground theme={t} variant="fixed" />
       <Navbar theme={t} isDark={isDark} onToggleTheme={toggle} active={active} section={section} signedIn={signedIn} />
       {children(t)}
       <Footer theme={t} variant="simple" />
