@@ -683,12 +683,21 @@ const ROOM_ONLINE = ROOM_MEMBERS.filter((m) => m.online).length;
  *
  * A room timer is a real thing this product enforces — the room goes read-only
  * when it runs out — and a frozen one is the single most obviously drawn pixel
- * in this shot. Six samples cross-fading at exactly 1000ms, so for the six
- * seconds anyone is actually looking at this card the clock is right. It stops
- * after that rather than looping: a countdown that jumped back up would undo
- * the very thing it was added to fix.
+ * in this shot. Six samples swapping at exactly 1000ms, so for the six seconds
+ * anyone is actually looking at this card the clock is right. It stops after
+ * that rather than looping: a countdown that jumped back up would undo the very
+ * thing it was added to fix.
+ *
+ * Swapping, not cross-fading. They stack in one grid cell, so a reading that
+ * outlives the gap to the next one puts two times in the same pill — and a
+ * clock is the one element on this page where nobody will read the overlap as
+ * a transition. It reads as a rendering fault, because that is what it is.
  */
 const ROOM_CLOCK = ["24:31", "24:30", "24:29", "24:28", "24:27", "24:26"];
+
+/** One second between readings, and one second is exactly how long a reading
+ *  lives. The two have to be the same number, so they are the same number. */
+const ROOM_TICK = 1000;
 
 /**
  * A room mid-session (components/room-view.tsx + rooms/room-group-chat.tsx):
@@ -818,10 +827,11 @@ export function RoomShot({ theme: t }: { theme: Theme }) {
                 <span
                   key={c}
                   /* The last reading stays; the ones before it hand over. Same
-                     shape as the Kernel band's gauge — a chain of `shot-span`
-                     closed by something that does not fade back out. */
-                  className={i === ROOM_CLOCK.length - 1 ? "shot-fade" : "shot-span"}
-                  style={{ ...at(140 + i * 1000), gridArea: "1 / 1", ["--dur-span" as string]: "1260ms" }}
+                     shape as the Kernel band's gauge — a chain of `shot-tick`
+                     closed by something that does not fade back out, which is
+                     also what the pill shows at rest. */
+                  className={i === ROOM_CLOCK.length - 1 ? "shot-fade" : "shot-tick"}
+                  style={{ ...at(140 + i * ROOM_TICK), gridArea: "1 / 1", ["--dur-span" as string]: `${ROOM_TICK}ms` }}
                 >
                   ⏱ {c} left
                 </span>

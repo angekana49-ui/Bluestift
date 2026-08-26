@@ -98,6 +98,13 @@ a {
   /* Brand block + four link columns (the fourth is Legal). */
   grid-template-columns: 1.6fr 1fr 1fr 1fr 1fr;
   gap: 32px;
+  /* Top-aligned, and the four columns hold four links each, so the labels sit
+     on one line AND the lists end on one line. That second half is carried by
+     the link lists themselves rather than by alignment: with columns of equal
+     length there is nothing left to align. Give one column a fifth link or take
+     one away and the bottom edge goes ragged again — no CSS here will save it,
+     because a row can be flush at the top or at the bottom, not both, once the
+     columns stop being the same height. */
 }
 /* Kernel alert table: name | signal detected | Raya's response. Collapses to a
    single stacked column on narrow screens — where the column header stops
@@ -639,14 +646,42 @@ a {
   }
 }
 
-/* A fade that also ends. `.shot-fade` arrives and stays, which is right for
-   anything a sequence accumulates; this one is for the elements that have a
-   turn — a caption that belongs to one stretch of a tour and has to be gone
-   before the next stretch claims the same corner. `--dur-span` is the whole
-   life of the element, `--d` is when it starts. */
-.pub-shot-anim .shot-span {
+/* ---- Elements that take a turn in a slot something else will claim ----
+
+   `.shot-fade` arrives and stays, which is right for anything a sequence
+   accumulates. These two are for the elements that have a turn and then have to
+   be gone: a caption belonging to one stretch of a tour, a countdown reading,
+   one stop of a gauge. `--dur-span` is the whole life of the element, `--d` is
+   when it starts.
+
+   Hidden outside a running sequence, and that is not a detail. Every consumer
+   of these classes stacks its stops in ONE slot — the same absolute corner, the
+   same grid cell — so a resting state at full opacity is not "the animation has
+   not started", it is every stop of the sequence printed on top of every other.
+   Six countdown readings in one pill. Seven gauge numbers in one panel. Two
+   subject names in one corner. The resting state is reached more often than it
+   looks: reduced motion, no IntersectionObserver, the server-rendered frame
+   before hydration, and — the one that actually gets seen — a shot already on
+   screen when it mounted, which is what a reload halfway down the page gives
+   you. What is left standing is whatever the sequence was going to end on,
+   because every chain here closes on a `.shot-fade` that persists.
+
+   `visibility` rather than `display`: these slots are sized by the widest stop
+   they hold, and removing the others from layout would let the pill around a
+   countdown resize itself as the digits change. */
+.shot-span,
+.shot-tick {
+  visibility: hidden;
+}
+.pub-shot-anim .shot-span,
+.pub-shot-anim .shot-tick {
+  visibility: visible;
   opacity: 0;
 }
+
+/* Handing over by dissolving. For a caption with room around it and a real gap
+   before the next one — give consecutive spans a stop between them, never an
+   overlap, or the crossing itself puts both on the glass at once. */
 .pub-shot-anim.is-live .shot-span {
   animation: shotSpan var(--dur-span, 6000ms) var(--ease-out) var(--d, 0ms) both;
 }
@@ -658,6 +693,33 @@ a {
     opacity: 1;
   }
   89% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Handing over by swapping. For a value that shares its slot with the value
+   after it — a clock, a gauge — where a dissolve is not a transition but a
+   smear of two numbers in one cell, and where a hard cut with `shotSpan`'s
+   ramps would instead blink the slot empty between every pair.
+
+   The ramps are 1% of the element's own life: eight milliseconds on an 800ms
+   stop, under a frame, so the swap reads as instant the way an instrument's
+   readout does. Give consecutive ticks a span exactly equal to their spacing
+   and one leaves as the next arrives — nothing to smear, nothing to blink. */
+.pub-shot-anim.is-live .shot-tick {
+  animation: shotTick var(--dur-span, 1000ms) linear var(--d, 0ms) both;
+}
+@keyframes shotTick {
+  0% {
+    opacity: 0;
+  }
+  1% {
+    opacity: 1;
+  }
+  99% {
     opacity: 1;
   }
   100% {

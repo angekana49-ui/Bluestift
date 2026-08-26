@@ -255,10 +255,26 @@ const T = {
  * The gauge's stops. Seven samples across the head's travel, each one holding
  * until the next takes over, so the number moves while the head does.
  */
-const GAUGE = Array.from({ length: 7 }, (_, i) => {
-  const w = (READ_W * (i + 1)) / 7;
-  return { w, k: stateAt(w), at: T.hit(w) - T.headMs / 14, span: T.headMs / 7 + 260 };
-});
+/** When the i-th stop takes the panel. Half a step early, so the number leads
+ *  the head into the week it is reading rather than trailing out of it. */
+const gaugeAt = (i: number) => T.hit((READ_W * (i + 1)) / 7) - T.headMs / 14;
+
+const GAUGE = Array.from({ length: 7 }, (_, i) => ({
+  w: (READ_W * (i + 1)) / 7,
+  k: stateAt((READ_W * (i + 1)) / 7),
+  at: gaugeAt(i),
+  /**
+   * Each stop lives exactly until the next one starts — the seventh until the
+   * landing reading takes the panel for good.
+   *
+   * Derived, not typed. All eight readings share one slot, and the span used to
+   * be written as `T.headMs / 7 + 260`: a stop 260ms longer than the gap to the
+   * next one, which is 260ms of two numbers laid over each other in the same
+   * monospace cell, seven times a cycle. Written this way the overlap is not a
+   * number anyone can get wrong — there is nowhere left to put it.
+   */
+  span: (i === 6 ? T.land : gaugeAt(i + 1)) - gaugeAt(i),
+}));
 
 const K_AT_READ = stateAt(READ_W);
 const MONO = "ui-monospace,SFMono-Regular,Menlo,monospace";
@@ -429,7 +445,7 @@ export function PositionShot({ theme: t }: { theme: Theme }) {
           </g>
           {GAUGE.map((g, i) => (
             <g key={`g${i}`}>
-              {reading(g.k, "shot-span", { ...at(g.at), ["--dur-span" as string]: `${g.span}ms` })}
+              {reading(g.k, "shot-tick", { ...at(g.at), ["--dur-span" as string]: `${g.span}ms` })}
             </g>
           ))}
           {/* The reading it settles on, which is the one that indicts the other

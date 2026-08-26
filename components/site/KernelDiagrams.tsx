@@ -1269,9 +1269,24 @@ const TOURS = CASES.map((c) => {
   return {
     cam,
     marks,
+    /**
+     * The two subjects, called out in the same corner one after the other.
+     *
+     * The first leaves as the camera does — its span ends ON `G.cross`, and the
+     * second arrives 200ms later, so the corner is empty for the crossing
+     * itself and the two names are never on the glass together. It used to run
+     * 400ms past the second one's entrance, which is 400ms of "Mathematics" set
+     * across "Physics" at 40px in two different colours: the one reading this
+     * drawing must never offer, since naming the subject out loud is the whole
+     * point of the callout.
+     *
+     * The second has no span. It is the half of the sentence the reading strip
+     * spends the rest of the cycle unpacking, so there is nothing to hand over
+     * to — and at rest it is the one word worth leaving up.
+     */
     call: [
-      { s: c.spec.from, name: SUBJECT_NAME[c.spec.from], note: c.spec.note[0], at: 2600, span: 14600 },
-      { s: MOL.atoms[c.root].s, name: SUBJECT_NAME[MOL.atoms[c.root].s], note: c.spec.note[1], at: 16800, span: 9400 },
+      { s: c.spec.from, name: SUBJECT_NAME[c.spec.from], note: c.spec.note[0], at: 2600, span: G.cross - 2600 },
+      { s: MOL.atoms[c.root].s, name: SUBJECT_NAME[MOL.atoms[c.root].s], note: c.spec.note[1], at: G.cross + 200, span: null as number | null },
     ],
   };
 });
@@ -1901,15 +1916,17 @@ export function ConceptGraphShot({ theme: t }: { theme: Theme }) {
               rather than a label that flies about with the drawing.
 
               Keyed on the case as well as the subject: both callouts sit in
-              this same absolute corner and cross-fade, so an element reused
-              from the previous case — where it had a different delay and a
-              different span — can hold its old phase and print one subject on
-              top of the other. */}
+              this same absolute corner, so an element reused from the previous
+              case — where it had a different delay and a different span — can
+              hold its old phase and print one subject on top of the other.
+
+              The one with no span is the one that stays; see `call` above for
+              why the first has to be gone before the second arrives. */}
           {tour.call.map((sc) => (
             <div
               key={`${kase.spec.id}-${sc.s}`}
-              className="pub-graph-subject shot-span"
-              style={{ ...at(sc.at), ["--dur-span" as string]: `${sc.span}ms` }}
+              className={`pub-graph-subject ${sc.span === null ? "shot-fade" : "shot-span"}`}
+              style={sc.span === null ? at(sc.at) : { ...at(sc.at), ["--dur-span" as string]: `${sc.span}ms` }}
             >
               <b style={{ color: col(sc.s) }}>{sc.name}</b>
               <span style={{ color: t.mutedLight }}>{sc.note}</span>

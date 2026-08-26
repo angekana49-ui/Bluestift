@@ -28,9 +28,15 @@ const COLUMNS: { labelKey: MessageKey; links: [MessageKey | null, string, string
       ["site.footer.link.contribute", "Contribute", "/research?tab=collaborations"],
     ],
   },
+  // Pricing leads here because it was missing from the footer entirely — the
+  // landing sends people to /pricing from its own CTA, and once they scrolled
+  // past that band the route was unreachable from the bottom of the page. It is
+  // also what makes this column four links like the other three, which is what
+  // puts every label on one line and every list on one bottom line at once.
   {
     labelKey: "site.footer.col.resources",
     links: [
+      ["site.nav.pricing", "Pricing", "/pricing"],
       ["site.nav.contact", "Contact", "/contact"],
       ["site.footer.link.feedback", "Feedback", "/feedback"],
       ["site.nav.signIn", "Sign in", "/login"],
