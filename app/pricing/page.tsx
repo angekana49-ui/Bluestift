@@ -3,7 +3,9 @@ import { listPlans, type BillingPlan } from "@/lib/billing";
 import {
   normalizeRayaTier,
   normalizeSchoolTier,
+  rayaComparison,
   rayaFeatureBullets,
+  schoolComparison,
   schoolFeatureBullets,
 } from "@/lib/entitlements";
 import { PricingView } from "@/components/site/pages/PricingView";
@@ -58,6 +60,11 @@ export default async function PricingPage({
       signedIn={!!user}
       b2c={withDerivedFeatures(b2c, "b2c")}
       b2b={withDerivedFeatures(b2b, "b2b")}
+      // Built here rather than in the view for the same reason the bullets are:
+      // the entitlements matrix is server-only, and it is the single source both
+      // the cards and the table have to agree with.
+      soloCompare={rayaComparison()}
+      schoolCompare={schoolComparison()}
       initialAudience={initialAudience}
     />
   );

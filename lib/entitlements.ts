@@ -1,4 +1,5 @@
 import "server-only";
+import { ROOM_TIMER_MIN, ROOM_TIMER_MAX } from "@/lib/rooms";
 import { NextResponse } from "next/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { captureServer } from "@/lib/analytics/server";
@@ -77,9 +78,31 @@ export type RayaEntitlements = {
   savedGenerationsDays: number | null;
   // Rooms
   roomsPerMonth: number | null;
-  /** false = timer mandatory (Free auto-closes at 60 min). */
+  /** false = timer mandatory (Free auto-closes at ROOM_TIMER_MAX). */
   roomTimerOptional: boolean;
-  privateRooms: boolean;
+  /**
+   * May the creator CHOOSE a room's visibility.
+   *
+   * This replaced `privateRooms`, which named the same boolean for the opposite
+   * rule: private rooms were the paid feature and a free room was public. That
+   * is backwards for who is on the free plan. Rooms are private by default now,
+   * and a plan without this flag cannot leave that default — so a free room is
+   * always private, and only a paying account can open one to everyone.
+   *
+   * Read the enforcement note in app/rooms/actions.ts before touching it: unlike
+   * every other flag in this file, this one is not a monetisation gate and does
+   * not wait for ENTITLEMENTS_ENFORCE.
+   */
+  roomVisibilityChoice: boolean;
+  /**
+   * The private one-to-one channel with Raya inside a room, per month.
+   *
+   * Shipped and, until now, metered by nothing: app/rooms/[id]/page.tsx opens
+   * it and /api/raya/chat creates it (conversations.is_private_room_channel).
+   * It is the most expensive thing a room can do — a full tutor session that no
+   * other member sees — so it is the one room capability worth a quota.
+   */
+  privateRayaPerMonth: number | null;
   roomChallengesPerRoom: number | null;
   roomMaxParticipants: number;
   roomReports: boolean;
@@ -113,9 +136,10 @@ export const RAYA_ENTITLEMENTS: Record<RayaTier, RayaEntitlements> = {
     savedGenerationsDays: 30,
     roomsPerMonth: 3,
     roomTimerOptional: false,
-    privateRooms: false,
+    roomVisibilityChoice: false,
+    privateRayaPerMonth: 3,
     roomChallengesPerRoom: 1,
-    roomMaxParticipants: 5,
+    roomMaxParticipants: 8,
     roomReports: false,
     selfTestAiAnalysis: false,
     kernelAnalysisPerWeek: 1,
@@ -143,7 +167,8 @@ export const RAYA_ENTITLEMENTS: Record<RayaTier, RayaEntitlements> = {
     savedGenerationsDays: null,
     roomsPerMonth: null,
     roomTimerOptional: true,
-    privateRooms: true,
+    roomVisibilityChoice: true,
+    privateRayaPerMonth: 50,
     roomChallengesPerRoom: null,
     roomMaxParticipants: 25,
     roomReports: true,
@@ -171,7 +196,8 @@ export const RAYA_ENTITLEMENTS: Record<RayaTier, RayaEntitlements> = {
     savedGenerationsDays: null,
     roomsPerMonth: null,
     roomTimerOptional: true,
-    privateRooms: true,
+    roomVisibilityChoice: true,
+    privateRayaPerMonth: null,
     roomChallengesPerRoom: null,
     roomMaxParticipants: 50,
     roomReports: true,
@@ -299,7 +325,7 @@ export function rayaFeatureBullets(tier: RayaTier): string[] {
       return [
         `${chatLine(e)} — the core learning loop`,
         `${quota(e.generationsPerMonth, "study generations")} & ${quota(e.uploadsPerMonth, "uploads")} / month`,
-        `${e.roomsPerMonth} study rooms / month · up to ${e.roomMaxParticipants} peers`,
+        `${e.roomsPerMonth} study rooms / month · up to ${e.roomMaxParticipants} peers · always private`,
         `${e.convHistoryDays}-day conversation history`,
         `${e.kernelAnalysisPerWeek} Kernel deep-dive per week`,
       ];
@@ -310,18 +336,37 @@ export function rayaFeatureBullets(tier: RayaTier): string[] {
         "Voice input & every AI tutor mode",
         `${quota(e.generationsPerMonth, "generations")} & ${quota(e.uploadsPerMonth, "uploads")} / month`,
         "Mind maps, PDF export, no watermark",
-        `Unlimited private rooms · up to ${e.roomMaxParticipants} peers`,
+        // Not "private rooms" any more — every room is private, on every plan.
+        // What Plus buys is the choice to open one, and the room-size ceiling.
+        `Unlimited rooms · up to ${e.roomMaxParticipants} peers · public if you want`,
+        `${e.privateRayaPerMonth} private sessions with Raya in a room / month`,
         "Unlimited chat history & Kernel analysis",
         "AI feedback on self-tests",
       ];
     case "max":
+      // Two bullets were removed here rather than reworded, because neither
+      // described anything that exists.
+      //
+      // "Audio summaries & infographics" is `audioInfographic`, whose own
+      // declaration says "premium, still to ship" — and it is the one flag in
+      // this file that no route reads: mindMap gates /api/tools/generate,
+      // audioExtraction gates /api/tools/extract, this one gates nothing,
+      // because there is nothing to gate. It was the only line on the pricing
+      // page selling an unbuilt feature, on the most expensive plan.
+      //
+      // "Priority" implied a queue that would serve a Max user first. There is
+      // no such queue. "Fully unmetered" was true and is already said by the
+      // unlimited line above it.
+      //
+      // What is left is Max's whole real delta over Plus, and it is thin: the
+      // quotas come off, rooms double, attachments gain 5MB. Printing a thin
+      // delta honestly is a pricing problem to solve with the pricing, not a
+      // copy problem to solve with an adjective.
       return [
         "Everything in Plus, plus:",
-        "Unlimited generations & uploads",
-        "Audio summaries & infographics",
+        "Unlimited study generations & uploads",
         `Study rooms up to ${e.roomMaxParticipants} participants`,
         `${e.attachmentMaxMb} MB attachments & study packets`,
-        "Priority, fully unmetered",
       ];
   }
 }
@@ -358,6 +403,248 @@ export function schoolFeatureBullets(tier: SchoolTier): string[] {
         "Bespoke deployment, tuned to your school",
       ];
   }
+}
+
+// ---- The comparison table ---------------------------------------------------
+/*
+ * Three cards cannot answer "what do I get, and up to what limit".
+ *
+ * The cards are a ladder written as prose: each one opens on "Everything in the
+ * tier below, plus", so a buyer asking a flat question — how many rooms on Plus,
+ * how many gradings on Standard — has to hold three lists in their head and diff
+ * them. That is the one job the pricing page exists to do, and it was the one
+ * job it left to the reader. Worse, the same capability was named differently in
+ * each card ("Unlimited private rooms" against "Study rooms up to 50
+ * participants"), so even the diff was unreliable.
+ *
+ * A grid answers it in one look: capability down the side, tier across the top,
+ * the limit in the cell. Every value below is read from the same objects the
+ * gates read, so the table cannot promise what the gate would refuse — and a
+ * quota changed in one place moves the card AND the row together.
+ *
+ * `hint` is not decoration. Half these rows are internal vocabulary — a parent
+ * does not know what a "generation" is, a headteacher does not know what a
+ * "simulation" is, and nobody outside this repo has heard of a Kernel deep-dive.
+ * A limit on a word the buyer cannot define is not information.
+ */
+
+export type CompareRow = {
+  /** What the buyer calls it. */
+  label: string;
+  /** One line of plain language, wherever the label alone is our vocabulary. */
+  hint?: string;
+  /** One cell per tier, in ladder order. `null` renders as "not included". */
+  cells: [string | null, string | null, string | null];
+};
+
+export type CompareGroup = { title: string; rows: CompareRow[] };
+
+/** "Unlimited" beats "null messages / day", which reads as a lost number. */
+const un = (n: number | null, suffix: string) => (n == null ? "Unlimited" : `${n} ${suffix}`);
+const yes = "Included";
+
+/** Solo ladder: Free · Plus · Max. */
+export function rayaComparison(): CompareGroup[] {
+  const [f, p, m] = [RAYA_ENTITLEMENTS.free, RAYA_ENTITLEMENTS.plus, RAYA_ENTITLEMENTS.max];
+  return [
+    {
+      title: "Learning with Raya",
+      rows: [
+        {
+          label: "AI tutor messages",
+          hint: "Every exchange with Raya, on any subject.",
+          cells: [`${f.messagesPerDay} / day`, "Unlimited", "Unlimited"],
+        },
+        {
+          label: "Voice input and tutor modes",
+          hint: "Speak instead of typing, and choose how Raya talks to you.",
+          cells: [f.voiceInput ? yes : null, p.voiceInput ? yes : null, m.voiceInput ? yes : null],
+        },
+        {
+          label: "Conversation history",
+          cells: [`${f.convHistoryDays} days`, "Kept", "Kept"],
+        },
+        {
+          label: "Kernel deep-dive",
+          hint: "A full re-read of your concept profile, on demand.",
+          cells: [un(f.kernelAnalysisPerWeek, "/ week"), "Unlimited", "Unlimited"],
+        },
+        {
+          label: "AI feedback on self-tests",
+          cells: [f.selfTestAiAnalysis ? yes : null, p.selfTestAiAnalysis ? yes : null, m.selfTestAiAnalysis ? yes : null],
+        },
+      ],
+    },
+    {
+      title: "Study tools",
+      rows: [
+        {
+          label: "Study generations",
+          hint: "One summary, flashcard deck, quiz or mind map made from a lesson.",
+          cells: [un(f.generationsPerMonth, "/ month"), un(p.generationsPerMonth, "/ month"), un(m.generationsPerMonth, "/ month")],
+        },
+        {
+          label: "Document uploads",
+          cells: [un(f.uploadsPerMonth, "/ month"), un(p.uploadsPerMonth, "/ month"), un(m.uploadsPerMonth, "/ month")],
+        },
+        { label: "Mind maps", cells: [f.mindMap ? yes : null, p.mindMap ? yes : null, m.mindMap ? yes : null] },
+        {
+          label: "PDF export, no watermark",
+          cells: [f.pdfExport ? yes : null, p.pdfExport ? yes : null, m.pdfExport ? yes : null],
+        },
+        {
+          label: "Attachment size",
+          cells: [`${f.attachmentMaxMb} MB`, `${p.attachmentMaxMb} MB`, `${m.attachmentMaxMb} MB`],
+        },
+      ],
+    },
+    {
+      title: "Study rooms",
+      rows: [
+        {
+          label: "Rooms you can open",
+          cells: [un(f.roomsPerMonth, "/ month"), "Unlimited", "Unlimited"],
+        },
+        {
+          label: "People in a room",
+          cells: [`${f.roomMaxParticipants}`, `${p.roomMaxParticipants}`, `${m.roomMaxParticipants}`],
+        },
+        {
+          label: "How long a session runs",
+          hint: `A room can carry a ${ROOM_TIMER_MIN}–${ROOM_TIMER_MAX} minute countdown; when it runs out the room turns read-only and the report is still there.`,
+          cells: [
+            // Free does not merely default to a timer, it cannot switch one off:
+            // the countdown is forced to its maximum when none was asked for.
+            f.roomTimerOptional ? "As long as you like" : `${ROOM_TIMER_MAX} minutes`,
+            p.roomTimerOptional ? "As long as you like" : `${ROOM_TIMER_MAX} minutes`,
+            m.roomTimerOptional ? "As long as you like" : `${ROOM_TIMER_MAX} minutes`,
+          ],
+        },
+        {
+          label: "Who can see the room",
+          hint: "Every room starts private. Opening one to everybody is a choice a paid account makes; on Free it is not offered at all.",
+          cells: [
+            f.roomVisibilityChoice ? "Private or public" : "Private, always",
+            p.roomVisibilityChoice ? "Private or public" : "Private, always",
+            m.roomVisibilityChoice ? "Private or public" : "Private, always",
+          ],
+        },
+        {
+          label: "Private session with Raya",
+          hint: "A one-to-one with Raya inside the room, which the other members do not see.",
+          cells: [
+            un(f.privateRayaPerMonth, "/ month"),
+            un(p.privateRayaPerMonth, "/ month"),
+            un(m.privateRayaPerMonth, "/ month"),
+          ],
+        },
+        {
+          label: "Group challenges per room",
+          cells: [un(f.roomChallengesPerRoom, "per room"), "Unlimited", "Unlimited"],
+        },
+        { label: "Room reports", cells: [f.roomReports ? yes : null, p.roomReports ? yes : null, m.roomReports ? yes : null] },
+      ],
+    },
+  ];
+}
+
+/** Schools ladder: Standard · Plus · Custom. */
+export function schoolComparison(): CompareGroup[] {
+  const [s, p, c] = [SCHOOL_ENTITLEMENTS.standard, SCHOOL_ENTITLEMENTS.plus, SCHOOL_ENTITLEMENTS.custom];
+  return [
+    {
+      title: "Teaching",
+      rows: [
+        {
+          label: "Lesson preparations",
+          hint: "A lesson or exercise set prepared for one class, from your own material.",
+          cells: [
+            un(s.preparePerMonthPerProf, "/ teacher / month"),
+            un(p.preparePerMonthPerProf, "/ teacher / month"),
+            "Unlimited",
+          ],
+        },
+        {
+          label: "AI grading",
+          hint: "A batch of student work marked, with the reasoning shown to the teacher.",
+          cells: [
+            un(s.aiGradingPerMonthPerProf, "/ teacher / month"),
+            un(p.aiGradingPerMonthPerProf, "/ teacher / month"),
+            "Unlimited",
+          ],
+        },
+        {
+          label: "Student simulations",
+          hint: "A what-if projection of where one student is heading if nothing changes.",
+          cells: [
+            un(s.simulationsPerWeekPerProf, "/ teacher / week"),
+            "Unlimited",
+            "Unlimited",
+          ],
+        },
+        {
+          label: "Advanced follow-ups",
+          hint: "Shared across the teaching team rather than kept by one teacher.",
+          cells: [s.followupsAdvanced ? yes : null, p.followupsAdvanced ? yes : null, c.followupsAdvanced ? yes : null],
+        },
+      ],
+    },
+    {
+      title: "Insights and reports",
+      rows: [
+        {
+          label: "Reports",
+          cells: [un(s.reportsPerWeekPerProf, "/ teacher / week"), "Unlimited", "Unlimited"],
+        },
+        {
+          label: "Automatic daily reports",
+          cells: [s.autoDailyReports ? yes : null, p.autoDailyReports ? yes : null, c.autoDailyReports ? yes : null],
+        },
+        {
+          label: "Advanced insights",
+          cells: [s.insightsAdvanced ? yes : null, p.insightsAdvanced ? yes : null, c.insightsAdvanced ? yes : null],
+        },
+        {
+          label: "Export insights",
+          hint: "The underlying figures out of the dashboard, not just the view.",
+          cells: [s.insightsExport ? yes : null, p.insightsExport ? yes : null, c.insightsExport ? yes : null],
+        },
+        {
+          label: "Document exports",
+          cells: [un(s.exportsPerMonth, "/ month"), "Unlimited", "Unlimited"],
+        },
+        {
+          label: "Your logo on every document",
+          cells: [s.schoolLogoOnDocs ? yes : null, p.schoolLogoOnDocs ? yes : null, c.schoolLogoOnDocs ? yes : null],
+        },
+      ],
+    },
+    {
+      title: "Administration and data",
+      rows: [
+        {
+          label: "Data archive",
+          hint: "How far back the school's own records stay available to it.",
+          cells: [`${s.archiveYears} years`, `${p.archiveYears} years`, "As agreed"],
+        },
+        {
+          label: "LMS sync",
+          hint: "Classes and rosters come from the system you already run.",
+          cells: [s.lms ? yes : null, p.lms ? yes : null, c.lms ? yes : null],
+        },
+        { label: "Single sign-on", cells: [s.sso ? yes : null, p.sso ? yes : null, c.sso ? yes : null] },
+        {
+          label: "Several schools, one account",
+          cells: [s.multiSchool ? yes : null, p.multiSchool ? yes : null, c.multiSchool ? yes : null],
+        },
+        {
+          label: "Consolidated monitoring",
+          hint: "Every class of every school on one screen, rather than one at a time.",
+          cells: [s.consolidatedView ? yes : null, p.consolidatedView ? yes : null, c.consolidatedView ? yes : null],
+        },
+      ],
+    },
+  ];
 }
 
 // ---- Tier normalization -----------------------------------------------------

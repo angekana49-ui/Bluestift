@@ -17,7 +17,7 @@ type Room = {
 };
 
 // Smart defaults: one-tap subjects so the "New room" form isn't a pair of blank
-// boxes. Public visibility is already the sensible default below.
+// boxes. Visibility defaults to private — see createRoom for why that direction.
 const SUBJECT_SUGGESTIONS = ["Maths", "Physics", "Chemistry", "Biology", "History", "Languages"];
 
 const DOC_ACCEPT = ".txt,.md,.markdown,.csv,.pdf,.docx,.xlsx,.mp3,.m4a,.wav,.webm,.ogg,.flac,audio/*,application/pdf,text/plain";
@@ -32,15 +32,19 @@ function humanSize(bytes: number): string {
 export function RoomsList({
   rooms,
   myRoomIds,
+  canChooseVisibility = false,
 }: {
   rooms: Room[];
   myRoomIds: string[];
+  /** `roomVisibilityChoice` for the signed-in plan, resolved on the server.
+   *  False (the Free default) means every room this account opens is private. */
+  canChooseVisibility?: boolean;
 }) {
   const { theme: t } = useAppTheme();
   const router = useRouter();
   const [name, setName] = useState("");
   const [subject, setSubject] = useState("");
-  const [visibility, setVisibility] = useState<"public" | "private">("public");
+  const [visibility, setVisibility] = useState<"public" | "private">("private");
   // Optional session timer: 0 = no timer; otherwise 10–60 min. Once it elapses
   // the room turns read-only (members can still read + generate the report).
   const [duration, setDuration] = useState(0);
@@ -171,19 +175,32 @@ export function RoomsList({
             </button>
           ))}
         </div>
-        <div style={{ display: "flex", gap: 16, margin: "10px 0 14px", fontSize: 14 }}>
-          {(["public", "private"] as const).map((v) => (
-            <label key={v} style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", color: t.text }}>
-              <input type="radio" name="visibility" checked={visibility === v} onChange={() => setVisibility(v)} />
-              <span>
-                {v === "public" ? "Public" : "Private"}
-                <span style={{ color: t.mutedLight, marginLeft: 6 }}>
-                  {v === "public" ? "— visible and open to everyone" : "— by invite link"}
+        {/* Private is the default and, without `canChooseVisibility`, the only
+            option — so the radios are not rendered at all rather than rendered
+            disabled. A control that cannot move still invites the reader to try
+            it and then explains itself with an upsell; a plain line of text says
+            the same thing once and takes no room. createRoom coerces the value
+            server-side regardless, so this is the honest face of a rule that is
+            enforced whether or not this component behaves. */}
+        {canChooseVisibility ? (
+          <div style={{ display: "flex", gap: 16, margin: "10px 0 14px", fontSize: 14 }}>
+            {(["private", "public"] as const).map((v) => (
+              <label key={v} style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", color: t.text }}>
+                <input type="radio" name="visibility" checked={visibility === v} onChange={() => setVisibility(v)} />
+                <span>
+                  {v === "public" ? "Public" : "Private"}
+                  <span style={{ color: t.mutedLight, marginLeft: 6 }}>
+                    {v === "public" ? "— visible and open to everyone" : "— by invite link"}
+                  </span>
                 </span>
-              </span>
-            </label>
-          ))}
-        </div>
+              </label>
+            ))}
+          </div>
+        ) : (
+          <div style={{ margin: "10px 0 14px", fontSize: 14, color: t.mutedLight }}>
+            🔒 Private — only people you send the invite link to.
+          </div>
+        )}
         <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "2px 0 14px", fontSize: 14, flexWrap: "wrap" }}>
           <span style={{ color: t.text, fontWeight: 600 }}>⏱ Session length</span>
           <select

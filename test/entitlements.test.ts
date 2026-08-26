@@ -4,7 +4,9 @@ import {
   normalizeSchoolTier,
   RAYA_ENTITLEMENTS,
   SCHOOL_ENTITLEMENTS,
+  rayaComparison,
   rayaFeatureBullets,
+  schoolComparison,
   schoolFeatureBullets,
   overQuota,
   gateFeature,
@@ -65,6 +67,71 @@ describe("entitlement grid matches the frozen Forfaits pricing", () => {
     expect(RAYA_ENTITLEMENTS.max.generationsPerMonth).toBeNull();
   });
 
+  // A room holds 8 on the free plan, and privacy runs the other way from every
+  // other flag here: it is the plan that CANNOT choose which gets the safe
+  // setting. Both are easy to invert by accident, and inverting either one is a
+  // child-safety regression rather than a pricing one.
+  it("Rooms: 8 seats on Free, and Free cannot open a room to the public", () => {
+    expect(RAYA_ENTITLEMENTS.free.roomMaxParticipants).toBe(8);
+    // The ladder still climbs above the free floor — rooms get bigger, paid.
+    expect(RAYA_ENTITLEMENTS.plus.roomMaxParticipants).toBeGreaterThan(8);
+    expect(RAYA_ENTITLEMENTS.max.roomMaxParticipants).toBeGreaterThan(
+      RAYA_ENTITLEMENTS.plus.roomMaxParticipants,
+    );
+
+    // false = no choice = private, always. Read it as "may choose", never as
+    // "may have a private room" — that was the old flag and the opposite rule.
+    expect(RAYA_ENTITLEMENTS.free.roomVisibilityChoice).toBe(false);
+    expect(RAYA_ENTITLEMENTS.plus.roomVisibilityChoice).toBe(true);
+    expect(RAYA_ENTITLEMENTS.max.roomVisibilityChoice).toBe(true);
+  });
+
+  it("Rooms: the private Raya channel is metered per month, unlimited on Max", () => {
+    expect(RAYA_ENTITLEMENTS.free.privateRayaPerMonth).toBe(3);
+    expect(RAYA_ENTITLEMENTS.plus.privateRayaPerMonth).toBe(50);
+    expect(RAYA_ENTITLEMENTS.max.privateRayaPerMonth).toBeNull();
+  });
+
+  // A ladder that goes backwards anywhere is a bug you only discover from a
+  // customer who paid to get less. Checked over every numeric field in both
+  // families rather than the handful spelled out above, so a quota added later
+  // is covered the day it is added and nobody has to remember this file.
+  it("never sells a worse limit for more money, on any numeric quota", () => {
+    const climbs = (name: string, rungs: (number | null)[]) => {
+      for (let i = 1; i < rungs.length; i++) {
+        const lower = rungs[i - 1];
+        const upper = rungs[i];
+        // null is unlimited: fine above anything, never acceptable below a cap.
+        if (upper === null) continue;
+        if (lower === null) {
+          throw new Error(`${name}: tier ${i} caps at ${upper} where tier ${i - 1} was unlimited`);
+        }
+        expect(upper, `${name} went backwards at tier ${i}`).toBeGreaterThanOrEqual(lower);
+      }
+    };
+
+    const numeric = <T extends object>(o: T) =>
+      (Object.keys(o) as (keyof T)[]).filter((k) => {
+        const v = o[k];
+        return v === null || typeof v === "number";
+      });
+
+    for (const k of numeric(RAYA_ENTITLEMENTS.free)) {
+      climbs(`raya.${String(k)}`, [
+        RAYA_ENTITLEMENTS.free[k],
+        RAYA_ENTITLEMENTS.plus[k],
+        RAYA_ENTITLEMENTS.max[k],
+      ] as (number | null)[]);
+    }
+    for (const k of numeric(SCHOOL_ENTITLEMENTS.standard)) {
+      climbs(`school.${String(k)}`, [
+        SCHOOL_ENTITLEMENTS.standard[k],
+        SCHOOL_ENTITLEMENTS.plus[k],
+        SCHOOL_ENTITLEMENTS.custom[k],
+      ] as (number | null)[]);
+    }
+  });
+
   it("Schools: AI grading laddered 5 → 75 → ∞; LMS is Custom-only", () => {
     expect(SCHOOL_ENTITLEMENTS.standard.aiGradingPerMonthPerProf).toBe(5);
     expect(SCHOOL_ENTITLEMENTS.plus.aiGradingPerMonthPerProf).toBe(75);
@@ -89,8 +156,13 @@ describe("pricing-card bullets are derived from the entitlement matrix", () => {
     expect(free).toContain(`${RAYA_ENTITLEMENTS.free.roomsPerMonth} study rooms`);
 
     // Max's null (unlimited) quotas surface as "Unlimited", never a number.
+    // Matched loosely on purpose: this assertion used to pin the bullet's exact
+    // wording, so it failed on a copy edit that changed no behaviour at all —
+    // which teaches everyone to update the expected string without reading it.
+    // What has to hold is that an unlimited quota never prints as a figure.
     const max = rayaFeatureBullets("max").join(" | ");
-    expect(max).toContain("Unlimited generations & uploads");
+    expect(max).toMatch(/Unlimited .*generations & uploads/);
+    expect(max).not.toMatch(/\d+\s+(study\s+)?generations/);
     expect(max).toContain(`${RAYA_ENTITLEMENTS.max.roomMaxParticipants} participants`);
   });
 
@@ -111,6 +183,69 @@ describe("pricing-card bullets are derived from the entitlement matrix", () => {
     for (const tier of ["standard", "plus", "custom"] as const) {
       expect(schoolFeatureBullets(tier).length).toBeGreaterThan(0);
     }
+  });
+});
+
+// The comparison grid on /pricing is the page's answer to "what do I get, and
+// up to what limit". Every cell is derived from the matrix above, so these pin
+// the derivation rather than the prose.
+describe("the /pricing comparison grid", () => {
+  const all = () => [...rayaComparison(), ...schoolComparison()];
+
+  it("gives every row one cell per tier, and never leaks a raw null", () => {
+    for (const g of all()) {
+      expect(g.rows.length).toBeGreaterThan(0);
+      for (const r of g.rows) {
+        expect(r.label.trim()).not.toBe("");
+        // Three tiers in both ladders. A row short of a cell would silently
+        // shift every value after it one column to the left.
+        expect(r.cells).toHaveLength(3);
+        for (const c of r.cells) {
+          // `null` is the deliberate "not included" marker the view renders as
+          // an em dash. What must never appear is a quota that stringified its
+          // own absence — "null / month", "undefined years", "NaN".
+          if (c !== null) {
+            expect(c.trim()).not.toBe("");
+            expect(c).not.toMatch(/null|undefined|NaN/);
+          }
+        }
+      }
+    }
+  });
+
+  it("reads its numbers off the same objects the gates read", () => {
+    const solo = rayaComparison().flatMap((g) => g.rows);
+    const chat = solo.find((r) => r.label === "AI tutor messages");
+    expect(chat?.cells[0]).toBe(`${RAYA_ENTITLEMENTS.free.messagesPerDay} / day`);
+    // Free is capped, both paid tiers are not — the shape of the whole ladder.
+    expect(chat?.cells[1]).toBe("Unlimited");
+
+    const school = schoolComparison().flatMap((g) => g.rows);
+    const preps = school.find((r) => r.label === "Lesson preparations");
+    expect(preps?.cells[0]).toContain(`${SCHOOL_ENTITLEMENTS.standard.preparePerMonthPerProf}`);
+    expect(preps?.cells[1]).toContain(`${SCHOOL_ENTITLEMENTS.plus.preparePerMonthPerProf}`);
+
+    // SSO and LMS are Custom-only, and the entry tier must say so with a null
+    // rather than a cheerful blank.
+    const sso = school.find((r) => r.label === "Single sign-on");
+    expect(sso?.cells).toEqual([null, null, "Included"]);
+  });
+
+  it("never advertises a capability nothing implements", () => {
+    // `audioInfographic` is flagged in the matrix as still to ship, and unlike
+    // every other feature flag NO route reads it. It was nonetheless sold on
+    // the Max card as "Audio summaries & infographics" — the single most
+    // expensive plan promising the one thing that does not exist. This is the
+    // assertion that would have caught it, so it guards the whole surface: the
+    // bullets AND the grid, for every tier.
+    expect(RAYA_ENTITLEMENTS.max.audioInfographic).toBe(true); // still gated off
+    const sold = [
+      ...(["free", "plus", "max"] as const).flatMap(rayaFeatureBullets),
+      ...(["standard", "plus", "custom"] as const).flatMap(schoolFeatureBullets),
+      ...all().flatMap((g) => g.rows.flatMap((r) => [r.label, r.hint ?? "", ...r.cells.map((c) => c ?? "")])),
+    ].join(" | ");
+    expect(sold).not.toMatch(/infographic/i);
+    expect(sold).not.toMatch(/audio summar/i);
   });
 });
 

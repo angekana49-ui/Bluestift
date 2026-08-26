@@ -21,6 +21,12 @@ type Plan = {
   features: string[];
 };
 
+/** Structurally the CompareGroup/CompareRow of lib/entitlements, redeclared for
+ *  the same reason `Plan` is: that module is server-only, and this component is
+ *  a client one. The server page builds these and passes them down. */
+type CompareRow = { label: string; hint?: string; cells: (string | null)[] };
+type CompareGroup = { title: string; rows: CompareRow[] };
+
 type Audience = "solo" | "schools";
 /** Chosen per card, Anthropic-style: each plan carries its own billing term, so
  *  a visitor can weigh Plus-annual against Max-monthly without the page forcing
@@ -347,15 +353,162 @@ function PlanCard({
   );
 }
 
+/**
+ * The comparison grid.
+ *
+ * Everything a card states as prose, restated as a lookup. The cards sell the
+ * shape of the ladder; this answers the flat question a buyer actually arrives
+ * with — how many of X do I get on Y — which three "everything in the tier
+ * below, plus" lists cannot answer without being diffed by hand.
+ *
+ * The rows come from lib/entitlements, off the same objects the gates read, so
+ * no cell here can promise something the product would refuse.
+ *
+ * The label column is sticky. A four-column grid does not fit a phone and the
+ * table scrolls sideways; without a pinned first column, scrolling to the Max
+ * cell takes the name of the row off screen with it, and the reader is left
+ * holding a number with nothing attached to it.
+ */
+function CompareTable({ t, groups, heads }: { t: Theme; groups: CompareGroup[]; heads: string[] }) {
+  const border = `1px solid ${t.cardBorder}`;
+  const labelCell = {
+    position: "sticky" as const,
+    left: 0,
+    zIndex: 1,
+    background: t.cardBg,
+    padding: "13px 16px",
+    textAlign: "left" as const,
+    borderTop: border,
+    minWidth: 210,
+  };
+  const valueCell = {
+    padding: "13px 16px",
+    textAlign: "center" as const,
+    borderTop: border,
+    fontSize: 14,
+    color: t.text,
+    verticalAlign: "top" as const,
+  };
+
+  return (
+    <div style={{ marginTop: 56, maxWidth: MEASURE.wide, marginLeft: "auto", marginRight: "auto" }}>
+      <h2
+        style={{
+          fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
+          fontSize: "1.5rem",
+          fontWeight: 800,
+          letterSpacing: "-0.02em",
+          textAlign: "center",
+          color: t.text,
+          margin: "0 0 6px",
+        }}
+      >
+        Every plan, line by line
+      </h2>
+      <p style={{ textAlign: "center", fontSize: 15, color: t.muted, margin: "0 0 26px" }}>
+        Exactly what each plan unlocks, and up to what limit.
+      </p>
+
+      <div
+        style={{
+          overflowX: "auto",
+          background: t.cardBg,
+          border: border,
+          borderRadius: 18,
+          boxShadow: t.cardShadowLg,
+        }}
+      >
+        <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 620 }}>
+          <thead>
+            <tr>
+              <th style={{ ...labelCell, borderTop: "none" }} />
+              {heads.map((h) => (
+                <th
+                  key={h}
+                  style={{
+                    ...valueCell,
+                    borderTop: "none",
+                    fontSize: 13,
+                    fontWeight: 800,
+                    color: t.text,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          {groups.map((g) => (
+            <tbody key={g.title}>
+              <tr>
+                <th
+                  colSpan={heads.length + 1}
+                  style={{
+                    padding: "18px 16px 8px",
+                    textAlign: "left",
+                    fontSize: 12,
+                    fontWeight: 800,
+                    letterSpacing: "0.09em",
+                    textTransform: "uppercase",
+                    color: t.mutedLight,
+                    background: t.sectionAltBg,
+                    borderTop: border,
+                  }}
+                >
+                  {g.title}
+                </th>
+              </tr>
+              {g.rows.map((r) => (
+                <tr key={r.label}>
+                  <th style={labelCell}>
+                    <span style={{ display: "block", fontSize: 14.5, fontWeight: 600, color: t.text, lineHeight: 1.4 }}>
+                      {r.label}
+                    </span>
+                    {/* The row's own vocabulary, defined where it is read. A
+                        limit on a word the buyer cannot define is not
+                        information. */}
+                    {r.hint && (
+                      <span style={{ display: "block", marginTop: 3, fontSize: 12.5, color: t.mutedLight, lineHeight: 1.45, fontWeight: 400 }}>
+                        {r.hint}
+                      </span>
+                    )}
+                  </th>
+                  {r.cells.map((c, i) => (
+                    <td key={i} style={valueCell}>
+                      {/* An em dash, not a cross. The cell says "this plan does
+                          not include it", and a ✕ against four of six rows on
+                          the entry plan reads as a scorecard the cheapest plan
+                          is losing — which is not what a ladder means. */}
+                      {c ?? <span style={{ color: t.mutedLight }}>—</span>}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          ))}
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export function PricingView({
   signedIn,
   b2c,
   b2b,
+  soloCompare,
+  schoolCompare,
   initialAudience = "solo",
 }: {
   signedIn: boolean;
   b2c: Plan[];
   b2b: Plan[];
+  /** Derived server-side from the entitlements matrix — see lib/entitlements. */
+  soloCompare: CompareGroup[];
+  schoolCompare: CompareGroup[];
   initialAudience?: Audience;
 }) {
   const [audience, setAudience] = useState<Audience>(initialAudience);
@@ -426,6 +579,18 @@ export function PricingView({
                   <PlanCard key={p.id} t={t} plan={p} audience={audience} recommended={i === recIndex} />
                 ))}
               </PlanRail>
+
+              {/* The cards sell the ladder; this answers "how much of what".
+                  Heads come from the plans themselves rather than a hardcoded
+                  Free/Plus/Max, so a renamed or re-seeded tier cannot leave the
+                  table labelled with a plan that no longer exists. */}
+              {plans.length === 3 && (
+                <CompareTable
+                  t={t}
+                  groups={audience === "solo" ? soloCompare : schoolCompare}
+                  heads={plans.map((p) => tierName(p.name))}
+                />
+              )}
 
               {/* Schools billing note — the explicit "you pay per effectif" agreement. */}
               {audience === "schools" && (

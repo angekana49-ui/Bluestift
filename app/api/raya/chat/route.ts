@@ -12,6 +12,7 @@ import {
   resolveRayaEntitlements,
   gateQuota,
   startOfDayIso,
+  startOfMonthIso,
   ENTITLEMENTS_ENFORCE,
 } from "@/lib/entitlements";
 import { reportError } from "@/lib/observability/report";
@@ -229,6 +230,35 @@ export async function POST(request: Request) {
     }
   }
   if (!convId) {
+    /*
+     * Opening a NEW private channel with Raya inside a room is what the plan
+     * meters — not talking in one that already exists.
+     *
+     * Metering the turns would price a conversation by how long it took to get
+     * anywhere, which is the opposite of what this tutor is built to encourage:
+     * the ladder deliberately refuses to hand over the answer, so a good session
+     * is a long one. The month's count is over channels opened, and it is only
+     * paid on the round trip that creates one — an existing channel carries its
+     * conversationId and never reaches this branch.
+     */
+    if (roomId != null) {
+      const { count: privateSessions } = await supabase
+        .schema("learning")
+        .from("conversations")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("is_private_room_channel", true)
+        .gte("created_at", startOfMonthIso());
+      const overPrivate = gateQuota(privateSessions ?? 0, ent.privateRayaPerMonth, {
+        metric: "private sessions with Raya",
+        period: "month",
+        upgradeTo: "Plus",
+        scope: "rooms",
+        userId: user.id,
+        tier,
+      });
+      if (overPrivate) return overPrivate;
+    }
     // Seed a human-readable title from the opening message so the history
     // list is meaningful without a separate LLM call.
     const title = content.length > 60 ? `${content.slice(0, 57)}…` : content;

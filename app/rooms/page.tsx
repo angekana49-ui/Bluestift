@@ -7,6 +7,7 @@ import { SectionHeader } from "@/components/raya/section-header";
 import { getPlanLabel } from "@/lib/billing";
 import { softValue } from "@/lib/page-data";
 import { initialsOf } from "@/lib/name";
+import { resolveRayaEntitlements } from "@/lib/entitlements";
 
 export default async function RoomsPage() {
   const supabase = await createClient();
@@ -29,7 +30,7 @@ export default async function RoomsPage() {
 
   // Wave 1: profile, memberships and the (soft) plan label together — the plan
   // label used to sit on its own serial round trip.
-  const [{ data: profile }, { data: memberships }, studentPlan] = await Promise.all([
+  const [{ data: profile }, { data: memberships }, studentPlan, { ent }] = await Promise.all([
     supabase
       .from("users")
       .select("account_state, display_name, username, profile_picture_url, birth_year, minor_consent_source, school_id")
@@ -37,6 +38,9 @@ export default async function RoomsPage() {
       .single(),
     supabase.schema("learning").from("room_members").select("room_id").eq("user_id", user.id),
     softValue(getPlanLabel({ userId: user.id }), "User — Free"),
+    // Rides this wave rather than a serial trip: the plan lookup is cached per
+    // instance, so asking it here costs nothing the plan label wasn't paying.
+    resolveRayaEntitlements(user.id),
   ]);
   // Onboarding covers both first-run setup and the age question, so an
   // account that predates the age gate is sent back for it too.
@@ -69,7 +73,7 @@ export default async function RoomsPage() {
     <RayaScaffold active="rooms" studentName={studentName} studentInitials={initialsOf(studentName)} studentAvatarUrl={profile.profile_picture_url} studentPlan={studentPlan}>
       <div style={{ flex: 1, overflow: "auto", padding: "32px 40px", minWidth: 0 }}>
         <SectionHeader title="Rooms" subtitle="Study in a group with Raya in the room." />
-        <RoomsList rooms={rooms ?? []} myRoomIds={myRoomIds} />
+        <RoomsList rooms={rooms ?? []} myRoomIds={myRoomIds} canChooseVisibility={ent.roomVisibilityChoice} />
       </div>
     </RayaScaffold>
   );

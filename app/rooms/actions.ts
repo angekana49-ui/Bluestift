@@ -5,7 +5,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { assertRoomOpen, ROOM_TIMER_MIN, ROOM_TIMER_MAX } from "@/lib/rooms";
 import {
   resolveRayaEntitlements,
-  assertFeature,
   assertQuota,
   startOfMonthIso,
   ENTITLEMENTS_ENFORCE,
@@ -36,7 +35,7 @@ export async function createRoom(input: {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not signed in.");
 
-  // --- Entitlements: rooms/month quota, private rooms, mandatory timer -------
+  // --- Entitlements: rooms/month quota, visibility, mandatory timer ---------
   const { ent, tier } = await resolveRayaEntitlements(user.id);
 
   // Rooms created this month (derived from learning.rooms, no counter table).
@@ -46,8 +45,25 @@ export async function createRoom(input: {
     .select("id", { count: "exact", head: true })
     .eq("created_by", user.id)
     .gte("created_at", startOfMonthIso());
-  // Private rooms are Plus+.
-  const visibility = input.visibility ?? "public";
+  /*
+   * Rooms are private by default, and on Free that default is the only option.
+   *
+   * This used to be the other way round: the default was "public" and PRIVATE
+   * was the paid feature, so the account most likely to belong to a minor got
+   * the room anyone could walk into. Under COPPA and FERPA — and the GDPR's
+   * data-protection-by-default — that is the wrong way round, whatever it does
+   * for conversion.
+   *
+   * The coercion below is deliberately NOT an entitlement gate and deliberately
+   * does NOT consult ENTITLEMENTS_ENFORCE. Every other check in this file is a
+   * monetisation rule, which is why they all run in monitor mode until the
+   * switch is thrown; this one is a safety default, and a safety default that
+   * waits for a launch flag is not a default. A free account asking for a public
+   * room gets a private one rather than an error: the client never offers the
+   * choice, so an arriving "public" is a stale form or a crafted request, and in
+   * both cases the safe answer beats the honest one.
+   */
+  const visibility = ent.roomVisibilityChoice ? (input.visibility ?? "private") : "private";
   // Gates throw EntitlementError when enforcing; surface it as a structured result
   // (a thrown error would be masked in prod, so the client couldn't show the modal).
   try {
@@ -59,9 +75,6 @@ export async function createRoom(input: {
       userId: user.id,
       tier,
     });
-    if (visibility === "private") {
-      assertFeature(ent.privateRooms, { feature: "private_room", upgradeTo: "Plus", scope: "rooms", userId: user.id, tier });
-    }
   } catch (e) {
     if (e instanceof EntitlementError) return { error: e.message, code: e.code };
     throw e;
