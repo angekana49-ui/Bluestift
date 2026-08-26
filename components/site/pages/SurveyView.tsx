@@ -19,24 +19,110 @@ type Question = {
   type: "choice" | "text";
   options?: string[];
   placeholder?: string;
+  /**
+   * Offer "Something else" with a box to say what.
+   *
+   * Only on questions whose options are a list of KINDS, never on a scale. Four
+   * points from "much less" to "more" already cover the axis, and an escape
+   * hatch under them just invites people to re-enter an answer that was there —
+   * whereas "how do you find out" or "who do you tell" can never be complete,
+   * and without a way out the reader picks the nearest wrong box. That silently
+   * turns a gap in our list into data, which is worse than a blank.
+   */
+  other?: boolean;
 };
 
+/** The label for that escape hatch, and the value stored in `answer_choice`
+ *  when it is taken — the specifics land in `answer_text` beside it. */
+const OTHER = "Something else";
+
+/*
+ * Put the work in the OPTIONS, never in the typing.
+ *
+ * A survey competes with a closing tab. The reader's attention is short and
+ * genuinely effort-averse, so the instinct is to ask easy questions — which
+ * yields easy answers, and easy answers are worth nothing. The way out is not to
+ * ask less, it is to move the thinking off the keyboard: a question can demand a
+ * real, uncomfortable act of recall and still cost exactly one tap to answer.
+ * "Could you name the three most lost students in your class, and on what?" runs
+ * a hard test in the reader's head; the four options let them report the result
+ * without composing a word.
+ *
+ * So each track is five taps and ONE sentence, and the sentence comes last,
+ * when someone has already invested five answers and is far more likely to
+ * spend a line than they were on the first screen. The options carry the weight
+ * instead: concrete, specific, and at least one of them uncomfortable enough to
+ * be worth admitting. A bland option set is a wasted question.
+ *
+ * Two other rules, learned from the set this replaces:
+ *
+ *  - Never open on something personal. Age as question one is an interrogation,
+ *    and it is also the least useful thing we could spend the reader's first and
+ *    most generous answer on. It opens on what they teach or where they are —
+ *    one tap, zero exposure.
+ *
+ *  - No grade numbers. "Grades 6–9" is one country's school system, and the
+ *    market this is built for does not use it. The bands below name a stage
+ *    every system has, including the one everybody recognises: the exam years.
+ *
+ * Changed questions get a NEW id rather than new text under the old one. Answers
+ * live in content.survey_answers keyed by question_id, so reusing an id would
+ * silently pool answers to two different questions into one column.
+ *
+ * Both tracks must stay the SAME LENGTH: the landing quotes one number before
+ * the visitor has said which they are.
+ */
+const LEVELS = ["Primary", "Secondary — early years", "Secondary — exam years", "Higher education"];
+
 const TEACHER_QUESTIONS: Question[] = [
-  { id: "t1", question: "What level do you teach?", type: "choice", options: ["Primary (grades 1–5)", "Middle school (grades 6–9)", "High school (grades 10–12)", "Higher ed"] },
+  // Vocational, special education and homeschooling all fall outside these four
+  // and are exactly the teachers worth hearing from, so this one has a way out.
+  { id: "t1_level", question: "What level do you teach?", type: "choice", options: LEVELS, other: true },
   { id: "t2", question: "How many students do you have per class on average?", type: "choice", options: ["Fewer than 20", "20–35", "35–50", "More than 50"] },
-  { id: "t3", question: "What's your biggest day-to-day frustration as a teacher?", type: "text", placeholder: "Take your time to be honest — that's what helps us most." },
-  { id: "t4", question: "Do you know today, precisely, which students are stuck on what?", type: "choice", options: ["Yes, clearly", "Partially", "No, I lack visibility", "I don't have time to think about it"] },
-  { id: "t5", question: "If a tool could give you that every morning in 2 minutes — would you use it?", type: "choice", options: ["Yes, without hesitation", "Maybe, if it's simple", "I'd have to see", "No"] },
-  { id: "t6", question: "One last word — what should a good EdTech tool stop doing?", type: "text", placeholder: "Over to you…" },
+  // The visibility question, made concrete. "Do you know who is stuck?" invites
+  // a comfortable "partially"; naming three students and their topics is a test
+  // you either pass or fail, and the reader knows which before they answer.
+  { id: "t4_name3", question: "Right now, without looking anything up — could you name the three students who are most lost, and on what?", type: "choice", options: ["Yes — names and topics", "The names, not the topics", "I'd have to check my records", "Honestly, no"] },
+  // How late the news arrives. Every option is a real channel, and the last one
+  // is the one nobody volunteers unprompted.
+  { id: "t7_findout", question: "How do you usually find out a student didn't understand?", type: "choice", options: ["The test, afterwards", "They ask me", "A parent, or the next teacher", "Often I don't"], other: true },
+  // The entry argument, put as a question instead of asserted. If this comes
+  // back "no change", the thesis the whole product rests on is wrong — which is
+  // the only reason worth running a survey at all.
+  { id: "t5_signal", question: "Since your students started using AI, does the work they hand in tell you more or less about how they actually think?", type: "choice", options: ["Much less", "A little less", "No change", "More"] },
+  { id: "t8_nohelp", question: "Last one. What part of your job has no tool ever helped with?", type: "text", placeholder: "One sentence is plenty." },
 ];
 
 const STUDENT_QUESTIONS: Question[] = [
-  { id: "s1", question: "What grade are you in?", type: "choice", options: ["Middle school (grades 6–9)", "High school (grades 10–12)", "College / higher ed", "Other"] },
-  { id: "s2", question: "When you're stuck on a problem, what do you do?", type: "choice", options: ["Ask a friend", "Search YouTube / Google", "Ask ChatGPT", "Give up"] },
-  { id: "s3", question: "What annoys you most about how you learn today?", type: "text", placeholder: "Be direct — there's no right or wrong answer." },
+  { id: "s1_level", question: "Where are you in school?", type: "choice", options: LEVELS, other: true },
+  // "Ask ChatGPT" named one product, which dates the question and quietly steers
+  // it: a reader who uses Gemini reads their own habit as absent from the list
+  // and picks something else. The examples stay, because recognition is what
+  // makes the option land — they just no longer decide what counts as an AI.
+  { id: "s2", question: "When you're stuck on a problem, what do you do?", type: "choice", options: ["Ask a friend", "Search YouTube / Google", "Ask an AI (ChatGPT, Gemini, Copilot…)", "Give up"], other: true },
   { id: "s4", question: "Do you already use AI tools for your homework?", type: "choice", options: ["Yes, often", "Yes, sometimes", "I tried but stopped", "Never"] },
-  { id: "s5", question: "If you had an AI tutor that remembers you between sessions — what would change?", type: "text", placeholder: "Imagine…" },
+  // The uncomfortable one, and the fourth option is the point: it is the honest
+  // answer a good student gives, and no free-text box would ever have got it.
+  { id: "s7_passed", question: "Has a teacher ever thought you understood something you didn't?", type: "choice", options: ["Often", "Once or twice", "Never", "Yes — and I made sure they thought so"] },
+  // Tests the premise the privacy guardrail rests on — that a student stops
+  // admitting confusion to anyone who might report it — rather than assuming it.
+  { id: "s5_tells", question: "When you don't understand something, who do you tell?", type: "choice", options: ["My teacher", "A friend", "An AI", "Nobody"], other: true },
+  { id: "s6_wish", question: "Last one. What's one thing you wish your teacher knew about how you're actually doing?", type: "text", placeholder: "One sentence is plenty — nobody will know it was you." },
 ];
+
+/*
+ * Quoted on the landing before a profile is picked, so the two tracks have to
+ * agree. Both numbers are derived rather than typed: the copy once said 6 while
+ * the student track had 5, and a survey that miscounts itself on its own first
+ * screen is a poor advertisement for the rigour it is asking people to trust.
+ *
+ * The tap count is published for the same reason it was designed: "6 questions"
+ * is priced by the reader as six paragraphs, which is the cost that makes them
+ * close the tab. Saying five are a single tap is both the truthful figure and
+ * the one that gets the survey answered.
+ */
+const QUESTION_COUNT = TEACHER_QUESTIONS.length;
+const TAP_COUNT = TEACHER_QUESTIONS.filter((q) => q.type === "choice").length;
 
 type Answer = { question_id: string; answer_text?: string; answer_choice?: string };
 
@@ -67,6 +153,9 @@ function SurveyFlow({ t, profile, onDone }: { t: Theme; profile: "teacher" | "st
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [text, setText] = useState("");
+  /** "Something else" picked on a choice question — the box is open, waiting to
+   *  be told what. Reset on every move so it never leaks into the next screen. */
+  const [otherOpen, setOtherOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
@@ -107,6 +196,7 @@ function SurveyFlow({ t, profile, onDone }: { t: Theme; profile: "teacher" | "st
     const next = a ? [...answers.filter((x) => x.question_id !== a.question_id), a] : answers;
     setAnswers(next);
     setText("");
+    setOtherOpen(false);
     if (isLast) void finish(next);
     else setStep((s) => s + 1);
   }
@@ -139,6 +229,47 @@ function SurveyFlow({ t, profile, onDone }: { t: Theme; profile: "teacher" | "st
                 {opt}
               </button>
             ))}
+
+            {/* The escape hatch. Closed it is one more option and costs the same
+                single tap as the others; opened it asks for a few words, and
+                only then does it become the one place in a choice question where
+                the reader types. Both halves are stored: `answer_choice` stays
+                OTHER so the option can be counted like any other, and the words
+                land in `answer_text` beside it — so a category we failed to
+                think of shows up as a count AND as its own sentences. */}
+            {q.other &&
+              (otherOpen ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <input
+                    autoFocus
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    placeholder="Tell us what — a few words is enough."
+                    style={{ ...fieldStyle(t), padding: "12px 16px", fontSize: 14 }}
+                  />
+                  <button
+                    onClick={() =>
+                      answer({
+                        question_id: q.id,
+                        answer_choice: OTHER,
+                        ...(text.trim() ? { answer_text: text.trim() } : {}),
+                      })
+                    }
+                    disabled={submitting}
+                    style={{ alignSelf: "flex-start", background: t.orange, color: "white", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 14, fontWeight: 700, cursor: submitting ? "default" : "pointer" }}
+                  >
+                    {isLast ? "Finish" : "Continue →"}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setOtherOpen(true)}
+                  disabled={submitting}
+                  style={{ border: `1px dashed ${t.cardBorder}`, background: "transparent", borderRadius: 12, padding: "12px 16px", fontSize: 14, textAlign: "left", color: t.muted, cursor: submitting ? "default" : "pointer" }}
+                >
+                  {OTHER}…
+                </button>
+              ))}
           </div>
         ) : (
           <div>
@@ -394,7 +525,8 @@ export function SurveyView({ signedIn, initialPosts, stats }: Props) {
                 <em style={{ ...serifEm, color: t.orange }}>Tell us what&apos;s really getting in the way.</em>
               </h1>
               <p style={{ margin: "0 auto 32px", fontSize: 15, color: t.text, lineHeight: 1.7 }}>
-                6 questions. No account needed. Your answers feed directly into <RayaName />&apos;s development.
+                {QUESTION_COUNT} questions, {TAP_COUNT} of them a single tap. No account needed. Your answers feed
+                directly into <RayaName />&apos;s development.
               </p>
 
               <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginBottom: 20 }}>

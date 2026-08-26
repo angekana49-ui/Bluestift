@@ -24,13 +24,45 @@ import type { MessageKey } from "@/lib/i18n";
 
 type Status = "shipped" | "progress" | "coming";
 
+/**
+ * When this list was last checked against the code.
+ *
+ * A changelog with no date cannot be audited: a reader has no way to tell
+ * whether "in progress" was written last week or last year, and an undated
+ * status page ages into a liability precisely because nothing on it looks
+ * stale. Bump it whenever ITEMS changes — the two live together so that
+ * editing one without the other reads as an oversight.
+ */
+export const ROADMAP_UPDATED = "26 August 2026";
+
+/**
+ * Display order is THIS ARRAY, not the key numbers. The i-numbers are the order
+ * items were written, so a new entry that belongs in the middle keeps its own
+ * number rather than renumbering four locales for nothing.
+ */
 const ITEMS: { status: Status; titleKey: MessageKey; bodyKey: MessageKey }[] = [
   { status: "shipped", titleKey: "site.roadmap.i1.title", bodyKey: "site.roadmap.i1.body" },
   { status: "shipped", titleKey: "site.roadmap.i2.title", bodyKey: "site.roadmap.i2.body" },
   { status: "shipped", titleKey: "site.roadmap.i3.title", bodyKey: "site.roadmap.i3.body" },
+  // The service worker shipped in 9ed2576 and the FAQ already answers "does it
+  // work on a weak connection?" with it. It was the one piece of the product
+  // being sold on the landing page and missing from the page that lists what
+  // exists — which is the only page where an omission costs anything.
+  { status: "shipped", titleKey: "site.roadmap.i8.title", bodyKey: "site.roadmap.i8.body" },
   { status: "progress", titleKey: "site.roadmap.i4.title", bodyKey: "site.roadmap.i4.body" },
   { status: "progress", titleKey: "site.roadmap.i5.title", bodyKey: "site.roadmap.i5.body" },
-  { status: "coming", titleKey: "site.roadmap.i6.title", bodyKey: "site.roadmap.i6.body" },
+  // LMS sync was listed "Coming" while the integration was finished: OAuth
+  // start/callback, token refresh, course + roster import and the admin UI all
+  // exist (lib/lms/google.ts, app/api/school/lms/google/*, school-lms.tsx).
+  // Understating it was not the safe error it looks like — the FAQ and both
+  // pricing surfaces sell LMS sync in the present tense, so the one page
+  // published as the honest account was the one contradicting them. It has the
+  // same shape as payments: complete, waiting on credentials.
+  { status: "progress", titleKey: "site.roadmap.i6.title", bodyKey: "site.roadmap.i6.body" },
+  // Moved here from the Max pricing card, where it was sold as if it existed.
+  // A planned feature belongs on the roadmap; the difference between the two
+  // pages is exactly that this one is allowed to promise.
+  { status: "coming", titleKey: "site.roadmap.i7.title", bodyKey: "site.roadmap.i7.body" },
 ];
 
 const STATUS_KEY: Record<Status, MessageKey> = {

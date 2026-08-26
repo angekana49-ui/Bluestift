@@ -11,7 +11,9 @@ import { GUTTER, LEAD, MEASURE, pageTop, sectionY } from "./layout";
 const BIRD_PATH =
   "M12 6 C9 2 4 1 0 3 C4 4 7 6 9 8 C7 10 4 12 0 13 C4 15 9 14 12 10 C15 14 20 15 24 13 C20 12 17 10 15 8 C17 6 20 4 24 3 C20 1 15 2 12 6 Z";
 
-const CHIP_KEYS = ["site.hero.chip.free", "site.hero.chip.noCard", "site.hero.chip.solo"] as const;
+/** Scope, then the two things a visitor weighs before clicking: what it costs
+ *  them to try, and whether it is for them alone or for their class. */
+const CHIP_KEYS = ["site.hero.chip.scope", "site.hero.chip.noCard", "site.hero.chip.solo"] as const;
 
 export default function HeroSection({ theme: t }: { theme: Theme }) {
   const tr = useTranslate();

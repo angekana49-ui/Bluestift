@@ -46,16 +46,16 @@ export const de: Partial<Messages> = {
   "site.nav.contact": "Kontakt",
   "site.nav.privacy": "Datenschutz",
   "site.nav.signIn": "Anmelden",
-  "site.nav.freeTrial": "Kostenlos testen",
+  "site.nav.startFree": "Kostenlos starten",
   "site.nav.openApp": "App öffnen",
 
-  "site.hero.eyebrow": "KI-Tutor · jedes Niveau, jedes Fach, überall",
-  "site.hero.headline": "Alle haben eine KI. Niemand teilt eine.",
+  "site.hero.eyebrow": "Die kollaborative KI für die Bildung",
+  "site.hero.headline": "Erst die Diagnose. Dann das Lernen.",
   "site.hero.sub":
-    "Lernende arbeiten mit der einen KI, Lehrkräfte planen mit der anderen — und keine Seite sieht die andere. Raya ist die, die sie teilen: So erreicht das, was ein Kind wirklich verstanden hat, endlich die Person, die es unterrichtet.",
+    "Nicht weiterzukommen ist kein Mangel an Begabung. Es ist ein fehlender Schritt — und Raya geht so weit zurück, bis er gefunden ist.",
   "site.hero.ctaPrimary": "Kostenlos ausprobieren",
   "site.hero.ctaSecondary": "So funktioniert es",
-  "site.hero.chip.free": "Kostenlos starten",
+  "site.hero.chip.scope": "Jedes Fach, jedes Niveau",
   "site.hero.chip.noCard": "Keine Karte nötig",
   "site.hero.chip.solo": "Allein oder mit deiner Klasse",
 
@@ -192,13 +192,20 @@ export const de: Partial<Messages> = {
   "site.roadmap.i3.body":
     "Live-Gruppenräume mit gemeinsamen Dokumenten, Gruppen-Challenges mit Rangliste sowie Quizze, Zusammenfassungen, Lernkarten und Mindmaps aus einer Unterrichtsstunde.",
   "site.roadmap.i4.title": "Zahlungen und Kontingente",
+  "site.roadmap.i8.title": "Läuft auch bei schwachem Netz",
+  "site.roadmap.i8.body":
+    "Die Oberfläche liegt nach dem ersten Besuch auf dem Gerät und öffnet ohne Warten auf das Netz; Schreibvorgänge werden in eine Warteschlange gelegt und wiederholt, statt verloren zu gehen.",
   "site.roadmap.i4.body":
-    "Karte, Mobile Money und PayPal über einen einzigen Aggregator, dazu die Durchsetzung von Nutzungsgrenzen. Der komplette Ablauf läuft in der Sandbox; das echte Einziehen ist noch nicht freigeschaltet.",
+    "Karte, Mobile Money und PayPal über einen einzigen Aggregator, dazu die Tarifgrenzen. Der komplette Zahlungsablauf läuft in der Sandbox — das echte Einziehen ist nicht freigeschaltet. Die Grenzen werden gezählt und gemeldet und weisen noch niemanden ab.",
   "site.roadmap.i5.title": "Verlaufskurve pro Konzept",
   "site.roadmap.i5.body":
     "Eine echte Projektion im Kern statt der modellgestützten Schätzung, die das Profil heute zeigt.",
   "site.roadmap.i6.title": "LMS-Abgleich",
-  "site.roadmap.i6.body": "Klassen und Namenslisten aus der bestehenden Umgebung importieren, statt sie erneut einzutippen.",
+  "site.roadmap.i6.body":
+    "Anmeldung über Google Classroom, dann Import von Klassen und Namenslisten aus der bestehenden Umgebung — nur lesend, statt alles erneut einzutippen. Vollständig gebaut; wird pro Deployment aktiv, sobald die Google-Zugangsdaten hinterlegt sind.",
+  "site.roadmap.i7.title": "Audio-Zusammenfassungen und Infografiken",
+  "site.roadmap.i7.body":
+    "Eine Lektion, die man auf dem Schulweg hören oder als ein einziges Bild lesen kann. Entworfen, nicht gebaut — und bewusst auf keiner Preisübersicht, solange das so ist.",
 
   "site.faq.title.a": "Häufige",
   "site.faq.title.em": "Fragen.",
@@ -241,14 +248,13 @@ export const de: Partial<Messages> = {
   "site.pricing.schools.l2": "Lehrkraft-Dashboards + Analysen pro Klasse",
   "site.pricing.schools.l3": "LMS-Sync + Raya for Schools",
   "site.pricing.schools.l4": "Abrechnung je eingeschriebener Person",
-  "site.pricing.schools.region":
-    "Schulen in den vierzehn Ländern der CFA-Franc-Zone werden in Landeswährung und zu einem lokalen Tarif abgerechnet.",
+  "site.pricing.schools.region": "Schulpreise variieren je nach Region.",
   "site.pricing.schools.cta": "Schul-Tarife ansehen",
   "site.pricing.custom.title": "Individuell",
   "site.pricing.custom.l1": "Die volle Engine, auf deine Schule abgestimmt",
-  "site.pricing.custom.l2": "Höchste Leistung",
-  "site.pricing.custom.l3": "Erweiterte Funktionen",
-  "site.pricing.custom.l4": "Deine Daten, deine Regeln, deine eigene KI",
+  "site.pricing.custom.l2": "Single Sign-on, mehrere Schulen unter einem Dach",
+  "site.pricing.custom.l3": "LMS-Sync, und kein Limit auf irgendetwas",
+  "site.pricing.custom.l4": "Eure Aufbewahrungsfrist, eure Exporte, euer AVV",
   "site.pricing.custom.meta": "Für Einrichtungen, die alles wollen",
   "site.pricing.custom.cta": "Individuell entdecken",
   "site.pricing.compare": "Alle Tarife vergleichen →",

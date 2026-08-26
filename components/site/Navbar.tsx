@@ -162,7 +162,7 @@ export default function Navbar({
               </Link>
               <Link href="/login" className="pub-press" style={ctaPill}>
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#34d399" }} />
-                {tr("site.nav.freeTrial")}
+                {tr("site.nav.startFree")}
               </Link>
             </>
           )}

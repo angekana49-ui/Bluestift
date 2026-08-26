@@ -91,7 +91,15 @@ export default function PricingSection({
         <div style={{ textAlign: "center", marginBottom: 52 }}>
           <h2 style={sectionH2(t)}>
             {tr("site.pricing.title.a")}{" "}
-            <em style={serifEm}>{tr("site.pricing.title.em")}</em>
+            {/* The one heading on the site whose serif half is coloured. This
+                band opens on a claim about price — "stays simple" — that the
+                three cards under it either keep or break, so it is the line a
+                sceptic comes back to. t.link rather than the brighter wordmark
+                blue: on the top of the pricing band (#dde8f3) the wordmark is
+                3.2:1, which an italic serif does not survive, and this clears
+                4.9:1 there and 8.4:1 in dark. Nothing underlines it and no
+                other heading is blue, so it does not read as a link. */}
+            <em style={{ ...serifEm, color: t.link }}>{tr("site.pricing.title.em")}</em>
           </h2>
           <p style={lead(t)}>{tr("site.pricing.sub")}</p>
         </div>
@@ -137,11 +145,12 @@ export default function PricingSection({
             )}
             {schoolPrice && priceBlock(schoolPrice, "#ffffff", "rgba(255,255,255,0.72)")}
             {/* The one line that answers "exorbitant" for the market this is
-                built for, and it is not a promise — schools.plan_region_prices
-                carries explicit XAF/XOF amounts for both school tiers, and
-                lib/billing/regions.ts lists the fourteen countries they cover.
-                Local currency, not an FX conversion: both franc zones are
-                pegged to the euro, so the amount is a real local price. */}
+                built for, and it is not a promise — plan_region_prices carries
+                explicit XAF/XOF amounts for both school tiers, and
+                lib/billing/regions.ts lists the countries they cover.
+                Deliberately short: this card's job is to say the figure above
+                can move and then get out of the way. The amounts, the
+                currencies and the country list are /pricing's to carry. */}
             <div style={{ position: "relative", fontSize: 13, color: "rgba(255,255,255,0.72)", marginTop: 10, lineHeight: 1.55 }}>
               {tr("site.pricing.schools.region")}
             </div>

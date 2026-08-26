@@ -64,17 +64,56 @@ export const en = {
   "site.nav.contact": "Contact",
   "site.nav.privacy": "Privacy",
   "site.nav.signIn": "Sign in",
-  "site.nav.freeTrial": "Free trial",
+  // NOT "Free trial". There is no trial: the free tier is permanent (see
+  // RAYA_ENTITLEMENTS.free — a daily message cap, not a countdown), and every
+  // other offer line on the site already says so, from the hero chips to
+  // site.finalCta. A nav button promising a trial sets a clock running in the
+  // reader's head that nothing else on the page, or in the product, honours.
+  "site.nav.startFree": "Start free",
   "site.nav.openApp": "Open app",
 
   // ── Public site: hero ─────────────────────────────────────────────
-  "site.hero.eyebrow": "Students get why. Schools get the whole picture",
+  // The eyebrow says the category and nothing else. It used to carry a second
+  // hook ("Students get why. Schools get the whole picture"), which left the
+  // page with two hooks and no category — a cold visitor could read the whole
+  // fold without learning what Bluestift IS. The headline is set in Caveat at
+  // up to 6.4rem: that is a voice, and a category line written by hand reads as
+  // a doodled slogan, so the two cannot swap places.
+  "site.hero.eyebrow": "The collaborative AI for education",
   "site.hero.headline": "The diagnosis comes first. The learning follows.",
+  /*
+   * One belief, not a summary.
+   *
+   * Three drafts failed here and all three failed the same way: they tried to
+   * be the page. One argued the dissociation thesis, which the connection band
+   * argues in full a screen and a half below. One inventoried three products,
+   * which the features band does one screen below in three scannable cards. One
+   * compressed the Kernel's whole mechanism into a subordinate clause. Every
+   * one of them was an abstract — accurate, dense, and no reason at all to keep
+   * reading. A visitor does not scroll because a paragraph was informative.
+   *
+   * So this one carries no feature, no surface and no number. It says the thing
+   * the product actually believes, and it is the one line on the page that is
+   * about the student rather than the software: being stuck is a missing step,
+   * not a deficiency. That is not decoration either — it is the pedagogy this
+   * repo implements. lib/raya/prompt.ts aims every piece of feedback at the
+   * method and never at the person (see site.ladder.note and Dweck), and the
+   * Kernel band spends thirty seconds walking a failure back through four
+   * prerequisites to the step that was actually missing. The claim and the
+   * mechanism are the same claim.
+   *
+   * Nothing here is quantified, deliberately. "Rarely", "often", "most students"
+   * would each be a statistic nothing in this repo can back.
+   */
   "site.hero.sub":
-    "Students learn with one AI, teachers prepare with another, and neither side sees the other. Raya is the one they share — so what a student actually understands finally reaches the person teaching them.",
+    "Being lost isn’t a lack of ability. It’s a missing step — and Raya walks back until it finds it.",
   "site.hero.ctaPrimary": "Try it free",
   "site.hero.ctaSecondary": "See how it works",
-  "site.hero.chip.free": "Free to start",
+  // "Free to start" was saying what the primary CTA above it already says.
+  // What replaced it is the positioning decision itself — no level targeting,
+  // no geography, no subject list (kernel `subject` is a free string and the
+  // tutor's prompt treats medicine and law as ordinary school subjects).
+  "site.hero.chip.scope": "Any subject, any level",
   "site.hero.chip.noCard": "No card required",
   "site.hero.chip.solo": "Solo, or with your class",
 
@@ -249,14 +288,26 @@ export const en = {
   "site.roadmap.i3.title": "Study Rooms, Challenges & Tools",
   "site.roadmap.i3.body":
     "Live group rooms with shared documents, group challenges with standings, and quizzes, summaries, flashcards and mind maps generated from a lesson.",
+  "site.roadmap.i8.title": "Works on a weak connection",
+  "site.roadmap.i8.body":
+    "The interface is cached on the device after the first visit, so it opens without waiting for the network, and writes are queued and retried rather than lost.",
+  // Two halves, two disclosures. The old body admitted the payment half and
+  // said nothing about the other: plan limits are counted and logged but do not
+  // BLOCK until ENTITLEMENTS_ENFORCE is switched on, so a quota published on
+  // the pricing page is today a measurement rather than a wall. Saying so is
+  // the whole point of this page.
   "site.roadmap.i4.title": "Payments & quotas",
   "site.roadmap.i4.body":
-    "Card, mobile money and PayPal through a single aggregator, plus usage-limit enforcement. The full flow runs in sandbox; live acquiring isn’t switched on yet.",
+    "Card, mobile money and PayPal through a single aggregator, plus the plan limits. The full payment flow runs in sandbox — live acquiring isn’t switched on. The limits are counted and reported, and do not yet turn anyone away.",
   "site.roadmap.i5.title": "Per-concept trajectory curve",
   "site.roadmap.i5.body":
     "A real Kernel-side projection, replacing the model-guided estimate the student profile shows today.",
   "site.roadmap.i6.title": "LMS sync",
-  "site.roadmap.i6.body": "Importing classes and rosters from the environment a school already runs, instead of retyping them.",
+  "site.roadmap.i6.body":
+    "Google Classroom sign-in, then classes and rosters imported read-only from the environment a school already runs, instead of retyping them. Built end to end; it turns on per deployment once the Google credentials are registered.",
+  "site.roadmap.i7.title": "Audio summaries & infographics",
+  "site.roadmap.i7.body":
+    "A lesson turned into something you can listen to on the way to school, or read as one picture. Designed, not built — and deliberately not on any pricing card until it is.",
 
   // ── Public site: FAQ ──────────────────────────────────────────────
   // Keys are named for their question, not numbered. The set changes when the
@@ -316,19 +367,36 @@ export const en = {
   "site.pricing.schools.l2": "Teacher dashboards + per-class insights",
   "site.pricing.schools.l3": "LMS sync + Raya for Schools",
   "site.pricing.schools.l4": "Billed per enrolled student",
-  // Schools only, and true of the catalogue rather than of a plan we intend to
-  // build: plan_region_prices carries explicit XAF/XOF amounts for both school
-  // tiers, and lib/billing/regions.ts lists the fourteen countries. Individual
-  // plans are one price worldwide — deliberately, so this line must not creep
-  // onto the Solo card.
-  "site.pricing.schools.region":
-    "Schools across the fourteen CFA-franc countries are billed in local currency, at a local rate.",
+  // Schools only. Individual plans are one price worldwide — deliberately — so
+  // this line must not creep onto the Solo card.
+  //
+  // It used to name the fourteen CFA-franc countries and the local currency.
+  // All of that is true (plan_region_prices carries explicit XAF/XOF amounts
+  // for both school tiers; lib/billing/regions.ts lists the countries) and none
+  // of it belongs on a card. A visitor outside the zone reads two lines that do
+  // not concern them, and one inside it does not need to be told which country
+  // they are in — they need to know the figure above can move, and then to
+  // click through. /pricing is where the amounts are.
+  "site.pricing.schools.region": "School pricing varies by region.",
   "site.pricing.schools.cta": "See school plans",
   "site.pricing.custom.title": "Custom",
+  // Three of these four lines said nothing checkable, on a page whose whole
+  // argument is that it doesn't do that. "Highest performance" and "Advanced
+  // features" were filler. "Your data, your rules, your own AI" was worse than
+  // filler: nothing in this repo self-hosts a model or takes a customer's own,
+  // so the last third of that line sold something that does not exist — on the
+  // one card whose CTA opens a negotiation, which is exactly where an invented
+  // capability turns into a commitment somebody has to honour.
+  //
+  // All four now read off SCHOOL_ENTITLEMENTS.custom: sso, multiSchool, lms,
+  // every quota null, archiveYears null (the retention window is negotiated
+  // rather than fixed), and insightsExport / simulationExport / exportsPerMonth
+  // null. The DPA is a real document at /dpa. The cadence of the old line is
+  // kept because it was the good part — only the claim under it changed.
   "site.pricing.custom.l1": "The full engine, tuned to your school",
-  "site.pricing.custom.l2": "Highest performance",
-  "site.pricing.custom.l3": "Advanced features",
-  "site.pricing.custom.l4": "Your data, your rules, your own AI",
+  "site.pricing.custom.l2": "Single sign-on, several schools under one roof",
+  "site.pricing.custom.l3": "LMS sync, and no quota on anything",
+  "site.pricing.custom.l4": "Your retention window, your exports, your DPA",
   "site.pricing.custom.meta": "For institutions that want it all",
   "site.pricing.custom.cta": "Explore Custom",
   "site.pricing.compare": "Compare all plans →",

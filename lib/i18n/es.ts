@@ -46,16 +46,16 @@ export const es: Partial<Messages> = {
   "site.nav.contact": "Contacto",
   "site.nav.privacy": "Privacidad",
   "site.nav.signIn": "Iniciar sesión",
-  "site.nav.freeTrial": "Prueba gratis",
+  "site.nav.startFree": "Empezar gratis",
   "site.nav.openApp": "Abrir la app",
 
-  "site.hero.eyebrow": "Tutor con IA · cualquier nivel, cualquier materia, en cualquier lugar",
-  "site.hero.headline": "Todos tienen una IA. Nadie comparte una.",
+  "site.hero.eyebrow": "La IA colaborativa para la educación",
+  "site.hero.headline": "Primero el diagnóstico. El aprendizaje viene después.",
   "site.hero.sub":
-    "El alumno aprende con una IA, el profesor prepara con otra, y ninguno ve la del otro. Raya es la que comparten — para que lo que el alumno entiende de verdad llegue por fin a quien le enseña.",
+    "Estar perdido no es falta de capacidad. Es un paso que falta — y Raya retrocede hasta encontrarlo.",
   "site.hero.ctaPrimary": "Probar gratis",
   "site.hero.ctaSecondary": "Ver cómo funciona",
-  "site.hero.chip.free": "Gratis para empezar",
+  "site.hero.chip.scope": "Cualquier materia, cualquier nivel",
   "site.hero.chip.noCard": "Sin tarjeta",
   "site.hero.chip.solo": "Solo, o con tu clase",
 
@@ -192,13 +192,20 @@ export const es: Partial<Messages> = {
   "site.roadmap.i3.body":
     "Salas de grupo en directo con documentos compartidos, retos colectivos con clasificación, y cuestionarios, resúmenes, tarjetas y mapas mentales generados desde una lección.",
   "site.roadmap.i4.title": "Pagos y cuotas",
+  "site.roadmap.i8.title": "Funciona con mala conexión",
+  "site.roadmap.i8.body":
+    "La interfaz se guarda en el dispositivo desde la primera visita, así que abre sin esperar a la red, y lo que se escribe se encola y se reintenta en vez de perderse.",
   "site.roadmap.i4.body":
-    "Tarjeta, mobile money y PayPal a través de un único agregador, más el control de límites de uso. El flujo completo funciona en entorno de pruebas; el cobro real aún no está activado.",
+    "Tarjeta, mobile money y PayPal a través de un único agregador, más los límites de cada plan. El flujo de pago completo funciona en entorno de pruebas — el cobro real no está activado. Los límites se cuentan y se registran, y todavía no le cierran la puerta a nadie.",
   "site.roadmap.i5.title": "Curva de trayectoria por concepto",
   "site.roadmap.i5.body":
     "Una proyección real calculada en el núcleo, en lugar de la estimación guiada por el modelo que muestra hoy el perfil.",
   "site.roadmap.i6.title": "Sincronización con el LMS",
-  "site.roadmap.i6.body": "Importar clases y listas desde el entorno que el centro ya usa, en vez de volver a teclearlas.",
+  "site.roadmap.i6.body":
+    "Inicio de sesión con Google Classroom y luego importación en solo lectura de clases y listas desde el entorno que el centro ya usa, en vez de volver a teclearlas. Construido de principio a fin; se activa por despliegue una vez registradas las credenciales de Google.",
+  "site.roadmap.i7.title": "Resúmenes en audio e infografías",
+  "site.roadmap.i7.body":
+    "Una lección convertida en algo que se escucha de camino a clase, o se lee en una sola imagen. Diseñado, no construido — y deliberadamente fuera de cualquier plan hasta que lo esté.",
 
   "site.faq.title.a": "Preguntas",
   "site.faq.title.em": "frecuentes.",
@@ -241,14 +248,13 @@ export const es: Partial<Messages> = {
   "site.pricing.schools.l2": "Paneles para profesores + análisis por clase",
   "site.pricing.schools.l3": "Sincronización LMS + Raya for Schools",
   "site.pricing.schools.l4": "Facturado por alumno matriculado",
-  "site.pricing.schools.region":
-    "Los centros de los catorce países de la zona del franco CFA se facturan en moneda local, a una tarifa local.",
+  "site.pricing.schools.region": "El precio para centros varía según la región.",
   "site.pricing.schools.cta": "Ver planes para centros",
   "site.pricing.custom.title": "A medida",
   "site.pricing.custom.l1": "El motor completo, ajustado a tu centro",
-  "site.pricing.custom.l2": "Máximo rendimiento",
-  "site.pricing.custom.l3": "Funciones avanzadas",
-  "site.pricing.custom.l4": "Tus datos, tus reglas, tu propia IA",
+  "site.pricing.custom.l2": "Inicio de sesión único, varios centros",
+  "site.pricing.custom.l3": "Sincronización con el LMS, y sin cuotas",
+  "site.pricing.custom.l4": "Tu plazo de conservación, tus exportaciones, tu DPA",
   "site.pricing.custom.meta": "Para instituciones que lo quieren todo",
   "site.pricing.custom.cta": "Explorar a medida",
   "site.pricing.compare": "Comparar todos los planes →",

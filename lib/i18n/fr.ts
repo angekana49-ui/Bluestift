@@ -46,16 +46,16 @@ export const fr: Partial<Messages> = {
   "site.nav.contact": "Contact",
   "site.nav.privacy": "Confidentialité",
   "site.nav.signIn": "Se connecter",
-  "site.nav.freeTrial": "Essai gratuit",
+  "site.nav.startFree": "Commencer gratuitement",
   "site.nav.openApp": "Ouvrir l’app",
 
-  "site.hero.eyebrow": "Tuteur IA · tout niveau, toute matière, partout",
-  "site.hero.headline": "Tout le monde a une IA. Personne n’en partage.",
+  "site.hero.eyebrow": "L’IA collaborative pour l’éducation",
+  "site.hero.headline": "Le diagnostic d’abord. L’apprentissage suit.",
   "site.hero.sub":
-    "L’élève apprend avec une IA, le professeur prépare avec une autre, et aucun des deux ne voit celle de l’autre. Raya est celle qu’ils partagent — pour que ce que l’élève comprend vraiment parvienne enfin à qui lui enseigne.",
+    "Être perdu, ce n’est pas manquer de capacités. C’est une étape qui manque — et Raya remonte jusqu’à la trouver.",
   "site.hero.ctaPrimary": "Essayer gratuitement",
   "site.hero.ctaSecondary": "Voir comment ça marche",
-  "site.hero.chip.free": "Gratuit pour commencer",
+  "site.hero.chip.scope": "Toutes les matières, tous les niveaux",
   "site.hero.chip.noCard": "Sans carte bancaire",
   "site.hero.chip.solo": "Seul, ou avec votre classe",
 
@@ -192,13 +192,20 @@ export const fr: Partial<Messages> = {
   "site.roadmap.i3.body":
     "Salles de groupe en direct avec documents partagés, défis collectifs avec classement, et quiz, résumés, cartes mémo et cartes mentales générés depuis un cours.",
   "site.roadmap.i4.title": "Paiements et quotas",
+  "site.roadmap.i8.title": "Fonctionne en connexion faible",
+  "site.roadmap.i8.body":
+    "L’interface est mise en cache sur l’appareil dès la première visite : elle s’ouvre sans attendre le réseau, et les écritures sont mises en file et réessayées plutôt que perdues.",
   "site.roadmap.i4.body":
-    "Carte, mobile money et PayPal via un agrégateur unique, plus l’application des limites d’usage. Le parcours complet tourne en bac à sable ; l’encaissement réel n’est pas encore activé.",
+    "Carte, mobile money et PayPal via un agrégateur unique, plus les limites des forfaits. Le parcours de paiement complet tourne en bac à sable — l’encaissement réel n’est pas activé. Les limites sont comptées et remontées, et ne bloquent encore personne.",
   "site.roadmap.i5.title": "Courbe de trajectoire par concept",
   "site.roadmap.i5.body":
     "Une vraie projection calculée côté noyau, en remplacement de l’estimation guidée par le modèle affichée aujourd’hui sur le profil.",
   "site.roadmap.i6.title": "Synchronisation LMS",
-  "site.roadmap.i6.body": "Importer classes et listes d’élèves depuis l’environnement déjà en place, au lieu de les ressaisir.",
+  "site.roadmap.i6.body":
+    "Connexion Google Classroom, puis import en lecture seule des classes et des listes d’élèves depuis l’environnement déjà en place, au lieu de les ressaisir. Développé de bout en bout ; s’active par déploiement une fois les identifiants Google enregistrés.",
+  "site.roadmap.i7.title": "Résumés audio et infographies",
+  "site.roadmap.i7.body":
+    "Un cours transformé en quelque chose qui s’écoute sur le trajet, ou se lit en une image. Conçu, pas encore construit — et volontairement absent de toute grille tarifaire tant qu’il ne l’est pas.",
 
   "site.faq.title.a": "Questions",
   "site.faq.title.em": "fréquentes.",
@@ -241,14 +248,13 @@ export const fr: Partial<Messages> = {
   "site.pricing.schools.l2": "Tableaux de bord profs + analyses par classe",
   "site.pricing.schools.l3": "Synchronisation LMS + Raya for Schools",
   "site.pricing.schools.l4": "Facturé par élève inscrit",
-  "site.pricing.schools.region":
-    "Les établissements des quatorze pays de la zone franc CFA sont facturés en monnaie locale, à un tarif local.",
+  "site.pricing.schools.region": "Le tarif établissement varie selon la région.",
   "site.pricing.schools.cta": "Voir les forfaits établissement",
   "site.pricing.custom.title": "Sur mesure",
   "site.pricing.custom.l1": "Tout le moteur, réglé pour votre établissement",
-  "site.pricing.custom.l2": "Performance maximale",
-  "site.pricing.custom.l3": "Fonctionnalités avancées",
-  "site.pricing.custom.l4": "Vos données, vos règles, votre propre IA",
+  "site.pricing.custom.l2": "Authentification unique, plusieurs établissements",
+  "site.pricing.custom.l3": "Synchro LMS, et aucun quota sur rien",
+  "site.pricing.custom.l4": "Votre durée de conservation, vos exports, votre DPA",
   "site.pricing.custom.meta": "Pour les institutions qui veulent tout",
   "site.pricing.custom.cta": "Découvrir le sur-mesure",
   "site.pricing.compare": "Comparer tous les forfaits →",

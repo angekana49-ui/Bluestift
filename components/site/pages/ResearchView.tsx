@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 import SitePage from "@/components/site/SitePage";
-import RoadmapTimeline from "@/components/site/RoadmapTimeline";
+import RoadmapTimeline, { ROADMAP_UPDATED } from "@/components/site/RoadmapTimeline";
 import type { Theme } from "@/components/site/theme";
 import { GUTTER, MEASURE, PAGE_BOTTOM, lead, pageH1, pageSection, serifEm } from "@/components/site/layout";
 import { useTranslate } from "@/components/ui/locale";
@@ -347,6 +347,12 @@ export function ResearchView({ posts, issues, signedIn, initialTab }: Props) {
                     {tr("site.roadmap.eyebrow")}
                   </span>
                   <span style={{ fontSize: 13, color: t.mutedLight }}>· {tr("site.roadmap.title.em")}</span>
+                  {/* Undated, this list cannot be audited: nothing on a status
+                      page looks stale, so "in progress" reads as current
+                      whether it was written last week or last year. */}
+                  <span style={{ marginLeft: "auto", fontSize: 13, color: t.mutedLight }}>
+                    Checked against the code on {ROADMAP_UPDATED}
+                  </span>
                 </div>
                 <p style={{ fontSize: 15, lineHeight: 1.7, color: t.muted, margin: "0 0 20px" }}>{tr("site.roadmap.sub")}</p>
                 <div style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: 20, padding: "26px 28px", boxShadow: t.cardShadow }}>
