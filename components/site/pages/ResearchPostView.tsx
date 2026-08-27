@@ -5,14 +5,16 @@ import SitePage from "@/components/site/SitePage";
 import { readTime } from "@/components/public/format";
 import { GUTTER, MEASURE, PAGE_BOTTOM, pageTop } from "@/components/site/layout";
 import type { PublicMedia, PublicResearchPost } from "@/lib/content";
+import { useTranslate } from "@/components/ui/locale";
+import type { MessageKey } from "@/lib/i18n";
 
 type PostDetail = PublicResearchPost & { media: PublicMedia[] };
 
-const TYPE_META: Record<string, { label: string; icon: string }> = {
-  paper: { label: "Paper", icon: "📄" },
-  experiment: { label: "Experiment", icon: "🧪" },
-  article: { label: "Article", icon: "✍️" },
-  update: { label: "Update", icon: "⚡" },
+const TYPE_META: Record<string, { labelKey: MessageKey; icon: string }> = {
+  paper: { labelKey: "research.post.type.paper", icon: "📄" },
+  experiment: { labelKey: "research.post.type.experiment", icon: "🧪" },
+  article: { labelKey: "research.post.type.article", icon: "✍️" },
+  update: { labelKey: "research.post.type.update", icon: "⚡" },
 };
 
 function enMonth(date: string | null): string {
@@ -21,6 +23,7 @@ function enMonth(date: string | null): string {
 }
 
 export function ResearchPostView({ post, signedIn }: { post: PostDetail; signedIn: boolean }) {
+  const tr = useTranslate();
   const type = TYPE_META[post.type ?? "article"] ?? TYPE_META.article;
   const paragraphs = (post.content ?? "").split(/\n{2,}/).filter((p) => p.trim());
   const images = post.media.filter((m) => m.type === "image" && m.url);
@@ -31,12 +34,12 @@ export function ResearchPostView({ post, signedIn }: { post: PostDetail; signedI
       {(t) => (
         <div style={{ position: "relative", zIndex: 1, maxWidth: MEASURE.prose, margin: "0 auto", padding: `${pageTop} ${GUTTER}px ${PAGE_BOTTOM}px` }}>
           <Link href="/research" style={{ display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 24, fontSize: 14, color: t.link, textDecoration: "none" }}>
-            ← Back to publications
+            {tr("research.post.back")}
           </Link>
 
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, margin: "20px 0 16px" }}>
             <span style={{ fontSize: 16 }}>{type.icon}</span>
-            <span style={{ fontSize: 13, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: t.mutedLight }}>{type.label}</span>
+            <span style={{ fontSize: 13, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: t.mutedLight }}>{tr(type.labelKey)}</span>
             <span style={{ marginLeft: "auto", fontSize: 13, color: t.mutedLight }}>
               {enMonth(post.published_at ?? post.created_at)} · {readTime(post.content)}
             </span>
@@ -67,7 +70,7 @@ export function ResearchPostView({ post, signedIn }: { post: PostDetail; signedI
 
           {paragraphs.length > 0 && (
             <div style={{ marginBottom: 24, borderRadius: 12, border: `1px solid ${t.greenBorder}`, background: t.greenBg, padding: "16px 18px" }}>
-              <div style={{ marginBottom: 8, fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: t.greenText }}>Summary</div>
+              <div style={{ marginBottom: 8, fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: t.greenText }}>{tr("research.post.summary")}</div>
               <p style={{ fontSize: 15, lineHeight: 1.7, color: t.greenText, margin: 0 }}>{paragraphs[0]}</p>
             </div>
           )}

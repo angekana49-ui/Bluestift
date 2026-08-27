@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { RayaName } from "@/components/ui/brand";
 import { LegalShell, Table, h2, li, link, note, p, ul } from "./legal-chrome";
+import { useTranslate } from "@/components/ui/locale";
 
 const UPDATED = "13 August 2026";
 
@@ -15,130 +16,109 @@ const UPDATED = "13 August 2026";
  * stack means adding it here in the same change.
  */
 export function SubprocessorsView({ signedIn }: { signedIn: boolean }) {
+  const tr = useTranslate();
   return (
     <LegalShell
       active="Privacy"
       section="Sub-processors"
       signedIn={signedIn}
-      title="Sub-"
-      accent="processors."
+      title={tr("subprocessors.title.a")}
+      accent={tr("subprocessors.title.em")}
       updated={UPDATED}
     >
       {(t) => (
         <>
-          <p style={p(t)}>
-            These are the companies that process personal data on our behalf so Bluestift can
-            work. Each one is here for a single named purpose and has no right to use the data
-            for anything else.
-          </p>
+          <p style={p(t)}>{tr("subprocessors.intro")}</p>
 
           <div style={note(t)}>
-            <strong>Where we are today.</strong> Bluestift has just launched. We are working
-            through each provider&apos;s data processing agreement, including the standard
-            contractual clauses that cover transfers out of the EEA and the UK. Until this page
-            says a given agreement is in place, assume it is still in progress — and if that
-            matters to your decision, ask us and we&apos;ll tell you exactly where it stands.
-            We would rather be checkable than sound finished.
+            <strong>{tr("subprocessors.today.strong")}</strong> {tr("subprocessors.today.body")}
           </div>
 
-          <h2 style={h2(t)}>Current sub-processors</h2>
+          <h2 style={h2(t)}>{tr("subprocessors.current.h2")}</h2>
           <Table
             t={t}
-            head={["Provider", "What it does", "Data it sees", "Where"]}
+            head={[tr("subprocessors.table.provider"), tr("subprocessors.table.what"), tr("subprocessors.table.data"), tr("subprocessors.table.where")]}
             rows={[
               [
                 "Supabase",
-                "Database, authentication and file storage — the system of record",
-                "Everything stored: accounts, conversations, uploads, learning signals",
-                "EU",
+                tr("subprocessors.row.supabase.purpose"),
+                tr("subprocessors.row.supabase.data"),
+                tr("subprocessors.loc.eu"),
               ],
               [
                 "Vercel",
-                "Application hosting and scheduled jobs",
-                "Requests in transit, server logs",
-                "EU / US",
+                tr("subprocessors.row.vercel.purpose"),
+                tr("subprocessors.row.vercel.data"),
+                tr("subprocessors.loc.euUs"),
               ],
               [
                 "Google (Gemini)",
-                "Generates Raya's replies",
-                "The text of a tutoring turn and the context sent with it",
-                "US",
+                tr("subprocessors.row.gemini.purpose"),
+                tr("subprocessors.row.gemini.data"),
+                tr("subprocessors.loc.us"),
               ],
               [
                 "Groq",
-                "Fallback model for replies, and speech-to-text for voice",
-                "The text of a tutoring turn; recorded audio when voice is used",
-                "US",
+                tr("subprocessors.row.groq.purpose"),
+                tr("subprocessors.row.groq.data"),
+                tr("subprocessors.loc.us"),
               ],
               [
                 "PostHog",
-                "Product analytics — only for accounts that opted in, never under-18s",
-                "Page views, a few product events, an account identifier",
-                "EU",
+                tr("subprocessors.row.posthog.purpose"),
+                tr("subprocessors.row.posthog.data"),
+                tr("subprocessors.loc.eu"),
               ],
               [
                 "Cloudflare",
-                "Turnstile bot protection on public forms and sign-up",
-                "A challenge token and network metadata",
-                "Global",
+                tr("subprocessors.row.cloudflare.purpose"),
+                tr("subprocessors.row.cloudflare.data"),
+                tr("subprocessors.loc.global"),
               ],
               [
                 "Resend",
-                "Transactional email — invitations, decisions, receipts",
-                "Email address and the message content",
-                "EU / US",
+                tr("subprocessors.row.resend.purpose"),
+                tr("subprocessors.row.resend.data"),
+                tr("subprocessors.loc.euUs"),
               ],
               [
                 "CinetPay",
-                "Card and mobile-money payments",
-                "Payment details and the amount. We never store full card numbers",
-                "Africa / EU",
+                tr("subprocessors.row.cinetpay.purpose"),
+                tr("subprocessors.row.cinetpay.data"),
+                tr("subprocessors.loc.africaEu"),
               ],
               [
                 "Google Classroom",
-                "Optional LMS import, only for schools that connect it",
-                "Course and roster data the school chooses to share",
-                "US",
+                tr("subprocessors.row.classroom.purpose"),
+                tr("subprocessors.row.classroom.data"),
+                tr("subprocessors.loc.us"),
               ],
             ]}
           />
 
-          <h2 style={h2(t)}>What we require of them</h2>
+          <h2 style={h2(t)}>{tr("subprocessors.require.h2")}</h2>
           <ul style={ul}>
-            <li style={li(t)}>
-              They process data only on our documented instructions, for the purpose named
-              above.
-            </li>
-            <li style={li(t)}>
-              We use model providers on their API terms, which do not feed content into
-              training of their public models.
-            </li>
-            <li style={li(t)}>
-              Transfers outside the EEA or the UK must be covered by Standard Contractual
-              Clauses or an adequacy decision — see the note above on where we are with that.
-            </li>
-            <li style={li(t)}>They are bound to confidentiality and to appropriate security.</li>
+            <li style={li(t)}>{tr("subprocessors.require.li1")}</li>
+            <li style={li(t)}>{tr("subprocessors.require.li2")}</li>
+            <li style={li(t)}>{tr("subprocessors.require.li3")}</li>
+            <li style={li(t)}>{tr("subprocessors.require.li4")}</li>
           </ul>
 
-          <h2 style={h2(t)}>Changes</h2>
+          <h2 style={h2(t)}>{tr("subprocessors.changes.h2")}</h2>
           <p style={p(t)}>
-            We update this page before a new sub-processor starts handling school data, and
-            notify school administrators by email. A school may object on reasonable data
-            protection grounds — see the{" "}
+            {tr("subprocessors.changes.a")}{" "}
             <Link href="/dpa" style={link(t)}>
-              data processing addendum
+              {tr("subprocessors.changes.dpaLink")}
             </Link>
             .
           </p>
 
           <div style={note(t)}>
-            <RayaName /> works without several of these. A school that has not connected
-            Google Classroom is never touched by that row; an account that declined analytics
-            is never touched by PostHog.
+            <RayaName /> {tr("subprocessors.worksWithout.a")} {tr("subprocessors.worksWithout.b")}
           </div>
 
           <p style={p(t)}>
-            Questions:{" "}
+            {tr("subprocessors.questions")}{" "}
             <a href="mailto:hello@thebluestift.com" style={link(t)}>
               hello@thebluestift.com
             </a>

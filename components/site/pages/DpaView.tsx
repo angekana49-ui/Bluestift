@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { RayaName } from "@/components/ui/brand";
 import { LegalShell, h2, li, link, note, p, ul } from "./legal-chrome";
+import { useTranslate } from "@/components/ui/locale";
 
 const UPDATED = "13 August 2026";
 
@@ -22,229 +23,150 @@ const UPDATED = "13 August 2026";
  * school administrator with no counsel on hand should be able to read it.
  */
 export function DpaView({ signedIn }: { signedIn: boolean }) {
+  const tr = useTranslate();
   return (
     <LegalShell
       active="Privacy"
       section="Schools DPA"
       signedIn={signedIn}
-      title="Data processing"
-      accent="addendum."
+      title={tr("dpa.title.a")}
+      accent={tr("dpa.title.em")}
       updated={UPDATED}
     >
       {(t) => (
         <>
-          <p style={p(t)}>
-            This addendum applies whenever a school, district or other education institution
-            uses Bluestift with its students. It forms part of the agreement between us and
-            sets out what we do with student data, and what we will never do with it.
-          </p>
+          <p style={p(t)}>{tr("dpa.intro")}</p>
 
-          <div style={note(t)}>
-            Short version: the school owns the data, we only process it to run the service, we
-            do not sell it, we do not use it to build a profile for any purpose other than
-            tutoring that student, and we give it back or destroy it when the school says so.
-          </div>
+          <div style={note(t)}>{tr("dpa.shortVersion")}</div>
 
           {/* -------------------------------------------------------- roles --- */}
-          <h2 style={h2(t)}>1. Who is who</h2>
+          <h2 style={h2(t)}>{tr("dpa.s1.h2")}</h2>
           <p style={p(t)}>
-            The <strong>school is the controller</strong> of its students&apos; personal data
-            and decides what is collected and why. <strong>We are the processor</strong> and
-            act only on the school&apos;s documented instructions — using the service as
-            configured counts as those instructions.
+            {tr("dpa.s1.p1.a")} <strong>{tr("dpa.s1.p1.strong1")}</strong> {tr("dpa.s1.p1.b")}{" "}
+            <strong>{tr("dpa.s1.p1.strong2")}</strong> {tr("dpa.s1.p1.c")}
           </p>
           <p style={p(t)}>
-            For students who sign up on their own, outside any school, we are the controller
-            and our{" "}
+            {tr("dpa.s1.p2.a")}{" "}
             <Link href="/privacy" style={link(t)}>
-              privacy policy
+              {tr("dpa.s1.p2.link")}
             </Link>{" "}
-            governs instead.
+            {tr("dpa.s1.p2.b")}
           </p>
 
           {/* -------------------------------------------------------- scope --- */}
-          <h2 style={h2(t)}>2. What we process</h2>
+          <h2 style={h2(t)}>{tr("dpa.s2.h2")}</h2>
           <ul style={ul}>
             <li style={li(t)}>
-              <strong>Subject matter:</strong> providing an AI tutor and a staff dashboard.
+              <strong>{tr("dpa.s2.li1.strong")}</strong> {tr("dpa.s2.li1.body")}
             </li>
             <li style={li(t)}>
-              <strong>Duration:</strong> the term of the school&apos;s subscription, plus the
-              deletion window in §9.
+              <strong>{tr("dpa.s2.li2.strong")}</strong> {tr("dpa.s2.li2.body")}
             </li>
             <li style={li(t)}>
-              <strong>Data subjects:</strong> the school&apos;s students and its staff.
+              <strong>{tr("dpa.s2.li3.strong")}</strong> {tr("dpa.s2.li3.body")}
             </li>
             <li style={li(t)}>
-              <strong>Categories:</strong> identity (name, class, year), account data, work
-              submitted to the tutor, assessment results, and the learning signals derived
-              from them.
+              <strong>{tr("dpa.s2.li4.strong")}</strong> {tr("dpa.s2.li4.body")}
             </li>
           </ul>
 
           {/* ------------------------------------------------------- ferpa --- */}
-          <h2 style={h2(t)}>3. FERPA — we act as a school official</h2>
+          <h2 style={h2(t)}>{tr("dpa.s3.h2")}</h2>
           <p style={p(t)}>
-            The school designates us a <strong>school official with a legitimate educational
-            interest</strong> in student education records under 34 CFR § 99.31(a)(1). On that
-            basis we commit that:
+            {tr("dpa.s3.p1.a")} <strong>{tr("dpa.s3.p1.strong")}</strong> {tr("dpa.s3.p1.b")}
           </p>
           <ul style={ul}>
+            <li style={li(t)}>{tr("dpa.s3.li1")}</li>
             <li style={li(t)}>
-              We perform a function the school would otherwise perform with its own staff.
+              {tr("dpa.s3.li2.a")} <strong>{tr("dpa.s3.li2.strong")}</strong> {tr("dpa.s3.li2.b")}
             </li>
             <li style={li(t)}>
-              We are under the school&apos;s <strong>direct control</strong> with respect to
-              the use and maintenance of education records.
+              {tr("dpa.s3.li3.a")} <strong>{tr("dpa.s3.li3.strong1")}</strong> {tr("dpa.s3.li3.b")}{" "}
+              <strong>{tr("dpa.s3.li3.strong2")}</strong> {tr("dpa.s3.li3.c")}
             </li>
-            <li style={li(t)}>
-              We use education records <strong>only</strong> for the purpose the school engaged
-              us for, and <strong>do not re-disclose</strong> them to anyone else except as
-              §5 permits.
-            </li>
-            <li style={li(t)}>
-              We maintain a record of disclosures of a student&apos;s record, which the school
-              can request.
-            </li>
+            <li style={li(t)}>{tr("dpa.s3.li4")}</li>
           </ul>
           <p style={p(t)}>
-            <strong>Inspect and review.</strong> A parent or eligible student exercises that
-            right with the school. Staff can produce a student&apos;s record from the dashboard
-            at any time. That record covers identity, enrolment, results, inferred
-            understanding and staff notes — but not the student&apos;s own conversations with{" "}
-            <RayaName />, for the reason set out in §7.
+            <strong>{tr("dpa.s3.p2.strong")}</strong> {tr("dpa.s3.p2.a")}{" "}
+            <RayaName />
+            {tr("dpa.s3.p2.b")}
           </p>
 
           {/* ------------------------------------------------------- coppa --- */}
-          <h2 style={h2(t)}>4. COPPA — consent for under-13s</h2>
+          <h2 style={h2(t)}>{tr("dpa.s4.h2")}</h2>
           <p style={p(t)}>
-            We do not open accounts for children under 13 who arrive on their own; they are
-            stopped at the age question. Under-13s reach <RayaName /> only through a school.
+            {tr("dpa.s4.p1.a")} <RayaName /> {tr("dpa.s4.p1.b")}
           </p>
           <p style={p(t)}>
-            By enrolling students under 13, <strong>the school confirms that it consents on
-            behalf of their parents</strong> for the school&apos;s educational use, as the
-            COPPA school-consent exception permits (16 CFR § 312.5(c)(6)), and that it has
-            given parents notice of what we collect. We collect from children only what the
-            service needs, never condition participation on more, and never use a child&apos;s
-            data for advertising or profiling outside tutoring. On a parent&apos;s request,
-            relayed by the school, we delete a child&apos;s data.
+            {tr("dpa.s4.p2.a")} <strong>{tr("dpa.s4.p2.strong")}</strong> {tr("dpa.s4.p2.b")}
           </p>
 
           {/* ------------------------------------------------- sub-processors --- */}
-          <h2 style={h2(t)}>5. Sub-processors</h2>
+          <h2 style={h2(t)}>{tr("dpa.s5.h2")}</h2>
           <p style={p(t)}>
-            We use the providers listed on our{" "}
+            {tr("dpa.s5.p1.a")}{" "}
             <Link href="/subprocessors" style={link(t)}>
-              sub-processors page
+              {tr("dpa.s5.p1.link")}
             </Link>
-            , which also states, honestly, which of those agreements are already signed and
-            which are still being put in place — we have only just launched. Whatever their
-            status, we remain responsible to you for what those providers do.
+            {tr("dpa.s5.p1.b")}
           </p>
-          <p style={p(t)}>
-            We update that page and notify school administrators before a new sub-processor
-            starts handling school data. A school may object on reasonable data protection
-            grounds within 30 days; if we cannot offer an alternative, the school may
-            terminate the affected part of the service and be refunded the unused balance.
-          </p>
+          <p style={p(t)}>{tr("dpa.s5.p2")}</p>
 
           {/* ---------------------------------------------------- security --- */}
-          <h2 style={h2(t)}>6. Security</h2>
+          <h2 style={h2(t)}>{tr("dpa.s6.h2")}</h2>
           <ul style={ul}>
-            <li style={li(t)}>
-              Data is encrypted in transit and at rest by our infrastructure provider.
-            </li>
-            <li style={li(t)}>
-              Access is enforced in the database itself with row-level security, so a teacher
-              reaches their own classes and no others — not merely because the interface hides
-              the rest.
-            </li>
-            <li style={li(t)}>
-              Staff access is scoped by role, and privileged operations run server-side only.
-            </li>
-            <li style={li(t)}>Everyone with access is bound to confidentiality.</li>
+            <li style={li(t)}>{tr("dpa.s6.li1")}</li>
+            <li style={li(t)}>{tr("dpa.s6.li2")}</li>
+            <li style={li(t)}>{tr("dpa.s6.li3")}</li>
+            <li style={li(t)}>{tr("dpa.s6.li4")}</li>
           </ul>
           <p style={p(t)}>
-            <strong>Breach notification.</strong> If we suffer a personal data breach affecting
-            a school&apos;s data, we notify that school without undue delay and in any event
-            within 72 hours of becoming aware, with what we know and what we are doing about
-            it.
+            <strong>{tr("dpa.s6.p1.strong")}</strong> {tr("dpa.s6.p1.body")}
           </p>
 
           {/* --------------------------------------------------------- use --- */}
-          <h2 style={h2(t)}>7. What we will not do</h2>
+          <h2 style={h2(t)}>{tr("dpa.s7.h2")}</h2>
           <ul style={ul}>
-            <li style={li(t)}>We do not sell student data. There is no circumstance in which we would.</li>
-            <li style={li(t)}>We do not serve advertising, and we do not build advertising profiles.</li>
-            <li style={li(t)}>
-              We do not use student content to train models unless the account holder
-              explicitly opted in — and that option is not available to under-18s, which is
-              every student in a school setting below sixth form.
-            </li>
-            <li style={li(t)}>
-              We do not give staff a student&apos;s private tutoring conversations. A student
-              who believes their tutor is being read stops asking the questions that make
-              tutoring work, so the staff record covers what the student produced and what the
-              system inferred, not the transcript. The student, or a parent through the
-              student, can export the transcript in full.
-            </li>
+            <li style={li(t)}>{tr("dpa.s7.li1")}</li>
+            <li style={li(t)}>{tr("dpa.s7.li2")}</li>
+            <li style={li(t)}>{tr("dpa.s7.li3")}</li>
+            <li style={li(t)}>{tr("dpa.s7.li4")}</li>
           </ul>
 
           {/* ------------------------------------------------------ rights --- */}
-          <h2 style={h2(t)}>8. Helping the school meet its obligations</h2>
+          <h2 style={h2(t)}>{tr("dpa.s8.h2")}</h2>
           <p style={p(t)}>
-            We assist the school with data subject requests (access, correction, deletion,
-            portability), with data protection impact assessments, and with regulator
-            enquiries. Most requests are answerable directly from the dashboard; where they are
-            not, write to{" "}
+            {tr("dpa.s8.p1.a")}{" "}
             <a href="mailto:hello@thebluestift.com" style={link(t)}>
               hello@thebluestift.com
             </a>
-            . If a data subject comes to us directly, we refer them to the school rather than
-            acting on our own.
+            {tr("dpa.s8.p1.b")}
           </p>
-          <p style={p(t)}>
-            We make available the information needed to demonstrate compliance with these
-            obligations and allow for audits, on reasonable notice and without disrupting the
-            service for other schools.
-          </p>
+          <p style={p(t)}>{tr("dpa.s8.p2")}</p>
 
           {/* --------------------------------------------------- deletion --- */}
-          <h2 style={h2(t)}>9. Return and deletion</h2>
+          <h2 style={h2(t)}>{tr("dpa.s9.h2")}</h2>
           <p style={p(t)}>
-            At any time during the term the school can export its students&apos; records. When
-            the contract ends, we delete school data within{" "}
-            <strong>90 days</strong> at the school&apos;s choice of deletion or return, except
-            where a law requires us to keep something — payment records being the usual case.
+            {tr("dpa.s9.p1.a")} <strong>{tr("dpa.s9.p1.strong")}</strong> {tr("dpa.s9.p1.b")}
           </p>
-          <p style={p(t)}>
-            Deletion is real. It reaches the learning content, the uploads, the assessment
-            results and the inferred learning model, including the parts held in systems that
-            no automatic cascade would have reached.
-          </p>
+          <p style={p(t)}>{tr("dpa.s9.p2")}</p>
 
           {/* ------------------------------------------------- transfers --- */}
-          <h2 style={h2(t)}>10. International transfers</h2>
+          <h2 style={h2(t)}>{tr("dpa.s10.h2")}</h2>
           <p style={p(t)}>
-            Where a sub-processor operates outside the EEA or the UK, transfers must be
-            covered by the European Commission&apos;s Standard Contractual Clauses or an
-            adequacy decision. The location of each provider, and the current status of that
-            cover, is on the{" "}
+            {tr("dpa.s10.a")}{" "}
             <Link href="/subprocessors" style={link(t)}>
-              sub-processors page
+              {tr("dpa.s10.link")}
             </Link>
             .
           </p>
 
           <div style={note(t)}>
-            This page states the commitments we make to every school on the same terms. It is
-            not legal advice. A school that needs a countersigned document, or its own
-            paperwork on top of this, should write to{" "}
+            {tr("dpa.footer.a")}{" "}
             <a href="mailto:hello@thebluestift.com" style={link(t)}>
               hello@thebluestift.com
             </a>{" "}
-            and we will arrange it.
+            {tr("dpa.footer.b")}
           </div>
         </>
       )}
