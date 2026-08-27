@@ -43,6 +43,16 @@ export const IconTeacher = (p: IconProps) => (
   </Svg>
 );
 
+/** Globe — a circle with one meridian ellipse and the equator, for the
+ *  language switcher. */
+export const IconGlobe = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M3 12h18" />
+    <path d="M12 3c2.8 2.5 4.4 5.7 4.4 9s-1.6 6.5-4.4 9c-2.8-2.5-4.4-5.7-4.4-9s1.6-6.5 4.4-9Z" />
+  </Svg>
+);
+
 /** Student — a graduation cap. */
 export const IconStudent = (p: IconProps) => (
   <Svg {...p}>

@@ -16,6 +16,7 @@ import {
   primaryBtn,
   secondaryBtn,
 } from "@/components/ui/auth-chrome";
+import { useTranslate } from "@/components/ui/locale";
 
 /**
  * Sign-in surface (/login) — full-screen split, styled to match onboarding
@@ -35,6 +36,7 @@ export function LoginView({
 }) {
   const supabase = createClient();
   const router = useRouter();
+  const tr = useTranslate();
   const turnstileRef = useRef<TurnstileHandle>(null);
 
   const [email, setEmail] = useState("");
@@ -42,7 +44,7 @@ export function LoginView({
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(
-    initialError === "auth" ? "That sign-in link is invalid or has expired. Please try again." : null,
+    initialError === "auth" ? tr("login.err.invalidLink") : null,
   );
 
   const emailRedirectTo =
@@ -68,12 +70,12 @@ export function LoginView({
     setBusy(true);
     await supabase.auth.signOut();
     setBusy(false);
-    setMsg("Signed out. Pick how you'd like to continue.");
+    setMsg(tr("login.msg.signedOut"));
     router.refresh();
   }
 
   async function startAnonymous() {
-    if (!captchaToken) return setMsg("Complete the CAPTCHA first.");
+    if (!captchaToken) return setMsg(tr("auth.err.captcha"));
     setBusy(true);
     setMsg(null);
     try {
@@ -85,10 +87,10 @@ export function LoginView({
       });
       const data = await res.json().catch(() => null);
       resetCaptcha();
-      if (!res.ok) return setMsg(data?.error ?? "Couldn't start. Try again.");
+      if (!res.ok) return setMsg(data?.error ?? tr("auth.err.startFailed"));
       router.refresh();
     } catch {
-      setMsg("Couldn't reach the server.");
+      setMsg(tr("auth.err.network"));
     } finally {
       setBusy(false);
     }
@@ -96,7 +98,7 @@ export function LoginView({
 
   async function sendEmailLink() {
     if (!email) return;
-    if (!captchaToken) return setMsg("Complete the CAPTCHA first.");
+    if (!captchaToken) return setMsg(tr("auth.err.captcha"));
     setBusy(true);
     setMsg(null);
     await clearPendingSession();
@@ -107,12 +109,12 @@ export function LoginView({
     setBusy(false);
     resetCaptcha();
     if (error) return setMsg(error.message);
-    setMsg(`Link sent to ${email}. Check your inbox.`);
+    setMsg(`${tr("auth.msg.linkSent.a")} ${email}. ${tr("auth.msg.linkSent.b")}`);
   }
 
   async function recoverWithKey() {
     if (!recoveryCode.trim()) return;
-    if (!captchaToken) return setMsg("Complete the CAPTCHA first.");
+    if (!captchaToken) return setMsg(tr("auth.err.captcha"));
     setBusy(true);
     setMsg(null);
     try {
@@ -125,20 +127,20 @@ export function LoginView({
       const data = await res.json().catch(() => null);
       if (!res.ok) {
         resetCaptcha();
-        return setMsg(data?.error ?? "Recovery failed.");
+        return setMsg(data?.error ?? tr("auth.err.recoveryFailed"));
       }
       if (data.status === "recovered") {
-        setMsg("Good to see you again — signing in…");
+        setMsg(tr("auth.msg.recovered"));
         router.refresh();
         router.push("/account");
         return;
       }
       resetCaptcha();
       if (data.status === "sent")
-        setMsg("If that key is valid, a sign-in link was sent to the account. Check your inbox.");
-      else setMsg("That recovery key isn't valid.");
+        setMsg(tr("auth.msg.keySent"));
+      else setMsg(tr("auth.err.keyInvalid"));
     } catch {
-      setMsg("Couldn't reach the server.");
+      setMsg(tr("auth.err.network"));
     } finally {
       setBusy(false);
     }
@@ -147,7 +149,7 @@ export function LoginView({
   const back = (
     <div style={{ marginBottom: 8 }}>
       <Link href="/" style={{ fontSize: 14, color: "#64748b", textDecoration: "none" }}>
-        ← Back to bluestift.com
+        {tr("login.backToSite")}
       </Link>
     </div>
   );
@@ -155,9 +157,9 @@ export function LoginView({
   return (
     <AuthSplit back={back}>
       <h1 style={heading}>
-        Sign in to <RayaName /> &amp; <SchoolsName />
+        {tr("login.heading")} <RayaName /> &amp; <SchoolsName />
       </h1>
-      <p style={sub}>Continue with email, a recovery key, or start anonymously — one account for everything.</p>
+      <p style={sub}>{tr("login.sub")}</p>
 
       {/* Half-finished setup: resume it, or walk away and choose another method. */}
       {pendingSetup && (
@@ -171,22 +173,21 @@ export function LoginView({
           }}
         >
           <p style={{ margin: "0 0 10px", fontSize: 15, lineHeight: 1.6, color: "#7c5b16" }}>
-            You have an unfinished setup on this device. Pick up where you left off, or
-            sign out and choose a different way in.
+            {tr("login.pending.note")}
           </p>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <Link
               href="/onboarding"
               style={{ ...secondaryBtn, padding: "9px 14px", fontSize: 14, textDecoration: "none", display: "inline-block" }}
             >
-              Continue setup
+              {tr("login.pending.continue")}
             </Link>
             <button
               style={{ ...secondaryBtn, padding: "9px 14px", fontSize: 14, opacity: busy ? 0.5 : 1 }}
               onClick={leaveSetup}
               disabled={busy}
             >
-              Use a different method
+              {tr("login.pending.switchMethod")}
             </button>
           </div>
         </div>
@@ -197,12 +198,12 @@ export function LoginView({
       </div>
 
       {/* Returning users: an email link signs you back into your existing account. */}
-      <label style={fieldLabel}>Have an account? Sign in by email</label>
+      <label style={fieldLabel}>{tr("login.emailLabel")}</label>
       <div style={{ display: "flex", gap: 8, marginBottom: 4 }}>
         <input
           style={{ ...fieldInput, marginBottom: 0, flex: 1 }}
           type="email"
-          placeholder="you@email.com"
+          placeholder={tr("auth.login.emailPlaceholder")}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
@@ -211,17 +212,17 @@ export function LoginView({
           onClick={sendEmailLink}
           disabled={busy || !email || !captchaToken}
         >
-          Send link
+          {tr("login.sendLink")}
         </button>
       </div>
 
       {/* Recovery key. */}
-      <label style={{ ...fieldLabel, marginTop: 16 }}>Lost access? Use your recovery key</label>
+      <label style={{ ...fieldLabel, marginTop: 16 }}>{tr("auth.login.recoveryLabel")}</label>
       <div style={{ display: "flex", gap: 8 }}>
         <input
           style={{ ...fieldInput, marginBottom: 0, flex: 1, letterSpacing: "0.08em" }}
           type="text"
-          placeholder="Recovery key"
+          placeholder={tr("login.recoveryPlaceholder")}
           value={recoveryCode}
           onChange={(e) => setRecoveryCode(e.target.value)}
         />
@@ -230,13 +231,13 @@ export function LoginView({
           onClick={recoverWithKey}
           disabled={busy || !recoveryCode.trim() || !captchaToken}
         >
-          Recover
+          {tr("auth.login.recoverBtn")}
         </button>
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "22px 0 16px" }}>
         <span style={{ flex: 1, height: 1, background: "#e6ecf3" }} />
-        <span style={{ fontSize: 13, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em" }}>New here</span>
+        <span style={{ fontSize: 13, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em" }}>{tr("login.newHereDivider")}</span>
         <span style={{ flex: 1, height: 1, background: "#e6ecf3" }} />
       </div>
 
@@ -245,7 +246,7 @@ export function LoginView({
         onClick={startAnonymous}
         disabled={busy || !captchaToken}
       >
-        Start anonymously — no email needed
+        {tr("login.startAnonymous")}
       </button>
 
       {msg && <p style={{ marginTop: 14, color: "#475569", fontSize: 15, textAlign: "center" }}>{msg}</p>}

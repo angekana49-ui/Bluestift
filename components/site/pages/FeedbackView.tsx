@@ -7,6 +7,8 @@ import type { Theme } from "@/components/site/theme";
 import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
 import { IconLightbulb, IconBug, IconSparkle, IconHeart, IconChatBubble, IconStar } from "@/components/site/icons";
 import { pageColumn, pageH1, pageSection, serifEm } from "@/components/site/layout";
+import { useTranslate } from "@/components/ui/locale";
+import type { MessageKey } from "@/lib/i18n";
 
 type IconEl = ComponentType<{ size?: number; filled?: boolean }>;
 
@@ -44,15 +46,16 @@ function ParticleBurst({ particles }: { particles: Particle[] }) {
   );
 }
 
-const TYPES: [string, string, IconEl][] = [
-  ["suggestion", "Suggestion", IconLightbulb],
-  ["bug", "Bug", IconBug],
-  ["feature", "Feature", IconSparkle],
-  ["praise", "Praise", IconHeart],
-  ["other", "Other", IconChatBubble],
+const TYPES: [string, MessageKey, IconEl][] = [
+  ["suggestion", "feedback.type.suggestion", IconLightbulb],
+  ["bug", "feedback.type.bug", IconBug],
+  ["feature", "feedback.type.feature", IconSparkle],
+  ["praise", "feedback.type.praise", IconHeart],
+  ["other", "onb.other", IconChatBubble],
 ];
 
 export function FeedbackView({ signedIn }: { signedIn: boolean }) {
+  const tr = useTranslate();
   const [type, setType] = useState("suggestion");
   const [rating, setRating] = useState(0);
   const [message, setMessage] = useState("");
@@ -130,10 +133,10 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
         <section style={pageSection}>
           <div style={pageColumn("form")}>
             <h1 style={pageH1(t)}>
-              Your <em style={{ ...serifEm, color: t.wordmarkB }}>feedback.</em>
+              {tr("feedback.title.a")} <em style={{ ...serifEm, color: t.wordmarkB }}>{tr("feedback.title.em")}</em>
             </h1>
             <p style={{ fontSize: 15, color: t.text, lineHeight: 1.7, margin: "0 0 28px" }}>
-              A bug, an idea, something you loved or that annoyed you — we want it all, and we read it all.
+              {tr("feedback.sub")}
             </p>
 
             {state === "done" ? (
@@ -141,13 +144,13 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
                 <div style={{ display: "flex", justifyContent: "center", marginBottom: 10, color: t.wordmarkB }}>
                   <IconHeart size={34} filled />
                 </div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: t.wordmarkB, marginBottom: 6 }}>Thank you!</div>
-                <p style={{ fontSize: 14, color: t.muted, margin: 0 }}>Your feedback has been sent to the team.</p>
+                <div style={{ fontSize: 18, fontWeight: 700, color: t.wordmarkB, marginBottom: 6 }}>{tr("feedback.done.title")}</div>
+                <p style={{ fontSize: 14, color: t.muted, margin: 0 }}>{tr("feedback.done.body")}</p>
               </div>
             ) : (
               <div style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: 20, padding: 24, display: "flex", flexDirection: "column", gap: 14, boxShadow: t.cardShadow }}>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {TYPES.map(([k, l, Icon]) => {
+                  {TYPES.map(([k, labelKey, Icon]) => {
                     const on = type === k;
                     const praiseOn = k === "praise" && on;
                     return (
@@ -175,14 +178,14 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
                         <span style={{ display: "inline-flex", color: praiseOn ? PRAISE_RED : undefined, transform: praiseOn ? "scale(1.15)" : "none", transition: "transform 0.2s ease" }}>
                           <Icon size={14} filled={praiseOn} />
                         </span>
-                        {l}
+                        {tr(labelKey)}
                       </button>
                     );
                   })}
                 </div>
 
                 <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <span style={{ marginRight: 4, fontSize: 14, color: t.muted }}>Rating:</span>
+                  <span style={{ marginRight: 4, fontSize: 14, color: t.muted }}>{tr("feedback.rating.label")}</span>
                   {[1, 2, 3, 4, 5].map((n) => (
                     <button
                       key={n}
@@ -191,7 +194,7 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
                         setRating(next);
                         if (next >= 4) celebrate("star");
                       }}
-                      aria-label={`${n} star${n > 1 ? "s" : ""}`}
+                      aria-label={`${n} ${n > 1 ? tr("feedback.rating.star.plural") : tr("feedback.rating.star.singular")}`}
                       style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "inline-flex", color: n <= rating ? "#f5a623" : t.mutedLight }}
                     >
                       <IconStar size={20} filled={n <= rating} />
@@ -200,15 +203,15 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
                 </div>
 
                 <textarea
-                  placeholder="Tell us everything…"
+                  placeholder={tr("feedback.form.messagePlaceholder")}
                   rows={5}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   style={{ ...input(t), resize: "vertical", lineHeight: 1.6 }}
                 />
-                <input placeholder="Your email if you'd like a reply (optional)" type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={input(t)} />
+                <input placeholder={tr("feedback.form.emailPlaceholder")} type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={input(t)} />
                 <Turnstile ref={turnstileRef} onVerify={setCaptchaToken} onExpire={() => setCaptchaToken(null)} />
-                {state === "error" && <span style={{ fontSize: 13, color: "#ef4444" }}>Couldn&apos;t send — try again.</span>}
+                {state === "error" && <span style={{ fontSize: 13, color: "#ef4444" }}>{tr("feedback.form.error")}</span>}
                 <button
                   onClick={submit}
                   disabled={!canSend || state === "busy"}
@@ -224,7 +227,7 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
                     cursor: canSend && state !== "busy" ? "pointer" : "default",
                   }}
                 >
-                  {state === "busy" ? "Sending…" : "Send feedback"}
+                  {state === "busy" ? tr("feedback.form.sending") : tr("feedback.form.send")}
                 </button>
               </div>
             )}

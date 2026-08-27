@@ -9,6 +9,7 @@ import { ipCountryFromHeaders, formatMoney } from "@/lib/billing/regions";
 import { getPaymentProvider, sandboxBlockedInProd, type PaymentChannel } from "@/lib/billing/payments";
 import { isAnnualTerm, termTotal } from "@/lib/billing/terms";
 import { CheckoutPanel } from "@/components/checkout/CheckoutPanel";
+import { getServerTranslate } from "@/lib/i18n/server";
 
 export const metadata = { title: "BlueStift · Checkout" };
 
@@ -45,6 +46,7 @@ export default async function CheckoutPage({
   const audience = audParam === "b2b" ? "b2b" : "b2c";
   const planId = (planParam ?? "").trim();
   if (!planId) redirect("/pricing");
+  const tr = await getServerTranslate();
 
   const supabase = await createClient();
   const {
@@ -115,25 +117,32 @@ export default async function CheckoutPage({
     <main style={shell}>
       <div style={card}>
         <Link href="/pricing" style={{ fontSize: 14, color: "#64748b", textDecoration: "none" }}>
-          ← Plans
+          {tr("checkout.backToPlans")}
         </Link>
 
         <h1 style={{ fontSize: "1.4rem", fontWeight: 900, letterSpacing: "-0.02em", color: "#0b1220", margin: "14px 0 4px" }}>
-          Checkout
+          {tr("checkout.title")}
         </h1>
         <p style={{ fontSize: 15, color: "#64748b", margin: 0 }}>{plan!.name}</p>
 
         {/* Order summary */}
         <div style={{ background: "#f6f8fc", border: "1px solid #eef2f8", borderRadius: 14, padding: "14px 16px", margin: "18px 0 20px" }}>
-          <Row label="Plan" value={plan!.name} />
-          {perSeat && <Row label="Seats" value={seats ? String(seats) : "—"} />}
-          <Row label="Term" value={annual ? `${months} months · annual` : `${months} month${months > 1 ? "s" : ""}`} />
+          <Row label={tr("checkout.row.plan")} value={plan!.name} />
+          {perSeat && <Row label={tr("checkout.row.seats")} value={seats ? String(seats) : "—"} />}
+          <Row
+            label={tr("checkout.row.term")}
+            value={
+              annual
+                ? `${months} ${tr("checkout.month.plural")} · ${tr("checkout.term.annual")}`
+                : `${months} ${months > 1 ? tr("checkout.month.plural") : tr("checkout.month.singular")}`
+            }
+          />
           {saved > 0 && (
-            <Row label="Annual discount" value={`−${formatMoney(saved, currency)}`} />
+            <Row label={tr("checkout.row.discount")} value={`−${formatMoney(saved, currency)}`} />
           )}
           <div style={{ height: 1, background: "#e6ebf3", margin: "10px 0" }} />
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: "#0b1220" }}>Total</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: "#0b1220" }}>{tr("checkout.row.total")}</span>
             <span style={{ fontSize: "1.35rem", fontWeight: 900, color: "#0b1220", letterSpacing: "-0.02em" }}>
               {total != null ? formatMoney(total, currency) : "—"}
             </span>
@@ -154,11 +163,10 @@ export default async function CheckoutPage({
             }}
           >
             <p style={{ fontSize: 15, fontWeight: 700, color: "#0b1220", margin: "0 0 6px" }}>
-              Online payment isn&apos;t open yet.
+              {tr("checkout.paymentsOff.title")}
             </p>
             <p style={{ fontSize: 14.5, color: "#475569", lineHeight: 1.6, margin: "0 0 14px" }}>
-              The price above is the real one. We&apos;re finishing the payment channel — until it&apos;s live,
-              schools are activated by hand and it takes a day.
+              {tr("checkout.paymentsOff.body")}
             </p>
             <Link
               href="/contact"
@@ -173,13 +181,13 @@ export default async function CheckoutPage({
                 textDecoration: "none",
               }}
             >
-              Talk to us
+              {tr("checkout.paymentsOff.cta")}
             </Link>
           </div>
         ) : !user ? (
           <div style={{ textAlign: "center" }}>
             <p style={{ fontSize: 15, color: "#334155", lineHeight: 1.6, margin: "0 0 14px" }}>
-              Sign in to complete your purchase.
+              {tr("checkout.signIn.prompt")}
             </p>
             <Link
               href="/login"
@@ -194,24 +202,24 @@ export default async function CheckoutPage({
                 textDecoration: "none",
               }}
             >
-              Sign in
+              {tr("site.nav.signIn")}
             </Link>
           </div>
         ) : perSeat && !seats ? (
           <p style={{ fontSize: 15, color: "#dc2626", lineHeight: 1.6, textAlign: "center" }}>
-            No seat count set. Start this checkout from your school&apos;s Billing tab so the number of students is included.
+            {tr("checkout.noSeats")}
           </p>
         ) : (
           <>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.08em", color: "#94a3b8", textTransform: "uppercase", marginBottom: 10 }}>
-              Choose how to pay
+              {tr("checkout.choosePayment")}
             </div>
             <CheckoutPanel planId={plan!.id} audience={audience} channels={channels} months={months} seats={seats} />
           </>
         )}
 
         <p style={{ fontSize: 13, color: "#94a3b8", textAlign: "center", marginTop: 18, lineHeight: 1.6 }}>
-          Payments are processed by our provider. You&apos;ll be redirected to a secure checkout.
+          {tr("checkout.footerNote")}
         </p>
       </div>
     </main>

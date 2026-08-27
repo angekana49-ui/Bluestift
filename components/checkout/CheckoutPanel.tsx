@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslate } from "@/components/ui/locale";
+import type { MessageKey } from "@/lib/i18n";
 
 type Channel = "card" | "mobile_money" | "paypal";
 
-const METHOD: Record<Channel, { label: string; sub: string; emoji: string }> = {
-  card: { label: "Card / Virtual card", sub: "Visa · Mastercard", emoji: "💳" },
-  mobile_money: { label: "Mobile Money", sub: "MTN · Orange · Moov · Wave", emoji: "📱" },
-  paypal: { label: "PayPal", sub: "Pay with your PayPal balance", emoji: "🅿️" },
+const METHOD: Record<Channel, { labelKey: MessageKey; subKey: MessageKey; emoji: string }> = {
+  card: { labelKey: "checkout.method.card", subKey: "checkout.method.card.sub", emoji: "💳" },
+  mobile_money: { labelKey: "checkout.method.mobileMoney", subKey: "checkout.method.mobileMoney.sub", emoji: "📱" },
+  paypal: { labelKey: "checkout.method.paypal", subKey: "checkout.method.paypal.sub", emoji: "🅿️" },
 };
 
 /**
@@ -28,6 +30,7 @@ export function CheckoutPanel({
   months: number;
   seats?: number | null;
 }) {
+  const tr = useTranslate();
   const [busy, setBusy] = useState<Channel | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,13 +45,13 @@ export function CheckoutPanel({
       });
       const data = await res.json();
       if (!res.ok || !data.url) {
-        setError(data.error ?? "Could not start checkout.");
+        setError(data.error ?? tr("checkout.err.startFailed"));
         setBusy(null);
         return;
       }
       window.location.href = data.url as string;
     } catch {
-      setError("Network error — please try again.");
+      setError(tr("checkout.err.network"));
       setBusy(null);
     }
   }
@@ -79,11 +82,11 @@ export function CheckoutPanel({
           >
             <span style={{ fontSize: 25, width: 26, textAlign: "center" }}>{m.emoji}</span>
             <span style={{ flex: 1 }}>
-              <span style={{ display: "block", fontSize: 16, fontWeight: 700, color: "#0b1220" }}>{m.label}</span>
-              <span style={{ display: "block", fontSize: 14, color: "#64748b", marginTop: 1 }}>{m.sub}</span>
+              <span style={{ display: "block", fontSize: 16, fontWeight: 700, color: "#0b1220" }}>{tr(m.labelKey)}</span>
+              <span style={{ display: "block", fontSize: 14, color: "#64748b", marginTop: 1 }}>{tr(m.subKey)}</span>
             </span>
             <span style={{ fontSize: 14, fontWeight: 600, color: loading ? "#64748b" : "#2563eb" }}>
-              {loading ? "Redirecting…" : "Pay →"}
+              {loading ? tr("checkout.redirecting") : tr("checkout.payArrow")}
             </span>
           </button>
         );

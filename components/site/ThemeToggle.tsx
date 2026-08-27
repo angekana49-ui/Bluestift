@@ -1,6 +1,7 @@
 "use client";
 
 import type { Theme } from "./theme";
+import { useTranslate } from "@/components/ui/locale";
 
 /**
  * Day/Night pill switch (66×30, box-sizing:border-box — required, otherwise the
@@ -17,8 +18,9 @@ export default function ThemeToggle({
   isDark: boolean;
   onToggle: () => void;
 }) {
+  const tr = useTranslate();
   const knobLeft = isDark ? "41px" : "3px";
-  const modeLabel = isDark ? "Night" : "Day";
+  const modeLabel = isDark ? tr("theme.night") : tr("theme.day");
   const labelSide: "left" | "right" = isDark ? "left" : "right";
   const labelColor = isDark ? "#e2e8f0" : "#64748b";
 
@@ -26,8 +28,8 @@ export default function ThemeToggle({
     <button
       type="button"
       onClick={onToggle}
-      aria-label="Switch theme"
-      title="Switch theme"
+      aria-label={tr("theme.switchAria")}
+      title={tr("theme.switchAria")}
       style={{
         position: "relative",
         display: "inline-flex",

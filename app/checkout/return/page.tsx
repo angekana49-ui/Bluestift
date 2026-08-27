@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { getPaymentById } from "@/lib/billing/payments-data";
+import { getServerTranslate } from "@/lib/i18n/server";
+import type { MessageKey } from "@/lib/i18n";
 
 export const metadata = { title: "BlueStift · Payment" };
 
@@ -16,15 +18,16 @@ export default async function CheckoutReturnPage({
   const { pid } = await searchParams;
   const payment = pid ? await getPaymentById(pid) : null;
   const status = payment?.status ?? "unknown";
+  const tr = await getServerTranslate();
 
   const view =
     status === "paid"
-      ? { emoji: "✅", title: "You're all set", body: "Your payment went through and your plan is now active.", cta: audienceHome(payment?.audience) }
+      ? { emoji: "✅", title: tr("checkout.return.paid.title"), body: tr("checkout.return.paid.body"), cta: audienceHome(payment?.audience, tr) }
       : status === "pending"
-        ? { emoji: "⏳", title: "Payment processing", body: "We're confirming your payment. This page will reflect the final status shortly — you can safely refresh.", cta: { href: "/pricing", label: "Back to plans" } }
+        ? { emoji: "⏳", title: tr("checkout.return.pending.title"), body: tr("checkout.return.pending.body"), cta: { href: "/pricing", label: tr("checkout.return.pending.cta") } }
         : status === "failed" || status === "cancelled" || status === "expired"
-          ? { emoji: "⚠️", title: "Payment didn't complete", body: "No charge was made. You can try again with another method.", cta: { href: "/pricing", label: "Try again" } }
-          : { emoji: "❓", title: "Payment not found", body: "We couldn't find this checkout. If you were charged, contact support.", cta: { href: "/contact", label: "Contact us" } };
+          ? { emoji: "⚠️", title: tr("checkout.return.failed.title"), body: tr("checkout.return.failed.body"), cta: { href: "/pricing", label: tr("checkout.return.failed.cta") } }
+          : { emoji: "❓", title: tr("checkout.return.notfound.title"), body: tr("checkout.return.notfound.body"), cta: { href: "/contact", label: tr("checkout.return.notfound.cta") } };
 
   return (
     <main
@@ -74,6 +77,8 @@ export default async function CheckoutReturnPage({
   );
 }
 
-function audienceHome(audience?: string): { href: string; label: string } {
-  return audience === "b2b" ? { href: "/school", label: "Go to your school" } : { href: "/chat", label: "Open Raya" };
+function audienceHome(audience: string | undefined, tr: (key: MessageKey) => string): { href: string; label: string } {
+  return audience === "b2b"
+    ? { href: "/school", label: tr("checkout.return.paid.ctaSchool") }
+    : { href: "/chat", label: tr("checkout.return.paid.ctaRaya") };
 }

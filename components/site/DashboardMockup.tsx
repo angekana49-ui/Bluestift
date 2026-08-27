@@ -1,6 +1,8 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { Theme } from "./theme";
 import { RayaName, SchoolsName } from "@/components/ui/brand";
+import { useTranslate } from "@/components/ui/locale";
+import type { MessageKey } from "@/lib/i18n";
 import {
   IconBilling,
   IconChat,
@@ -54,26 +56,26 @@ const at = (ms: number) => ({ "--d": `${ms}ms` }) as CSSProperties;
 /** The admin sidebar, item for item. "Classes & codes" is the real label — the
  *  tab manages both — and LMS stays absent here because it is hidden in the
  *  app until the Google OAuth integration is provisioned. */
-const NAV: { key: string; label: ReactNode; icon: ReactNode }[] = [
-  { key: "overview", label: "Overview", icon: <IconOverview size={15} /> },
-  { key: "manage", label: "Classes & codes", icon: <IconClasses size={15} /> },
-  { key: "team", label: "Team", icon: <IconRooms size={15} /> },
-  { key: "insights", label: "Insights", icon: <IconKernel size={15} /> },
+const NAV: { key: string; labelKey?: MessageKey; label?: ReactNode; icon: ReactNode }[] = [
+  { key: "overview", labelKey: "nav.overview", icon: <IconOverview size={15} /> },
+  { key: "manage", labelKey: "nav.classesCodes", icon: <IconClasses size={15} /> },
+  { key: "team", labelKey: "nav.team", icon: <IconRooms size={15} /> },
+  { key: "insights", labelKey: "nav.insights", icon: <IconKernel size={15} /> },
   { key: "raya", label: <RayaName />, icon: <IconChat size={15} /> },
-  { key: "reports", label: "Reports", icon: <IconSummary size={15} /> },
-  { key: "billing", label: "Billing", icon: <IconBilling size={15} /> },
-  { key: "settings", label: "Settings", icon: <IconSettings size={15} /> },
+  { key: "reports", labelKey: "nav.reports", icon: <IconSummary size={15} /> },
+  { key: "billing", labelKey: "nav.billing", icon: <IconBilling size={15} /> },
+  { key: "settings", labelKey: "nav.settings", icon: <IconSettings size={15} /> },
 ];
 
 const SCHOOL = "Northgate Academy";
 
 const TOTALS = { students: 1204, active: 482, alerts: 47, mastery: 0.83 };
 
-const CLASSES: { name: string; students: number; active: number; alerts: number; mastery: number }[] = [
-  { name: "Year 9 · Mathematics", students: 128, active: 96, alerts: 3, mastery: 0.88 },
-  { name: "Year 10 · Physics", students: 112, active: 74, alerts: 12, mastery: 0.71 },
-  { name: "Year 8 · French", students: 141, active: 103, alerts: 0, mastery: 0.61 },
-  { name: "Year 11 · Biology", students: 96, active: 88, alerts: 0, mastery: 0.84 },
+const CLASSES: { id: string; yearKey: MessageKey; subjectKey: MessageKey; students: number; active: number; alerts: number; mastery: number }[] = [
+  { id: "maths9", yearKey: "shot.year.9", subjectKey: "shot.subject.mathematics", students: 128, active: 96, alerts: 3, mastery: 0.88 },
+  { id: "physics10", yearKey: "shot.year.10", subjectKey: "onb.subject.physics", students: 112, active: 74, alerts: 12, mastery: 0.71 },
+  { id: "french8", yearKey: "shot.year.8", subjectKey: "shot.subject.french", students: 141, active: 103, alerts: 0, mastery: 0.61 },
+  { id: "biology11", yearKey: "shot.year.11", subjectKey: "onb.subject.biology", students: 96, active: 88, alerts: 0, mastery: 0.84 },
 ];
 
 /** The app's own thresholds (`masteryColor` in components/school-admin.tsx). */
@@ -81,6 +83,7 @@ const masteryColor = (m: number) => (m >= 0.7 ? "#22c55e" : m >= 0.5 ? "#f59e0b"
 const pct = (m: number) => `${Math.round(m * 100)}%`;
 
 export default function DashboardMockup({ theme: t }: { theme: Theme }) {
+  const tr = useTranslate();
   const panel: CSSProperties = { border: `1px solid ${t.cardBorder}`, borderRadius: 18, padding: 14 };
   const panelTitle: CSSProperties = {
     fontSize: 11,
@@ -165,7 +168,7 @@ export default function DashboardMockup({ theme: t }: { theme: Theme }) {
               }}
             >
               {n.icon}
-              {n.label}
+              {n.label ?? tr(n.labelKey!)}
             </div>
           );
         })}
@@ -192,7 +195,7 @@ export default function DashboardMockup({ theme: t }: { theme: Theme }) {
           </span>
           <span style={{ minWidth: 0, lineHeight: 1.3 }}>
             <span style={{ display: "block", fontSize: 13, fontWeight: 600 }}>Amina Diallo</span>
-            <span style={{ display: "block", fontSize: 12, color: t.mutedLight }}>School plan</span>
+            <span style={{ display: "block", fontSize: 12, color: t.mutedLight }}>{tr("dm.schoolPlan")}</span>
           </span>
         </div>
       </aside>
@@ -222,7 +225,7 @@ export default function DashboardMockup({ theme: t }: { theme: Theme }) {
           </span>
           <span style={{ minWidth: 0, lineHeight: 1.25 }}>
             <span style={{ display: "block", fontSize: 17, fontWeight: 800, fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif" }}>{SCHOOL}</span>
-            <span style={{ display: "block", fontSize: 13, color: t.muted, fontWeight: 500 }}>Overview</span>
+            <span style={{ display: "block", fontSize: 13, color: t.muted, fontWeight: 500 }}>{tr("nav.overview")}</span>
           </span>
         </div>
 
@@ -233,25 +236,27 @@ export default function DashboardMockup({ theme: t }: { theme: Theme }) {
                 settles at 860ms) is still finishing, so the two read as one
                 arrival rather than as two waits. */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 10, marginBottom: 16 }}>
-              {statTile("Students", TOTALS.students.toLocaleString("en-US"), 700)}
-              {statTile("Active (7d)", TOTALS.active.toLocaleString("en-US"), 760)}
-              {statTile("Struggling", String(TOTALS.alerts), 820)}
-              {statTile("Average mastery", pct(TOTALS.mastery), 880)}
+              {statTile(tr("dm.students"), TOTALS.students.toLocaleString("en-US"), 700)}
+              {statTile(tr("dm.activeWeek"), TOTALS.active.toLocaleString("en-US"), 760)}
+              {statTile(tr("dm.struggling"), String(TOTALS.alerts), 820)}
+              {statTile(tr("dm.avgMastery"), pct(TOTALS.mastery), 880)}
             </div>
 
-            <div style={{ fontSize: 14, fontWeight: 700, margin: "0 0 10px" }}>{SCHOOL} · by class</div>
+            <div style={{ fontSize: 14, fontWeight: 700, margin: "0 0 10px" }}>{SCHOOL} · {tr("dm.byClass")}</div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {CLASSES.map((c, i) => (
                 <div
-                  key={c.name}
+                  key={c.id}
                   className="pub-hero-tile"
                   style={{ ...at(920 + i * 70), ...panel, display: "flex", alignItems: "center", gap: 12, padding: "11px 14px" }}
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.name}</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {tr(c.yearKey)} · {tr(c.subjectKey)}
+                    </div>
                     <div style={{ fontSize: 13, color: t.mutedLight }}>
-                      {c.students} students · {c.active} active
+                      {c.students} {tr("dm.studentsWord")} · {c.active} {tr("dm.activeWord")}
                     </div>
                   </div>
 
@@ -268,7 +273,7 @@ export default function DashboardMockup({ theme: t }: { theme: Theme }) {
                         fontWeight: 600,
                       }}
                     >
-                      {c.alerts} alerts
+                      {c.alerts} {tr("dm.alertsWord")}
                     </span>
                   )}
 
@@ -289,7 +294,7 @@ export default function DashboardMockup({ theme: t }: { theme: Theme }) {
           {/* Right column — the overview's right panel, in its real order. */}
           <div className="pub-hide-sm" style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
             <div style={panel}>
-              <div style={panelTitle}>Kernel — overall mastery</div>
+              <div style={panelTitle}>{tr("dm.kernelMasteryTitle")}</div>
               <svg viewBox="0 0 160 96" style={{ width: "100%", display: "block" }}>
                 <defs>
                   <linearGradient id="kernelGaugeFill" x1="0" x2="1" y1="0" y2="0">
@@ -316,27 +321,29 @@ export default function DashboardMockup({ theme: t }: { theme: Theme }) {
                   {pct(TOTALS.mastery)}
                 </text>
                 <text x="80" y="79" textAnchor="middle" fontSize="8" fill={t.mutedLight}>
-                  {TOTALS.students.toLocaleString("en-US")} students tracked
+                  {TOTALS.students.toLocaleString("en-US")} {tr("dm.studentsTracked")}
                 </text>
               </svg>
             </div>
 
             <div style={panel}>
-              <div style={panelTitle}>Alerts</div>
+              <div style={panelTitle}>{tr("dm.alertsTitle")}</div>
               <div style={{ background: t.inputFieldBg, borderRadius: 12, padding: 10 }}>
-                <div style={{ fontSize: 14, fontWeight: 600 }}>{TOTALS.alerts} students struggling</div>
-                <div style={{ fontSize: 13, color: t.muted, marginTop: 2 }}>{TOTALS.active} active over 7 days</div>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>{TOTALS.alerts} {tr("dm.studentsStruggling")}</div>
+                <div style={{ fontSize: 13, color: t.muted, marginTop: 2 }}>{TOTALS.active} {tr("dm.activeOver7Days")}</div>
               </div>
             </div>
 
             <div style={panel}>
-              <div style={panelTitle}>Needs attention</div>
+              <div style={panelTitle}>{tr("dm.needsAttention")}</div>
               {[...CLASSES]
                 .sort((a, b) => a.mastery - b.mastery)
                 .slice(0, 2)
                 .map((c) => (
-                  <div key={c.name} style={{ display: "flex", alignItems: "baseline", gap: 8, fontSize: 13, marginTop: 6 }}>
-                    <span style={{ flex: 1, minWidth: 0, color: t.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.name}</span>
+                  <div key={c.id} style={{ display: "flex", alignItems: "baseline", gap: 8, fontSize: 13, marginTop: 6 }}>
+                    <span style={{ flex: 1, minWidth: 0, color: t.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {tr(c.yearKey)} · {tr(c.subjectKey)}
+                    </span>
                     <span style={{ fontWeight: 600, color: masteryColor(c.mastery) }}>{pct(c.mastery)}</span>
                   </div>
                 ))}

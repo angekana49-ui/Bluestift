@@ -12,6 +12,8 @@ import {
 } from "react";
 import type { Theme } from "./theme";
 import { RayaName } from "@/components/ui/brand";
+import { useTranslate } from "@/components/ui/locale";
+import type { MessageKey } from "@/lib/i18n";
 // The app's own icons, not a second set drawn for the site. They take a `style`
 // that lands after the `width`/`height` attributes, which is what lets a shot
 // size them in `u()` like everything else instead of pinning them to raw px.
@@ -493,28 +495,28 @@ function Streamed({ text, from }: { text: string; from: number }) {
  * untouched one to put it on.)
  */
 const KC_STATUS = {
-  mastered: { label: "Mastered", color: "#22c55e" },
-  partial: { label: "In progress", color: "#f59e0b" },
-  gap: { label: "To work on", color: "#ef4444" },
-} as const;
+  mastered: { labelKey: "shot.status.mastered", color: "#22c55e" },
+  partial: { labelKey: "shot.status.inProgress", color: "#f59e0b" },
+  gap: { labelKey: "shot.status.toWork", color: "#ef4444" },
+} as const satisfies Record<string, { labelKey: MessageKey; color: string }>;
 
 /**
  * The Kernel's three axes. A concept is never one number in this product —
  * knowing it, retaining it and applying it are measured apart, and the gap
  * between them is the diagnosis. Colours are the app's.
  */
-const AXES: { key: "k" | "v" | "p"; label: string; color: string }[] = [
-  { key: "k", label: "Knowledge (K)", color: "#2f7fe0" },
-  { key: "v", label: "Retention (V)", color: "#8b5cf6" },
-  { key: "p", label: "Application (P)", color: "#06b6d4" },
+const AXES: { key: "k" | "v" | "p"; labelKey: MessageKey; color: string }[] = [
+  { key: "k", labelKey: "shot.axis.knowledge", color: "#2f7fe0" },
+  { key: "v", labelKey: "shot.axis.retention", color: "#8b5cf6" },
+  { key: "p", labelKey: "shot.axis.application", color: "#06b6d4" },
 ];
 
-const CONCEPTS: { label: string; status: keyof typeof KC_STATUS; last: string; k: number; v: number; p: number }[] = [
-  { label: "The unit circle", status: "mastered", last: "2 days ago", k: 91, v: 84, p: 88 },
-  { label: "Photosynthesis", status: "partial", last: "yesterday", k: 72, v: 55, p: 61 },
+const CONCEPTS: { id: string; labelKey: MessageKey; status: keyof typeof KC_STATUS; lastKey: MessageKey; k: number; v: number; p: number }[] = [
+  { id: "unitCircle", labelKey: "shot.topic.unitCircle", status: "mastered", lastKey: "shot.kernel.lastUnitCircle", k: 91, v: 84, p: 88 },
+  { id: "photosynthesis", labelKey: "shot.topic.photosynthesis", status: "partial", lastKey: "shot.kernel.lastPhotosynthesis", k: 72, v: 55, p: 61 },
   // The one that matters: known on paper, gone a week later, unusable in a
   // problem. A single grade averages those three into one reassuring number.
-  { label: "Dividing fractions", status: "gap", last: "today", k: 34, v: 21, p: 29 },
+  { id: "dividingFractions", labelKey: "shot.topic.dividingFractions", status: "gap", lastKey: "shot.kernel.lastDividingFractions", k: 34, v: 21, p: 29 },
 ];
 
 const OVERALL = 68;
@@ -528,6 +530,7 @@ const MINDSET_M = 74;
  * 160×96 arc, the same 188-unit dash, the same four-stop gradient.
  */
 export function KernelShot({ theme: t }: { theme: Theme }) {
+  const tr = useTranslate();
   const axisRow = (label: string, value: number, color: string, beat: number) => (
     <div key={label} style={{ display: "flex", alignItems: "center", gap: u(5) }}>
       <span style={{ flex: "none", width: u(48), fontSize: u(7.5), color: t.muted }}>{label}</span>
@@ -549,17 +552,17 @@ export function KernelShot({ theme: t }: { theme: Theme }) {
         <div className="shot-in" style={{ display: "flex", alignItems: "center", gap: u(8) }}>
           <span style={{ flex: 1, minWidth: 0 }}>
             <span style={{ display: "block", fontSize: u(11.5), fontWeight: 700, color: t.text, letterSpacing: "-0.01em" }}>
-              Your profile
+              {tr("shot.kernel.yourProfile")}
             </span>
-            <span style={{ display: "block", fontSize: u(8), color: t.muted }}>14 concepts · 4 subjects</span>
+            <span style={{ display: "block", fontSize: u(8), color: t.muted }}>{tr("shot.kernel.meta")}</span>
           </span>
-          <span style={tonePill(t, "green")}>Live</span>
+          <span style={tonePill(t, "green")}>{tr("shot.common.live")}</span>
         </div>
 
         {/* The two panels the profile opens with: overall mastery, and mindset. */}
         <div style={{ display: "grid", gridTemplateColumns: `${u(70)} 1fr`, gap: u(5) }}>
           <div className="shot-in" style={{ ...at(90), ...panel(t, u(9), u(6)) }}>
-            <div style={{ fontSize: u(8), fontWeight: 700, color: t.text, marginBottom: u(2) }}>Overall mastery</div>
+            <div style={{ fontSize: u(8), fontWeight: 700, color: t.text, marginBottom: u(2) }}>{tr("shot.kernel.overallMastery")}</div>
             {/* viewBox-scaled, so it needs no u() — it tracks its own box. */}
             <svg viewBox="0 0 160 96" style={{ width: "100%", display: "block" }} aria-hidden>
               <defs>
@@ -584,18 +587,18 @@ export function KernelShot({ theme: t }: { theme: Theme }) {
                 {OVERALL}%
               </text>
               <text x="80" y="80" textAnchor="middle" fontSize="8" fill={t.mutedLight}>
-                all concepts
+                {tr("shot.kernel.allConcepts")}
               </text>
             </svg>
           </div>
 
           <div className="shot-in" style={{ ...at(150), ...panel(t, u(9), u(7)), display: "flex", flexDirection: "column", gap: u(5) }}>
             <div style={{ display: "flex", alignItems: "center", gap: u(6) }}>
-              <span style={{ flex: 1, fontSize: u(9), fontWeight: 700, color: t.text }}>Mindset (M)</span>
-              <span style={{ fontSize: u(8.5), color: t.muted }}>Growth</span>
+              <span style={{ flex: 1, fontSize: u(9), fontWeight: 700, color: t.text }}>{tr("shot.kernel.mindset")}</span>
+              <span style={{ fontSize: u(8.5), color: t.muted }}>{tr("shot.kernel.growth")}</span>
             </div>
-            {axisRow("Growth", MINDSET_M, ACCENT.green, 260)}
-            <div style={{ fontSize: u(7.5), color: t.mutedLight }}>Keeps going after a wrong answer.</div>
+            {axisRow(tr("shot.kernel.growth"), MINDSET_M, ACCENT.green, 260)}
+            <div style={{ fontSize: u(7.5), color: t.mutedLight }}>{tr("shot.kernel.growthDesc")}</div>
           </div>
         </div>
 
@@ -605,7 +608,7 @@ export function KernelShot({ theme: t }: { theme: Theme }) {
           const beat = 360 + i * 190;
           return (
             <Resolving
-              key={c.label}
+              key={c.id}
               delay={beat}
               placeholder={
                 <div style={{ ...panel(t, u(9), u(6)), display: "flex", flexDirection: "column", gap: u(4) }}>
@@ -619,9 +622,9 @@ export function KernelShot({ theme: t }: { theme: Theme }) {
               <div style={{ ...panel(t, u(9), u(6)), display: "flex", flexDirection: "column", gap: u(3) }}>
                 <div style={{ display: "flex", alignItems: "center", gap: u(6) }}>
                   <span style={{ flex: 1, minWidth: 0, fontSize: u(9.5), fontWeight: 700, color: t.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {c.label}
+                    {tr(c.labelKey)}
                   </span>
-                  <span style={{ fontSize: u(7.5), color: t.mutedLight }}>practised {c.last}</span>
+                  <span style={{ fontSize: u(7.5), color: t.mutedLight }}>{tr(c.lastKey)}</span>
                   <span
                     style={{
                       flex: "none",
@@ -633,10 +636,10 @@ export function KernelShot({ theme: t }: { theme: Theme }) {
                       fontWeight: 600,
                     }}
                   >
-                    {st.label}
+                    {tr(st.labelKey)}
                   </span>
                 </div>
-                {AXES.map((a, j) => axisRow(a.label, c[a.key], a.color, beat + 90 + j * 70))}
+                {AXES.map((a, j) => axisRow(tr(a.labelKey), c[a.key], a.color, beat + 90 + j * 70))}
               </div>
             </Resolving>
           );
@@ -648,8 +651,16 @@ export function KernelShot({ theme: t }: { theme: Theme }) {
 
 /* ───────────────────────── Study Rooms ───────────────────────── */
 
-/** The room's five channels, in the app's own order. */
-const ROOM_TABS = ["Group chat", "Raya (private)", "Challenges", "Files", "Report"];
+/** The room's five channels, in the app's own order. `rayaPrivate` renders
+ *  as `<RayaName/> (private)` rather than through the label key, since the
+ *  name has to stay the app's own component and not a translated string. */
+const ROOM_TABS: { id: string; labelKey?: MessageKey }[] = [
+  { id: "groupChat", labelKey: "shot.room.tabGroupChat" },
+  { id: "rayaPrivate" },
+  { id: "challenges", labelKey: "shot.room.tabChallenges" },
+  { id: "files", labelKey: "shot.room.tabFiles" },
+  { id: "report", labelKey: "shot.room.tabReport" },
+];
 
 /** The roster, as the right panel lists it — Raya first, then the members. */
 const ROOM_MEMBERS = [
@@ -665,11 +676,11 @@ const ROOM_MEMBERS = [
  * document — the point being that nobody here is alone with a private AI, so
  * the drawing has to have more than one student in it.
  */
-const ROOM_TURNS: { who: "other" | "me" | "raya"; name: string; text: string }[] = [
-  { who: "other", name: "Léa D.", text: "I get sin(150°) = 0.5 but I can't say why it's positive." },
-  { who: "me", name: "You", text: "Second quadrant, right?" },
-  { who: "raya", name: "Raya", text: "It is — so you have the hard part. What's the sign of y there, and which ratio uses y?" },
-  { who: "other", name: "Noah K.", text: "y is above the axis, so sine stays positive." },
+const ROOM_TURNS: { who: "other" | "me" | "raya"; name: string; textKey: MessageKey }[] = [
+  { who: "other", name: "Léa D.", textKey: "shot.room.turn1" },
+  { who: "me", name: "You", textKey: "shot.room.turn2" },
+  { who: "raya", name: "Raya", textKey: "shot.room.turn3" },
+  { who: "other", name: "Noah K.", textKey: "shot.room.turn4" },
 ];
 
 const roomBeat = (i: number) => 420 + i * 340;
@@ -714,6 +725,7 @@ const ROOM_TICK = 1000;
  * room has when somebody is about to get it.
  */
 export function RoomShot({ theme: t }: { theme: Theme }) {
+  const tr = useTranslate();
   // The three bubble tones the room uses — mine, another member's, Raya's —
   // with the app's asymmetric corner radii.
   const bubble = (kind: "me" | "other" | "raya"): CSSProperties => ({
@@ -791,20 +803,20 @@ export function RoomShot({ theme: t }: { theme: Theme }) {
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: u(6) }}>
-            <span style={{ fontSize: u(12.5), fontWeight: 800, color: t.text, letterSpacing: "-0.01em" }}>Trigonometry</span>
+            <span style={{ fontSize: u(12.5), fontWeight: 800, color: t.text, letterSpacing: "-0.01em" }}>{tr("shot.topic.trigonometry")}</span>
             {/* Subject, roster size, and who is here — the three things the real
                 chrome carries. The live count is the one number in this shot
                 that comes from the socket rather than the database, so it gets
                 the app's own pulsing dot in front of it. */}
             <span style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: u(4), fontSize: u(8.5), color: t.muted, whiteSpace: "nowrap", overflow: "hidden" }}>
               <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
-                Mathematics · {ROOM_MEMBERS.length} members
+                {tr("shot.room.membersLine")}
               </span>
               <span
                 className="pub-shot-live-dot"
                 style={{ flex: "none", width: u(5), height: u(5), borderRadius: u(999), background: ACCENT.green }}
               />
-              <span style={{ flex: "none", fontWeight: 600, color: t.text }}>{ROOM_ONLINE} online</span>
+              <span style={{ flex: "none", fontWeight: 600, color: t.text }}>{ROOM_ONLINE} {tr("shot.common.online")}</span>
             </span>
             <span
               className="shot-in"
@@ -833,7 +845,7 @@ export function RoomShot({ theme: t }: { theme: Theme }) {
                   className={i === ROOM_CLOCK.length - 1 ? "shot-fade" : "shot-tick"}
                   style={{ ...at(140 + i * ROOM_TICK), gridArea: "1 / 1", ["--dur-span" as string]: `${ROOM_TICK}ms` }}
                 >
-                  ⏱ {c} left
+                  ⏱ {c} {tr("shot.common.left")}
                 </span>
               ))}
             </span>
@@ -842,7 +854,7 @@ export function RoomShot({ theme: t }: { theme: Theme }) {
           <div style={{ display: "flex", gap: u(4), marginTop: u(6), flexWrap: "nowrap" }}>
             {ROOM_TABS.map((c, i) => (
               <span
-                key={c}
+                key={c.id}
                 className="shot-in"
                 style={{
                   ...at(180 + i * 45),
@@ -857,7 +869,7 @@ export function RoomShot({ theme: t }: { theme: Theme }) {
                   border: `1px solid ${i === 0 ? "transparent" : t.cardBorder}`,
                 }}
               >
-                {c === "Raya (private)" ? <><RayaName /> (private)</> : c}
+                {c.id === "rayaPrivate" ? <><RayaName /> {tr("shot.room.tabPrivate")}</> : tr(c.labelKey!)}
               </span>
             ))}
           </div>
@@ -881,7 +893,7 @@ export function RoomShot({ theme: t }: { theme: Theme }) {
                   padding: `${u(3)} ${u(9)}`,
                 }}
               >
-                📄 Amira S. shared a document: <strong style={{ color: t.text }}>Chapter 6 — The unit circle.pdf</strong>
+                📄 Amira S. {tr("shot.room.sharedPrefix")} <strong style={{ color: t.text }}>{tr("shot.room.docTitle")}</strong>
               </span>
             </div>
           </Resolving>
@@ -905,15 +917,15 @@ export function RoomShot({ theme: t }: { theme: Theme }) {
                   : avatar(who?.initials ?? "", who?.bg ?? t.muted, who?.online)}
                 <div style={{ display: "flex", flexDirection: "column", alignItems: mine ? "flex-end" : "flex-start", gap: u(2), minWidth: 0 }}>
                   <span style={{ fontSize: u(7), color: t.mutedLight }}>
-                    {m.who === "raya" ? <RayaName /> : m.name}
+                    {m.who === "raya" ? <RayaName /> : m.name === "You" ? tr("shot.common.you") : m.name}
                   </span>
-                  <div style={bubble(m.who)}>{m.text}</div>
+                  <div style={bubble(m.who)}>{tr(m.textKey)}</div>
                 </div>
               </div>
             );
             return m.who === "raya" ? (
               <Resolving
-                key={m.text}
+                key={m.textKey}
                 delay={roomBeat(i)}
                 placeholder={
                   <div style={{ display: "flex", gap: u(5), alignItems: "flex-end" }}>
@@ -925,7 +937,7 @@ export function RoomShot({ theme: t }: { theme: Theme }) {
                 {row}
               </Resolving>
             ) : (
-              <div key={m.text} className="shot-in" style={{ ...at(roomBeat(i)), display: "flex" , flexDirection: "column" }}>
+              <div key={m.textKey} className="shot-in" style={{ ...at(roomBeat(i)), display: "flex" , flexDirection: "column" }}>
                 {row}
               </div>
             );
@@ -953,10 +965,10 @@ export function RoomShot({ theme: t }: { theme: Theme }) {
             >
               <Resolving
                 delay={roomBeat(5)}
-                placeholder={<span style={{ color: t.inputPlaceholder, whiteSpace: "nowrap" }}>Message the room…</span>}
+                placeholder={<span style={{ color: t.inputPlaceholder, whiteSpace: "nowrap" }}>{tr("shot.room.composerPlaceholder")}</span>}
               >
                 <span style={{ color: t.text, whiteSpace: "nowrap" }}>
-                  so cos(150°) is negative for the same reason
+                  {tr("shot.room.composerDraft")}
                   <i
                     className="pub-shot-caret"
                     style={{
@@ -972,7 +984,7 @@ export function RoomShot({ theme: t }: { theme: Theme }) {
               </Resolving>
             </div>
             <span style={{ ...ghostPill(t), color: t.text, padding: `${u(5)} ${u(9)}` }}>
-              Ask <RayaName />
+              {tr("shot.common.ask")} <RayaName />
             </span>
           </div>
         </div>
@@ -988,26 +1000,26 @@ export function RoomShot({ theme: t }: { theme: Theme }) {
  * own in components/ui/icons — the real picker falls back to IconSummary for
  * it, so this does too rather than inventing a glyph the app doesn't have.
  */
-const TOOLS: { id: string; label: string; Icon: typeof IconSummary }[] = [
-  { id: "summary", label: "Summary", Icon: IconSummary },
-  { id: "quiz", label: "Quiz (MCQ)", Icon: IconQuiz },
-  { id: "flashcards", label: "Flashcards", Icon: IconFlashcards },
-  { id: "mind_map", label: "Mind map", Icon: IconSummary },
+const TOOLS: { id: string; labelKey: MessageKey; Icon: typeof IconSummary }[] = [
+  { id: "summary", labelKey: "research.post.summary", Icon: IconSummary },
+  { id: "quiz", labelKey: "shot.tools.quizMcq", Icon: IconQuiz },
+  { id: "flashcards", labelKey: "shot.common.flashcards", Icon: IconFlashcards },
+  { id: "mind_map", labelKey: "shot.common.mindMap", Icon: IconSummary },
 ];
 
 /** The packet being generated from: several files combine into one source. */
-const SOURCES = ["Photosynthesis — lesson 4.pdf", "Cell respiration.docx", "Lab notes 12 Mar.m4a"];
+const SOURCES: MessageKey[] = ["shot.tools.fileLesson4", "shot.tools.fileCellResp", "shot.tools.fileLabNotes"];
 
 /**
  * The library underneath. `label` is the tool name and `meta` is the date —
  * or the status, while a row is still generating, which is exactly what the
  * real `LibraryRow` shows and what lets one row here resolve on its own beat.
  */
-const LIBRARY: { label: string; meta: string; pending?: boolean }[] = [
-  { label: "Quiz — Newton's laws", meta: "12 questions · 88%" },
-  { label: "Flashcards — The unit circle", meta: "24 cards · 4 Mar" },
-  { label: "Mind map — Le passé composé", meta: "9 branches · 2 Mar" },
-  { label: "Summary — Photosynthesis, lesson 4", meta: "generating", pending: true },
+const LIBRARY: { labelKey: MessageKey; metaKey: MessageKey; pending?: boolean }[] = [
+  { labelKey: "shot.tools.libQuizNewton", metaKey: "shot.tools.metaNewton" },
+  { labelKey: "shot.tools.libFlashUnitCircle", metaKey: "shot.tools.metaUnitCircle" },
+  { labelKey: "shot.tools.libMindMapFrench", metaKey: "shot.tools.metaFrench" },
+  { labelKey: "shot.tools.libSummaryPhoto", metaKey: "shot.tools.metaGenerating", pending: true },
 ];
 
 /**
@@ -1017,6 +1029,7 @@ const LIBRARY: { label: string; meta: string; pending?: boolean }[] = [
  * same Kernel profile the first shot draws, which is the section's claim.
  */
 export function ToolsShot({ theme: t }: { theme: Theme }) {
+  const tr = useTranslate();
   return (
     <ShotFrame theme={t} ratio="4 / 3">
       {/* Score: the picker, the dropzone and its three sources, then Generate —
@@ -1024,9 +1037,9 @@ export function ToolsShot({ theme: t }: { theme: Theme }) {
           out of "generating" as the packet finishes. */}
       <div style={{ position: "absolute", inset: 0, padding: u(11), display: "flex", flexDirection: "column", gap: u(5) }}>
         <div className="shot-in">
-          <div style={{ fontSize: u(12.5), fontWeight: 800, color: t.text, letterSpacing: "-0.01em" }}>Tools Studio</div>
+          <div style={{ fontSize: u(12.5), fontWeight: 800, color: t.text, letterSpacing: "-0.01em" }}>{tr("shot.tools.title")}</div>
           <div style={{ fontSize: u(8), color: t.muted, marginTop: u(1) }}>
-            Generate quizzes, summaries and flashcards from any lesson.
+            {tr("shot.tools.subtitle")}
           </div>
         </div>
 
@@ -1066,7 +1079,7 @@ export function ToolsShot({ theme: t }: { theme: Theme }) {
                   <tool.Icon size={10} style={{ width: u(10), height: u(10) }} />
                 </span>
                 <span style={{ display: "block", fontSize: u(8), fontWeight: 700, color: t.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {tool.label}
+                  {tr(tool.labelKey)}
                 </span>
               </div>
             );
@@ -1089,9 +1102,9 @@ export function ToolsShot({ theme: t }: { theme: Theme }) {
           }}
         >
           <div style={{ fontSize: u(8), color: t.mutedLight, lineHeight: 1.4 }}>
-            Drop one or more files (PDF, notes, Word, Excel, audio) — they combine into one packet
+            {tr("shot.tools.dropzone")}
           </div>
-          <div style={{ fontSize: u(7), color: t.mutedLight, marginTop: u(2) }}>Up to 40 MB total · 6.2 MB used</div>
+          <div style={{ fontSize: u(7), color: t.mutedLight, marginTop: u(2) }}>{tr("shot.tools.dropzoneMeta")}</div>
         </div>
 
         {/* The picked sources, each removable. */}
@@ -1114,7 +1127,7 @@ export function ToolsShot({ theme: t }: { theme: Theme }) {
                 maxWidth: "100%",
               }}
             >
-              <span style={{ maxWidth: u(78), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s}</span>
+              <span style={{ maxWidth: u(78), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tr(s)}</span>
               <span
                 style={{
                   flex: "none",
@@ -1150,21 +1163,21 @@ export function ToolsShot({ theme: t }: { theme: Theme }) {
               fontWeight: 600,
             }}
           >
-            Generate
+            {tr("shot.common.generate")}
           </span>
-          <span style={{ fontSize: u(7.5), color: t.muted }}>Reading 3 sources…</span>
+          <span style={{ fontSize: u(7.5), color: t.muted }}>{tr("shot.tools.readingSources")}</span>
         </div>
 
         {/* The library. Everything already made from every lesson — and every
             attempt on it lands in the same Kernel profile. */}
         <div style={{ ...panel(t, u(10), u(7)), marginTop: "auto", display: "flex", flexDirection: "column" }}>
           <div className="shot-in" style={{ ...at(920), display: "flex", alignItems: "baseline", gap: u(5) }}>
-            <span style={{ fontSize: u(9), fontWeight: 700, color: t.text }}>Generated</span>
+            <span style={{ fontSize: u(9), fontWeight: 700, color: t.text }}>{tr("shot.tools.generatedLabel")}</span>
             <span style={{ fontSize: u(7.5), fontWeight: 600, color: t.mutedLight }}>18</span>
           </div>
           {LIBRARY.map((row, i) => (
             <Resolving
-              key={row.label}
+              key={row.labelKey}
               delay={980 + i * 130}
               placeholder={
                 <div style={{ display: "flex", alignItems: "center", gap: u(6), padding: `${u(3)} 0`, borderTop: `1px solid ${t.cardBorder}` }}>
@@ -1176,10 +1189,10 @@ export function ToolsShot({ theme: t }: { theme: Theme }) {
             >
               <div style={{ display: "flex", alignItems: "center", gap: u(6), padding: `${u(3)} 0`, borderTop: `1px solid ${t.cardBorder}` }}>
                 <span style={{ flex: 1, minWidth: 0, fontSize: u(8.5), color: t.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {row.label}
+                  {tr(row.labelKey)}
                 </span>
-                <span style={{ flex: "none", fontSize: u(7.5), color: t.mutedLight }}>{row.meta}</span>
-                <span style={{ ...ghostPill(t), fontSize: u(7.5), padding: `${u(2)} ${u(7)}`, opacity: row.pending ? 0.4 : 1 }}>Study</span>
+                <span style={{ flex: "none", fontSize: u(7.5), color: t.mutedLight }}>{tr(row.metaKey)}</span>
+                <span style={{ ...ghostPill(t), fontSize: u(7.5), padding: `${u(2)} ${u(7)}`, opacity: row.pending ? 0.4 : 1 }}>{tr("shot.common.study")}</span>
               </div>
             </Resolving>
           ))}
@@ -1215,14 +1228,15 @@ export function ToolsShot({ theme: t }: { theme: Theme }) {
 /* ── Step 1 · the teacher states a focus ── */
 
 /** The teacher's standing guidance, across their subjects. */
-const INSTRUCTIONS: { text: string; subject: string; on: boolean }[] = [
-  { text: "Revise the unit circle before Friday", subject: "Mathematics · Year 10", on: true },
-  { text: "Push them on essay structure, not spelling", subject: "French · Year 8", on: true },
-  { text: "Ask for the reasoning before the formula", subject: "Physics · Year 11", on: true },
-  { text: "Go slower on molar mass", subject: "Chemistry · Year 11", on: false },
+const INSTRUCTIONS: { id: string; textKey: MessageKey; subjectKey: MessageKey; on: boolean }[] = [
+  { id: "unitCircle", textKey: "shot.focus.instr1", subjectKey: "shot.focus.subj1", on: true },
+  { id: "essay", textKey: "shot.focus.instr2", subjectKey: "shot.focus.subj2", on: true },
+  { id: "reasoning", textKey: "shot.focus.instr3", subjectKey: "shot.focus.subj3", on: true },
+  { id: "molarMass", textKey: "shot.focus.instr4", subjectKey: "shot.focus.subj4", on: false },
 ];
 
 export function FocusShot({ theme: t }: { theme: Theme }) {
+  const tr = useTranslate();
   return (
     <ShotFrame theme={t} ratio="4 / 3">
       {/* Score: the panel's rows resolve one after another out of their
@@ -1232,19 +1246,19 @@ export function FocusShot({ theme: t }: { theme: Theme }) {
         <div className="shot-in" style={{ display: "flex", alignItems: "flex-start", gap: u(8) }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: u(12.5), fontWeight: 700, color: t.text, letterSpacing: "-0.01em" }}>
-              Instructions to <RayaName />
+              {tr("shot.focus.instructionsTo")} <RayaName />
             </div>
             <div style={{ fontSize: u(9), color: t.muted, marginTop: u(2) }}>
-              Guidance only — it never gives answers away.
+              {tr("shot.focus.subtitle")}
             </div>
           </div>
-          <span style={tonePill(t, "green")}>3 active</span>
+          <span style={tonePill(t, "green")}>3 {tr("shot.common.active")}</span>
         </div>
 
         <div style={{ ...panel(t, u(11), u(10)), display: "flex", flexDirection: "column", gap: u(7) }}>
           {INSTRUCTIONS.map((ins, i) => (
             <Resolving
-              key={ins.text}
+              key={ins.id}
               delay={140 + i * 150}
               placeholder={
                 <div style={{ display: "flex", flexDirection: "column", gap: u(4), padding: `${u(2)} 0` }}>
@@ -1255,10 +1269,10 @@ export function FocusShot({ theme: t }: { theme: Theme }) {
             >
               <div style={{ display: "flex", alignItems: "center", gap: u(7), opacity: ins.on ? 1 : 0.45 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: u(9.5), color: t.text, lineHeight: 1.35 }}>{ins.text}</div>
-                  <div style={{ fontSize: u(8), color: t.mutedLight, marginTop: u(1.5) }}>{ins.subject}</div>
+                  <div style={{ fontSize: u(9.5), color: t.text, lineHeight: 1.35 }}>{tr(ins.textKey)}</div>
+                  <div style={{ fontSize: u(8), color: t.mutedLight, marginTop: u(1.5) }}>{tr(ins.subjectKey)}</div>
                 </div>
-                <span style={ghostPill(t)}>{ins.on ? "Disable" : "Enable"}</span>
+                <span style={ghostPill(t)}>{ins.on ? tr("shot.common.disable") : tr("shot.common.enable")}</span>
               </div>
             </Resolving>
           ))}
@@ -1283,7 +1297,7 @@ export function FocusShot({ theme: t }: { theme: Theme }) {
             }}
           >
             <span className="shot-in" style={{ ...at(1010), display: "inline-block" }}>
-              Focus Maya on dividing fractions
+              {tr("shot.focus.composerDraft")}
             </span>
           </span>
           <span
@@ -1297,7 +1311,7 @@ export function FocusShot({ theme: t }: { theme: Theme }) {
               color: t.muted,
             }}
           >
-            Maths ▾
+            {tr("shot.focus.subjectSelect")}
           </span>
           <span
             className="shot-pick"
@@ -1312,7 +1326,7 @@ export function FocusShot({ theme: t }: { theme: Theme }) {
               fontWeight: 600,
             }}
           >
-            Add
+            {tr("shot.common.add")}
           </span>
         </div>
 
@@ -1320,7 +1334,7 @@ export function FocusShot({ theme: t }: { theme: Theme }) {
           className="shot-in"
           style={{ ...at(1440), marginTop: "auto", paddingTop: u(8), borderTop: `1px solid ${t.cardBorder}`, fontSize: u(9), color: t.muted, lineHeight: 1.5 }}
         >
-          Reaches <RayaName /> before the student&apos;s next session.
+          {tr("shot.focus.reachesA")} <RayaName /> {tr("shot.focus.reachesB")}
         </div>
       </div>
     </ShotFrame>
@@ -1329,29 +1343,30 @@ export function FocusShot({ theme: t }: { theme: Theme }) {
 
 /* ── Step 2 · the student works, and the focus is woven in ── */
 
-const NEXT_MATERIAL: { title: string; meta: string; kind: string; tone: keyof typeof ACCENT }[] = [
-  { title: "Dividing fractions", meta: "6 questions · from your lesson", kind: "Quiz", tone: "green" },
-  { title: "Reciprocals & unit fractions", meta: "12 cards · spaced review", kind: "Flashcards", tone: "blue" },
+const NEXT_MATERIAL: { titleKey: MessageKey; metaKey: MessageKey; kindKey: MessageKey; tone: keyof typeof ACCENT }[] = [
+  { titleKey: "shot.topic.dividingFractions", metaKey: "shot.guided.mat1Meta", kindKey: "shot.common.quiz", tone: "green" },
+  { titleKey: "shot.topic.reciprocals", metaKey: "shot.guided.mat2Meta", kindKey: "shot.common.flashcards", tone: "blue" },
 ];
 
-const NEXT_FORMATS = ["Summary", "Mind map", "Practice set"];
+const NEXT_FORMATS: MessageKey[] = ["research.post.summary", "shot.common.mindMap", "shot.common.practiceSet"];
 
 /**
  * The exchange, four turns of it — long enough that the escalation is visible
  * rather than asserted. Raya opens by asking, the student is wrong, Raya still
  * doesn't hand over the answer, and the student gets there themselves.
  */
-const TURNS_GUIDED: { who: "raya" | "student"; text: string }[] = [
-  { who: "raya", text: "Before we start — when you divide by a fraction, does the answer get bigger or smaller?" },
-  { who: "student", text: "Smaller… I think?" },
-  { who: "raya", text: "Let's test it. 6 ÷ ½ — how many halves fit inside 6?" },
-  { who: "student", text: "Twelve. Oh — it got bigger." },
+const TURNS_GUIDED: { who: "raya" | "student"; textKey: MessageKey }[] = [
+  { who: "raya", textKey: "shot.guided.turn1" },
+  { who: "student", textKey: "shot.guided.turn2" },
+  { who: "raya", textKey: "shot.guided.turn3" },
+  { who: "student", textKey: "shot.guided.turn4" },
 ];
 
 /** When turn `i` lands, and when Raya starts composing the one after it. */
 const guidedBeat = (i: number) => 200 + i * 420;
 
 export function GuidedShot({ theme: t }: { theme: Theme }) {
+  const tr = useTranslate();
   const bubble = (own: boolean): CSSProperties =>
     own
       ? {
@@ -1410,24 +1425,24 @@ export function GuidedShot({ theme: t }: { theme: Theme }) {
           <span style={{ fontSize: u(11.5), fontWeight: 700, color: t.text, letterSpacing: "-0.01em" }}>
             <RayaName />
           </span>
-          <span style={{ marginLeft: "auto", fontSize: u(8.5), color: t.muted }}>Maya · Year 9 · Mathematics</span>
+          <span style={{ marginLeft: "auto", fontSize: u(8.5), color: t.muted }}>{tr("shot.guided.headerSubject")}</span>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: u(7) }}>
           {TURNS_GUIDED.map((turn, i) =>
             turn.who === "student" ? (
-              <div key={turn.text} className="shot-in" style={{ ...at(guidedBeat(i)), ...bubble(true) }}>
-                {turn.text}
+              <div key={turn.textKey} className="shot-in" style={{ ...at(guidedBeat(i)), ...bubble(true) }}>
+                {tr(turn.textKey)}
               </div>
             ) : (
               // Raya's turns show the composing dots first — the one beat that
               // makes the drawing read as a session running, not a screenshot.
               <Resolving
-                key={turn.text}
+                key={turn.textKey}
                 delay={guidedBeat(i)}
                 placeholder={<Composing theme={t} />}
               >
-                <div style={bubble(false)}>{turn.text}</div>
+                <div style={bubble(false)}>{tr(turn.textKey)}</div>
               </Resolving>
             ),
           )}
@@ -1438,11 +1453,11 @@ export function GuidedShot({ theme: t }: { theme: Theme }) {
           style={{ ...at(guidedBeat(4)), ...panel(t, u(11), u(10)), marginTop: "auto", display: "flex", flexDirection: "column", gap: u(7) }}
         >
           <div style={{ fontSize: u(8), fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: t.muted }}>
-            Recommended next
+            {tr("shot.guided.recommendedNext")}
           </div>
           {NEXT_MATERIAL.map((m, i) => (
             <Resolving
-              key={m.title}
+              key={m.titleKey}
               delay={guidedBeat(4) + 160 + i * 180}
               placeholder={
                 <div style={{ display: "flex", alignItems: "center", gap: u(7) }}>
@@ -1458,9 +1473,9 @@ export function GuidedShot({ theme: t }: { theme: Theme }) {
                 <span style={{ flex: "none", width: u(12), height: u(14), borderRadius: u(3), background: ACCENT[m.tone] }} />
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: "block", fontSize: u(9.5), fontWeight: 600, color: t.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {m.title}
+                    {tr(m.titleKey)}
                   </span>
-                  <span style={{ display: "block", fontSize: u(8), color: t.muted }}>{m.meta}</span>
+                  <span style={{ display: "block", fontSize: u(8), color: t.muted }}>{tr(m.metaKey)}</span>
                 </span>
                 <span
                   style={{
@@ -1474,7 +1489,7 @@ export function GuidedShot({ theme: t }: { theme: Theme }) {
                     fontWeight: 600,
                   }}
                 >
-                  {m.kind}
+                  {tr(m.kindKey)}
                 </span>
               </div>
             </Resolving>
@@ -1495,7 +1510,7 @@ export function GuidedShot({ theme: t }: { theme: Theme }) {
                   padding: `${u(3)} ${u(8)}`,
                 }}
               >
-                {f}
+                {tr(f)}
               </span>
             ))}
           </div>
@@ -1512,14 +1527,15 @@ export function GuidedShot({ theme: t }: { theme: Theme }) {
  * five the Kernel band tabulates — and the row shape is prof-overview's:
  * name · class · subject · status · mastery.
  */
-const FOCUS_ROWS: { name: string; klass: string; subject: string; status: string; pct: number; risk: string }[] = [
-  { name: "Maya R.", klass: "Year 9", subject: "Mathematics", status: "False mastery", pct: 34, risk: "#ef4444" },
-  { name: "Jonas T.", klass: "Year 10", subject: "Physics", status: "Recurring error", pct: 41, risk: "#ef4444" },
-  { name: "Aiko O.", klass: "Year 8", subject: "French", status: "Cognitive overload", pct: 58, risk: "#f59e0b" },
-  { name: "Refik C.", klass: "Year 11", subject: "Biology", status: "Passive dependency", pct: 66, risk: "#f59e0b" },
+const FOCUS_ROWS: { name: string; klassKey: MessageKey; subjectKey: MessageKey; statusKey: MessageKey; pct: number; risk: string }[] = [
+  { name: "Maya R.", klassKey: "shot.year.9", subjectKey: "shot.subject.mathematics", statusKey: "shot.status.falseMastery", pct: 34, risk: "#ef4444" },
+  { name: "Jonas T.", klassKey: "shot.year.10", subjectKey: "onb.subject.physics", statusKey: "shot.status.recurringError", pct: 41, risk: "#ef4444" },
+  { name: "Aiko O.", klassKey: "shot.year.8", subjectKey: "shot.subject.french", statusKey: "shot.status.cognitiveOverload", pct: 58, risk: "#f59e0b" },
+  { name: "Refik C.", klassKey: "shot.year.11", subjectKey: "onb.subject.biology", statusKey: "shot.status.passiveDependency", pct: 66, risk: "#f59e0b" },
 ];
 
 export function ReturnShot({ theme: t }: { theme: Theme }) {
+  const tr = useTranslate();
   return (
     <ShotFrame theme={t} ratio="4 / 3">
       {/* Score: the roll-up resolves first, then the list fills in student by
@@ -1528,21 +1544,21 @@ export function ReturnShot({ theme: t }: { theme: Theme }) {
       <div style={{ position: "absolute", inset: 0, padding: u(15), display: "flex", flexDirection: "column", gap: u(9) }}>
         <div className="shot-in" style={{ display: "flex", alignItems: "center", gap: u(8) }}>
           <span style={{ flex: 1, minWidth: 0, fontSize: u(12.5), fontWeight: 700, color: t.text, letterSpacing: "-0.01em" }}>
-            Students to focus on
+            {tr("shot.return.title")}
           </span>
-          <span style={ghostPill(t)}>Open Focus →</span>
+          <span style={ghostPill(t)}>{tr("shot.return.openFocus")}</span>
         </div>
 
         {/* The roll-up above the list, so the plate carries a scale as well as
             four names: this is a class of 128, not a shortlist of four. */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: u(7) }}>
           {[
-            { label: "Tracked", to: 128, suffix: "", tone: t.text },
-            { label: "Need attention", to: 12, suffix: "", tone: ACCENT.orange },
-            { label: "Avg. mastery", to: 71, suffix: "%", tone: ACCENT.green },
+            { labelKey: "shot.return.tracked" as MessageKey, to: 128, suffix: "", tone: t.text },
+            { labelKey: "shot.return.needAttention" as MessageKey, to: 12, suffix: "", tone: ACCENT.orange },
+            { labelKey: "shot.return.avgMastery" as MessageKey, to: 71, suffix: "%", tone: ACCENT.green },
           ].map((k, i) => (
             <Resolving
-              key={k.label}
+              key={k.labelKey}
               delay={120 + i * 90}
               placeholder={
                 <div style={{ display: "flex", flexDirection: "column", gap: u(4) }}>
@@ -1552,7 +1568,7 @@ export function ReturnShot({ theme: t }: { theme: Theme }) {
               }
             >
               <div style={{ background: t.inputFieldBg, border: `1px solid ${t.cardBorder}`, borderRadius: u(9), padding: `${u(6)} ${u(8)}` }}>
-                <div style={{ fontSize: u(7.5), color: t.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{k.label}</div>
+                <div style={{ fontSize: u(7.5), color: t.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tr(k.labelKey)}</div>
                 <div style={{ fontSize: u(13), fontWeight: 700, color: k.tone, marginTop: u(1) }}>
                   <CountUp to={k.to} suffix={k.suffix} delay={120 + i * 90} />
                 </div>
@@ -1593,7 +1609,7 @@ export function ReturnShot({ theme: t }: { theme: Theme }) {
                         textOverflow: "ellipsis",
                       }}
                     >
-                      {r.klass} · {r.subject} · {r.status}
+                      {tr(r.klassKey)} · {tr(r.subjectKey)} · {tr(r.statusKey)}
                     </span>
                   </span>
                   <span style={{ flex: "none", display: "flex", alignItems: "center", gap: u(6) }}>
@@ -1641,8 +1657,8 @@ export function ReturnShot({ theme: t }: { theme: Theme }) {
             !
           </span>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: u(9.5), fontWeight: 600, color: t.orangeText }}>Shared blocking prerequisite</div>
-            <div style={{ fontSize: u(8.5), color: t.muted }}>Dividing fractions gates 3 later concepts, for 2 of them.</div>
+            <div style={{ fontSize: u(9.5), fontWeight: 600, color: t.orangeText }}>{tr("shot.return.prereqTitle")}</div>
+            <div style={{ fontSize: u(8.5), color: t.muted }}>{tr("shot.return.prereqBody")}</div>
           </div>
         </div>
 
@@ -1652,7 +1668,7 @@ export function ReturnShot({ theme: t }: { theme: Theme }) {
           className="shot-in"
           style={{ ...at(1320), marginTop: "auto", paddingTop: u(8), borderTop: `1px solid ${t.cardBorder}`, fontSize: u(9), color: t.muted, lineHeight: 1.5 }}
         >
-          Mastery only. Never the conversation.
+          {tr("shot.return.footer")}
         </div>
       </div>
     </ShotFrame>
@@ -1666,20 +1682,20 @@ export function ReturnShot({ theme: t }: { theme: Theme }) {
  * (components/raya/raya-shell.tsx). Labels come from the message catalogue —
  * "My Kernel", not "Kernel", and "Homework", not "Exercises".
  */
-const RAYA_NAV: { label: string; Icon: typeof IconChat }[] = [
-  { label: "Chat", Icon: IconChat },
-  { label: "Rooms", Icon: IconRooms },
-  { label: "Tools", Icon: IconTools },
-  { label: "Homework", Icon: IconQuiz },
-  { label: "My Kernel", Icon: IconKernel },
-  { label: "Settings", Icon: IconSettings },
+const RAYA_NAV: { labelKey: MessageKey; Icon: typeof IconChat }[] = [
+  { labelKey: "nav.chat", Icon: IconChat },
+  { labelKey: "nav.rooms", Icon: IconRooms },
+  { labelKey: "nav.tools", Icon: IconTools },
+  { labelKey: "nav.homework", Icon: IconQuiz },
+  { labelKey: "nav.kernel", Icon: IconKernel },
+  { labelKey: "nav.settings", Icon: IconSettings },
 ];
 
 /** Past conversations, as the sidebar lists them under the Chat item. */
-const SESSIONS = [
-  "Limits of a rational function",
-  "Dividing fractions — why invert?",
-  "Le passé composé vs imparfait",
+const SESSIONS: MessageKey[] = [
+  "shot.topic.limitsRational",
+  "shot.topic.dividingWhyInvert",
+  "shot.topic.frenchTenses",
 ];
 
 /**
@@ -1693,13 +1709,13 @@ const SESSIONS = [
  * attempt, and when she finally states the missing step she still doesn't hand
  * over the number. Emma computes the 6 herself.
  */
-const TURNS: { who: "raya" | "me"; text: string }[] = [
-  { who: "raya", text: "Before I say anything — what happens to (x² − 9)/(x − 3) when you put x = 3 in?" },
-  { who: "me", text: "It gives 0/0. I already tried that." },
-  { who: "raya", text: "Good — so the work is done. What does a 0/0 tell you about a factor the top and the bottom might share?" },
-  { who: "me", text: "…that (x − 3) is in both?" },
-  { who: "raya", text: "That's the piece that was missing. Cancel it first, then substitute. Try it and tell me what you land on." },
-  { who: "me", text: "6. And I can see why now." },
+const TURNS: { who: "raya" | "me"; textKey: MessageKey }[] = [
+  { who: "raya", textKey: "shot.socratic.turn1" },
+  { who: "me", textKey: "shot.socratic.turn2" },
+  { who: "raya", textKey: "shot.socratic.turn3" },
+  { who: "me", textKey: "shot.socratic.turn4" },
+  { who: "raya", textKey: "shot.socratic.turn5" },
+  { who: "me", textKey: "shot.socratic.turn6" },
 ];
 
 /**
@@ -1717,10 +1733,10 @@ const ANALYSIS_BEAT = ANALYZE_BEAT + 260;
  * `getStudentRecommendations` returns them: the school's directives, then the
  * class instructions, labelled with the subject when they carry one.
  */
-const FOR_YOU: { content: string; source: string }[] = [
-  { content: "Exam fortnight: short sessions, no marathons.", source: "Your school" },
-  { content: "Ask for the algebra before the limit.", source: "Mathematics" },
-  { content: "Two attempts before a worked example.", source: "Your teacher" },
+const FOR_YOU: { contentKey: MessageKey; sourceKey: MessageKey }[] = [
+  { contentKey: "shot.socratic.forYou1", sourceKey: "shot.socratic.forYou1Source" },
+  { contentKey: "shot.socratic.forYou2", sourceKey: "shot.subject.mathematics" },
+  { contentKey: "shot.socratic.forYou3", sourceKey: "shot.socratic.forYou3Source" },
 ];
 
 /**
@@ -1736,6 +1752,7 @@ const FOR_YOU: { content: string; source: string }[] = [
  * the transcript alone still makes the point.
  */
 export function SocraticShot({ theme: t }: { theme: Theme }) {
+  const tr = useTranslate();
   // Three adjacent panels in three tones, separated by a 1px border and
   // nothing else — the app shell is flat by design (no gaps, no floating
   // cards), so the shot is too.
@@ -1868,7 +1885,7 @@ export function SocraticShot({ theme: t }: { theme: Theme }) {
           </div>
 
           {navRow(
-            RAYA_NAV[0].label,
+            tr(RAYA_NAV[0].labelKey),
             RAYA_NAV[0].Icon,
             true,
             60,
@@ -1890,7 +1907,7 @@ export function SocraticShot({ theme: t }: { theme: Theme }) {
                 textAlign: "center",
               }}
             >
-              + New session
+              {tr("shot.socratic.newSession")}
             </div>
             {SESSIONS.map((s, i) => (
               <div
@@ -1918,14 +1935,14 @@ export function SocraticShot({ theme: t }: { theme: Theme }) {
                     textOverflow: "ellipsis",
                   }}
                 >
-                  {s}
+                  {tr(s)}
                 </span>
                 <span style={{ flex: "none", fontSize: uw(8), color: t.mutedLight }}>✕</span>
               </div>
             ))}
           </div>
 
-          {RAYA_NAV.slice(1).map((n, i) => navRow(n.label, n.Icon, false, 250 + i * 40))}
+          {RAYA_NAV.slice(1).map((n, i) => navRow(tr(n.labelKey), n.Icon, false, 250 + i * 40))}
 
           {/* The profile chip, pinned to the bottom of the rail. */}
           <div
@@ -1960,7 +1977,7 @@ export function SocraticShot({ theme: t }: { theme: Theme }) {
             </span>
             <span style={{ minWidth: 0 }}>
               <span style={{ display: "block", fontSize: uw(9.5), fontWeight: 600, color: t.text }}>Emma M.</span>
-              <span style={{ display: "block", fontSize: uw(8), color: t.muted }}>Raya Plus</span>
+              <span style={{ display: "block", fontSize: uw(8), color: t.muted }}>{tr("shot.socratic.rayaPlus")}</span>
             </span>
           </div>
         </div>
@@ -1982,12 +1999,12 @@ export function SocraticShot({ theme: t }: { theme: Theme }) {
           >
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ display: "block", fontSize: uw(11.5), fontWeight: 700, color: t.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                Limits of a rational function
+                {tr("shot.topic.limitsRational")}
               </span>
-              <span style={{ display: "block", fontSize: uw(8.5), color: t.greenText }}>● in session</span>
+              <span style={{ display: "block", fontSize: uw(8.5), color: t.greenText }}>● {tr("shot.common.inSession")}</span>
             </span>
-            {headerPill("View kernel profile", 90)}
-            {headerPill("Analyze", ANALYZE_BEAT, true)}
+            {headerPill(tr("shot.common.viewKernelProfile"), 90)}
+            {headerPill(tr("shot.common.analyze"), ANALYZE_BEAT, true)}
             {iconBtn(<IconFile style={{ width: uw(10), height: uw(10) }} />, 130)}
             {iconBtn(<IconPanel style={{ width: uw(10), height: uw(10) }} />, 150)}
           </div>
@@ -2077,19 +2094,19 @@ export function SocraticShot({ theme: t }: { theme: Theme }) {
                       lineHeight: 1.5,
                     }}
                   >
-                    {m.text}
+                    {tr(m.textKey)}
                   </div>
                 </div>
               );
 
               // Raya composes before she answers; the student's turns just land.
               return mine ? (
-                <div key={m.text} className="shot-in" style={{ ...at(turnBeat(i)), display: "flex", flexDirection: "column" }}>
+                <div key={m.textKey} className="shot-in" style={{ ...at(turnBeat(i)), display: "flex", flexDirection: "column" }}>
                   {row}
                 </div>
               ) : (
                 <Resolving
-                  key={m.text}
+                  key={m.textKey}
                   delay={turnBeat(i)}
                   placeholder={
                     <div style={{ display: "flex", gap: uw(6), alignItems: "flex-end" }}>
@@ -2133,7 +2150,7 @@ export function SocraticShot({ theme: t }: { theme: Theme }) {
                 textOverflow: "ellipsis",
               }}
             >
-              Write your reply to <RayaName />...
+              {tr("shot.socratic.writeReplyTo")} <RayaName />...
             </span>
             {round(<IconAttach style={{ width: uw(11), height: uw(11) }} />)}
             {round(<IconAiMode style={{ width: uw(11), height: uw(11) }} />)}
@@ -2164,7 +2181,7 @@ export function SocraticShot({ theme: t }: { theme: Theme }) {
               borderBottom: `1px solid ${t.cardBorder}`,
             }}
           >
-            <span style={{ flex: 1, minWidth: 0, fontSize: uw(11), fontWeight: 700, color: t.text }}>For you</span>
+            <span style={{ flex: 1, minWidth: 0, fontSize: uw(11), fontWeight: 700, color: t.text }}>{tr("shot.socratic.forYou")}</span>
             <span style={{ flex: "none", fontSize: uw(10), color: t.mutedLight }}>»</span>
           </div>
 
@@ -2175,7 +2192,7 @@ export function SocraticShot({ theme: t }: { theme: Theme }) {
             <div style={{ flex: "0 1 auto", minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", gap: uw(8) }}>
               {FOR_YOU.map((r, i) => (
                 <div
-                  key={r.content}
+                  key={r.contentKey}
                   className="shot-in"
                   style={{
                     ...at(200 + i * 90),
@@ -2186,8 +2203,8 @@ export function SocraticShot({ theme: t }: { theme: Theme }) {
                     padding: `${uw(7)} ${uw(8)}`,
                   }}
                 >
-                  <div style={{ fontSize: uw(9), fontWeight: 600, color: t.text, lineHeight: 1.4 }}>{r.content}</div>
-                  <div style={{ fontSize: uw(8), color: t.muted, marginTop: uw(2) }}>{r.source}</div>
+                  <div style={{ fontSize: uw(9), fontWeight: 600, color: t.text, lineHeight: 1.4 }}>{tr(r.contentKey)}</div>
+                  <div style={{ fontSize: uw(8), color: t.muted, marginTop: uw(2) }}>{tr(r.sourceKey)}</div>
                 </div>
               ))}
             </div>
@@ -2210,7 +2227,7 @@ export function SocraticShot({ theme: t }: { theme: Theme }) {
             >
               <div style={{ border: `1px solid ${t.cardBorder}`, borderRadius: uw(12), padding: uw(10), background: t.cardBg }}>
                 <div style={{ display: "flex", alignItems: "center", gap: uw(4), marginBottom: uw(6) }}>
-                  <span style={{ flex: 1, minWidth: 0, fontSize: uw(10), fontWeight: 700, color: t.text }}>Kernel analysis</span>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: uw(10), fontWeight: 700, color: t.text }}>{tr("shot.socratic.kernelAnalysis")}</span>
                   {["TXT", "PDF", "✕"].map((a) => (
                     <span
                       key={a}
@@ -2229,13 +2246,13 @@ export function SocraticShot({ theme: t }: { theme: Theme }) {
                   ))}
                 </div>
                 <div style={{ fontSize: uw(9), color: t.text, lineHeight: 1.45 }}>
-                  <strong>Root gap:</strong> Factoring a difference of squares
+                  <strong>{tr("shot.socratic.rootGap")}</strong> {tr("shot.topic.factoringDiffSquares")}
                 </div>
                 <div style={{ fontSize: uw(9), color: t.text, lineHeight: 1.45, marginTop: uw(4) }}>
-                  <strong>Summary:</strong> Reads the 0/0 right, but doesn&apos;t reach for factoring unprompted. The limit isn&apos;t the gap — the algebra under it is.
+                  <strong>{tr("shot.socratic.summaryLabel")}</strong> {tr("shot.socratic.summaryBody")}
                 </div>
                 <div style={{ fontSize: uw(8), color: t.muted, marginTop: uw(6) }}>
-                  Confidence: 0.82 · KCs: 5 · Model: gemini-3.1-flash-lite
+                  {tr("shot.socratic.confidence")} 0.82 · {tr("shot.socratic.kcs")} 5 · {tr("shot.socratic.model")} gemini-3.1-flash-lite
                 </div>
               </div>
             </Resolving>
@@ -2266,43 +2283,43 @@ export function SocraticShot({ theme: t }: { theme: Theme }) {
  *  - Summary   keeps the sentence the student said, not the exercises.
  */
 const RUNG_SESSIONS: {
-  title: string;
-  turns: { who: "raya" | "me"; text: string }[];
+  titleKey: MessageKey;
+  turns: { who: "raya" | "me"; textKey: MessageKey }[];
   /** The Summary rung ends by turning the finished session into Kernel data. */
   analyze?: boolean;
 }[] = [
   {
-    title: "Photosynthesis — lesson 4",
+    titleKey: "shot.topic.photosynthesisLesson4",
     turns: [
-      { who: "me", text: "Just give me the answer to question 4 — why do plants need light?" },
-      { who: "raya", text: "Not yet. You've met this one already. What do you think the light is being used for inside the leaf?" },
-      { who: "me", text: "To make food? Sugar, I think." },
-      { who: "raya", text: "That's the word I wanted. Made out of what, though — a leaf can't make sugar out of nothing." },
+      { who: "me", textKey: "shot.rung.p1_1" },
+      { who: "raya", textKey: "shot.rung.p1_2" },
+      { who: "me", textKey: "shot.rung.p1_3" },
+      { who: "raya", textKey: "shot.rung.p1_4" },
     ],
   },
   {
-    title: "Le passé composé vs imparfait",
+    titleKey: "shot.topic.frenchTenses",
     turns: [
-      { who: "me", text: "«Je mangeais quand il est arrivé» — I had both in the imparfait first and it felt wrong." },
-      { who: "raya", text: "Your ear was right. One of those two verbs is the background and the other interrupts it. Which is which?" },
-      { who: "me", text: "Eating is the background?" },
-      { who: "raya", text: "Say why, and it'll stick." },
+      { who: "me", textKey: "shot.rung.p2_1" },
+      { who: "raya", textKey: "shot.rung.p2_2" },
+      { who: "me", textKey: "shot.rung.p2_3" },
+      { who: "raya", textKey: "shot.rung.p2_4" },
     ],
   },
   {
-    title: "Balancing equations",
+    titleKey: "shot.topic.balancingEquations",
     turns: [
-      { who: "me", text: "Two tries and H2 + O2 → H2O still won't balance. I'm stuck." },
-      { who: "raya", text: "Then here's the piece you're missing: you may change the number in front of a formula, never the small ones inside it. H₂O has to stay H₂O." },
-      { who: "me", text: "Oh. So 2H2 + O2 → 2H2O." },
+      { who: "me", textKey: "shot.rung.p3_1" },
+      { who: "raya", textKey: "shot.rung.p3_2" },
+      { who: "me", textKey: "shot.rung.p3_3" },
     ],
   },
   {
-    title: "Dividing fractions",
+    titleKey: "shot.topic.dividingFractions",
     turns: [
-      { who: "raya", text: "Before we stop — in your own words, why does dividing by a fraction make the answer bigger?" },
-      { who: "me", text: "Because you're asking how many halves fit inside it, and a lot of halves fit." },
-      { who: "raya", text: "That's the one. That sentence is what I keep — not the six exercises." },
+      { who: "raya", textKey: "shot.rung.p4_1" },
+      { who: "me", textKey: "shot.rung.p4_2" },
+      { who: "raya", textKey: "shot.rung.p4_3" },
     ],
     analyze: true,
   },
@@ -2340,8 +2357,14 @@ function rungScore(turns: { who: "raya" | "me"; text: string }[]) {
  * of a real screen stays a real screen; a redrawn one wouldn't.
  */
 export function RungShot({ theme: t, rung }: { theme: Theme; rung: number }) {
+  const tr = useTranslate();
   const session = RUNG_SESSIONS[rung] ?? RUNG_SESSIONS[0];
-  const { beats, end } = rungScore(session.turns);
+  // Resolved once per render — streamMs (inside rungScore) times the beats off
+  // the actual rendered word count, which changes with the language, and the
+  // rest of this shot draws off the same resolved strings rather than
+  // re-translating on every read.
+  const turns = session.turns.map((turn) => ({ who: turn.who, text: tr(turn.textKey) }));
+  const { beats, end } = rungScore(turns);
   // The finished exchange holds for a beat, then the session replays. The hold
   // is the part that matters: without it the last reply is gone before it can
   // be read, and the card becomes a flicker instead of a session.
@@ -2450,7 +2473,7 @@ export function RungShot({ theme: t, rung }: { theme: Theme; rung: number }) {
                   textOverflow: "ellipsis",
                 }}
               >
-                {session.title}
+                {tr(session.titleKey)}
               </span>
             </Resolving>
             {/* The header's real two-state line: `busy ? "Thinking…" : "● in
@@ -2458,16 +2481,16 @@ export function RungShot({ theme: t, rung }: { theme: Theme; rung: number }) {
                 turns play and settles green when the exchange lands. */}
             <Resolving
               delay={end + 80}
-              placeholder={<span style={{ display: "block", fontSize: u(7.5), color: t.mutedLight }}>Thinking…</span>}
+              placeholder={<span style={{ display: "block", fontSize: u(7.5), color: t.mutedLight }}>{tr("shot.common.thinking")}</span>}
             >
-              <span style={{ display: "block", fontSize: u(7.5), color: t.greenText }}>● in session</span>
+              <span style={{ display: "block", fontSize: u(7.5), color: t.greenText }}>● {tr("shot.common.inSession")}</span>
             </Resolving>
           </span>
-          {headerPill("View kernel profile", 70)}
+          {headerPill(tr("shot.common.viewKernelProfile"), 70)}
           {/* On the Summary rung this is the beat that matters: the finished
               session becoming Kernel data. Elsewhere it just sits there, the
               way it does in the app until a session is worth analysing. */}
-          {session.analyze ? headerPill("Analyze", end + 340, true) : headerPill("Analyze", 100)}
+          {session.analyze ? headerPill(tr("shot.common.analyze"), end + 340, true) : headerPill(tr("shot.common.analyze"), 100)}
         </div>
 
         {/* The thread, pinned to its newest message and clipped above — a turn
@@ -2485,7 +2508,7 @@ export function RungShot({ theme: t, rung }: { theme: Theme; rung: number }) {
             padding: `${u(8)} ${u(12)}`,
           }}
         >
-          {session.turns.map((m, i) => {
+          {turns.map((m, i) => {
             const mine = m.who === "me";
             const radii = mine
               ? `${u(12)} ${u(12)} ${u(3)} ${u(12)}`

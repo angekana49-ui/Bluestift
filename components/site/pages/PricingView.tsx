@@ -7,6 +7,8 @@ import type { Theme } from "@/components/site/theme";
 import { MEASURE, lead, pageColumn, pageH1, pageSection, serifEm } from "@/components/site/layout";
 import { ANNUAL_DISCOUNT, annualMonthlyRate, termTotal } from "@/lib/billing/terms";
 import { RayaName } from "@/components/ui/brand";
+import { useTranslate } from "@/components/ui/locale";
+import type { MessageKey } from "@/lib/i18n";
 
 /** Local shape (structurally a subset of lib/billing's BillingPlan — kept local
  * so this client component never imports the server-only billing module). */
@@ -59,13 +61,17 @@ function tierName(name: string): string {
  * A plan already seeded as `billingPeriod: "yearly"` carries a yearly sticker
  * and is left alone — its price is not a monthly rate to re-derive.
  */
-function priceParts(p: Plan, term: Term): { big: string; unit: string | null } {
-  if (p.price == null || p.price === 0) return { big: "Free", unit: null };
+function priceParts(
+  p: Plan,
+  term: Term,
+  tr: (key: MessageKey) => string,
+): { big: string; unit: string | null } {
+  if (p.price == null || p.price === 0) return { big: tr("pricing.free"), unit: null };
   if (p.billingPeriod === "yearly" && p.priceUnit !== "per_seat") {
-    return { big: money(p.price), unit: "/ yr" };
+    return { big: money(p.price), unit: tr("pricing.unit.perYear") };
   }
   const rate = term === "annual" ? annualMonthlyRate(p.price) : p.price;
-  return { big: money(rate), unit: p.priceUnit === "per_seat" ? "/ student / mo" : "/ mo" };
+  return { big: money(rate), unit: p.priceUnit === "per_seat" ? tr("pricing.unit.perStudentPerMonth") : tr("pricing.unit.perMonth") };
 }
 
 function Check({ color }: { color: string }) {
@@ -148,6 +154,7 @@ function PlanCard({
   audience: Audience;
   recommended: boolean;
 }) {
+  const tr = useTranslate();
   // Card-local: switching Plus to annual must not silently re-price Max too.
   // Defaults to monthly — showing the discounted rate first and only revealing
   // the real monthly price after a click is the dark pattern, not the default.
@@ -155,7 +162,7 @@ function PlanCard({
   const isSchool = audience === "schools";
   // A bespoke school plan can't carry a fixed sticker — it's quoted, not listed.
   const bespoke = isSchool && plan.tier === "custom";
-  const { big, unit } = bespoke ? { big: "Custom", unit: null } : priceParts(plan, term);
+  const { big, unit } = bespoke ? { big: tr("site.pricing.custom.title"), unit: null } : priceParts(plan, term, tr);
   const free = plan.price == null || plan.price === 0;
   const annual = term === "annual";
   /** True when the sticker is a monthly rate the term can actually move. */
@@ -165,12 +172,12 @@ function PlanCard({
 
   const cta = isSchool
     ? bespoke
-      ? { label: "Talk to the team", href: "/contact" } // quoted, not self-serve
-      : { label: "Start free pilot", href: "/login" } // listed plans → free pilot first
+      ? { label: tr("site.finalCta.ctaSecondary"), href: "/contact" } // quoted, not self-serve
+      : { label: tr("pricing.cta.startPilot"), href: "/login" } // listed plans → free pilot first
     : free
-      ? { label: "Create an account", href: "/login" }
+      ? { label: tr("pricing.cta.createAccount"), href: "/login" }
       : {
-          label: `Get ${tierName(plan.name)}`,
+          label: `${tr("pricing.cta.get")} ${tierName(plan.name)}`,
           // Carry the term through: without `months` the checkout would fall back
           // to a 1-month term and charge the monthly price for an annual pick.
           href: `/checkout?plan=${plan.id}&audience=b2c&months=${TERM_MONTHS[term]}`,
@@ -211,7 +218,7 @@ function PlanCard({
             whiteSpace: "nowrap",
           }}
         >
-          RECOMMENDED
+          {tr("pricing.recommended")}
         </span>
       )}
 
@@ -236,19 +243,19 @@ function PlanCard({
           never sees on their statement. */}
       {ratedMonthly && !annual && (
         <div style={{ fontSize: 13, fontWeight: 500, color: muted, marginTop: 5 }}>
-          or {money(annualMonthlyRate(plan.price!))}
-          {plan.priceUnit === "per_seat" ? " / student" : ""} / mo billed annually{" "}
-          <span style={{ color: checkColor, fontWeight: 700 }}>· save {Math.round(ANNUAL_DISCOUNT * 100)}%</span>
+          {tr("pricing.orAnnual.a")} {money(annualMonthlyRate(plan.price!))}
+          {plan.priceUnit === "per_seat" ? ` ${tr("pricing.orAnnual.perStudent")}` : ""} {tr("pricing.orAnnual.b")}{" "}
+          <span style={{ color: checkColor, fontWeight: 700 }}>· {tr("pricing.save")} {Math.round(ANNUAL_DISCOUNT * 100)}%</span>
         </div>
       )}
       {ratedMonthly && annual && (
         <div style={{ fontSize: 13, fontWeight: 500, color: muted, marginTop: 5 }}>
           {plan.priceUnit === "per_seat" ? (
-            <>billed annually, per enrolled student</>
+            <>{tr("pricing.annualBilled.perSeat")}</>
           ) : (
-            <>{money(termTotal(plan.price! * 12, 12))} billed once a year</>
+            <>{money(termTotal(plan.price! * 12, 12))} {tr("pricing.annualBilled.once")}</>
           )}{" "}
-          <span style={{ color: checkColor, fontWeight: 700 }}>· save {Math.round(ANNUAL_DISCOUNT * 100)}%</span>
+          <span style={{ color: checkColor, fontWeight: 700 }}>· {tr("pricing.save")} {Math.round(ANNUAL_DISCOUNT * 100)}%</span>
         </div>
       )}
 
@@ -257,7 +264,7 @@ function PlanCard({
       {ratedMonthly && (
         <div
           role="group"
-          aria-label="Billing term"
+          aria-label={tr("pricing.term.ariaLabel")}
           style={{
             display: "inline-flex",
             gap: 3,
@@ -293,7 +300,7 @@ function PlanCard({
                   transition: "all 0.18s ease",
                 }}
               >
-                {key === "monthly" ? "Monthly" : "Annual"}
+                {key === "monthly" ? tr("pricing.term.monthly") : tr("pricing.term.annual")}
                 {key === "annual" && (
                   <span
                     style={{
@@ -370,6 +377,7 @@ function PlanCard({
  * holding a number with nothing attached to it.
  */
 function CompareTable({ t, groups, heads }: { t: Theme; groups: CompareGroup[]; heads: string[] }) {
+  const tr = useTranslate();
   const border = `1px solid ${t.cardBorder}`;
   const labelCell = {
     position: "sticky" as const,
@@ -403,10 +411,10 @@ function CompareTable({ t, groups, heads }: { t: Theme; groups: CompareGroup[]; 
           margin: "0 0 6px",
         }}
       >
-        Every plan, line by line
+        {tr("pricing.compare.title")}
       </h2>
       <p style={{ textAlign: "center", fontSize: 15, color: t.muted, margin: "0 0 26px" }}>
-        Exactly what each plan unlocks, and up to what limit.
+        {tr("pricing.compare.sub")}
       </p>
 
       <div
@@ -511,6 +519,7 @@ export function PricingView({
   schoolCompare: CompareGroup[];
   initialAudience?: Audience;
 }) {
+  const tr = useTranslate();
   const [audience, setAudience] = useState<Audience>(initialAudience);
 
   return (
@@ -549,20 +558,19 @@ export function PricingView({
             <div style={pageColumn("wide")}>
               <div style={{ textAlign: "center", marginBottom: 30 }}>
                 <h1 style={{ ...pageH1(t), margin: "0 0 12px" }}>
-                  Pricing that{" "}
-                  <em style={{ ...serifEm, color: t.wordmarkB }}>stays simple.</em>
+                  {tr("site.pricing.title.a")}{" "}
+                  <em style={{ ...serifEm, color: t.wordmarkB }}>{tr("site.pricing.title.em")}</em>
                 </h1>
                 <p style={{ ...lead(t), margin: "0 auto" }}>
-                  Solo starts free and stays free. Schools pay per enrolled student — their effectif, not per active
-                  user.
+                  {tr("pricing.lead")}
                 </p>
               </div>
 
               {/* Audience toggle */}
               <div style={{ display: "flex", justifyContent: "center", marginBottom: 44 }}>
                 <div style={{ display: "inline-flex", gap: 4, background: t.pillTrackBg, borderRadius: 999, padding: 4 }}>
-                  {segBtn("solo", "Solo")}
-                  {segBtn("schools", "Schools")}
+                  {segBtn("solo", tr("site.pricing.solo.title"))}
+                  {segBtn("schools", tr("pricing.audience.schools"))}
                 </div>
               </div>
 
@@ -592,7 +600,7 @@ export function PricingView({
                 />
               )}
 
-              {/* Schools billing note — the explicit "you pay per effectif" agreement. */}
+              {/* Schools billing note — the explicit "you pay per size" agreement. */}
               {audience === "schools" && (
                 <div
                   style={{
@@ -610,16 +618,15 @@ export function PricingView({
                     textAlign: "center",
                   }}
                 >
-                  Billed <strong style={{ color: t.text }}>annually, per enrolled student</strong> (your declared
-                  effectif) — a school of 800 pays for 800, whether 250 or all of them use <RayaName /> that month. Quarterly and
-                  monthly terms available. Every school starts with a free pilot; talk to us for a quote.
+                  {tr("pricing.schoolsNote.a")} <strong style={{ color: t.text }}>{tr("pricing.schoolsNote.strong")}</strong>{" "}
+                  {tr("pricing.schoolsNote.b")} <RayaName /> {tr("pricing.schoolsNote.c")}
                 </div>
               )}
 
               <p style={{ textAlign: "center", fontSize: 14, color: t.muted, marginTop: 28 }}>
-                Questions about a plan?{" "}
+                {tr("pricing.questionsFooter")}{" "}
                 <Link href="/contact" style={{ color: t.link, fontWeight: 600, textDecoration: "none" }}>
-                  Talk to the team
+                  {tr("site.finalCta.ctaSecondary")}
                 </Link>
                 .
               </p>

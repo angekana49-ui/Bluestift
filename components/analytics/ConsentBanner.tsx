@@ -1,10 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { getConsent, setConsent } from "@/lib/analytics/consent";
 import { enableAnalytics, disableAnalytics } from "@/lib/analytics/posthog-lazy";
 import { createClient } from "@/lib/supabase/client";
+
+// The banner's own inset from the viewport edge (see `bottom` below) — read
+// back into the published height so a stacking neighbour clears the banner
+// itself, not just its content box.
+const BOTTOM_INSET = 16;
 
 /**
  * Opt-in cookie/analytics banner. Shown only until the user makes a choice.
@@ -14,12 +19,39 @@ import { createClient } from "@/lib/supabase/client";
  */
 export function ConsentBanner() {
   const [show, setShow] = useState(false);
+  const boxRef = useRef<HTMLDivElement>(null);
 
   // Decide on the client only (localStorage) — avoids an SSR/first-paint flash
   // for visitors who already chose.
   useEffect(() => {
     setShow(getConsent() === null);
   }, []);
+
+  // Publish the banner's real footprint as a CSS var so anything else that
+  // also anchors to the bottom of the viewport (the public site's first-visit
+  // LanguagePrompt) can stack above it instead of guessing a pixel offset —
+  // or, worse, both landing at `bottom: 0` and overlapping outright, which is
+  // exactly what used to hide the language bar behind this banner's much
+  // higher z-index on most laptop/mobile widths. Falls back to 0px (flush
+  // with the viewport edge) wherever this banner isn't showing.
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!show || !el) {
+      document.documentElement.style.removeProperty("--bs-consent-h");
+      return;
+    }
+    const GAP = 12;
+    const publish = () => {
+      document.documentElement.style.setProperty("--bs-consent-h", `${BOTTOM_INSET + el.offsetHeight + GAP}px`);
+    };
+    publish();
+    const ro = new ResizeObserver(publish);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      document.documentElement.style.removeProperty("--bs-consent-h");
+    };
+  }, [show]);
 
   if (!show) return null;
 
@@ -48,12 +80,13 @@ export function ConsentBanner() {
 
   return (
     <div
+      ref={boxRef}
       role="dialog"
       aria-label="Analytics consent"
       style={{
         position: "fixed",
         left: 16,
-        bottom: 16,
+        bottom: BOTTOM_INSET,
         zIndex: 2147483000,
         maxWidth: 380,
         background: "#0b1220",

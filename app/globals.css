@@ -1482,6 +1482,13 @@ a {
   }
 }
 
+/* The fixed wrapper's `bottom` follows --bs-consent-h (see LanguagePrompt.tsx)
+   so the bar steps down smoothly if the analytics consent banner is answered
+   — and so dismissed — while this bar is still open, instead of teleporting. */
+.pub-lang-wrap {
+  transition: bottom var(--dur-enter) var(--ease-out);
+}
+
 /* The first-visit language bar, settling in from the bottom edge rather than
    appearing on top of the page. Same reasoning as the hero: it mounts already
    in view, so it animates unconditionally and can never be left hidden. */
@@ -1501,6 +1508,9 @@ a {
 @media (prefers-reduced-motion: reduce) {
   .pub-lang-bar {
     animation: none;
+  }
+  .pub-lang-wrap {
+    transition: none;
   }
 }
 

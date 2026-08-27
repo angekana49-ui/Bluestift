@@ -149,22 +149,21 @@ export default function Navbar({
           {signedIn ? (
             <Link href={homeHref} className="pub-press" style={ctaPill}>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#34d399" }} />
-              {tr("site.nav.openApp")}
+              {/* The header stays English in every locale — the user's call,
+                  same as the five nav links above. Elsewhere on the site this
+                  same copy ("Start free" / "Open app" — Footer,
+                  FinalCtaSection, the checkout page) still goes through
+                  site.nav.startFree/openApp and is translated as usual;
+                  only the header hardcodes English directly. No "Sign in"
+                  link here by design — Start free is the header's one
+                  signed-out action, and it goes to the same /login. */}
+              Open app
             </Link>
           ) : (
-            <>
-              <Link
-                href="/login"
-                className="pub-hide-sm pub-underline pub-focus"
-                style={{ fontSize: 14, fontWeight: 500, color: t.link, whiteSpace: "nowrap", textDecoration: "none" }}
-              >
-                {tr("site.nav.signIn")}
-              </Link>
-              <Link href="/login" className="pub-press" style={ctaPill}>
-                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#34d399" }} />
-                {tr("site.nav.startFree")}
-              </Link>
-            </>
+            <Link href="/login" className="pub-press" style={ctaPill}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#34d399" }} />
+              Start free
+            </Link>
           )}
         </div>
       </div>

@@ -57,6 +57,8 @@ export const en = {
   // ── Public site: nav ──────────────────────────────────────────────
   // Headlines carry an italic-serif flourish on part of the line, so they're
   // split into fragments (`.a` / `.em` / `.b`) rather than storing markup.
+  // The five top-nav labels below are deliberately identical in every locale
+  // — the user's call: a little English in the header hurts no one.
   "site.nav.product": "Product",
   "site.nav.research": "Research",
   "site.nav.survey": "Survey",
@@ -291,14 +293,23 @@ export const en = {
   "site.roadmap.i8.title": "Works on a weak connection",
   "site.roadmap.i8.body":
     "The interface is cached on the device after the first visit, so it opens without waiting for the network, and writes are queued and retried rather than lost.",
-  // Two halves, two disclosures. The old body admitted the payment half and
-  // said nothing about the other: plan limits are counted and logged but do not
-  // BLOCK until ENTITLEMENTS_ENFORCE is switched on, so a quota published on
-  // the pricing page is today a measurement rather than a wall. Saying so is
-  // the whole point of this page.
+  // Two halves, two disclosures — and BOTH are now read off the deployment
+  // rather than typed here, which is why this entry is three keys instead of
+  // one. A hand-written "live acquiring isn't switched on" is true until the
+  // afternoon somebody adds the provider keys, and then it is a lie on the one
+  // page whose entire value is that it does not tell them. The clauses are
+  // joined by RoadmapTimeline from `billingIsLive()` and ENTITLEMENTS_ENFORCE,
+  // so the sentence and the code cannot disagree.
   "site.roadmap.i4.title": "Payments & quotas",
   "site.roadmap.i4.body":
-    "Card, mobile money and PayPal through a single aggregator, plus the plan limits. The full payment flow runs in sandbox — live acquiring isn’t switched on. The limits are counted and reported, and do not yet turn anyone away.",
+    "Card, mobile money and PayPal through a single aggregator, plus the plan limits.",
+  "site.roadmap.i4.pay.sandbox":
+    "The full payment flow runs in sandbox — live acquiring isn’t switched on.",
+  "site.roadmap.i4.pay.live": "Live acquiring is switched on.",
+  "site.roadmap.i4.quota.counting":
+    "The limits are counted and reported, and do not yet turn anyone away.",
+  "site.roadmap.i4.quota.enforcing":
+    "The limits published on the pricing page are enforced: past one, the action is refused rather than logged.",
   "site.roadmap.i5.title": "Per-concept trajectory curve",
   "site.roadmap.i5.body":
     "A real Kernel-side projection, replacing the model-guided estimate the student profile shows today.",
@@ -425,4 +436,1303 @@ export const en = {
   "net.roomLiveDown": "Live updates paused — reconnecting. Messages still send.",
   "chat.sendFailed": "Not sent — your message is saved.",
   "chat.retry": "Retry",
+
+  // ── Onboarding (post-signup account setup, components/onboarding-form.tsx) ─
+  // No interpolation helper exists in this catalogue, so anywhere the English
+  // sentence needs a dynamic value (a step count, a percentage, a name, a status
+  // code) the sentence is split into fragments and rejoined in JSX/JS, the same
+  // "a/em/b" pattern the public-site headlines already use. Word order for
+  // "Step N of Total" and "N% <word>" and "Welcome to X, Name" happens to match
+  // across en/fr/es/de, so this stays plain concatenation rather than a template
+  // engine.
+  "onb.stepLabel": "Step",
+  "onb.of": "of",
+  "onb.setUp": "set up",
+
+  "onb.path.heading": "How will you use BlueStift?",
+  "onb.path.sub": "One account, two ways in — you can do both later.",
+  "onb.path.raya.title": "Learn with",
+  "onb.path.raya.desc": "Study solo or in rooms with your AI tutor.",
+  "onb.path.schools.title": "Teach or run a school",
+  "onb.path.schools.desc": "Join a team with a code, or set up your own school.",
+
+  "onb.age.heading": "What year were you born?",
+  "onb.age.sub":
+    "We ask everyone. It decides what we're allowed to switch on for your account — nothing more.",
+  "onb.age.label": "Year of birth",
+  "onb.age.placeholder": "e.g. 2009",
+  "onb.age.note": "We store the year only — never a full date of birth.",
+
+  "onb.name.heading": "What should we call you?",
+  "onb.name.sub": "Your username is unique; your display name is what others see.",
+  "onb.name.usernameLabel": "Username (unique)",
+  "onb.name.usernamePlaceholder": "e.g. alex_m",
+  "onb.name.displayLabel": "Display name",
+  "onb.name.displayPlaceholder": "e.g. Alex",
+
+  "onb.level.heading": "Where are you in school?",
+  "onb.level.sub.a": "This helps",
+  "onb.level.sub.b": "pitch explanations at the right level.",
+  "onb.level.middle": "Middle school",
+  "onb.level.high": "High school",
+  "onb.level.university": "University",
+  "onb.other": "Other",
+
+  "onb.subjects.heading": "What do you want to work on?",
+  "onb.subjects.sub": "Pick a few — you can change these any time. (Optional)",
+  "onb.subject.maths": "Maths",
+  "onb.subject.physics": "Physics",
+  "onb.subject.chemistry": "Chemistry",
+  "onb.subject.biology": "Biology",
+  "onb.subject.historyGeo": "History & Geography",
+  "onb.subject.languages": "Languages",
+  "onb.subject.economics": "Economics",
+  "onb.subject.cs": "Computer science",
+  "onb.subject.philosophy": "Philosophy",
+
+  "onb.goal.heading": "What's your goal?",
+  "onb.goal.sub.a": "A sentence is enough —",
+  "onb.goal.sub.b": "keeps it in mind.",
+  "onb.goal.default": "Understand my lessons more deeply and feel ready for exams.",
+
+  "onb.srole.heading.a": "How will you use",
+  "onb.srole.sub": "Pick one — you can also do both from one account.",
+  "onb.srole.teacher.title": "I teach at a school",
+  "onb.srole.teacher.desc": "Join the team with the invite code your admin gave you.",
+  "onb.srole.school.title": "I run a school",
+  "onb.srole.school.desc": "Set up your school, classes and access codes.",
+
+  "onb.focus.heading.school": "What's your school about?",
+  "onb.focus.heading.teacher": "What do you teach?",
+  "onb.focus.sub": "A short note helps us tailor your dashboard. (Optional)",
+  "onb.focus.placeholder.school": "e.g. science academy, 600 students",
+  "onb.focus.placeholder.teacher": "e.g. Maths & Physics, final year",
+
+  "onb.ready.heading": "You're all set.",
+  "onb.ready.sub": "Here's what happens next.",
+  "onb.ready.note.school":
+    "Next: name your school and add classes, access codes and teachers. You'll be its administrator — pricing is shown up front.",
+  "onb.ready.note.teacher":
+    "Next: enter your school's invite code to join the teaching team. No code yet? Your admin can send you one.",
+
+  "onb.back": "Back",
+  "onb.continue": "Continue",
+  "onb.continueArrow": "Continue →",
+  "onb.finishArrow": "Finish →",
+
+  "onb.terms.agree": "By continuing you agree to our",
+  "onb.terms.termsLink": "Terms",
+  "onb.terms.and": "and",
+  "onb.terms.privacyLink": "Privacy Policy",
+
+  "onb.welcome.greeting": "Welcome to",
+  "onb.welcome.sub.schools": "Your account is ready. Let's get your school set up.",
+  "onb.welcome.sub.raya.a": "Your account is ready.",
+  "onb.welcome.sub.raya.b": "will adapt to how you learn from your very first session.",
+  "onb.welcome.cta.schools": "Open",
+  "onb.welcome.cta.raya": "Start learning →",
+
+  "onb.switchMethod": "← Use a different sign-in method",
+
+  "onb.err.age": "Enter the year you were born.",
+  "onb.err.nameRequired": "Choose a username and a display name.",
+  "onb.err.level": "Pick your level.",
+  "onb.err.srole": "Tell us how you'll use Schools.",
+  "onb.err.saveFailed": "Couldn't save that",
+  "onb.err.network": "Couldn't reach the server.",
+  "onb.err.usernameTaken": "That username is already taken.",
+
+  "onb.email.heading": "Secure your account",
+  "onb.email.sub":
+    "You're signed in anonymously. Add an email so you never lose access — or keep just your recovery key.",
+  "onb.email.label": "Email (recommended)",
+  "onb.email.placeholder": "you@example.com",
+  "onb.email.linkBtn": "Link",
+  "onb.email.sentBtn": "Sent ✓",
+  "onb.email.checkInbox": "Check your inbox to confirm — you can finish setting up now.",
+  "onb.email.recoveryTitle": "Your recovery key",
+  "onb.email.alreadyShown": "already shown",
+  "onb.email.hide": "Hide",
+  "onb.email.reveal": "Reveal",
+  "onb.email.copied": "Copied ✓",
+  "onb.email.copy": "Copy",
+  "onb.email.saved": "Saved ✓",
+  "onb.email.download": "Download",
+  "onb.email.bullet1": "This key is how you get back in if you sign out or change device.",
+  "onb.email.bullet2.a": "We keep no copy of it. If you lose it,",
+  "onb.email.bullet2.strong": "nobody can bring it back",
+  "onb.email.bullet2.b": "— not even us.",
+  "onb.email.bullet3": "Anyone who has it can open your account, so keep it to yourself.",
+  "onb.email.tailLabel": "Type the last four characters to check you have it",
+  "onb.email.tailAria": "Last four characters of your recovery key",
+  "onb.email.gotIt": "Got it ✓",
+  "onb.email.tailWrong": "Not quite — check the last group.",
+  "onb.email.tailHint": "The four after the last dash.",
+  "onb.email.noKey.a":
+    "Your key was already shown once — we keep only a fingerprint of it, so it can't be shown again. If you didn't save it, add an email above, then generate a replacement in",
+  "onb.email.noKey.strong": "Settings",
+
+  "onb.blocked.heading.a": "You need your school's permission to use",
+  "onb.blocked.sub":
+    "Under 13, we can only open an account when a school sets it up. If your teacher gave you a class code, enter it here and you're in.",
+  "onb.blocked.codeLabel": "Class code",
+  "onb.blocked.codePlaceholder": "From your teacher",
+  "onb.blocked.nameLabel": "Your name (shared only with your school)",
+  "onb.blocked.firstNamePlaceholder": "First name",
+  "onb.blocked.lastNamePlaceholder": "Last name",
+  "onb.blocked.linking": "Linking…",
+  "onb.blocked.submit": "Use my class code →",
+  "onb.blocked.err.linkFailed": "Couldn't link that code",
+  "onb.blocked.note.strong": "No class code?",
+  "onb.blocked.note.a": "Ask your teacher for one. A parent or guardian can also write to",
+  "onb.blocked.note.b": "and we'll sort it out with them.",
+  "onb.blocked.closed":
+    "Until then this account stays closed. We've kept nothing but the year you gave us, and it will be deleted along with the account if it goes unused.",
+
+  // ── Auth panel (components/auth-panel.tsx — /login AND /account) ──
+  "auth.err.captcha": "Complete the CAPTCHA first.",
+  "auth.err.network": "Couldn't reach the server.",
+  "auth.err.startFailed": "Couldn't start. Try again.",
+  "auth.msg.linkSent.a": "Link sent to",
+  "auth.msg.linkSent.b": "Check your inbox.",
+  "auth.err.keyLength": "A recovery key is 16 characters. Check for a missing one.",
+  "auth.err.recoveryFailed": "Recovery failed.",
+  "auth.msg.recovered": "Good to see you again — signing in…",
+  "auth.msg.keySent": "If that key is valid, a sign-in link was sent to the account. Check your inbox.",
+  "auth.err.keyInvalid": "That recovery key isn't valid.",
+  "auth.err.chooseImage": "Choose an image.",
+  "auth.msg.avatarUpdated": "Profile picture updated.",
+  "auth.err.uploadFailed": "Couldn't upload the picture.",
+
+  "auth.login.title": "Sign in or get started",
+  "auth.login.emailLabel": "Already have an account? Sign in by email",
+  "auth.login.emailPlaceholder": "you@email.com",
+  "auth.login.sendLink": "Send the link",
+  "auth.login.recoveryLabel": "Lost access? Use your recovery key",
+  "auth.login.recoveryPlaceholder": "XXXX-XXXX-XXXX-XXXX",
+  "auth.login.recoverBtn": "Recover",
+  "auth.login.newHere": "New here?",
+  "auth.login.startAnon": "Start anonymously",
+
+  "auth.account.changePhoto": "Change photo",
+  "auth.account.emailLabel": "Email",
+  "auth.account.anonymous": "(anonymous)",
+  "auth.account.typeLabel": "Account type",
+  "auth.account.unsafe.title": "Your progress isn't safe yet",
+  "auth.account.unsafe.a":
+    "This account lives only on this device. If you clear your browser or lose your recovery key, your",
+  "auth.account.unsafe.strong": "conversations, self-tests and Kernel profile disappear for good",
+  "auth.account.unsafe.b": ". Link an email now to keep them.",
+  "auth.account.keepProgress": "Keep my progress",
+
+  "auth.recovery.title": "Recovery key",
+  "auth.recovery.new.a": "Here is your new key.",
+  "auth.recovery.new.strong": "This is the only time it will be shown",
+  "auth.recovery.new.b": "— save it now. Any older key has stopped working.",
+  "auth.recovery.existing.a": "Your key is the",
+  "auth.recovery.onlyWayBack": "only way back into this account",
+  "auth.recovery.existing.b":
+    "if you lose access. We store only a fingerprint of it, so we genuinely can't show it to you again — if you've lost it, generate a new one and the old one stops working.",
+  "auth.recovery.none.a": "You don't have a recovery key yet. It is the",
+  "auth.recovery.none.b": "if you lose access to this device.",
+  "auth.recovery.generating": "Generating…",
+  "auth.recovery.confirmReplace": "Yes, replace my key",
+  "auth.recovery.regenerate": "Generate a new key",
+  "auth.recovery.generateFirst": "Generate my key",
+  "auth.recovery.confirmWarning": "Your current key will stop working.",
+  "auth.recovery.cancel": "Cancel",
+  "auth.recovery.issued": "Issued",
+  "auth.recovery.err.generateFailed": "Could not generate a key. Try again.",
+  "auth.recovery.err.generateNetwork": "Could not generate a key. Check your connection.",
+
+  // ── Sign-in screen (components/login-view.tsx, /login full-screen split) ──
+  // Shares the underlying flows (and several messages) with auth-panel.tsx —
+  // reuses those "auth.*" keys where the copy is word-for-word identical, and
+  // gets its own "login.*" key where this screen phrases it differently.
+  "login.err.invalidLink": "That sign-in link is invalid or has expired. Please try again.",
+  "login.msg.signedOut": "Signed out. Pick how you'd like to continue.",
+  "login.backToSite": "← Back to bluestift.com",
+  "login.heading": "Sign in to",
+  "login.sub": "Continue with email, a recovery key, or start anonymously — one account for everything.",
+  "login.pending.note":
+    "You have an unfinished setup on this device. Pick up where you left off, or sign out and choose a different way in.",
+  "login.pending.continue": "Continue setup",
+  "login.pending.switchMethod": "Use a different method",
+  "login.emailLabel": "Have an account? Sign in by email",
+  "login.sendLink": "Send link",
+  "login.recoveryPlaceholder": "Recovery key",
+  "login.newHereDivider": "New here",
+  "login.startAnonymous": "Start anonymously — no email needed",
+
+  // ── Checkout (app/checkout, components/checkout — not the sandbox stand-in) ─
+  "checkout.method.card": "Card / Virtual card",
+  "checkout.method.mobileMoney": "Mobile Money",
+  "checkout.method.paypal": "PayPal",
+  "checkout.method.card.sub": "Visa · Mastercard",
+  "checkout.method.mobileMoney.sub": "MTN · Orange · Moov · Wave",
+  "checkout.method.paypal.sub": "Pay with your PayPal balance",
+  "checkout.redirecting": "Redirecting…",
+  "checkout.payArrow": "Pay →",
+  "checkout.err.startFailed": "Could not start checkout.",
+  "checkout.err.network": "Network error — please try again.",
+
+  "checkout.backToPlans": "← Plans",
+  "checkout.title": "Checkout",
+  "checkout.row.plan": "Plan",
+  "checkout.row.seats": "Seats",
+  "checkout.row.term": "Term",
+  "checkout.row.discount": "Annual discount",
+  "checkout.row.total": "Total",
+  "checkout.month.singular": "month",
+  "checkout.month.plural": "months",
+  "checkout.term.annual": "annual",
+  "checkout.paymentsOff.title": "Online payment isn't open yet.",
+  "checkout.paymentsOff.body":
+    "The price above is the real one. We're finishing the payment channel — until it's live, schools are activated by hand and it takes a day.",
+  "checkout.paymentsOff.cta": "Talk to us",
+  "checkout.signIn.prompt": "Sign in to complete your purchase.",
+  "checkout.noSeats":
+    "No seat count set. Start this checkout from your school's Billing tab so the number of students is included.",
+  "checkout.choosePayment": "Choose how to pay",
+  "checkout.footerNote": "Payments are processed by our provider. You'll be redirected to a secure checkout.",
+
+  "checkout.return.paid.title": "You're all set",
+  "checkout.return.paid.body": "Your payment went through and your plan is now active.",
+  "checkout.return.paid.ctaSchool": "Go to your school",
+  "checkout.return.paid.ctaRaya": "Open Raya",
+  "checkout.return.pending.title": "Payment processing",
+  "checkout.return.pending.body":
+    "We're confirming your payment. This page will reflect the final status shortly — you can safely refresh.",
+  "checkout.return.pending.cta": "Back to plans",
+  "checkout.return.failed.title": "Payment didn't complete",
+  "checkout.return.failed.body": "No charge was made. You can try again with another method.",
+  "checkout.return.failed.cta": "Try again",
+  "checkout.return.notfound.title": "Payment not found",
+  "checkout.return.notfound.body": "We couldn't find this checkout. If you were charged, contact support.",
+  "checkout.return.notfound.cta": "Contact us",
+
+  // ── Legal pages shell (components/site/pages/legal-chrome.tsx) ────
+  "legal.lastUpdated": "Last updated",
+
+  // ── Contact page (components/site/pages/ContactView.tsx) ──────────
+  "contact.title.a": "Talk to",
+  "contact.title.em": "the team.",
+  "contact.sub": "Interested school, researcher, press, or just curious — write to us, we reply fast.",
+  "contact.subject.school": "School",
+  "contact.subject.research": "Research / collaboration",
+  "contact.subject.press": "Press",
+  "contact.done.title": "Message sent.",
+  "contact.done.body.a": "We'll reply to",
+  "contact.done.body.b": "as soon as we can.",
+  "contact.form.namePlaceholder": "Your name",
+  "contact.form.emailPlaceholder": "you@email.com *",
+  "contact.form.subjectPlaceholder": "Subject…",
+  "contact.form.messagePlaceholder": "Your message *",
+  "contact.form.error": "Couldn't send — try again.",
+  "contact.form.sending": "Sending…",
+  "contact.form.send": "Send message",
+
+  // ── Research post (components/site/pages/ResearchPostView.tsx) ────
+  // post.title / post.content / author names are CMS content, not UI copy —
+  // out of scope. Only the chrome around them is keyed here.
+  "research.post.back": "← Back to publications",
+  "research.post.type.paper": "Paper",
+  "research.post.type.experiment": "Experiment",
+  "research.post.type.article": "Article",
+  "research.post.type.update": "Update",
+  "research.post.summary": "Summary",
+
+  // ── Sub-processors page (components/site/pages/SubprocessorsView.tsx) ─
+  // Provider names (Supabase, Vercel, Gemini, …) are proper nouns — never
+  // translated, same rule as Bluestift/Raya/Schools.
+  "subprocessors.title.a": "Sub-",
+  "subprocessors.title.em": "processors.",
+  "subprocessors.intro":
+    "These are the companies that process personal data on our behalf so Bluestift can work. Each one is here for a single named purpose and has no right to use the data for anything else.",
+  "subprocessors.today.strong": "Where we are today.",
+  "subprocessors.today.body":
+    "Bluestift has just launched. We are working through each provider's data processing agreement, including the standard contractual clauses that cover transfers out of the EEA and the UK. Until this page says a given agreement is in place, assume it is still in progress — and if that matters to your decision, ask us and we'll tell you exactly where it stands. We would rather be checkable than sound finished.",
+  "subprocessors.current.h2": "Current sub-processors",
+  "subprocessors.table.provider": "Provider",
+  "subprocessors.table.what": "What it does",
+  "subprocessors.table.data": "Data it sees",
+  "subprocessors.table.where": "Where",
+  "subprocessors.loc.eu": "EU",
+  "subprocessors.loc.euUs": "EU / US",
+  "subprocessors.loc.us": "US",
+  "subprocessors.loc.global": "Global",
+  "subprocessors.loc.africaEu": "Africa / EU",
+  "subprocessors.row.supabase.purpose": "Database, authentication and file storage — the system of record",
+  "subprocessors.row.supabase.data": "Everything stored: accounts, conversations, uploads, learning signals",
+  "subprocessors.row.vercel.purpose": "Application hosting and scheduled jobs",
+  "subprocessors.row.vercel.data": "Requests in transit, server logs",
+  "subprocessors.row.gemini.purpose": "Generates Raya's replies",
+  "subprocessors.row.gemini.data": "The text of a tutoring turn and the context sent with it",
+  "subprocessors.row.groq.purpose": "Fallback model for replies, and speech-to-text for voice",
+  "subprocessors.row.groq.data": "The text of a tutoring turn; recorded audio when voice is used",
+  "subprocessors.row.posthog.purpose": "Product analytics — only for accounts that opted in, never under-18s",
+  "subprocessors.row.posthog.data": "Page views, a few product events, an account identifier",
+  "subprocessors.row.cloudflare.purpose": "Turnstile bot protection on public forms and sign-up",
+  "subprocessors.row.cloudflare.data": "A challenge token and network metadata",
+  "subprocessors.row.resend.purpose": "Transactional email — invitations, decisions, receipts",
+  "subprocessors.row.resend.data": "Email address and the message content",
+  "subprocessors.row.cinetpay.purpose": "Card and mobile-money payments",
+  "subprocessors.row.cinetpay.data": "Payment details and the amount. We never store full card numbers",
+  "subprocessors.row.classroom.purpose": "Optional LMS import, only for schools that connect it",
+  "subprocessors.row.classroom.data": "Course and roster data the school chooses to share",
+  "subprocessors.require.h2": "What we require of them",
+  "subprocessors.require.li1": "They process data only on our documented instructions, for the purpose named above.",
+  "subprocessors.require.li2":
+    "We use model providers on their API terms, which do not feed content into training of their public models.",
+  "subprocessors.require.li3":
+    "Transfers outside the EEA or the UK must be covered by Standard Contractual Clauses or an adequacy decision — see the note above on where we are with that.",
+  "subprocessors.require.li4": "They are bound to confidentiality and to appropriate security.",
+  "subprocessors.changes.h2": "Changes",
+  "subprocessors.changes.a":
+    "We update this page before a new sub-processor starts handling school data, and notify school administrators by email. A school may object on reasonable data protection grounds — see the",
+  "subprocessors.changes.dpaLink": "data processing addendum",
+  "subprocessors.worksWithout.a": "works without several of these. A school that has not connected",
+  "subprocessors.worksWithout.b": "Google Classroom is never touched by that row; an account that declined analytics is never touched by PostHog.",
+  "subprocessors.questions": "Questions:",
+
+  // ── Feedback page (components/site/pages/FeedbackView.tsx) ────────
+  "feedback.type.suggestion": "Suggestion",
+  "feedback.type.bug": "Bug",
+  "feedback.type.feature": "Feature",
+  "feedback.type.praise": "Praise",
+  "feedback.title.a": "Your",
+  "feedback.title.em": "feedback.",
+  "feedback.sub": "A bug, an idea, something you loved or that annoyed you — we want it all, and we read it all.",
+  "feedback.done.title": "Thank you!",
+  "feedback.done.body": "Your feedback has been sent to the team.",
+  "feedback.rating.label": "Rating:",
+  "feedback.rating.star.singular": "star",
+  "feedback.rating.star.plural": "stars",
+  "feedback.form.messagePlaceholder": "Tell us everything…",
+  "feedback.form.emailPlaceholder": "Your email if you'd like a reply (optional)",
+  "feedback.form.error": "Couldn't send — try again.",
+  "feedback.form.sending": "Sending…",
+  "feedback.form.send": "Send feedback",
+
+  // ── Survey (components/site/pages/SurveyView.tsx) ──────────────────
+  // Option VALUES stored in `answer_choice` stay the stable English strings
+  // already collected (see the "value" fields below) so responses stay
+  // comparable across languages; only the displayed label is translated.
+  "survey.level.primary": "Primary",
+  "survey.level.secondaryEarly": "Secondary — early years",
+  "survey.level.secondaryExam": "Secondary — exam years",
+  "survey.level.higher": "Higher education",
+  "survey.other": "Something else",
+
+  "survey.t1.q": "What level do you teach?",
+  "survey.t2.q": "How many students do you have per class on average?",
+  "survey.t2.o1": "Fewer than 20",
+  "survey.t2.o2": "20–35",
+  "survey.t2.o3": "35–50",
+  "survey.t2.o4": "More than 50",
+  "survey.t4.q":
+    "Right now, without looking anything up — could you name the three students who are most lost, and on what?",
+  "survey.t4.o1": "Yes — names and topics",
+  "survey.t4.o2": "The names, not the topics",
+  "survey.t4.o3": "I'd have to check my records",
+  "survey.t4.o4": "Honestly, no",
+  "survey.t7.q": "How do you usually find out a student didn't understand?",
+  "survey.t7.o1": "The test, afterwards",
+  "survey.t7.o2": "They ask me",
+  "survey.t7.o3": "A parent, or the next teacher",
+  "survey.t7.o4": "Often I don't",
+  "survey.t5.q":
+    "Since your students started using AI, does the work they hand in tell you more or less about how they actually think?",
+  "survey.t5.o1": "Much less",
+  "survey.t5.o2": "A little less",
+  "survey.t5.o3": "No change",
+  "survey.t5.o4": "More",
+  "survey.t8.q": "Last one. What part of your job has no tool ever helped with?",
+  "survey.t8.placeholder": "One sentence is plenty.",
+
+  "survey.s1.q": "Where are you in school?",
+  "survey.s2.q": "When you're stuck on a problem, what do you do?",
+  "survey.s2.o1": "Ask a friend",
+  "survey.s2.o2": "Search YouTube / Google",
+  "survey.s2.o3": "Ask an AI (ChatGPT, Gemini, Copilot…)",
+  "survey.s2.o4": "Give up",
+  "survey.s4.q": "Do you already use AI tools for your homework?",
+  "survey.s4.o1": "Yes, often",
+  "survey.s4.o2": "Yes, sometimes",
+  "survey.s4.o3": "I tried but stopped",
+  "survey.s4.o4": "Never",
+  "survey.s7.q": "Has a teacher ever thought you understood something you didn't?",
+  "survey.s7.o1": "Often",
+  "survey.s7.o2": "Once or twice",
+  "survey.s7.o3": "Never",
+  "survey.s7.o4": "Yes — and I made sure they thought so",
+  "survey.s5.q": "When you don't understand something, who do you tell?",
+  "survey.s5.o1": "My teacher",
+  "survey.s5.o2": "A friend",
+  "survey.s5.o3": "An AI",
+  "survey.s5.o4": "Nobody",
+  "survey.s6.q": "Last one. What's one thing you wish your teacher knew about how you're actually doing?",
+  "survey.s6.placeholder": "One sentence is plenty — nobody will know it was you.",
+
+  "survey.badge.teacher": "Teacher",
+  "survey.badge.student": "Student",
+  "survey.other.inputPlaceholder": "Tell us what — a few words is enough.",
+  "survey.finish": "Finish",
+  "survey.submitError": "Couldn't submit — try again.",
+  "survey.skip": "Skip this question →",
+
+  "survey.done.title": "Thank you.",
+  "survey.done.body.a": "Your answers feed straight into",
+  "survey.done.body.b": "Leave your email if you want early access when the beta is ready.",
+  "survey.done.earlyAccess": "Early access",
+  "survey.done.saved": "Noted — see you soon!",
+  "survey.done.shareFreely": "Share freely",
+  "survey.done.backHome": "Back home",
+
+  "survey.wall.profile.anonymous": "Anonymous",
+  "survey.wall.title": "Tell us what you think.",
+  "survey.wall.sub": "No questions, no form. Just a space to express yourself freely. What you write here feeds straight into the product.",
+  "survey.wall.placeholder": "What I really miss in today's education tools is…",
+  "survey.wall.postError": "Couldn't post — try again.",
+  "survey.wall.posting": "Posting…",
+  "survey.wall.post": "Post",
+  "survey.wall.resonates": "Resonates",
+  "survey.wall.important": "Important",
+
+  "survey.tab.freeWall": "Free wall",
+  "survey.badge.rd": "R&D · 5 minutes · Anonymous",
+  "survey.hero.title": "Do you teach or do you learn?",
+  "survey.hero.em": "Tell us what's really getting in the way.",
+  "survey.hero.sub.p1": "questions,",
+  "survey.hero.sub.p2": "of them a single tap.",
+  "survey.hero.sub.p3": "No account needed. Your answers feed directly into",
+  "survey.cta.teacher": "I'm a teacher",
+  "survey.cta.student": "I'm a student",
+  "survey.cta.shareFreely": "Or share freely →",
+  "survey.stats.responses": "responses collected",
+  "survey.stats.stories": "stories shared",
+
+  // ── Full pricing page (components/site/pages/PricingView.tsx) ─────
+  // Plan names/descriptions/features and the compare-table rows are seeded
+  // server-side data (lib/billing, lib/entitlements), not UI copy — out of
+  // scope here, same as CMS content elsewhere. Only the chrome around them
+  // is keyed.
+  "pricing.lead": "Solo starts free and stays free. Schools pay per enrolled student — their size, not per active user.",
+  "pricing.audience.schools": "Schools",
+  "pricing.cta.startPilot": "Start free pilot",
+  "pricing.cta.createAccount": "Create an account",
+  "pricing.cta.get": "Get",
+  "pricing.recommended": "RECOMMENDED",
+  "pricing.term.monthly": "Monthly",
+  "pricing.term.annual": "Annual",
+  "pricing.term.ariaLabel": "Billing term",
+  "pricing.save": "save",
+  "pricing.free": "Free",
+  "pricing.orAnnual.a": "or",
+  "pricing.orAnnual.perStudent": "/ student",
+  "pricing.orAnnual.b": "/ mo billed annually",
+  "pricing.annualBilled.perSeat": "billed annually, per enrolled student",
+  "pricing.annualBilled.once": "billed once a year",
+  "pricing.compare.title": "Every plan, line by line",
+  "pricing.compare.sub": "Exactly what each plan unlocks, and up to what limit.",
+  "pricing.schoolsNote.a": "Billed",
+  "pricing.schoolsNote.strong": "annually, per enrolled student",
+  "pricing.schoolsNote.b": "(your declared size) — a school of 800 pays for 800, whether 250 or all of them use",
+  "pricing.schoolsNote.c":
+    "that month. Quarterly and monthly terms available. Every school starts with a free pilot; talk to us for a quote.",
+  "pricing.questionsFooter": "Questions about a plan?",
+  "pricing.unit.perYear": "/ yr",
+  "pricing.unit.perStudentPerMonth": "/ student / mo",
+  "pricing.unit.perMonth": "/ mo",
+
+  // ── Terms of Service (components/site/pages/TermsView.tsx) ────────
+  // Legal text — translated for reach, same as the rest of the site, but this
+  // is the one place on the site where an AI translation carries real risk if
+  // relied on in a dispute. Flagged to the maintainer; not a reason to skip it.
+  "terms.title.a": "Terms of",
+  "terms.title.em": "service.",
+  "terms.intro.a": "These terms cover your use of Bluestift and",
+  "terms.intro.b":
+    ". Using the product means you accept them. If you are using Bluestift through your school, your school's agreement with us also applies and takes precedence where the two differ.",
+  "terms.s1.h2": "1. Who can use Bluestift",
+  "terms.s1.li1.strong": "13 and over",
+  "terms.s1.li1.body": "— you can open an account yourself. If you are under 18 you should have your parent or guardian's permission.",
+  "terms.s1.li2.strong": "Under 13",
+  "terms.s1.li2.a":
+    "— only through a school that has enrolled you. We do not open accounts for under-13s who sign up on their own; see the",
+  "terms.s1.li2.link": "privacy policy",
+  "terms.s1.li2.b": "for why.",
+  "terms.s1.li3": "We ask everyone their year of birth and act on the answer. Giving a false one to get past that is a breach of these terms.",
+  "terms.s2.h2": "2. Your account",
+  "terms.s2.a": "You are responsible for what happens under your account. If you use an anonymous account, the",
+  "terms.s2.strong": "recovery key is the only way back in",
+  "terms.s2.b":
+    "— we cannot restore it for you, and anyone holding it has full access. Keep it private, and add an email if you would rather not carry that risk.",
+  "terms.s3.h2": "3. What Raya is, and is not",
+  "terms.s3.p1.a": "is an AI tutor. It teaches by asking rather than answering, and",
+  "terms.s3.p1.strong": "it can be wrong",
+  "terms.s3.p1.b":
+    "Check anything that matters — a grade, an exam answer, a fact you are about to rely on. It is not a substitute for a teacher, and it is not professional advice of any kind: not medical, not legal, not financial, not psychological.",
+  "terms.s3.p2.a": "If a conversation ever suggests a student is at risk of harm, please involve a responsible adult.",
+  "terms.s3.p2.b": "is a study tool, not a crisis service.",
+  "terms.s4.h2": "4. Acceptable use",
+  "terms.s4.intro": "Do not use Bluestift to:",
+  "terms.s4.li1": "break the law, or help anyone else do so;",
+  "terms.s4.li2":
+    "cheat where your school forbids it — a tutor that does your homework for you is not what this is, and your school sets that rule, not us;",
+  "terms.s4.li3": "harass anyone, or upload content that is abusive, hateful or sexual, especially involving minors;",
+  "terms.s4.li4": "upload material you have no right to share, or someone else's personal data without a reason to;",
+  "terms.s4.li5": "attack, scrape or overload the service, evade rate limits, or attempt to reach another user's data.",
+  "terms.s5.h2": "5. Your content",
+  "terms.s5.p1.a":
+    "What you write and upload stays yours. You give us the permission we need to store it, process it and show it back to you — and to send it to a model provider so that",
+  "terms.s5.p1.b": "can reply. Nothing more.",
+  "terms.s5.p2":
+    "We do not use your content to improve our models unless you switch that on in your settings, and the option is not offered on accounts belonging to under-18s.",
+  "terms.s6.h2": "6. School accounts",
+  "terms.s6.a": "If you join through a class code, your school sees your name, your class and your results. It does not see your conversations with",
+  "terms.s6.b": ". Your school administers your access and can remove it. The terms we operate under are in the",
+  "terms.s6.link": "data processing addendum",
+  "terms.s7.h2": "7. Paid plans",
+  "terms.s7.p1.a": "Prices and what each plan includes are on the",
+  "terms.s7.p1.link": "pricing page",
+  "terms.s7.p1.b":
+    ". Subscriptions renew for the term you chose until cancelled, and cancelling stops the next renewal rather than refunding the current one. Where consumer law gives you a right of withdrawal, that right applies and overrides this paragraph. School plans are billed per seat under the school's own agreement.",
+  "terms.s7.p2": "We may change prices. Existing subscribers keep their price until the end of the term they have paid for.",
+  "terms.s8.h2": "8. Availability",
+  "terms.s8.body":
+    "We work to keep Bluestift running but do not promise it will never be down. We may change or discontinue features. If we discontinue something a school is paying for, we will refund the unused balance.",
+  "terms.s9.h2": "9. Ending it",
+  "terms.s9.a": "You can delete your account at any time from",
+  "terms.s9.link": "your settings",
+  "terms.s9.b":
+    ". It is immediate and cannot be undone. We may suspend or close an account that breaches these terms, or that puts other users or the service at risk — and where we can, we will say why first.",
+  "terms.s10.h2": "10. Liability",
+  "terms.s10.a":
+    "Bluestift is provided as it is. To the extent the law allows, we are not liable for indirect or consequential loss, or for decisions taken on the strength of something",
+  "terms.s10.b":
+    "said — see §3. Nothing here limits liability that cannot legally be limited, including for death or personal injury caused by negligence, or for fraud. Where our liability is capped, it is capped at what you paid us in the twelve months before the claim.",
+  "terms.s11.h2": "11. Changes",
+  "terms.s11.body":
+    "We will update these terms as the product changes and revise the date above. For material changes we will give notice in the product or by email before they take effect.",
+  "terms.s12.h2": "12. Governing law",
+  "terms.s12.body":
+    "Bluestift is established in the United States, and these terms are governed by the law of the US state in which it is established, whose courts have jurisdiction — except that consumers keep the protection of the mandatory laws of the country where they live, and may bring proceedings there. We will name that state here as soon as the company is formally incorporated.",
+  "terms.contact.a": "Questions about any of this:",
+  "terms.contact.b": ". For data protection specifically:",
+
+  // ── Privacy policy (components/site/pages/PrivacyView.tsx) ─────────
+  "privacy.title.a": "Privacy",
+  "privacy.title.em": "policy.",
+  "privacy.intro.a": "Bluestift builds",
+  "privacy.intro.b":
+    ", an AI tutor for students, and a companion dashboard for schools. This page explains what we hold, why we are allowed to hold it, how long we keep it, and what you can do about it. It is written to be read, not to be survived.",
+
+  "privacy.short.h2": "The short version",
+  "privacy.short.li1.a": "You can start anonymously — no email required to try",
+  "privacy.short.li2.a": "Analytics is",
+  "privacy.short.li2.strong": "opt-in",
+  "privacy.short.li2.b": ", and switched off entirely for anyone under 18. Declining changes nothing about how the product works.",
+  "privacy.short.li3.a": "On an adult account, your work",
+  "privacy.short.li3.strong": "is",
+  "privacy.short.li3.b":
+    "used to improve our models unless you switch that off — one toggle in your settings, effective immediately. For under-18s it is never used, and the option isn't offered at all.",
+  "privacy.short.li4.a": "If your account is",
+  "privacy.short.li4.strong": "linked to a school",
+  "privacy.short.li4.b": ", your progress is visible to your teachers. If it is linked to nobody, nothing about your learning leaves your account.",
+  "privacy.short.li5": "No ads. No selling data. No cross-site tracking.",
+  "privacy.short.li6.a": "You can download everything we hold, or delete your account outright, from",
+  "privacy.short.li6.link": "your settings",
+  "privacy.short.li6.b": "— no request form, no waiting.",
+
+  "privacy.age.h2": "Children and age",
+  "privacy.age.p1":
+    "We ask everyone the year they were born. We store the year, never a full date of birth, and we ask it neutrally rather than as “are you over 13?” — a question phrased that way just tells a child which answer opens the door.",
+  "privacy.age.under13.strong": "Under 13.",
+  "privacy.age.under13.body":
+    "We do not knowingly open accounts for children under 13 on their own. We operate no verifiable parental consent mechanism of our own, so the only route in is a school: a school that adopts Bluestift consents on the parent's behalf for school use, which is the exception COPPA provides at 16 CFR § 312.5(c)(6). A child who signs up alone is stopped at the age question, and we hold nothing but the year they gave us until the account is deleted.",
+  "privacy.age.under18.strong": "Under 18.",
+  "privacy.age.under18.body":
+    "Optional processing is off and cannot be switched on: no product analytics, and no use of their content to improve models. That is stricter than the law strictly requires in some countries — GDPR art. 8 sets the age of digital consent between 13 and 16 depending on the member state — and we would rather be too careful with a 17-year-old than not careful enough with a 13-year-old.",
+  "privacy.age.parents.strong": "Parents.",
+  "privacy.age.parents.a":
+    "You can ask to see, correct or delete your child's data. If they use Bluestift through a school, the fastest route is the school, which can produce their record directly. Either way, write to",
+  "privacy.age.parents.b": "and we will help.",
+
+  "privacy.collect.h2": "What we collect, why, and on what basis",
+  "privacy.collect.intro.a": "“Legal basis” is the GDPR term for what entitles us to hold something at all. Where it says",
+  "privacy.collect.intro.contract": "contract",
+  "privacy.collect.intro.b": ", the product cannot work without it. Where it says",
+  "privacy.collect.intro.consent": "consent",
+  "privacy.collect.intro.c": ", you chose it and can un-choose it.",
+  "privacy.collect.table.what": "What",
+  "privacy.collect.table.why": "Why",
+  "privacy.collect.table.basis": "Legal basis",
+  "privacy.collect.r1.what": "Account — a random identifier, a username, a display name, and an email if you add one",
+  "privacy.collect.r1.why": "To have an account at all, and to get you back into it",
+  "privacy.collect.r1.basis": "Contract",
+  "privacy.collect.r2.what": "Year of birth",
+  "privacy.collect.r2.why": "To apply the age rules above",
+  "privacy.collect.r2.basis": "Legal obligation",
+  "privacy.collect.r3.what": "Your conversations, uploads and generated study material",
+  "privacy.collect.r3.why": "To tutor you, and to let you come back to your work",
+  "privacy.collect.r3.basis": "Contract",
+  "privacy.collect.r4.what": "Learning signals — what you've worked on and where you struggle",
+  "privacy.collect.r4.why": "To adapt the tutoring, and to show your teachers class-level progress",
+  "privacy.collect.r4.basis": "Contract",
+  "privacy.collect.r5.what": "School enrolment — your real name, class and year, held for your school",
+  "privacy.collect.r5.why": "So your school can identify you in its own dashboard",
+  "privacy.collect.r5.basis": "Contract (with your school)",
+  "privacy.collect.r6.what": "Product analytics",
+  "privacy.collect.r6.why": "To see which features actually help",
+  "privacy.collect.r6.basis": "Consent — off until you accept, never for under-18s",
+  "privacy.collect.r7.what": "Using your content to improve our models",
+  "privacy.collect.r7.why": "To make the tutor better",
+  "privacy.collect.r7.basis": "Consent — on by default on adult accounts, switchable off at any time; never for under-18s",
+  "privacy.collect.r8.what": "Sending your progress to your school",
+  "privacy.collect.r8.why": "So your teachers can see who is stuck and on what",
+  "privacy.collect.r8.basis": "Contract (with your school) — only while your account is linked to one",
+  "privacy.collect.r9.what": "Server logs and a coarse network signal",
+  "privacy.collect.r9.why": "To stop spam, abuse and runaway automated sign-ups",
+  "privacy.collect.r9.basis": "Legitimate interests",
+  "privacy.collect.r10.what": "Payment records",
+  "privacy.collect.r10.why": "To take payment and keep the books",
+  "privacy.collect.r10.basis": "Contract / legal obligation",
+  "privacy.collect.footer": "We do not use your content to advertise to you, and we do not sell or share personal information in the sense US state privacy laws give those words.",
+
+  "privacy.kernel.h3": "What Raya keeps about how you learn",
+  "privacy.kernel.a": "To tutor properly,",
+  "privacy.kernel.b":
+    "maintains a model of your understanding — which concepts you have grasped, how confidently, and how you tend to approach difficulty. You do not see this model in the interface, which is exactly why it is included in full in the data export below. It is yours to look at.",
+
+  "privacy.analytics.h2": "Analytics & cookies",
+  "privacy.analytics.p1.a": "Product analytics is provided by",
+  "privacy.analytics.p1.strong": "PostHog",
+  "privacy.analytics.p1.b":
+    "and is strictly opt-in. Until you accept the banner, the analytics library is never even downloaded — no events, on your device or on our servers. If you accept, we record page views and a few product actions tied to your account identifier, so we can measure real usage. You can decline and use everything.",
+  "privacy.analytics.p2.a": "You can withdraw that consent whenever you like from",
+  "privacy.analytics.p2.link": "your settings",
+  "privacy.analytics.p2.b": ", with one switch. It is as easy to withdraw as it was to give, which is what art. 7(3) asks for.",
+  "privacy.analytics.p3":
+    "Cookies are minimal: one to keep you signed in, one to remember your analytics choice so we stop asking, and one to remember which school you are looking at if you belong to several. There are no advertising or cross-site tracking cookies.",
+
+  "privacy.who.h2": "Who processes data for us",
+  "privacy.who.p1.a": "A short list, each one only for what it is named for. The current sub-processors, with what they hold and where, are on the",
+  "privacy.who.p1.link": "sub-processors page",
+  "privacy.who.p1.b": ", which we keep up to date as they change.",
+  "privacy.who.p2.a": "Text you send to",
+  "privacy.who.p2.b": "is processed by large-language-model providers to generate a reply. We use them on their API terms, which do not feed that content into training of their public models.",
+  "privacy.who.p3.a":
+    "Some of these providers operate outside the EEA and the UK. Those transfers need to be covered by the European Commission's Standard Contractual Clauses or an adequacy decision, and we are working through that provider by provider as a newly launched company. The",
+  "privacy.who.p3.link": "sub-processors page",
+  "privacy.who.p3.b": "says where we are rather than claiming it is finished.",
+
+  "privacy.retention.h2": "How long we keep it",
+  "privacy.retention.table.what": "What",
+  "privacy.retention.table.howLong": "How long",
+  "privacy.retention.r1.what": "Your account and its content",
+  "privacy.retention.r1.how": "While the account is active",
+  "privacy.retention.r2.what": "Anonymous accounts that are never used",
+  "privacy.retention.r2.how": "Deactivated after 60 days of inactivity, deleted after 180",
+  "privacy.retention.r3.what": "School records",
+  "privacy.retention.r3.how": "For the school's contracted term, then returned or destroyed at its instruction",
+  "privacy.retention.r4.what": "Payment records",
+  "privacy.retention.r4.how": "As long as accounting and tax rules require",
+  "privacy.retention.r5.what": "The log that a data request happened",
+  "privacy.retention.r5.how": "Kept after the data itself is deleted — it is the proof we deleted it",
+  "privacy.retention.footer":
+    "When you delete your account, we delete the account, your conversations, your uploads, your results and the cognitive profile — including the parts of it held in systems that no automatic cascade would have reached. Payment records survive, because art. 17(3)(b) requires them to.",
+
+  "privacy.rights.h2": "Your rights",
+  "privacy.rights.p1":
+    "If you are in the EU, the UK or a US state with a privacy law, you have rights of access, correction, deletion, portability, and objection to certain processing, and you may withdraw consent at any time. Two of those are wired straight into the product:",
+  "privacy.rights.li1.strong": "Access & portability.",
+  "privacy.rights.li1.a": "Download everything we hold as a JSON file from",
+  "privacy.rights.li1.link": "your settings",
+  "privacy.rights.li2.strong": "Erasure.",
+  "privacy.rights.li2.body": "Delete your account from the same page. It is immediate and cannot be undone.",
+  "privacy.rights.contact.a":
+    "For anything else — a correction, an objection, a question about the year of birth on file — write to",
+  "privacy.rights.contact.b":
+    ". We do not charge for any of this, and we do not treat you differently for asking. If you are in the EEA or the UK you can also complain to your national data protection authority.",
+
+  "privacy.schools.h2": "Schools, students and staff",
+  "privacy.schools.p1.a": "When a school adopts Bluestift, the",
+  "privacy.schools.p1.strong1": "school",
+  "privacy.schools.p1.b":
+    "decides what is collected about its students and we act on its instructions — it is the controller, we are the processor. In US terms we act as a",
+  "privacy.schools.p1.strong2": "school official",
+  "privacy.schools.p1.c":
+    "with a legitimate educational interest under FERPA (34 CFR § 99.31(a)(1)): we use student data only to provide the service, we do not re-disclose it, and we return or destroy it when the contract ends. The terms are set out in the",
+  "privacy.schools.p1.link": "data processing addendum",
+  "privacy.schools.p2":
+    "Staff see their own classes, not the school at large. A parent exercising the FERPA right to inspect and review their child's record asks the school, which can produce it from its dashboard.",
+  "privacy.schools.p3.a": "One thing that record deliberately leaves out: a student's own conversations with",
+  "privacy.schools.p3.b":
+    "A tutor you believe is being read over your shoulder is a tutor you stop asking real questions of, and the tutoring stops working. Those conversations are available in full through the student's own export.",
+
+  "privacy.disclaimer": "This page describes what our systems do. It is not legal advice, and it is not a substitute for the contract your school signs with us.",
+
+  "privacy.changes.h2": "Changes & contact",
+  "privacy.changes.a": "We will update this page when our practices change and revise the date above. Questions, requests, or concerns:",
+
+  // ── Schools DPA (components/site/pages/DpaView.tsx) ────────────────
+  "dpa.title.a": "Data processing",
+  "dpa.title.em": "addendum.",
+  "dpa.intro":
+    "This addendum applies whenever a school, district or other education institution uses Bluestift with its students. It forms part of the agreement between us and sets out what we do with student data, and what we will never do with it.",
+  "dpa.shortVersion":
+    "Short version: the school owns the data, we only process it to run the service, we do not sell it, we do not use it to build a profile for any purpose other than tutoring that student, and we give it back or destroy it when the school says so.",
+
+  "dpa.s1.h2": "1. Who is who",
+  "dpa.s1.p1.a": "The",
+  "dpa.s1.p1.strong1": "school is the controller",
+  "dpa.s1.p1.b": "of its students' personal data and decides what is collected and why.",
+  "dpa.s1.p1.strong2": "We are the processor",
+  "dpa.s1.p1.c": "and act only on the school's documented instructions — using the service as configured counts as those instructions.",
+  "dpa.s1.p2.a": "For students who sign up on their own, outside any school, we are the controller and our",
+  "dpa.s1.p2.link": "privacy policy",
+  "dpa.s1.p2.b": "governs instead.",
+
+  "dpa.s2.h2": "2. What we process",
+  "dpa.s2.li1.strong": "Subject matter:",
+  "dpa.s2.li1.body": "providing an AI tutor and a staff dashboard.",
+  "dpa.s2.li2.strong": "Duration:",
+  "dpa.s2.li2.body": "the term of the school's subscription, plus the deletion window in §9.",
+  "dpa.s2.li3.strong": "Data subjects:",
+  "dpa.s2.li3.body": "the school's students and its staff.",
+  "dpa.s2.li4.strong": "Categories:",
+  "dpa.s2.li4.body":
+    "identity (name, class, year), account data, work submitted to the tutor, assessment results, and the learning signals derived from them.",
+
+  "dpa.s3.h2": "3. FERPA — we act as a school official",
+  "dpa.s3.p1.a": "The school designates us a",
+  "dpa.s3.p1.strong": "school official with a legitimate educational interest",
+  "dpa.s3.p1.b": "in student education records under 34 CFR § 99.31(a)(1). On that basis we commit that:",
+  "dpa.s3.li1": "We perform a function the school would otherwise perform with its own staff.",
+  "dpa.s3.li2.a": "We are under the school's",
+  "dpa.s3.li2.strong": "direct control",
+  "dpa.s3.li2.b": "with respect to the use and maintenance of education records.",
+  "dpa.s3.li3.a": "We use education records",
+  "dpa.s3.li3.strong1": "only",
+  "dpa.s3.li3.b": "for the purpose the school engaged us for, and",
+  "dpa.s3.li3.strong2": "do not re-disclose",
+  "dpa.s3.li3.c": "them to anyone else except as §5 permits.",
+  "dpa.s3.li4": "We maintain a record of disclosures of a student's record, which the school can request.",
+  "dpa.s3.p2.strong": "Inspect and review.",
+  "dpa.s3.p2.a":
+    "A parent or eligible student exercises that right with the school. Staff can produce a student's record from the dashboard at any time. That record covers identity, enrolment, results, inferred understanding and staff notes — but not the student's own conversations with",
+  "dpa.s3.p2.b": ", for the reason set out in §7.",
+
+  "dpa.s4.h2": "4. COPPA — consent for under-13s",
+  "dpa.s4.p1.a":
+    "We do not open accounts for children under 13 who arrive on their own; they are stopped at the age question. Under-13s reach",
+  "dpa.s4.p1.b": "only through a school.",
+  "dpa.s4.p2.a": "By enrolling students under 13,",
+  "dpa.s4.p2.strong": "the school confirms that it consents on behalf of their parents",
+  "dpa.s4.p2.b":
+    "for the school's educational use, as the COPPA school-consent exception permits (16 CFR § 312.5(c)(6)), and that it has given parents notice of what we collect. We collect from children only what the service needs, never condition participation on more, and never use a child's data for advertising or profiling outside tutoring. On a parent's request, relayed by the school, we delete a child's data.",
+
+  "dpa.s5.h2": "5. Sub-processors",
+  "dpa.s5.p1.a": "We use the providers listed on our",
+  "dpa.s5.p1.link": "sub-processors page",
+  "dpa.s5.p1.b":
+    ", which also states, honestly, which of those agreements are already signed and which are still being put in place — we have only just launched. Whatever their status, we remain responsible to you for what those providers do.",
+  "dpa.s5.p2":
+    "We update that page and notify school administrators before a new sub-processor starts handling school data. A school may object on reasonable data protection grounds within 30 days; if we cannot offer an alternative, the school may terminate the affected part of the service and be refunded the unused balance.",
+
+  "dpa.s6.h2": "6. Security",
+  "dpa.s6.li1": "Data is encrypted in transit and at rest by our infrastructure provider.",
+  "dpa.s6.li2":
+    "Access is enforced in the database itself with row-level security, so a teacher reaches their own classes and no others — not merely because the interface hides the rest.",
+  "dpa.s6.li3": "Staff access is scoped by role, and privileged operations run server-side only.",
+  "dpa.s6.li4": "Everyone with access is bound to confidentiality.",
+  "dpa.s6.p1.strong": "Breach notification.",
+  "dpa.s6.p1.body":
+    "If we suffer a personal data breach affecting a school's data, we notify that school without undue delay and in any event within 72 hours of becoming aware, with what we know and what we are doing about it.",
+
+  "dpa.s7.h2": "7. What we will not do",
+  "dpa.s7.li1": "We do not sell student data. There is no circumstance in which we would.",
+  "dpa.s7.li2": "We do not serve advertising, and we do not build advertising profiles.",
+  "dpa.s7.li3":
+    "We do not use student content to train models unless the account holder explicitly opted in — and that option is not available to under-18s, which is every student in a school setting below sixth form.",
+  "dpa.s7.li4":
+    "We do not give staff a student's private tutoring conversations. A student who believes their tutor is being read stops asking the questions that make tutoring work, so the staff record covers what the student produced and what the system inferred, not the transcript. The student, or a parent through the student, can export the transcript in full.",
+
+  "dpa.s8.h2": "8. Helping the school meet its obligations",
+  "dpa.s8.p1.a":
+    "We assist the school with data subject requests (access, correction, deletion, portability), with data protection impact assessments, and with regulator enquiries. Most requests are answerable directly from the dashboard; where they are not, write to",
+  "dpa.s8.p1.b": ". If a data subject comes to us directly, we refer them to the school rather than acting on our own.",
+  "dpa.s8.p2":
+    "We make available the information needed to demonstrate compliance with these obligations and allow for audits, on reasonable notice and without disrupting the service for other schools.",
+
+  "dpa.s9.h2": "9. Return and deletion",
+  "dpa.s9.p1.a": "At any time during the term the school can export its students' records. When the contract ends, we delete school data within",
+  "dpa.s9.p1.strong": "90 days",
+  "dpa.s9.p1.b":
+    "at the school's choice of deletion or return, except where a law requires us to keep something — payment records being the usual case.",
+  "dpa.s9.p2":
+    "Deletion is real. It reaches the learning content, the uploads, the assessment results and the inferred learning model, including the parts held in systems that no automatic cascade would have reached.",
+
+  "dpa.s10.h2": "10. International transfers",
+  "dpa.s10.a":
+    "Where a sub-processor operates outside the EEA or the UK, transfers must be covered by the European Commission's Standard Contractual Clauses or an adequacy decision. The location of each provider, and the current status of that cover, is on the",
+  "dpa.s10.link": "sub-processors page",
+
+  "dpa.footer.a":
+    "This page states the commitments we make to every school on the same terms. It is not legal advice. A school that needs a countersigned document, or its own paperwork on top of this, should write to",
+  "dpa.footer.b": "and we will arrange it.",
+
+  // ── Theme toggle (components/site/ThemeToggle.tsx — shared with the app shell) ─
+  "theme.day": "Day",
+  "theme.night": "Night",
+  "theme.switchAria": "Switch theme",
+
+  // ── Persistent language switcher (components/site/LanguageSwitcher.tsx) ─
+  "site.langSwitcher.ariaLabel": "Choose language",
+
+  // ── Product shot illustrations (components/site/ProductShots.tsx) ──────
+  // These are DOM-drawn mock screenshots on the landing page, not the real
+  // product (which stays out of i18n scope) — but they render as English
+  // prose regardless, so they need the same translation as everything else
+  // on the page. Character names (Amira S., Léa D., Maya R., Emma M. …) are
+  // left as-is, same as any other proper name; so is "Le passé composé vs
+  // imparfait", which names a specific French tense rather than describing
+  // anything, and the quoted French example sentence in shot.rung.p2_1.
+  "shot.common.you": "You",
+  "shot.common.live": "Live",
+  "shot.common.enable": "Enable",
+  "shot.common.disable": "Disable",
+  "shot.common.analyze": "Analyze",
+  "shot.common.viewKernelProfile": "View kernel profile",
+  "shot.common.thinking": "Thinking…",
+  "shot.common.inSession": "in session",
+  "shot.common.generate": "Generate",
+  "shot.common.study": "Study",
+  "shot.common.add": "Add",
+  "shot.common.ask": "Ask",
+  "shot.common.active": "active",
+  "shot.common.online": "online",
+  "shot.common.left": "left",
+  "shot.common.quiz": "Quiz",
+  "shot.common.flashcards": "Flashcards",
+  "shot.common.mindMap": "Mind map",
+  "shot.common.practiceSet": "Practice set",
+
+  "shot.status.mastered": "Mastered",
+  "shot.status.inProgress": "In progress",
+  "shot.status.toWork": "To work on",
+  "shot.status.falseMastery": "False mastery",
+  "shot.status.recurringError": "Recurring error",
+  "shot.status.cognitiveOverload": "Cognitive overload",
+  "shot.status.passiveDependency": "Passive dependency",
+
+  "shot.axis.knowledge": "Knowledge (K)",
+  "shot.axis.retention": "Retention (V)",
+  "shot.axis.application": "Application (P)",
+
+  "shot.topic.unitCircle": "The unit circle",
+  "shot.topic.photosynthesis": "Photosynthesis",
+  "shot.topic.dividingFractions": "Dividing fractions",
+  "shot.topic.reciprocals": "Reciprocals & unit fractions",
+  "shot.topic.balancingEquations": "Balancing equations",
+  "shot.topic.limitsRational": "Limits of a rational function",
+  "shot.topic.dividingWhyInvert": "Dividing fractions — why invert?",
+  "shot.topic.frenchTenses": "Le passé composé vs imparfait",
+  "shot.topic.newtonsLaws": "Newton's laws",
+  "shot.topic.cellRespiration": "Cell respiration",
+  "shot.topic.photosynthesisLesson4": "Photosynthesis — lesson 4",
+  "shot.topic.factoringDiffSquares": "Factoring a difference of squares",
+  "shot.topic.trigonometry": "Trigonometry",
+
+  "shot.time.twoDaysAgo": "2 days ago",
+  "shot.time.yesterday": "yesterday",
+  "shot.time.today": "today",
+
+  "shot.subject.mathematics": "Mathematics",
+  "shot.subject.french": "French",
+
+  "shot.year.8": "Year 8",
+  "shot.year.9": "Year 9",
+  "shot.year.10": "Year 10",
+  "shot.year.11": "Year 11",
+
+  "shot.kernel.yourProfile": "Your profile",
+  "shot.kernel.meta": "14 concepts · 4 subjects",
+  "shot.kernel.overallMastery": "Overall mastery",
+  "shot.kernel.allConcepts": "all concepts",
+  "shot.kernel.mindset": "Mindset (M)",
+  "shot.kernel.growth": "Growth",
+  "shot.kernel.growthDesc": "Keeps going after a wrong answer.",
+  "shot.kernel.lastUnitCircle": "practised 2 days ago",
+  "shot.kernel.lastPhotosynthesis": "practised yesterday",
+  "shot.kernel.lastDividingFractions": "practised today",
+
+  "shot.room.tabGroupChat": "Group chat",
+  "shot.room.tabPrivate": "(private)",
+  "shot.room.tabChallenges": "Challenges",
+  "shot.room.tabFiles": "Files",
+  "shot.room.tabReport": "Report",
+  "shot.room.turn1": "I get sin(150°) = 0.5 but I can't say why it's positive.",
+  "shot.room.turn2": "Second quadrant, right?",
+  "shot.room.turn3": "It is — so you have the hard part. What's the sign of y there, and which ratio uses y?",
+  "shot.room.turn4": "y is above the axis, so sine stays positive.",
+  "shot.room.membersLine": "Mathematics · 5 members",
+  "shot.room.docTitle": "Chapter 6 — The unit circle.pdf",
+  "shot.room.sharedPrefix": "shared a document:",
+  "shot.room.composerPlaceholder": "Message the room…",
+  "shot.room.composerDraft": "so cos(150°) is negative for the same reason",
+
+  "shot.tools.quizMcq": "Quiz (MCQ)",
+  "shot.tools.title": "Tools Studio",
+  "shot.tools.subtitle": "Generate quizzes, summaries and flashcards from any lesson.",
+  "shot.tools.dropzone": "Drop one or more files (PDF, notes, Word, Excel, audio) — they combine into one packet",
+  "shot.tools.dropzoneMeta": "Up to 40 MB total · 6.2 MB used",
+  "shot.tools.readingSources": "Reading 3 sources…",
+  "shot.tools.generatedLabel": "Generated",
+  "shot.tools.fileLesson4": "Photosynthesis — lesson 4.pdf",
+  "shot.tools.fileCellResp": "Cell respiration.docx",
+  "shot.tools.fileLabNotes": "Lab notes 12 Mar.m4a",
+  "shot.tools.libQuizNewton": "Quiz — Newton's laws",
+  "shot.tools.libFlashUnitCircle": "Flashcards — The unit circle",
+  "shot.tools.libMindMapFrench": "Mind map — Le passé composé",
+  "shot.tools.libSummaryPhoto": "Summary — Photosynthesis, lesson 4",
+  "shot.tools.metaNewton": "12 questions · 88%",
+  "shot.tools.metaUnitCircle": "24 cards · 4 Mar",
+  "shot.tools.metaFrench": "9 branches · 2 Mar",
+  "shot.tools.metaGenerating": "generating",
+
+  "shot.focus.instructionsTo": "Instructions to",
+  "shot.focus.subtitle": "Guidance only — it never gives answers away.",
+  "shot.focus.instr1": "Revise the unit circle before Friday",
+  "shot.focus.instr2": "Push them on essay structure, not spelling",
+  "shot.focus.instr3": "Ask for the reasoning before the formula",
+  "shot.focus.instr4": "Go slower on molar mass",
+  "shot.focus.subj1": "Mathematics · Year 10",
+  "shot.focus.subj2": "French · Year 8",
+  "shot.focus.subj3": "Physics · Year 11",
+  "shot.focus.subj4": "Chemistry · Year 11",
+  "shot.focus.composerDraft": "Focus Maya on dividing fractions",
+  "shot.focus.subjectSelect": "Maths ▾",
+  "shot.focus.reachesA": "Reaches",
+  "shot.focus.reachesB": "before the student's next session.",
+
+  "shot.guided.headerSubject": "Maya · Year 9 · Mathematics",
+  "shot.guided.mat1Meta": "6 questions · from your lesson",
+  "shot.guided.mat2Meta": "12 cards · spaced review",
+  "shot.guided.recommendedNext": "Recommended next",
+  "shot.guided.turn1": "Before we start — when you divide by a fraction, does the answer get bigger or smaller?",
+  "shot.guided.turn2": "Smaller… I think?",
+  "shot.guided.turn3": "Let's test it. 6 ÷ ½ — how many halves fit inside 6?",
+  "shot.guided.turn4": "Twelve. Oh — it got bigger.",
+
+  "shot.return.title": "Students to focus on",
+  "shot.return.openFocus": "Open Focus →",
+  "shot.return.tracked": "Tracked",
+  "shot.return.needAttention": "Need attention",
+  "shot.return.avgMastery": "Avg. mastery",
+  "shot.return.prereqTitle": "Shared blocking prerequisite",
+  "shot.return.prereqBody": "Dividing fractions gates 3 later concepts, for 2 of them.",
+  "shot.return.footer": "Mastery only. Never the conversation.",
+
+  "shot.socratic.newSession": "+ New session",
+  "shot.socratic.rayaPlus": "Raya Plus",
+  "shot.socratic.forYou": "For you",
+  "shot.socratic.kernelAnalysis": "Kernel analysis",
+  "shot.socratic.rootGap": "Root gap:",
+  "shot.socratic.summaryLabel": "Summary:",
+  "shot.socratic.summaryBody":
+    "Reads the 0/0 right, but doesn't reach for factoring unprompted. The limit isn't the gap — the algebra under it is.",
+  "shot.socratic.confidence": "Confidence:",
+  "shot.socratic.kcs": "KCs:",
+  "shot.socratic.model": "Model:",
+  "shot.socratic.writeReplyTo": "Write your reply to",
+  "shot.socratic.turn1": "Before I say anything — what happens to (x² − 9)/(x − 3) when you put x = 3 in?",
+  "shot.socratic.turn2": "It gives 0/0. I already tried that.",
+  "shot.socratic.turn3": "Good — so the work is done. What does a 0/0 tell you about a factor the top and the bottom might share?",
+  "shot.socratic.turn4": "…that (x − 3) is in both?",
+  "shot.socratic.turn5": "That's the piece that was missing. Cancel it first, then substitute. Try it and tell me what you land on.",
+  "shot.socratic.turn6": "6. And I can see why now.",
+  "shot.socratic.forYou1": "Exam fortnight: short sessions, no marathons.",
+  "shot.socratic.forYou1Source": "Your school",
+  "shot.socratic.forYou2": "Ask for the algebra before the limit.",
+  "shot.socratic.forYou3": "Two attempts before a worked example.",
+  "shot.socratic.forYou3Source": "Your teacher",
+
+  "shot.rung.p1_1": "Just give me the answer to question 4 — why do plants need light?",
+  "shot.rung.p1_2": "Not yet. You've met this one already. What do you think the light is being used for inside the leaf?",
+  "shot.rung.p1_3": "To make food? Sugar, I think.",
+  "shot.rung.p1_4": "That's the word I wanted. Made out of what, though — a leaf can't make sugar out of nothing.",
+  "shot.rung.p2_1": "«Je mangeais quand il est arrivé» — I had both in the imparfait first and it felt wrong.",
+  "shot.rung.p2_2": "Your ear was right. One of those two verbs is the background and the other interrupts it. Which is which?",
+  "shot.rung.p2_3": "Eating is the background?",
+  "shot.rung.p2_4": "Say why, and it'll stick.",
+  "shot.rung.p3_1": "Two tries and H2 + O2 → H2O still won't balance. I'm stuck.",
+  "shot.rung.p3_2":
+    "Then here's the piece you're missing: you may change the number in front of a formula, never the small ones inside it. H₂O has to stay H₂O.",
+  "shot.rung.p3_3": "Oh. So 2H2 + O2 → 2H2O.",
+  "shot.rung.p4_1": "Before we stop — in your own words, why does dividing by a fraction make the answer bigger?",
+  "shot.rung.p4_2": "Because you're asking how many halves fit inside it, and a lot of halves fit.",
+  "shot.rung.p4_3": "That's the one. That sentence is what I keep — not the six exercises.",
+
+  // ── Kernel diagrams (components/site/KernelDiagrams.tsx) — the orbit and
+  // molecule drawings in the Cognitive Kernel band. The graph's own node
+  // labels stay English snake_case in every locale by design (see the file's
+  // VOCAB comment): the Kernel pivots through English regardless of the
+  // session's language, so that is what a concept is called in the graph.
+  // "Raya for Schools" stays as-is too, like "Raya" — a product name.
+  "kd.orbit.raya.sub": "the tutor they talk to",
+  "kd.orbit.rayaSchools.sub": "same tutor, in class",
+  "kd.orbit.homework.name": "Homework & challenges",
+  "kd.orbit.homework.sub": "graded work, same student",
+  "kd.word.knowledge": "Knowledge",
+  "kd.word.velocity": "Velocity",
+  "kd.word.persistence": "Persistence",
+  "kd.word.mindset": "Mindset",
+  "kd.orbit.teacher.name": "Their teacher",
+  "kd.orbit.teacher.sub": "reads what came back",
+  "kd.orbit.school.name": "The school's programme",
+  "kd.orbit.school.sub": "sets the order, not the diagnosis",
+  "kd.orbit.chip": "COGNITIVE KERNEL",
+  "kd.orbit.learner.name": "The learner",
+  "kd.orbit.learner.sub": "one profile, everywhere",
+  "kd.orbit.footer": "Updated mid-conversation, read back before the next answer.",
+
+  "kd.subject.history": "History",
+
+  "kd.case.mechanics.chip": "Physics · mechanics",
+  "kd.case.thermo.chip": "Chemistry · thermochemistry",
+  "kd.case.respiration.chip": "Biology · respiration",
+
+  "kd.note.sessionBroke": "where the session broke",
+  "kd.note.actuallyBroke": "where it actually broke",
+
+  "kd.kicker.failed": "Failed",
+  "kd.kicker.sitsOn": "Sits on",
+  "kd.kicker.whichSitsOn": "Which sits on",
+  "kd.kicker.andThatOn": "And that on",
+  "kd.kicker.rootCause": "Root cause",
+  "kd.kicker.alreadySolid": "Already solid",
+
+  "kd.body.mechanics1": "Missed twice on the same exercise, four days apart.",
+  "kd.body.mechanics2": "Checked first, and fine. The forces were drawn correctly.",
+  "kd.body.mechanics3": "Also solid on its own. Still not the thing that broke.",
+  "kd.body.mechanics4": "Shaky — but it fails the same way every time, so it is a symptom.",
+  "kd.body.mechanics5": "Another subject. The derivative under the acceleration never held.",
+  "kd.body.mechanics6": "Open the session here. Reteaching them would spend the hour on something known.",
+
+  "kd.body.thermo1": "Right answer, wrong sign, three times running.",
+  "kd.body.thermo2": "Fluent. Rates were never the difficulty here.",
+  "kd.body.thermo3": "Held up under questioning, including the awkward case.",
+  "kd.body.thermo4": "Reliable. Which rules out the obvious explanation.",
+  "kd.body.thermo5": "Not chemistry. Energy in and energy out was never a closed book.",
+  "kd.body.thermo6": "The way in. Both were solid last week and are solid now.",
+
+  "kd.body.respiration1": "Can recite the stages. Cannot say why any of them happen.",
+  "kd.body.respiration2": "Named correctly every time. Recall was never the problem.",
+  "kd.body.respiration3": "Fine, and asked about unprompted — a good sign.",
+  "kd.body.respiration4": "Solid. The transport story is not where this comes apart.",
+  "kd.body.respiration5": "Another subject. Respiration is a redox chain, and redox never landed.",
+  "kd.body.respiration6": "Start from these. They are the half of the chain that already works.",
+
+  "kd.legend.crosses": "crosses a subject",
+  "kd.stats.concepts": "concepts",
+  "kd.stats.prerequisites": "prerequisites",
+  "kd.stats.acrossBoundary": "across a boundary",
+
+  "kd.lede.title": "What the Kernel just did with this",
+  "kd.lede.sub": "Point at any concept — the tour waits. Hollow means not secure yet.",
+
+  "kd.footer.alertRaised": "Alert raised:",
+  "kd.footer.confidence": "confidence",
+  "kd.footer.walked": "walked",
+  "kd.footer.conceptsAcross": "concepts across",
+  "kd.footer.tail": "subjects, and back before the next answer was written.",
+
+  "kd.status.gap": "gap",
+  "kd.status.developing": "developing",
+  "kd.status.secure": "secure",
+
+  "kd.card.ofThemOther": "of them in another subject",
+  "kd.card.pinned": "Pinned — click again to release.",
+  "kd.card.clickToPin": "Click to pin it.",
+
+  "kd.card.noteA": "is what is left of",
+  "kd.card.noteB": "after",
+  "kd.card.day": "day",
+  "kd.card.days": "days",
+  "kd.card.untouched": "untouched. That drop is the forgetting — it is why a concept can slip while nothing at all happens.",
+
+  // ── Schools dashboard mockup (components/site/DashboardMockup.tsx) ─────
+  // Sidebar nav labels, class names (Year N · Subject) and "Overview" reuse
+  // the nav.*/shot.year.*/shot.subject.*/onb.subject.* keys already added for
+  // the app chrome and ProductShots — see those namespaces. "Northgate
+  // Academy" and "Amina Diallo" are the mockup's fictional school and admin,
+  // left as-is like any other proper name.
+  "dm.students": "Students",
+  "dm.activeWeek": "Active (7d)",
+  "dm.struggling": "Struggling",
+  "dm.avgMastery": "Average mastery",
+  "dm.byClass": "by class",
+  "dm.studentsWord": "students",
+  "dm.activeWord": "active",
+  "dm.alertsWord": "alerts",
+  "dm.kernelMasteryTitle": "Kernel — overall mastery",
+  "dm.studentsTracked": "students tracked",
+  "dm.alertsTitle": "Alerts",
+  "dm.studentsStruggling": "students struggling",
+  "dm.activeOver7Days": "active over 7 days",
+  "dm.needsAttention": "Needs attention",
+  "dm.schoolPlan": "School plan",
+
+  // ── Position diagram (components/site/PositionShot.tsx) — status words
+  // reuse kd.status.developing/secure for the two shared bands; "fragile" is
+  // this plate's own, lower, third band.
+  "ps.rail.lms.name": "Your LMS",
+  "ps.rail.lms.sub": "what was done",
+  "ps.rail.raya.sub": "what was understood",
+  "ps.rail.tutor.name": "A tutor",
+  "ps.rail.tutor.sub": "the moment",
+  "ps.oneTerm": "one term",
+  "ps.gaugeCaption": "derivatives · right now",
+  "ps.status.fragile": "fragile",
+  "ps.tuesdayWeek7": "a Tuesday in week 7",
+  "ps.lastMarkPrefix": "last mark:",
+  "ps.weeksAgo": "weeks ago",
+  "ps.noSessionRunning": "no session running — nothing kept",
+  "ps.tenDaysLate": "ten days late",
+  "ps.ifThatTuesdayRead": "if that Tuesday is read",
+  "ps.thatTuesday": "that Tuesday",
+  "ps.daysOn": "days on",
+  "ps.leftAsItWentA": "Left as it went, the same day reads",
+  "ps.leftAsItWentB": "— and the",
+  "ps.leftAsItWentC": "is the first anyone hears of it.",
+  "ps.footer": "Two of these three layers are already paid for, and neither can answer a question asked on a day with nothing due.",
+
+  // ── Concept-graph node labels (components/site/KernelDiagrams.tsx) ─────
+  // The graph's underlying ids (VOCAB) stay English snake_case forever — the
+  // Kernel pivots through English regardless of session language, and the
+  // ids double as the story cases' lookup keys. These are the DISPLAY labels
+  // shown on canvas and in the reading strip, one per id, translated like
+  // anything else a visitor reads. Key names mirror the ids verbatim.
+  "voc.counting": "Counting",
+  "voc.place_value": "Place value",
+  "voc.fractions": "Fractions",
+  "voc.decimals": "Decimals",
+  "voc.ratio_and_proportion": "Ratio and proportion",
+  "voc.percentages": "Percentages",
+  "voc.negative_numbers": "Negative numbers",
+  "voc.order_of_operations": "Order of operations",
+  "voc.algebraic_expressions": "Algebraic expressions",
+  "voc.linear_equations": "Linear equations",
+  "voc.inequalities": "Inequalities",
+  "voc.systems_of_equations": "Systems of equations",
+  "voc.quadratic_equations": "Quadratic equations",
+  "voc.factoring": "Factoring",
+  "voc.polynomials": "Polynomials",
+  "voc.exponents": "Exponents",
+  "voc.radicals": "Radicals",
+  "voc.logarithms": "Logarithms",
+  "voc.cartesian_plane": "Cartesian plane",
+  "voc.graphing_functions": "Graphing functions",
+  "voc.function_notation": "Function notation",
+  "voc.domain_and_range": "Domain and range",
+  "voc.function_variation": "Function variation",
+  "voc.limits": "Limits",
+  "voc.derivative_functions": "Derivatives",
+  "voc.chain_rule": "Chain rule",
+  "voc.optimisation": "Optimisation",
+  "voc.integrals": "Integrals",
+  "voc.sequences": "Sequences",
+  "voc.probability_basics": "Probability basics",
+  "voc.standard_deviation": "Standard deviation",
+
+  "voc.units_and_measurement": "Units and measurement",
+  "voc.vectors": "Vectors",
+  "voc.position_and_displacement": "Position and displacement",
+  "voc.velocity": "Velocity",
+  "voc.acceleration": "Acceleration",
+  "voc.kinematic_equations": "Kinematic equations",
+  "voc.projectile_motion": "Projectile motion",
+  "voc.newtons_laws": "Newton's laws",
+  "voc.free_body_diagrams": "Free body diagrams",
+  "voc.friction": "Friction",
+  "voc.circular_motion": "Circular motion",
+  "voc.momentum": "Momentum",
+  "voc.impulse": "Impulse",
+  "voc.work_and_energy": "Work and energy",
+  "voc.conservation_of_energy": "Conservation of energy",
+  "voc.power": "Power",
+  "voc.gravitation": "Gravitation",
+  "voc.pressure": "Pressure",
+  "voc.fluid_statics": "Fluid statics",
+  "voc.thermal_expansion": "Thermal expansion",
+  "voc.heat_transfer": "Heat transfer",
+  "voc.wave_motion": "Wave motion",
+  "voc.sound_waves": "Sound waves",
+  "voc.reflection_and_refraction": "Reflection and refraction",
+  "voc.electric_circuits": "Electric circuits",
+  "voc.magnetic_fields": "Magnetic fields",
+
+  "voc.atomic_structure": "Atomic structure",
+  "voc.electron_configuration": "Electron configuration",
+  "voc.periodic_trends": "Periodic trends",
+  "voc.ionic_bonding": "Ionic bonding",
+  "voc.covalent_bonding": "Covalent bonding",
+  "voc.molecular_geometry": "Molecular geometry",
+  "voc.polarity": "Polarity",
+  "voc.intermolecular_forces": "Intermolecular forces",
+  "voc.the_mole": "The mole",
+  "voc.molar_mass": "Molar mass",
+  "voc.stoichiometry": "Stoichiometry",
+  "voc.limiting_reagent": "Limiting reagent",
+  "voc.percent_yield": "Percent yield",
+  "voc.molarity": "Molarity",
+  "voc.acids_and_bases": "Acids and bases",
+  "voc.ph_scale": "pH scale",
+  "voc.titration": "Titration",
+  "voc.redox_reactions": "Redox reactions",
+  "voc.oxidation_numbers": "Oxidation numbers",
+  "voc.reaction_rates": "Reaction rates",
+  "voc.chemical_equilibrium": "Chemical equilibrium",
+  "voc.thermochemistry": "Thermochemistry",
+
+  "voc.cell_theory": "Cell theory",
+  "voc.cell_membrane": "Cell membrane",
+  "voc.osmosis": "Osmosis",
+  "voc.enzymes": "Enzymes",
+  "voc.photosynthesis": "Photosynthesis",
+  "voc.cellular_respiration": "Cellular respiration",
+  "voc.atp": "ATP",
+  "voc.mitosis": "Mitosis",
+  "voc.meiosis": "Meiosis",
+  "voc.dna_structure": "DNA structure",
+  "voc.dna_replication": "DNA replication",
+  "voc.transcription": "Transcription",
+  "voc.translation": "Translation",
+  "voc.mendelian_genetics": "Mendelian genetics",
+  "voc.punnett_squares": "Punnett squares",
+  "voc.mutations": "Mutations",
+  "voc.natural_selection": "Natural selection",
+  "voc.speciation": "Speciation",
+  "voc.taxonomy": "Taxonomy",
+  "voc.ecosystems": "Ecosystems",
+  "voc.food_webs": "Food webs",
+  "voc.homeostasis": "Homeostasis",
+
+  "voc.primary_sources": "Primary sources",
+  "voc.chronology": "Chronology",
+  "voc.cause_and_consequence": "Cause and consequence",
+  "voc.ancient_civilisations": "Ancient civilisations",
+  "voc.roman_republic": "Roman Republic",
+  "voc.feudalism": "Feudalism",
+  "voc.the_renaissance": "The Renaissance",
+  "voc.the_reformation": "The Reformation",
+  "voc.age_of_exploration": "Age of exploration",
+  "voc.the_enlightenment": "The Enlightenment",
+  "voc.industrial_revolution": "Industrial Revolution",
+  "voc.colonial_empires": "Colonial empires",
+  "voc.world_war_one": "World War One",
+  "voc.decolonisation": "Decolonisation",
+  "voc.cold_war": "Cold War",
 } as const;

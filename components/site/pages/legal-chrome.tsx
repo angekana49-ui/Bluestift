@@ -4,6 +4,7 @@ import SitePage from "@/components/site/SitePage";
 import type { NavLink } from "@/components/site/Navbar";
 import type { Theme } from "@/components/site/theme";
 import { GUTTER, MEASURE, PAGE_BOTTOM, pageH1, pageSection, serifEm } from "@/components/site/layout";
+import { useTranslate } from "@/components/ui/locale";
 
 /**
  * Shared chrome for the four legal pages (Privacy, Terms, DPA, Sub-processors).
@@ -151,6 +152,7 @@ export function LegalShell({
   updated: string;
   children: (t: Theme) => React.ReactNode;
 }) {
+  const tr = useTranslate();
   return (
     /*
      * The sky is back on these four, on a sheet.
@@ -200,7 +202,7 @@ export function LegalShell({
                 <em style={{ ...serifEm, color: t.wordmarkB }}>{accent}</em>
               </h1>
               <p style={{ fontSize: 14, color: t.muted, margin: "0 0 40px" }}>
-                Last updated {updated}
+                {tr("legal.lastUpdated")} {updated}
               </p>
               {children(t)}
             </div>
