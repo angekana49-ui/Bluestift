@@ -1174,7 +1174,24 @@ function placeLabel(
   const a = MOL.atoms[i];
   const fontSize = labelFontSize(labelLength);
   const w = labelLength * fontSize * 0.6;
-  for (const [dx, dy, anchor] of TRIES) {
+  /**
+   * TRIES and the ring search below are written as the SCREEN pixels a label
+   * should sit from its node — not raw graph units. The camera stop showing
+   * this concept scales the whole plate by `zoom` (1× at the wide shot, up to
+   * 3× zoomed in on a single node), and that scaling applies to the offset
+   * exactly as it applies to everything else drawn in the same group. A
+   * candidate written in raw units therefore lands `zoom` times farther from
+   * the node on screen than it reads in this file — invisible at the wide
+   * shot, and the reason a name drifted a quarter of the frame from the
+   * concept it named the moment the camera closed in on it. Dividing every
+   * offset by `zoom` here keeps the label the same few pixels from its node
+   * at every stop, which is the only thing this function is trying to do.
+   */
+  const zoom = W / (view.x1 - view.x0);
+  const u = 1 / zoom;
+  for (const [tdx, tdy, anchor] of TRIES) {
+    const dx = tdx * u;
+    const dy = tdy * u;
     const cx = a.x + dx;
     const cy = a.y + dy;
     const x0 = anchor === "start" ? cx : anchor === "end" ? cx - w : cx - w / 2;
@@ -1192,13 +1209,14 @@ function placeLabel(
   // somewhere blind and hoping: the blind fallback put a name straight through
   // the numbered node above it, and it took a headless check to notice.
   for (const r of [18, 26, 34, 44, 56, 70, 86]) {
+    const rr = r * u; // same screen-pixel-to-raw-unit conversion as above
     for (let k = 0; k < 16; k++) {
       // Start at 12 o'clock and alternate sides, so a label lands as close to
       // straight above or below its concept as the crowding allows.
       const ang = (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 22.5 - 90;
-      const dx = Math.cos(ang * DEG) * r;
-      const dy = Math.sin(ang * DEG) * r + 5;
-      const anchor = dx > 8 ? "start" : dx < -8 ? "end" : "middle";
+      const dx = Math.cos(ang * DEG) * rr;
+      const dy = Math.sin(ang * DEG) * rr + 5 * u;
+      const anchor = dx > 8 * u ? "start" : dx < -8 * u ? "end" : "middle";
       const cx = a.x + dx;
       const x0 = anchor === "start" ? cx : anchor === "end" ? cx - w : cx - w / 2;
       const box = { x0, x1: x0 + w, y0: a.y + dy - 13, y1: a.y + dy + 4 };
@@ -1211,8 +1229,9 @@ function placeLabel(
 
   // Genuinely nowhere to put it. Flagged so a case added later fails loudly
   // rather than shipping a name printed over a node.
+  const dy = -30 * u;
   const x0 = a.x - w / 2;
-  return { dx: 0, dy: -30, anchor: "middle" as const, box: { x0, x1: x0 + w, y0: a.y - 43, y1: a.y - 26 }, over: true, fontSize };
+  return { dx: 0, dy, anchor: "middle" as const, box: { x0, x1: x0 + w, y0: a.y + dy - 13, y1: a.y + dy + 4 }, over: true, fontSize };
 }
 
 /** One case, fully resolved: atoms, camera, beats, label placement. */
