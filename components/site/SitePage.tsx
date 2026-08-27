@@ -6,6 +6,7 @@ import { getTheme, type Theme } from "./theme";
 import Navbar, { type NavLink } from "./Navbar";
 import Footer from "./Footer";
 import CloudBackground from "./CloudBackground";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 /**
  * Page shell for every standalone page — Research, Survey, Contact, Feedback,
@@ -55,6 +56,7 @@ export default function SitePage({
       <Navbar theme={t} isDark={isDark} onToggleTheme={toggle} active={active} section={section} signedIn={signedIn} />
       {children(t)}
       <Footer theme={t} variant="simple" />
+      <LanguageSwitcher theme={t} />
     </div>
   );
 }

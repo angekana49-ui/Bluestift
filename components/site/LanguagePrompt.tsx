@@ -116,11 +116,18 @@ export function LanguagePrompt({ theme: t }: { theme: Theme }) {
     // Fixed, but transparent to the pointer: the visitor can keep reading and
     // clicking the page underneath. Only the bar re-enables pointer events.
     <div
+      className="pub-lang-wrap"
       style={{
         position: "fixed",
         left: 0,
         right: 0,
-        bottom: 0,
+        // ConsentBanner (components/analytics/ConsentBanner.tsx) can be showing
+        // at the same time, on the same first visit — it publishes its own
+        // rendered height as --bs-consent-h while it's up, so this bar stacks
+        // above it instead of landing at the same `bottom: 0` and getting
+        // buried under the banner's much higher z-index. Falls back to flush
+        // with the viewport edge whenever the consent banner isn't showing.
+        bottom: "var(--bs-consent-h, 0px)",
         zIndex: 200,
         display: "flex",
         justifyContent: "center",

@@ -14,6 +14,7 @@ import PricingSection, { type EntryPrice } from "./PricingSection";
 import FinalCtaSection from "./FinalCtaSection";
 import Footer from "./Footer";
 import { LanguagePrompt } from "./LanguagePrompt";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 export default function LandingPage({
   signedIn,
@@ -73,6 +74,9 @@ export default function LandingPage({
       {/* First visit only: asks the language instead of hiding a picker in the
           nav. Renders nothing once answered, and nothing at all server-side. */}
       <LanguagePrompt theme={t} />
+      {/* Always there, bottom-right, for changing your mind afterwards —
+          the persistent counterpart to the one-time prompt above. */}
+      <LanguageSwitcher theme={t} />
     </div>
   );
 }
