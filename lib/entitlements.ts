@@ -2,7 +2,14 @@ import "server-only";
 import { ROOM_TIMER_MIN, ROOM_TIMER_MAX } from "@/lib/rooms";
 import { NextResponse } from "next/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
+import { billingIsLive } from "@/lib/billing/payments";
 import { captureServer } from "@/lib/analytics/server";
+import type { MessageKey } from "@/lib/i18n";
+
+/** What the marketing-copy functions below need to translate their output.
+ *  Callers get one from getServerTranslate() (lib/i18n/server.ts) — the only
+ *  consumer today is the /pricing page, a server component. */
+type Tr = (key: MessageKey) => string;
 
 /**
  * Entitlements — the single source of truth for "what does each forfait unlock,
@@ -26,18 +33,53 @@ import { captureServer } from "@/lib/analytics/server";
  *   - `null` on a numeric limit means UNLIMITED.
  *   - Feature flags are binary availability; numeric fields are quotas.
  *
- * ACTIVATION — nothing bites until you flip the master switch. While
- * `ENTITLEMENTS_ENFORCE` is off (the default, pre-launch), gate helpers never
- * block: they only log would-be denials so we gather real usage telemetry
- * ("monitor mode"). At launch — once the paid b2c plans are seeded and payment
- * is live — set `ENTITLEMENTS_ENFORCE=true` and the same gates start enforcing.
- * The anti-abuse chat rate-limit is independent of this switch (always on).
+ * ACTIVATION — the gates enforce exactly when money can change hands, and only
+ * count until then ("monitor mode": a would-be denial is logged and reported to
+ * analytics, and the action goes through). That is not a policy choice made
+ * here, it is the one condition under which a wall is honest, and it is derived
+ * rather than configured — see ENTITLEMENTS_ENFORCE below. The anti-abuse chat
+ * rate-limit is independent of it (always on).
  */
 
 // ---- Master activation switch ----------------------------------------------
 
-/** When false (default), gates log but never block. Flip at launch. */
-export const ENTITLEMENTS_ENFORCE = process.env.ENTITLEMENTS_ENFORCE === "true";
+/**
+ * Do the gates below BLOCK, or only count?
+ *
+ * This was a hand-thrown switch that defaulted to off, with a note here saying
+ * "flip it at launch". That is the kind of step nobody remembers. /pricing now
+ * publishes sixteen rows of limits, and whether a single one of them meant
+ * anything depended on somebody recalling an environment variable months after
+ * reading about it — in the direction where forgetting is silent, because
+ * nothing breaks when a wall fails to appear.
+ *
+ * It is derived now, from the only thing it ever actually depended on: whether
+ * there is a cashier. A paywall with no way to pay is not a paywall, it is a
+ * dead end — the student hits "30 messages today", follows the upgrade the
+ * error names, and lands on a checkout that tells them the channel is closed.
+ * Counting without blocking is the RIGHT behaviour in that state, and blocking
+ * is the right behaviour the moment a real provider is configured. Neither one
+ * should need a human to notice.
+ *
+ * The environment variable stays, and now overrides in BOTH directions:
+ *   ENTITLEMENTS_ENFORCE=true   force the walls up (exercise them locally
+ *                               against the sandbox, or against seeded plans)
+ *   ENTITLEMENTS_ENFORCE=false  force them down (a demo on a live deployment)
+ *   unset                       the derived answer
+ *
+ * Two things do NOT ride on this and never did. The chat routes' per-user
+ * burst + daily ceiling is anti-abuse, identical on every tier, always on. And
+ * a room's private-by-default visibility is a safety default rather than a
+ * monetisation rule — see the note in app/rooms/actions.ts.
+ */
+function resolveEnforcement(): boolean {
+  const override = process.env.ENTITLEMENTS_ENFORCE;
+  if (override === "true") return true;
+  if (override === "false") return false;
+  return billingIsLive();
+}
+
+export const ENTITLEMENTS_ENFORCE = resolveEnforcement();
 
 // ---- Raya (b2c) -------------------------------------------------------------
 
@@ -301,8 +343,8 @@ export const SCHOOL_ENTITLEMENTS: Record<SchoolTier, SchoolEntitlements> = {
 // fine. `null` quota renders as "Unlimited".
 
 /** "10 uploads" / "Unlimited uploads" from a nullable quota (null = unlimited). */
-function quota(n: number | null, noun: string): string {
-  return n == null ? `Unlimited ${noun}` : `${n} ${noun}`;
+function quota(n: number | null, nounKey: MessageKey, tr: Tr): string {
+  return n == null ? `${tr("ent.unlimited")} ${tr(nounKey)}` : `${n} ${tr(nounKey)}`;
 }
 
 /**
@@ -311,37 +353,34 @@ function quota(n: number | null, noun: string): string {
  * than as "Unlimited messages / day", which reads like a limit that lost its
  * number.
  */
-function chatLine(e: RayaEntitlements): string {
-  return e.messagesPerDay == null
-    ? "Unlimited AI tutor chat"
-    : `${e.messagesPerDay} AI tutor messages / day`;
+function chatLine(e: RayaEntitlements, tr: Tr): string {
+  return e.messagesPerDay == null ? tr("ent.chat.unlimited") : `${e.messagesPerDay} ${tr("ent.chat.messagesPerDay")}`;
 }
 
 /** Pricing-card bullets for a Raya (b2c) tier, derived from RAYA_ENTITLEMENTS. */
-export function rayaFeatureBullets(tier: RayaTier): string[] {
+export function rayaFeatureBullets(tier: RayaTier, tr: Tr): string[] {
   const e = RAYA_ENTITLEMENTS[tier];
   switch (tier) {
     case "free":
       return [
-        `${chatLine(e)} — the core learning loop`,
-        `${quota(e.generationsPerMonth, "study generations")} & ${quota(e.uploadsPerMonth, "uploads")} / month`,
-        `${e.roomsPerMonth} study rooms / month · up to ${e.roomMaxParticipants} peers · always private`,
-        `${e.convHistoryDays}-day conversation history`,
-        `${e.kernelAnalysisPerWeek} Kernel deep-dive per week`,
+        `${chatLine(e, tr)} ${tr("ent.raya.free.b1Suffix")}`,
+        `${quota(e.generationsPerMonth, "ent.noun.studyGenerations", tr)} & ${quota(e.uploadsPerMonth, "ent.noun.uploads", tr)} ${tr("ent.perMonth")}`,
+        `${e.roomsPerMonth} ${tr("ent.raya.free.b3a")} ${e.roomMaxParticipants} ${tr("ent.raya.free.b3b")}`,
+        `${e.convHistoryDays} ${tr("ent.raya.free.b4")}`,
+        `${e.kernelAnalysisPerWeek} ${tr("ent.raya.free.b5")}`,
       ];
     case "plus":
       return [
-        "Everything in Free, plus:",
-        chatLine(e),
-        "Voice input & every AI tutor mode",
-        `${quota(e.generationsPerMonth, "generations")} & ${quota(e.uploadsPerMonth, "uploads")} / month`,
-        "Mind maps, PDF export, no watermark",
+        chatLine(e, tr),
+        tr("ent.raya.plus.b2"),
+        `${quota(e.generationsPerMonth, "ent.noun.generations", tr)} & ${quota(e.uploadsPerMonth, "ent.noun.uploads", tr)} ${tr("ent.perMonth")}`,
+        tr("ent.raya.plus.b4"),
         // Not "private rooms" any more — every room is private, on every plan.
         // What Plus buys is the choice to open one, and the room-size ceiling.
-        `Unlimited rooms · up to ${e.roomMaxParticipants} peers · public if you want`,
-        `${e.privateRayaPerMonth} private sessions with Raya in a room / month`,
-        "Unlimited chat history & Kernel analysis",
-        "AI feedback on self-tests",
+        `${tr("ent.raya.plus.b5a")} ${e.roomMaxParticipants} ${tr("ent.raya.plus.b5b")}`,
+        `${e.privateRayaPerMonth} ${tr("ent.raya.plus.b6")}`,
+        tr("ent.raya.plus.b7"),
+        tr("ent.common.aiFeedbackSelfTests"),
       ];
     case "max":
       // Two bullets were removed here rather than reworded, because neither
@@ -358,49 +397,120 @@ export function rayaFeatureBullets(tier: RayaTier): string[] {
       // no such queue. "Fully unmetered" was true and is already said by the
       // unlimited line above it.
       //
-      // What is left is Max's whole real delta over Plus, and it is thin: the
-      // quotas come off, rooms double, attachments gain 5MB. Printing a thin
-      // delta honestly is a pricing problem to solve with the pricing, not a
-      // copy problem to solve with an adjective.
+      // What was left read as a rounding error: three numbers going up. They
+      // are the same three facts below, said as the one thing they actually
+      // amount to.
+      //
+      // Max is the tier where NOTHING IS COUNTED. Not a slogan — a property of
+      // the object above, and the only tier that has it. Plus is unmetered on
+      // the chat, the rooms, the Kernel and the exports, but it still counts
+      // three things: generations, uploads, and private sessions with Raya. On
+      // Max every per-period quota in RayaEntitlements is null, and the only
+      // numbers left anywhere are sizes and capacities. A test asserts that, so
+      // this line cannot quietly stop being true (see test/entitlements).
+      //
+      // The room ceiling is the one qualitative difference and it was being
+      // sold as arithmetic: 25 → 50 is not "double", it is the line between a
+      // study group and a class. A buyer choosing between the two tiers is
+      // choosing between those two situations, not between two integers.
+      //
+      // The private Raya session was missing from this card entirely, though
+      // going from 50/month to uncounted is Max's most substantial delta.
       return [
-        "Everything in Plus, plus:",
-        "Unlimited study generations & uploads",
-        `Study rooms up to ${e.roomMaxParticipants} participants`,
-        `${e.attachmentMaxMb} MB attachments & study packets`,
+        tr("ent.raya.max.b1"),
+        tr("ent.raya.plus.b2"),
+        tr("ent.raya.max.b3"),
+        tr("ent.raya.max.b4"),
+        tr("ent.raya.plus.b4"),
+        `${tr("ent.raya.max.b6a")} ${e.roomMaxParticipants} ${tr("ent.raya.max.b6b")}`,
+        `${e.attachmentMaxMb} ${tr("ent.mb")} ${tr("ent.raya.max.b7")}`,
+        tr("ent.common.aiFeedbackSelfTests"),
       ];
   }
 }
 
+/*
+ * The one line on a pricing card that was still hand-authored.
+ *
+ * A plan's `description` is seeded in the database, and the pricing page
+ * replaced every plan's `features` with the derived bullets while rendering
+ * that field untouched — directly above them. So the card's last unchecked
+ * sentence was selling, on Max: "exam mode" (no such thing anywhere in this
+ * repo), "deep insights" (a Schools flag, not a Raya one) and "priority" (the
+ * queue that does not exist — removed from the bullets last week and still
+ * printed one line higher), and on Plus "full analytics" plus a RAYA in caps,
+ * which the brand rule forbids.
+ *
+ * That is what a hand-authored line does when everything around it is derived:
+ * it becomes the only place a retired claim can survive, and the last place
+ * anyone looks. These say what a tier is FOR — the bullets below say what it
+ * gives — and every claim in them is one the matrix above actually keeps.
+ */
+export function rayaTagline(tier: RayaTier, tr: Tr): string {
+  switch (tier) {
+    case "free":
+      return tr("ent.tagline.rayaFree");
+    case "plus":
+      return tr("ent.tagline.rayaPlus");
+    case "max":
+      return tr("ent.tagline.rayaMax");
+  }
+}
+
+export function schoolTagline(tier: SchoolTier, tr: Tr): string {
+  switch (tier) {
+    case "standard":
+      return tr("ent.tagline.schoolStandard");
+    case "plus":
+      return tr("ent.tagline.schoolPlus");
+    case "custom":
+      return tr("ent.tagline.schoolCustom");
+  }
+}
+
+/** "3-year data archive" / "1-year data archive" — plural agrees with n, since
+ *  not every locale has English's invariant hyphenated-adjective form. Only
+ *  called for standard/plus, whose archiveYears is always a number — custom's
+ *  (the one nullable case) uses its own "kept for as long as you need it"
+ *  bullet instead. */
+function archiveYears(n: number | null, tr: Tr): string {
+  return `${n} ${tr(n === 1 ? "ent.common.archiveYear" : "ent.common.archiveYears")}`;
+}
+
 /** Pricing-card bullets for a Schools (b2b) tier, derived from SCHOOL_ENTITLEMENTS. */
-export function schoolFeatureBullets(tier: SchoolTier): string[] {
+export function schoolFeatureBullets(tier: SchoolTier, tr: Tr): string[] {
   const e = SCHOOL_ENTITLEMENTS[tier];
   switch (tier) {
     case "standard":
       return [
-        `${e.preparePerMonthPerProf} lesson preps & ${e.aiGradingPerMonthPerProf} AI gradings / teacher / month`,
-        `${e.simulationsPerWeekPerProf} student simulations / teacher / week`,
-        `${e.reportsPerWeekPerProf} report / teacher / week`,
-        `${e.exportsPerMonth} document exports / month`,
-        "Teacher dashboards & per-class insights",
-        `${e.archiveYears}-year data archive`,
+        `${e.preparePerMonthPerProf} ${tr("ent.school.std.b1a")} ${e.aiGradingPerMonthPerProf} ${tr("ent.school.std.b1b")}`,
+        `${e.simulationsPerWeekPerProf} ${tr("ent.school.std.b2")}`,
+        `${e.reportsPerWeekPerProf} ${tr("ent.school.std.b3")}`,
+        `${e.exportsPerMonth} ${tr("ent.school.std.b4")}`,
+        tr("ent.school.std.b5"),
+        archiveYears(e.archiveYears, tr),
       ];
     case "plus":
       return [
-        "Everything in Standard, plus:",
-        `${quota(e.preparePerMonthPerProf, "preps")} & ${quota(e.aiGradingPerMonthPerProf, "AI gradings")} / teacher / month`,
-        "Unlimited student simulations & reports",
-        "Advanced insights & automatic daily reports",
-        "Your school logo on every document",
-        `${e.archiveYears}-year data archive`,
+        `${quota(e.preparePerMonthPerProf, "ent.noun.preps", tr)} & ${quota(e.aiGradingPerMonthPerProf, "ent.noun.aiGradings", tr)} ${tr("ent.perTeacherPerMonth")}`,
+        tr("ent.school.plus.b2"),
+        tr("ent.school.plus.b3"),
+        tr("ent.school.plus.b4"),
+        // followupsAdvanced, true here and false on Standard. It was a real
+        // delta that only ever appeared in the comparison grid.
+        tr("ent.school.plus.b5"),
+        tr("ent.school.plus.b6"),
+        archiveYears(e.archiveYears, tr),
       ];
     case "custom":
       return [
-        "Everything in Plus, plus:",
-        "Unlimited preps, gradings & exports",
-        "Consolidated multi-class monitoring",
-        "LMS sync, SSO & multi-school administration",
-        "Insights export & unlimited data archive",
-        "Bespoke deployment, tuned to your school",
+        tr("ent.school.custom.b1"),
+        tr("ent.school.custom.b2"),
+        tr("ent.school.custom.b3"),
+        tr("ent.school.custom.b4"),
+        tr("ent.school.plus.b6"),
+        tr("ent.school.custom.b6"),
+        tr("ent.school.custom.b7"),
       ];
   }
 }
@@ -409,13 +519,20 @@ export function schoolFeatureBullets(tier: SchoolTier): string[] {
 /*
  * Three cards cannot answer "what do I get, and up to what limit".
  *
- * The cards are a ladder written as prose: each one opens on "Everything in the
- * tier below, plus", so a buyer asking a flat question — how many rooms on Plus,
- * how many gradings on Standard — has to hold three lists in their head and diff
- * them. That is the one job the pricing page exists to do, and it was the one
- * job it left to the reader. Worse, the same capability was named differently in
- * each card ("Unlimited private rooms" against "Study rooms up to 50
- * participants"), so even the diff was unreliable.
+ * The cards are a ladder written as prose, so a buyer asking a flat question —
+ * how many rooms on Plus, how many gradings on Standard — has to hold three
+ * lists in their head and diff them. That is the one job the pricing page
+ * exists to do, and it was the one job it left to the reader. Worse, the same
+ * capability was named differently in each card ("Unlimited private rooms"
+ * against "Study rooms up to 50 participants"), so even the diff was
+ * unreliable.
+ *
+ * The cards used to open on "Everything in the tier below, plus:", which was
+ * bookkeeping rather than an argument: of course the dearer plan gives more.
+ * That line is gone, and each card now stands on its own — which is only
+ * affordable BECAUSE this grid exists underneath to answer cumulativeness
+ * outright. Removing it from a page with no grid would have left a reader
+ * guessing whether the tiers were cumulative or alternative.
  *
  * A grid answers it in one look: capability down the side, tier across the top,
  * the limit in the cell. Every value below is read from the same objects the
@@ -440,207 +557,207 @@ export type CompareRow = {
 export type CompareGroup = { title: string; rows: CompareRow[] };
 
 /** "Unlimited" beats "null messages / day", which reads as a lost number. */
-const un = (n: number | null, suffix: string) => (n == null ? "Unlimited" : `${n} ${suffix}`);
-const yes = "Included";
+const un = (n: number | null, unitKey: MessageKey, tr: Tr) => (n == null ? tr("ent.unlimited") : `${n} ${tr(unitKey)}`);
+const yes = (tr: Tr) => tr("ent.included");
 
 /** Solo ladder: Free · Plus · Max. */
-export function rayaComparison(): CompareGroup[] {
+export function rayaComparison(tr: Tr): CompareGroup[] {
   const [f, p, m] = [RAYA_ENTITLEMENTS.free, RAYA_ENTITLEMENTS.plus, RAYA_ENTITLEMENTS.max];
   return [
     {
-      title: "Learning with Raya",
+      title: tr("ent.group.learningWithRaya"),
       rows: [
         {
-          label: "AI tutor messages",
-          hint: "Every exchange with Raya, on any subject.",
-          cells: [`${f.messagesPerDay} / day`, "Unlimited", "Unlimited"],
+          label: tr("ent.row.aiTutorMessages.label"),
+          hint: tr("ent.row.aiTutorMessages.hint"),
+          cells: [`${f.messagesPerDay} ${tr("ent.perDay")}`, tr("ent.unlimited"), tr("ent.unlimited")],
         },
         {
-          label: "Voice input and tutor modes",
-          hint: "Speak instead of typing, and choose how Raya talks to you.",
-          cells: [f.voiceInput ? yes : null, p.voiceInput ? yes : null, m.voiceInput ? yes : null],
+          label: tr("ent.row.voiceInput.label"),
+          hint: tr("ent.row.voiceInput.hint"),
+          cells: [f.voiceInput ? yes(tr) : null, p.voiceInput ? yes(tr) : null, m.voiceInput ? yes(tr) : null],
         },
         {
-          label: "Conversation history",
-          cells: [`${f.convHistoryDays} days`, "Kept", "Kept"],
+          label: tr("ent.row.convHistory.label"),
+          cells: [`${f.convHistoryDays} ${tr("ent.days")}`, tr("ent.kept"), tr("ent.kept")],
         },
         {
-          label: "Kernel deep-dive",
-          hint: "A full re-read of your concept profile, on demand.",
-          cells: [un(f.kernelAnalysisPerWeek, "/ week"), "Unlimited", "Unlimited"],
+          label: tr("ent.row.kernelDeepDive.label"),
+          hint: tr("ent.row.kernelDeepDive.hint"),
+          cells: [un(f.kernelAnalysisPerWeek, "ent.perWeek", tr), tr("ent.unlimited"), tr("ent.unlimited")],
         },
         {
-          label: "AI feedback on self-tests",
-          cells: [f.selfTestAiAnalysis ? yes : null, p.selfTestAiAnalysis ? yes : null, m.selfTestAiAnalysis ? yes : null],
+          label: tr("ent.row.aiFeedbackSelfTests.label"),
+          cells: [f.selfTestAiAnalysis ? yes(tr) : null, p.selfTestAiAnalysis ? yes(tr) : null, m.selfTestAiAnalysis ? yes(tr) : null],
         },
       ],
     },
     {
-      title: "Study tools",
+      title: tr("ent.group.studyTools"),
       rows: [
         {
-          label: "Study generations",
-          hint: "One summary, flashcard deck, quiz or mind map made from a lesson.",
-          cells: [un(f.generationsPerMonth, "/ month"), un(p.generationsPerMonth, "/ month"), un(m.generationsPerMonth, "/ month")],
+          label: tr("ent.row.studyGenerations.label"),
+          hint: tr("ent.row.studyGenerations.hint"),
+          cells: [un(f.generationsPerMonth, "ent.perMonth", tr), un(p.generationsPerMonth, "ent.perMonth", tr), un(m.generationsPerMonth, "ent.perMonth", tr)],
         },
         {
-          label: "Document uploads",
-          cells: [un(f.uploadsPerMonth, "/ month"), un(p.uploadsPerMonth, "/ month"), un(m.uploadsPerMonth, "/ month")],
+          label: tr("ent.row.documentUploads.label"),
+          cells: [un(f.uploadsPerMonth, "ent.perMonth", tr), un(p.uploadsPerMonth, "ent.perMonth", tr), un(m.uploadsPerMonth, "ent.perMonth", tr)],
         },
-        { label: "Mind maps", cells: [f.mindMap ? yes : null, p.mindMap ? yes : null, m.mindMap ? yes : null] },
+        { label: tr("ent.row.mindMaps.label"), cells: [f.mindMap ? yes(tr) : null, p.mindMap ? yes(tr) : null, m.mindMap ? yes(tr) : null] },
         {
-          label: "PDF export, no watermark",
-          cells: [f.pdfExport ? yes : null, p.pdfExport ? yes : null, m.pdfExport ? yes : null],
+          label: tr("ent.row.pdfExport.label"),
+          cells: [f.pdfExport ? yes(tr) : null, p.pdfExport ? yes(tr) : null, m.pdfExport ? yes(tr) : null],
         },
         {
-          label: "Attachment size",
-          cells: [`${f.attachmentMaxMb} MB`, `${p.attachmentMaxMb} MB`, `${m.attachmentMaxMb} MB`],
+          label: tr("ent.row.attachmentSize.label"),
+          cells: [`${f.attachmentMaxMb} ${tr("ent.mb")}`, `${p.attachmentMaxMb} ${tr("ent.mb")}`, `${m.attachmentMaxMb} ${tr("ent.mb")}`],
         },
       ],
     },
     {
-      title: "Study rooms",
+      title: tr("ent.group.studyRooms"),
       rows: [
         {
-          label: "Rooms you can open",
-          cells: [un(f.roomsPerMonth, "/ month"), "Unlimited", "Unlimited"],
+          label: tr("ent.row.roomsOpen.label"),
+          cells: [un(f.roomsPerMonth, "ent.perMonth", tr), tr("ent.unlimited"), tr("ent.unlimited")],
         },
         {
-          label: "People in a room",
+          label: tr("ent.row.peopleInRoom.label"),
           cells: [`${f.roomMaxParticipants}`, `${p.roomMaxParticipants}`, `${m.roomMaxParticipants}`],
         },
         {
-          label: "How long a session runs",
-          hint: `A room can carry a ${ROOM_TIMER_MIN}–${ROOM_TIMER_MAX} minute countdown; when it runs out the room turns read-only and the report is still there.`,
+          label: tr("ent.row.sessionLength.label"),
+          hint: `${tr("ent.row.sessionLength.hintA")} ${ROOM_TIMER_MIN}–${ROOM_TIMER_MAX} ${tr("ent.row.sessionLength.hintB")}`,
           cells: [
             // Free does not merely default to a timer, it cannot switch one off:
             // the countdown is forced to its maximum when none was asked for.
-            f.roomTimerOptional ? "As long as you like" : `${ROOM_TIMER_MAX} minutes`,
-            p.roomTimerOptional ? "As long as you like" : `${ROOM_TIMER_MAX} minutes`,
-            m.roomTimerOptional ? "As long as you like" : `${ROOM_TIMER_MAX} minutes`,
+            f.roomTimerOptional ? tr("ent.asLongAsYouLike") : `${ROOM_TIMER_MAX} ${tr("ent.minutes")}`,
+            p.roomTimerOptional ? tr("ent.asLongAsYouLike") : `${ROOM_TIMER_MAX} ${tr("ent.minutes")}`,
+            m.roomTimerOptional ? tr("ent.asLongAsYouLike") : `${ROOM_TIMER_MAX} ${tr("ent.minutes")}`,
           ],
         },
         {
-          label: "Who can see the room",
-          hint: "Every room starts private. Opening one to everybody is a choice a paid account makes; on Free it is not offered at all.",
+          label: tr("ent.row.roomVisibility.label"),
+          hint: tr("ent.row.roomVisibility.hint"),
           cells: [
-            f.roomVisibilityChoice ? "Private or public" : "Private, always",
-            p.roomVisibilityChoice ? "Private or public" : "Private, always",
-            m.roomVisibilityChoice ? "Private or public" : "Private, always",
+            f.roomVisibilityChoice ? tr("ent.privateOrPublic") : tr("ent.privateAlways"),
+            p.roomVisibilityChoice ? tr("ent.privateOrPublic") : tr("ent.privateAlways"),
+            m.roomVisibilityChoice ? tr("ent.privateOrPublic") : tr("ent.privateAlways"),
           ],
         },
         {
-          label: "Private session with Raya",
-          hint: "A one-to-one with Raya inside the room, which the other members do not see.",
+          label: tr("ent.row.privateSession.label"),
+          hint: tr("ent.row.privateSession.hint"),
           cells: [
-            un(f.privateRayaPerMonth, "/ month"),
-            un(p.privateRayaPerMonth, "/ month"),
-            un(m.privateRayaPerMonth, "/ month"),
+            un(f.privateRayaPerMonth, "ent.perMonth", tr),
+            un(p.privateRayaPerMonth, "ent.perMonth", tr),
+            un(m.privateRayaPerMonth, "ent.perMonth", tr),
           ],
         },
         {
-          label: "Group challenges per room",
-          cells: [un(f.roomChallengesPerRoom, "per room"), "Unlimited", "Unlimited"],
+          label: tr("ent.row.groupChallenges.label"),
+          cells: [un(f.roomChallengesPerRoom, "ent.perRoom", tr), tr("ent.unlimited"), tr("ent.unlimited")],
         },
-        { label: "Room reports", cells: [f.roomReports ? yes : null, p.roomReports ? yes : null, m.roomReports ? yes : null] },
+        { label: tr("ent.row.roomReports.label"), cells: [f.roomReports ? yes(tr) : null, p.roomReports ? yes(tr) : null, m.roomReports ? yes(tr) : null] },
       ],
     },
   ];
 }
 
 /** Schools ladder: Standard · Plus · Custom. */
-export function schoolComparison(): CompareGroup[] {
+export function schoolComparison(tr: Tr): CompareGroup[] {
   const [s, p, c] = [SCHOOL_ENTITLEMENTS.standard, SCHOOL_ENTITLEMENTS.plus, SCHOOL_ENTITLEMENTS.custom];
   return [
     {
-      title: "Teaching",
+      title: tr("ent.group.teaching"),
       rows: [
         {
-          label: "Lesson preparations",
-          hint: "A lesson or exercise set prepared for one class, from your own material.",
+          label: tr("ent.row.lessonPreps.label"),
+          hint: tr("ent.row.lessonPreps.hint"),
           cells: [
-            un(s.preparePerMonthPerProf, "/ teacher / month"),
-            un(p.preparePerMonthPerProf, "/ teacher / month"),
-            "Unlimited",
+            un(s.preparePerMonthPerProf, "ent.perTeacherPerMonth", tr),
+            un(p.preparePerMonthPerProf, "ent.perTeacherPerMonth", tr),
+            tr("ent.unlimited"),
           ],
         },
         {
-          label: "AI grading",
-          hint: "A batch of student work marked, with the reasoning shown to the teacher.",
+          label: tr("ent.row.aiGrading.label"),
+          hint: tr("ent.row.aiGrading.hint"),
           cells: [
-            un(s.aiGradingPerMonthPerProf, "/ teacher / month"),
-            un(p.aiGradingPerMonthPerProf, "/ teacher / month"),
-            "Unlimited",
+            un(s.aiGradingPerMonthPerProf, "ent.perTeacherPerMonth", tr),
+            un(p.aiGradingPerMonthPerProf, "ent.perTeacherPerMonth", tr),
+            tr("ent.unlimited"),
           ],
         },
         {
-          label: "Student simulations",
-          hint: "A what-if projection of where one student is heading if nothing changes.",
+          label: tr("ent.row.studentSimulations.label"),
+          hint: tr("ent.row.studentSimulations.hint"),
           cells: [
-            un(s.simulationsPerWeekPerProf, "/ teacher / week"),
-            "Unlimited",
-            "Unlimited",
+            un(s.simulationsPerWeekPerProf, "ent.perTeacherPerWeek", tr),
+            tr("ent.unlimited"),
+            tr("ent.unlimited"),
           ],
         },
         {
-          label: "Advanced follow-ups",
-          hint: "Shared across the teaching team rather than kept by one teacher.",
-          cells: [s.followupsAdvanced ? yes : null, p.followupsAdvanced ? yes : null, c.followupsAdvanced ? yes : null],
+          label: tr("ent.row.advancedFollowups.label"),
+          hint: tr("ent.row.advancedFollowups.hint"),
+          cells: [s.followupsAdvanced ? yes(tr) : null, p.followupsAdvanced ? yes(tr) : null, c.followupsAdvanced ? yes(tr) : null],
         },
       ],
     },
     {
-      title: "Insights and reports",
+      title: tr("ent.group.insightsReports"),
       rows: [
         {
-          label: "Reports",
-          cells: [un(s.reportsPerWeekPerProf, "/ teacher / week"), "Unlimited", "Unlimited"],
+          label: tr("ent.row.reports.label"),
+          cells: [un(s.reportsPerWeekPerProf, "ent.perTeacherPerWeek", tr), tr("ent.unlimited"), tr("ent.unlimited")],
         },
         {
-          label: "Automatic daily reports",
-          cells: [s.autoDailyReports ? yes : null, p.autoDailyReports ? yes : null, c.autoDailyReports ? yes : null],
+          label: tr("ent.row.autoDailyReports.label"),
+          cells: [s.autoDailyReports ? yes(tr) : null, p.autoDailyReports ? yes(tr) : null, c.autoDailyReports ? yes(tr) : null],
         },
         {
-          label: "Advanced insights",
-          cells: [s.insightsAdvanced ? yes : null, p.insightsAdvanced ? yes : null, c.insightsAdvanced ? yes : null],
+          label: tr("ent.row.advancedInsights.label"),
+          cells: [s.insightsAdvanced ? yes(tr) : null, p.insightsAdvanced ? yes(tr) : null, c.insightsAdvanced ? yes(tr) : null],
         },
         {
-          label: "Export insights",
-          hint: "The underlying figures out of the dashboard, not just the view.",
-          cells: [s.insightsExport ? yes : null, p.insightsExport ? yes : null, c.insightsExport ? yes : null],
+          label: tr("ent.row.exportInsights.label"),
+          hint: tr("ent.row.exportInsights.hint"),
+          cells: [s.insightsExport ? yes(tr) : null, p.insightsExport ? yes(tr) : null, c.insightsExport ? yes(tr) : null],
         },
         {
-          label: "Document exports",
-          cells: [un(s.exportsPerMonth, "/ month"), "Unlimited", "Unlimited"],
+          label: tr("ent.row.documentExports.label"),
+          cells: [un(s.exportsPerMonth, "ent.perMonth", tr), tr("ent.unlimited"), tr("ent.unlimited")],
         },
         {
-          label: "Your logo on every document",
-          cells: [s.schoolLogoOnDocs ? yes : null, p.schoolLogoOnDocs ? yes : null, c.schoolLogoOnDocs ? yes : null],
+          label: tr("ent.row.logoOnDocs.label"),
+          cells: [s.schoolLogoOnDocs ? yes(tr) : null, p.schoolLogoOnDocs ? yes(tr) : null, c.schoolLogoOnDocs ? yes(tr) : null],
         },
       ],
     },
     {
-      title: "Administration and data",
+      title: tr("ent.group.adminData"),
       rows: [
         {
-          label: "Data archive",
-          hint: "How far back the school's own records stay available to it.",
-          cells: [`${s.archiveYears} years`, `${p.archiveYears} years`, "As agreed"],
+          label: tr("ent.row.dataArchive.label"),
+          hint: tr("ent.row.dataArchive.hint"),
+          cells: [`${s.archiveYears} ${tr("ent.years")}`, `${p.archiveYears} ${tr("ent.years")}`, tr("ent.asAgreed")],
         },
         {
-          label: "LMS sync",
-          hint: "Classes and rosters come from the system you already run.",
-          cells: [s.lms ? yes : null, p.lms ? yes : null, c.lms ? yes : null],
+          label: tr("ent.row.lmsSync.label"),
+          hint: tr("ent.row.lmsSync.hint"),
+          cells: [s.lms ? yes(tr) : null, p.lms ? yes(tr) : null, c.lms ? yes(tr) : null],
         },
-        { label: "Single sign-on", cells: [s.sso ? yes : null, p.sso ? yes : null, c.sso ? yes : null] },
+        { label: tr("ent.row.sso.label"), cells: [s.sso ? yes(tr) : null, p.sso ? yes(tr) : null, c.sso ? yes(tr) : null] },
         {
-          label: "Several schools, one account",
-          cells: [s.multiSchool ? yes : null, p.multiSchool ? yes : null, c.multiSchool ? yes : null],
+          label: tr("ent.row.multiSchool.label"),
+          cells: [s.multiSchool ? yes(tr) : null, p.multiSchool ? yes(tr) : null, c.multiSchool ? yes(tr) : null],
         },
         {
-          label: "Consolidated monitoring",
-          hint: "Every class of every school on one screen, rather than one at a time.",
-          cells: [s.consolidatedView ? yes : null, p.consolidatedView ? yes : null, c.consolidatedView ? yes : null],
+          label: tr("ent.row.consolidatedMonitoring.label"),
+          hint: tr("ent.row.consolidatedMonitoring.hint"),
+          cells: [s.consolidatedView ? yes(tr) : null, p.consolidatedView ? yes(tr) : null, c.consolidatedView ? yes(tr) : null],
         },
       ],
     },

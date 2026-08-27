@@ -8,6 +8,8 @@ import {
   rayaFeatureBullets,
   schoolComparison,
   schoolFeatureBullets,
+  rayaTagline,
+  schoolTagline,
   overQuota,
   gateFeature,
   gateQuota,
@@ -17,6 +19,13 @@ import {
   startOfDayIso,
   startOfMonthIso,
 } from "@/lib/entitlements";
+import { lookup, type MessageKey } from "@/lib/i18n";
+
+// The bullets/tagline/comparison builders are translated (see lib/entitlements
+// and lib/i18n/en.ts) — these assertions pin the English source text, which is
+// what lookup("en", …) returns, so pass it through the same way the real
+// /pricing page does (getServerTranslate() there, this here).
+const tr = (key: MessageKey) => lookup("en", key);
 
 describe("tier normalization", () => {
   it("maps Raya plan names/tiers onto free|plus|max, degrading to free", () => {
@@ -149,7 +158,7 @@ describe("entitlement grid matches the frozen Forfaits pricing", () => {
 // quota change in the matrix must flow to the card, never drift from it.
 describe("pricing-card bullets are derived from the entitlement matrix", () => {
   it("Raya cards echo the real quotas (Free capped, higher tiers unlimited)", () => {
-    const free = rayaFeatureBullets("free").join(" | ");
+    const free = rayaFeatureBullets("free", tr).join(" | ");
     // Free's monthly generation/upload cap is shown verbatim from the matrix.
     expect(free).toContain(`${RAYA_ENTITLEMENTS.free.generationsPerMonth} study generations`);
     expect(free).toContain(`${RAYA_ENTITLEMENTS.free.uploadsPerMonth} uploads`);
@@ -160,28 +169,95 @@ describe("pricing-card bullets are derived from the entitlement matrix", () => {
     // wording, so it failed on a copy edit that changed no behaviour at all —
     // which teaches everyone to update the expected string without reading it.
     // What has to hold is that an unlimited quota never prints as a figure.
-    const max = rayaFeatureBullets("max").join(" | ");
-    expect(max).toMatch(/Unlimited .*generations & uploads/);
+    const max = rayaFeatureBullets("max", tr).join(" | ");
+    expect(max).toMatch(/Unlimited[^|]*generations/);
+    expect(max).toMatch(/Unlimited[^|]*uploads/);
     expect(max).not.toMatch(/\d+\s+(study\s+)?generations/);
-    expect(max).toContain(`${RAYA_ENTITLEMENTS.max.roomMaxParticipants} participants`);
+    // The room ceiling stays a figure, because it IS one — but it is the only
+    // one on this card, and it must be the matrix's.
+    expect(max).toContain(`${RAYA_ENTITLEMENTS.max.roomMaxParticipants}`);
+  });
+
+  /**
+   * Max's card makes exactly one claim — "nothing left to count" — and it is a
+   * property of the matrix, not a slogan: every per-period quota on the tier is
+   * null. That was worth saying because the card previously read as three
+   * numbers going up, which is a rounding error rather than a reason to pay.
+   *
+   * Checked by reflection over the field NAMES so a quota added later is
+   * covered the day it is added. The claim is the kind that stops being true
+   * quietly: someone caps one thing on Max for a good reason, and the most
+   * expensive plan is left advertising an absolute it no longer keeps.
+   */
+  it("Max counts nothing at all, and Plus still counts something", () => {
+    const counted = (t: "plus" | "max") =>
+      Object.entries(RAYA_ENTITLEMENTS[t])
+        .filter(([k]) => /(PerDay|PerWeek|PerMonth|PerRoom)$/.test(k))
+        .filter(([, v]) => v !== null)
+        .map(([k]) => k);
+
+    expect(counted("max")).toEqual([]);
+    // Without this half the assertion above is satisfied by a ladder with no
+    // rungs — if Plus stops counting too, Max's whole delta has evaporated and
+    // the card is selling a difference that no longer exists.
+    expect(counted("plus").length).toBeGreaterThan(0);
+
+    // Going from 50/month to uncounted is Max's most substantial single delta
+    // and the card omitted it entirely while listing two smaller ones.
+    expect(RAYA_ENTITLEMENTS.plus.privateRayaPerMonth).not.toBeNull();
+    expect(rayaFeatureBullets("max", tr).join(" | ")).toMatch(/private sessions with Raya/i);
   });
 
   it("School cards echo the ladder (Standard capped, Custom unlimited + LMS/SSO)", () => {
-    const standard = schoolFeatureBullets("standard").join(" | ");
+    const standard = schoolFeatureBullets("standard", tr).join(" | ");
     expect(standard).toContain(`${SCHOOL_ENTITLEMENTS.standard.preparePerMonthPerProf} lesson preps`);
     expect(standard).toContain(`${SCHOOL_ENTITLEMENTS.standard.aiGradingPerMonthPerProf} AI gradings`);
 
-    const custom = schoolFeatureBullets("custom").join(" | ");
-    expect(custom).toContain("Unlimited preps, gradings & exports");
+    const custom = schoolFeatureBullets("custom", tr).join(" | ");
+    expect(custom).toMatch(/Unlimited preps, gradings/);
     expect(custom).toContain("LMS sync, SSO & multi-school administration");
+  });
+
+  /**
+   * No card opens on bookkeeping.
+   *
+   * Every tier above the first used to lead with "Everything in <tier below>,
+   * plus:" — a line that argues nothing, because a dearer plan giving more is
+   * the premise, not a feature. It also cost the card its most valuable slot:
+   * the first bullet is the one a scanning reader actually reads.
+   *
+   * The reason it was there is real, though, and this test is the place to
+   * record it: it stopped a SHORTER card from reading as a smaller offer. Max
+   * listed three increments against Plus's eight, and without the header a
+   * reader scanning two columns would have concluded that the expensive plan
+   * gave less. So the cards were made self-contained rather than incremental —
+   * each one lists what its tier gives, and the ladder shows in the values. If
+   * a future edit trims a higher card back below the one under it, that is the
+   * regression to look for, not this assertion.
+   */
+  it("no card opens on 'Everything in ...', and none is shorter than the tier below", () => {
+    const raya = (["free", "plus", "max"] as const).map((tier) => rayaFeatureBullets(tier, tr));
+    const school = (["standard", "plus", "custom"] as const).map((tier) => schoolFeatureBullets(tier, tr));
+
+    for (const bullets of [...raya, ...school]) {
+      for (const b of bullets) expect(b).not.toMatch(/^Everything in /i);
+      // A bullet ending in a colon is the same move wearing a different hat.
+      for (const b of bullets) expect(b.trimEnd()).not.toMatch(/:$/);
+    }
+
+    for (const ladder of [raya, school]) {
+      for (let i = 1; i < ladder.length; i++) {
+        expect(ladder[i].length).toBeGreaterThanOrEqual(ladder[i - 1].length);
+      }
+    }
   });
 
   it("every tier renders a non-empty bullet list", () => {
     for (const tier of ["free", "plus", "max"] as const) {
-      expect(rayaFeatureBullets(tier).length).toBeGreaterThan(0);
+      expect(rayaFeatureBullets(tier, tr).length).toBeGreaterThan(0);
     }
     for (const tier of ["standard", "plus", "custom"] as const) {
-      expect(schoolFeatureBullets(tier).length).toBeGreaterThan(0);
+      expect(schoolFeatureBullets(tier, tr).length).toBeGreaterThan(0);
     }
   });
 });
@@ -190,7 +266,25 @@ describe("pricing-card bullets are derived from the entitlement matrix", () => {
 // up to what limit". Every cell is derived from the matrix above, so these pin
 // the derivation rather than the prose.
 describe("the /pricing comparison grid", () => {
-  const all = () => [...rayaComparison(), ...schoolComparison()];
+  const all = () => [...rayaComparison(tr), ...schoolComparison(tr)];
+
+  /**
+   * EVERY word the pricing page prints about a plan, from every derived source
+   * — the tagline, the bullets and the grid, across both ladders. The point of
+   * gathering them into one string is that a claim only has to be retired once:
+   * an assertion written against this cannot be satisfied by moving the phrase
+   * to whichever surface the test was not looking at.
+   */
+  const sold = () =>
+    [
+      ...(["free", "plus", "max"] as const).map((tier) => rayaTagline(tier, tr)),
+      ...(["standard", "plus", "custom"] as const).map((tier) => schoolTagline(tier, tr)),
+      ...(["free", "plus", "max"] as const).flatMap((tier) => rayaFeatureBullets(tier, tr)),
+      ...(["standard", "plus", "custom"] as const).flatMap((tier) => schoolFeatureBullets(tier, tr)),
+      ...all().flatMap((g) =>
+        g.rows.flatMap((r) => [r.label, r.hint ?? "", ...r.cells.map((c) => c ?? "")]),
+      ),
+    ].join(" | ");
 
   it("gives every row one cell per tier, and never leaks a raw null", () => {
     for (const g of all()) {
@@ -214,13 +308,13 @@ describe("the /pricing comparison grid", () => {
   });
 
   it("reads its numbers off the same objects the gates read", () => {
-    const solo = rayaComparison().flatMap((g) => g.rows);
+    const solo = rayaComparison(tr).flatMap((g) => g.rows);
     const chat = solo.find((r) => r.label === "AI tutor messages");
     expect(chat?.cells[0]).toBe(`${RAYA_ENTITLEMENTS.free.messagesPerDay} / day`);
     // Free is capped, both paid tiers are not — the shape of the whole ladder.
     expect(chat?.cells[1]).toBe("Unlimited");
 
-    const school = schoolComparison().flatMap((g) => g.rows);
+    const school = schoolComparison(tr).flatMap((g) => g.rows);
     const preps = school.find((r) => r.label === "Lesson preparations");
     expect(preps?.cells[0]).toContain(`${SCHOOL_ENTITLEMENTS.standard.preparePerMonthPerProf}`);
     expect(preps?.cells[1]).toContain(`${SCHOOL_ENTITLEMENTS.plus.preparePerMonthPerProf}`);
@@ -239,13 +333,32 @@ describe("the /pricing comparison grid", () => {
     // assertion that would have caught it, so it guards the whole surface: the
     // bullets AND the grid, for every tier.
     expect(RAYA_ENTITLEMENTS.max.audioInfographic).toBe(true); // still gated off
-    const sold = [
-      ...(["free", "plus", "max"] as const).flatMap(rayaFeatureBullets),
-      ...(["standard", "plus", "custom"] as const).flatMap(schoolFeatureBullets),
-      ...all().flatMap((g) => g.rows.flatMap((r) => [r.label, r.hint ?? "", ...r.cells.map((c) => c ?? "")])),
-    ].join(" | ");
-    expect(sold).not.toMatch(/infographic/i);
-    expect(sold).not.toMatch(/audio summar/i);
+    expect(sold()).not.toMatch(/infographic/i);
+    expect(sold()).not.toMatch(/audio summar/i);
+  });
+
+  /**
+   * The taglines are here for the same reason, and they are the reason this
+   * assertion had to widen.
+   *
+   * A plan's `description` is seeded in the DATABASE, and the pricing page
+   * derived only the bullets — so the seeded line sat above them, outside every
+   * check, still selling Max on "exam mode" (which exists nowhere in this
+   * repo), "deep insights" (a Schools flag, not a Raya one) and "priority",
+   * removed from the bullets a week earlier for naming a queue that does not
+   * exist. It survived precisely because it was the one line nobody derived.
+   */
+  it("never sells a retired claim in the line above the bullets", () => {
+    expect(sold()).not.toMatch(/priority/i);
+    expect(sold()).not.toMatch(/exam mode/i);
+    expect(sold()).not.toMatch(/full analytics/i);
+    // Brand rule: "Raya" is a proper noun and is never re-cased. The seeded
+    // Plus description shouted RAYA, which no derived line has ever done.
+    expect(sold()).not.toMatch(/RAYA/);
+    // And the taglines have to actually be in there, or the assertions above
+    // pass by testing nothing.
+    expect(sold()).toContain(rayaTagline("max", tr));
+    expect(sold()).toContain(schoolTagline("custom", tr));
   });
 });
 
@@ -258,11 +371,12 @@ describe("overQuota", () => {
   });
 });
 
-// The default (pre-launch) state is monitor mode: gates observe but never block.
-// These tests pin that contract so nothing starts enforcing by accident before
-// the paid plans are seeded and ENTITLEMENTS_ENFORCE is deliberately flipped.
-describe("monitor mode (ENTITLEMENTS_ENFORCE off by default)", () => {
-  it("is off unless explicitly enabled", () => {
+// The pre-launch state is monitor mode: gates observe but never block. It is no
+// longer a default someone has to remember to leave — it is what the derivation
+// below produces while there is no cashier. These pin that a build with no
+// payment provider configured cannot wall anybody off.
+describe("monitor mode (no payment provider configured)", () => {
+  it("is off while nobody can pay", () => {
     expect(ENTITLEMENTS_ENFORCE).toBe(false);
   });
 
@@ -304,14 +418,14 @@ describe("chat messages per day", () => {
   });
 
   it("states the number where there is one and promises unlimited where there is not", () => {
-    const free = rayaFeatureBullets("free").join(" | ");
+    const free = rayaFeatureBullets("free", tr).join(" | ");
     expect(free).toContain(`${RAYA_ENTITLEMENTS.free.messagesPerDay} AI tutor messages / day`);
     expect(free).not.toMatch(/unlimited ai tutor/i);
 
     // The paid cards must say it in words. "Unlimited AI tutor messages / day"
     // — what a naive interpolation produces — reads like a limit that lost its
     // number, on the one line that is supposed to remove the doubt.
-    const plus = rayaFeatureBullets("plus").join(" | ");
+    const plus = rayaFeatureBullets("plus", tr).join(" | ");
     expect(plus).toContain("Unlimited AI tutor chat");
     expect(plus).not.toMatch(/\d+ AI tutor messages/);
     expect(plus).not.toContain("Unlimited AI tutor messages / day");
@@ -338,9 +452,75 @@ describe("startOfDayIso", () => {
 });
 
 /**
- * What a blocked student actually reads. Enforcement is off by default, so the
- * message is unreachable in the default build — these load the module with the
- * switch on, which is also the only coverage of the enforcing branch at all.
+ * Enforcement is DERIVED from whether a real payment provider is configured,
+ * because a paywall with no cashier is not a paywall — it is a student hitting
+ * "30 messages today", following the upgrade the error names, and landing on a
+ * checkout that tells them the channel is closed.
+ *
+ * The env var used to be the whole switch, defaulting to off with a comment
+ * saying "flip at launch". These tests exist because that is precisely the sort
+ * of step nobody performs: sixteen published limits meaning nothing, and the
+ * failure mode — no wall where a wall was promised — makes no noise at all.
+ */
+describe("enforcement follows the cashier", () => {
+  async function load(env: Record<string, string>) {
+    vi.resetModules();
+    // Neutralise any ambient value: neither "true" nor "false", so the
+    // derivation is what answers unless a case overrides it on purpose.
+    vi.stubEnv("ENTITLEMENTS_ENFORCE", "");
+    for (const [k, v] of Object.entries(env)) vi.stubEnv(k, v);
+    return import("@/lib/entitlements");
+  }
+
+  const LIVE = {
+    BILLING_PROVIDER: "cinetpay",
+    CINETPAY_API_KEY: "k",
+    CINETPAY_SITE_ID: "s",
+  };
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  it("turns itself on when a real provider is configured, with no switch thrown", async () => {
+    const { ENTITLEMENTS_ENFORCE: on } = await load(LIVE);
+    expect(on).toBe(true);
+  });
+
+  it("stays off for a HALF-configured provider", async () => {
+    // BILLING_PROVIDER names cinetpay but the keys are absent, so
+    // getPaymentProvider falls back to the sandbox. The dangerous reading is
+    // "cinetpay is set, therefore we are live": it would wall off every free
+    // account on a deployment that cannot take a single payment.
+    const { ENTITLEMENTS_ENFORCE: on } = await load({ BILLING_PROVIDER: "cinetpay" });
+    expect(on).toBe(false);
+  });
+
+  it("stays off for the sandbox, which completes the loop with imaginary money", async () => {
+    const { ENTITLEMENTS_ENFORCE: on } = await load({ BILLING_PROVIDER: "sandbox" });
+    expect(on).toBe(false);
+  });
+
+  it("lets the env var override in BOTH directions", async () => {
+    vi.resetModules();
+    vi.stubEnv("ENTITLEMENTS_ENFORCE", "false");
+    for (const [k, v] of Object.entries(LIVE)) vi.stubEnv(k, v);
+    // Down, on a live deployment — a demo where the walls are in the way.
+    expect((await import("@/lib/entitlements")).ENTITLEMENTS_ENFORCE).toBe(false);
+
+    vi.resetModules();
+    vi.unstubAllEnvs();
+    vi.stubEnv("ENTITLEMENTS_ENFORCE", "true");
+    // Up, with no provider at all — the only way to exercise the walls locally.
+    expect((await import("@/lib/entitlements")).ENTITLEMENTS_ENFORCE).toBe(true);
+  });
+});
+
+/**
+ * What a blocked student actually reads. Enforcement is off in the test build
+ * (no provider), so the message is unreachable there — these load the module
+ * with the switch forced on, which is also the only coverage of that branch.
  */
 describe("enforcement mode (ENTITLEMENTS_ENFORCE=true)", () => {
   async function loadEnforcing() {
