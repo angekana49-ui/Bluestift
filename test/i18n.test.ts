@@ -11,7 +11,9 @@ import { LOCALES, normalizeLocale, matchLocale, DEFAULT_LOCALE, LOCALE_KEY } fro
 describe("i18n catalogue", () => {
   it("translates when the locale has the key", () => {
     expect(lookup("fr", "nav.settings")).toBe("Réglages");
-    expect(lookup("es", "nav.rooms")).toBe("Salas");
+    // "Rooms" is a product brand name (like Raya/Schools/Tools) — never
+    // translated, in any locale.
+    expect(lookup("es", "nav.rooms")).toBe("Rooms");
     expect(lookup("de", "nav.homework")).toBe("Hausaufgaben");
   });
 
@@ -37,9 +39,12 @@ describe("i18n catalogue", () => {
   it("keeps brand names untranslated in every locale", () => {
     // "Raya" is a proper noun — a localized rendering would read as a different
     // product. Every locale that translates this string must still spell it.
+    // Same rule for "Rooms" and "Tools" (Schools' sibling product names).
     for (const locale of LOCALES) {
       expect(lookup(locale.code, "menu.personalRaya")).toContain("Raya");
       expect(lookup(locale.code, "nav.kernel")).toContain("Kernel");
+      expect(lookup(locale.code, "nav.rooms")).toBe("Rooms");
+      expect(lookup(locale.code, "nav.tools")).toBe("Tools");
     }
   });
 
