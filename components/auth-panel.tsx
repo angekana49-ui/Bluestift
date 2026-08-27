@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { clearLocalData } from "@/lib/net/local-data";
 import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
 import { useResolvedTheme } from "@/components/ui/theme";
+import { useTranslate } from "@/components/ui/locale";
 import { panelCard, cardTitle, textInput, ctaButton } from "@/components/ui/forms";
 import { status } from "@/components/ui/tokens";
 import { avatarInitials } from "@/lib/name";
@@ -44,6 +45,7 @@ export function AuthPanel({
   maxWidth = 560,
 }: Props) {
   const { theme: t } = useResolvedTheme();
+  const tr = useTranslate();
   const supabase = createClient();
   const router = useRouter();
   const turnstileRef = useRef<TurnstileHandle>(null);
@@ -70,7 +72,7 @@ export function AuthPanel({
   }
 
   async function startAnonymous() {
-    if (!captchaToken) return setMsg("Complete the CAPTCHA first.");
+    if (!captchaToken) return setMsg(tr("auth.err.captcha"));
     setBusy(true);
     setMsg(null);
     try {
@@ -83,10 +85,10 @@ export function AuthPanel({
       });
       const data = await res.json().catch(() => null);
       resetCaptcha();
-      if (!res.ok) return setMsg(data?.error ?? "Couldn't start. Try again.");
+      if (!res.ok) return setMsg(data?.error ?? tr("auth.err.startFailed"));
       router.refresh();
     } catch {
-      setMsg("Couldn't reach the server.");
+      setMsg(tr("auth.err.network"));
     } finally {
       setBusy(false);
     }
@@ -94,7 +96,7 @@ export function AuthPanel({
 
   async function sendEmailLink() {
     if (!email) return;
-    if (!user?.isAnonymous && !captchaToken) return setMsg("Complete the CAPTCHA first.");
+    if (!user?.isAnonymous && !captchaToken) return setMsg(tr("auth.err.captcha"));
     setBusy(true);
     setMsg(null);
     const { error } = user?.isAnonymous
@@ -110,16 +112,16 @@ export function AuthPanel({
     setBusy(false);
     resetCaptcha();
     if (error) return setMsg(error.message);
-    setMsg(`Link sent to ${email}. Check your inbox.`);
+    setMsg(`${tr("auth.msg.linkSent.a")} ${email}. ${tr("auth.msg.linkSent.b")}`);
   }
 
   async function recoverWithKey() {
     // Accept the key however it was written down — grouped, spaced, lowercase.
     const code = normalizeRecoveryKey(recoveryCode);
     if (!code) return;
-    if (!captchaToken) return setMsg("Complete the CAPTCHA first.");
+    if (!captchaToken) return setMsg(tr("auth.err.captcha"));
     if (!isValidRecoveryKey(code)) {
-      return setMsg("A recovery key is 16 characters. Check for a missing one.");
+      return setMsg(tr("auth.err.keyLength"));
     }
     setBusy(true);
     setMsg(null);
@@ -132,21 +134,21 @@ export function AuthPanel({
       const data = await res.json().catch(() => null);
       if (!res.ok) {
         resetCaptcha();
-        return setMsg(data?.error ?? "Recovery failed.");
+        return setMsg(data?.error ?? tr("auth.err.recoveryFailed"));
       }
       if (data.status === "recovered") {
         // Session cookies were set on the response — go straight in.
-        setMsg("Good to see you again — signing in…");
+        setMsg(tr("auth.msg.recovered"));
         router.refresh();
         router.push("/account");
         return;
       }
       resetCaptcha();
       if (data.status === "sent")
-        setMsg("If that key is valid, a sign-in link was sent to the account. Check your inbox.");
-      else setMsg("That recovery key isn't valid.");
+        setMsg(tr("auth.msg.keySent"));
+      else setMsg(tr("auth.err.keyInvalid"));
     } catch {
-      setMsg("Couldn't reach the server.");
+      setMsg(tr("auth.err.network"));
     } finally {
       setBusy(false);
     }
@@ -163,7 +165,7 @@ export function AuthPanel({
 
   async function uploadAvatar(file: File | null) {
     if (!file || !user) return;
-    if (!file.type.startsWith("image/")) return setMsg("Choose an image.");
+    if (!file.type.startsWith("image/")) return setMsg(tr("auth.err.chooseImage"));
     setBusy(true);
     setMsg(null);
     try {
@@ -186,11 +188,11 @@ export function AuthPanel({
         .eq("id", user.id);
       setBusy(false);
       if (error) return setMsg(error.message);
-      setMsg("Profile picture updated.");
+      setMsg(tr("auth.msg.avatarUpdated"));
       router.refresh();
     } catch {
       setBusy(false);
-      setMsg("Couldn't upload the picture.");
+      setMsg(tr("auth.err.uploadFailed"));
     }
   }
 
@@ -206,43 +208,43 @@ export function AuthPanel({
     const label: React.CSSProperties = { fontSize: 15, fontWeight: 600, color: t.text, margin: "0 0 8px" };
     return (
       <div style={{ ...card, width: "100%", maxWidth }}>
-        <h2 style={cardTitle(t)}>Sign in or get started</h2>
+        <h2 style={cardTitle(t)}>{tr("auth.login.title")}</h2>
 
         <div style={{ margin: "14px 0" }}>
           <Turnstile ref={turnstileRef} onVerify={setCaptchaToken} />
         </div>
 
         {/* Returning users: an email link signs you back into your existing account. */}
-        <p style={label}>Already have an account? Sign in by email</p>
+        <p style={label}>{tr("auth.login.emailLabel")}</p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          <input style={input} type="email" placeholder="you@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input style={input} type="email" placeholder={tr("auth.login.emailPlaceholder")} value={email} onChange={(e) => setEmail(e.target.value)} />
           <button style={{ ...btn, opacity: busy || !email || !captchaToken ? 0.5 : 1 }} onClick={sendEmailLink} disabled={busy || !email || !captchaToken}>
-            Send the link
+            {tr("auth.login.sendLink")}
           </button>
         </div>
 
         {/* Recovery key: emails a fresh link to the account on file. */}
-        <p style={{ ...label, marginTop: 16 }}>Lost access? Use your recovery key</p>
+        <p style={{ ...label, marginTop: 16 }}>{tr("auth.login.recoveryLabel")}</p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           <input
             style={{ ...input, textTransform: "uppercase" }}
             type="text"
-            placeholder="XXXX-XXXX-XXXX-XXXX"
+            placeholder={tr("auth.login.recoveryPlaceholder")}
             autoComplete="off"
             value={recoveryCode}
             onChange={(e) => setRecoveryCode(e.target.value)}
           />
           <button style={{ ...ghost, opacity: busy || !recoveryCode.trim() || !captchaToken ? 0.5 : 1 }} onClick={recoverWithKey} disabled={busy || !recoveryCode.trim() || !captchaToken}>
-            Recover
+            {tr("auth.login.recoverBtn")}
           </button>
         </div>
 
         <div style={{ borderTop: `1px solid ${t.cardBorder}`, margin: "20px 0 16px" }} />
 
         {/* New users. */}
-        <p style={label}>New here?</p>
+        <p style={label}>{tr("auth.login.newHere")}</p>
         <button style={{ ...btn, opacity: busy || !captchaToken ? 0.5 : 1 }} onClick={startAnonymous} disabled={busy || !captchaToken}>
-          Start anonymously
+          {tr("auth.login.startAnon")}
         </button>
 
         {msg && <p style={{ marginTop: 12, color: t.muted, fontSize: 15 }}>{msg}</p>}
@@ -282,19 +284,19 @@ export function AuthPanel({
           <div style={{ fontSize: 14, color: t.muted }}>@{profile?.username ?? "—"}</div>
         </div>
         <label style={{ ...ghost, display: "inline-block" }}>
-          Change photo
+          {tr("auth.account.changePhoto")}
           <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => uploadAvatar(e.target.files?.[0] ?? null)} disabled={busy} />
         </label>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         {infoRow(
-          "Email",
+          tr("auth.account.emailLabel"),
           <>
-            {user.email ?? "—"} {user.isAnonymous && <em style={{ color: t.mutedLight }}>(anonymous)</em>}
+            {user.email ?? "—"} {user.isAnonymous && <em style={{ color: t.mutedLight }}>{tr("auth.account.anonymous")}</em>}
           </>,
         )}
-        {infoRow("Account type", <code>{profile?.account_type ?? "?"}</code>)}
+        {infoRow(tr("auth.account.typeLabel"), <code>{profile?.account_type ?? "?"}</code>)}
         <RecoveryKeyCard hasKey={recoveryKey.hasKey} issuedAt={recoveryKey.issuedAt} />
 
 
@@ -312,24 +314,24 @@ export function AuthPanel({
               <span style={{ fontSize: 17 }} aria-hidden>
                 ⚠️
               </span>
-              <div style={{ fontSize: 15, fontWeight: 700, color: t.text }}>Your progress isn&apos;t safe yet</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: t.text }}>{tr("auth.account.unsafe.title")}</div>
             </div>
             {/* Loss aversion, honestly framed — this is literally true for an
                 anonymous account: no linked email means one cleared browser or
                 one lost recovery key wipes everything. */}
             <p style={{ fontSize: 14, color: t.muted, lineHeight: 1.6, margin: "0 0 12px" }}>
-              This account lives only on this device. If you clear your browser or lose your recovery key,
-              your <strong style={{ color: t.text }}>conversations, self-tests and Kernel profile disappear for good</strong>.
-              Link an email now to keep them.
+              {tr("auth.account.unsafe.a")}{" "}
+              <strong style={{ color: t.text }}>{tr("auth.account.unsafe.strong")}</strong>
+              {tr("auth.account.unsafe.b")}
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              <input style={input} type="email" placeholder="you@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <input style={input} type="email" placeholder={tr("auth.login.emailPlaceholder")} value={email} onChange={(e) => setEmail(e.target.value)} />
               <button
                 style={{ ...btn, opacity: busy || !email ? 0.5 : 1 }}
                 onClick={sendEmailLink}
                 disabled={busy || !email}
               >
-                Keep my progress
+                {tr("auth.account.keepProgress")}
               </button>
             </div>
           </div>
@@ -340,7 +342,7 @@ export function AuthPanel({
           disabled={busy}
           style={{ marginTop: 4, alignSelf: "flex-start", background: "none", border: "none", padding: 0, fontSize: 14, color: status.danger, cursor: "pointer" }}
         >
-          Sign out
+          {tr("menu.signOut")}
         </button>
       </div>
 
@@ -369,6 +371,7 @@ function RecoveryKeyCard({
   issuedAt: string | null;
 }) {
   const { theme: t } = useResolvedTheme();
+  const tr = useTranslate();
   const [code, setCode] = useState<string | null>(null);
   const [shown, setShown] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -392,7 +395,7 @@ function RecoveryKeyCard({
         | { code?: string; error?: string; warning?: string }
         | null;
       if (!res.ok || !data?.code) {
-        setErr(data?.error ?? "Could not generate a key. Try again.");
+        setErr(data?.error ?? tr("auth.recovery.err.generateFailed"));
         return;
       }
       setCode(data.code);
@@ -400,7 +403,7 @@ function RecoveryKeyCard({
       setConfirming(false);
       if (data.warning) setErr(data.warning);
     } catch {
-      setErr("Could not generate a key. Check your connection.");
+      setErr(tr("auth.recovery.err.generateNetwork"));
     } finally {
       setBusy(false);
     }
@@ -451,25 +454,21 @@ function RecoveryKeyCard({
         <span style={{ fontSize: 17 }} aria-hidden>
           🔑
         </span>
-        <div style={{ fontSize: 15, fontWeight: 700, color: t.text, flex: 1 }}>Recovery key</div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: t.text, flex: 1 }}>{tr("auth.recovery.title")}</div>
       </div>
       <p style={{ fontSize: 14, color: t.muted, lineHeight: 1.6, margin: "0 0 12px" }}>
         {code ? (
           <>
-            Here is your new key. <strong style={{ color: t.text }}>This is the only time it will be
-            shown</strong> — save it now. Any older key has stopped working.
+            {tr("auth.recovery.new.a")} <strong style={{ color: t.text }}>{tr("auth.recovery.new.strong")}</strong> {tr("auth.recovery.new.b")}
           </>
         ) : hasKey ? (
           <>
-            Your key is the <strong style={{ color: t.text }}>only way back into this account</strong> if
-            you lose access. We store only a fingerprint of it, so we genuinely can&apos;t show it to you
-            again — if you&apos;ve lost it, generate a new one and the old one stops working.
+            {tr("auth.recovery.existing.a")} <strong style={{ color: t.text }}>{tr("auth.recovery.onlyWayBack")}</strong> {tr("auth.recovery.existing.b")}
           </>
         ) : (
           <>
-            You don&apos;t have a recovery key yet. It is the{" "}
-            <strong style={{ color: t.text }}>only way back into this account</strong> if you lose access
-            to this device.
+            {tr("auth.recovery.none.a")}{" "}
+            <strong style={{ color: t.text }}>{tr("auth.recovery.onlyWayBack")}</strong> {tr("auth.recovery.none.b")}
           </>
         )}
       </p>
@@ -497,13 +496,13 @@ function RecoveryKeyCard({
             {shown ? formatRecoveryKey(code) : masked}
           </code>
           <button type="button" style={pill} onClick={() => setShown((s) => !s)}>
-            {shown ? "Hide" : "Reveal"}
+            {shown ? tr("onb.email.hide") : tr("onb.email.reveal")}
           </button>
           <button type="button" style={pill} onClick={copy}>
-            {copied ? "Copied ✓" : "Copy"}
+            {copied ? tr("onb.email.copied") : tr("onb.email.copy")}
           </button>
           <button type="button" style={pill} onClick={download}>
-            {saved ? "Saved ✓" : "Download"}
+            {saved ? tr("onb.email.saved") : tr("onb.email.download")}
           </button>
         </div>
       )}
@@ -511,28 +510,28 @@ function RecoveryKeyCard({
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         <button type="button" style={{ ...pill, opacity: busy ? 0.5 : 1 }} onClick={generate} disabled={busy}>
           {busy
-            ? "Generating…"
+            ? tr("auth.recovery.generating")
             : confirming
-              ? "Yes, replace my key"
+              ? tr("auth.recovery.confirmReplace")
               : hasKey
-                ? "Generate a new key"
-                : "Generate my key"}
+                ? tr("auth.recovery.regenerate")
+                : tr("auth.recovery.generateFirst")}
         </button>
         {confirming && !busy && (
           <>
-            <span style={{ fontSize: 13, color: t.muted }}>Your current key will stop working.</span>
+            <span style={{ fontSize: 13, color: t.muted }}>{tr("auth.recovery.confirmWarning")}</span>
             <button
               type="button"
               style={{ ...pill, border: "none", background: "none", color: t.muted }}
               onClick={() => setConfirming(false)}
             >
-              Cancel
+              {tr("auth.recovery.cancel")}
             </button>
           </>
         )}
         {!code && issuedAt && !confirming && (
           <span style={{ fontSize: 13, color: t.mutedLight }}>
-            Issued {new Date(issuedAt).toLocaleDateString()}
+            {tr("auth.recovery.issued")} {new Date(issuedAt).toLocaleDateString()}
           </span>
         )}
       </div>

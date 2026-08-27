@@ -25,6 +25,8 @@ import {
   primaryBtn,
   secondaryBtn,
 } from "@/components/ui/auth-chrome";
+import { useTranslate } from "@/components/ui/locale";
+import type { MessageKey } from "@/lib/i18n";
 
 /**
  * First-run account setup for BlueStift — the umbrella brand over Raya (the
@@ -53,27 +55,28 @@ type SchoolRole = "teacher" | "school";
 const RAYA_STEPS = ["path", "age", "name", "level", "subjects", "goal"] as const;
 const SCHOOL_STEPS = ["path", "age", "name", "srole", "focus", "ready"] as const;
 
-const LEVELS = [
-  { value: "middle_school", label: "Middle school" },
-  { value: "high_school", label: "High school" },
-  { value: "university", label: "University" },
-  { value: "other", label: "Other" },
+const LEVELS: { value: string; labelKey: MessageKey }[] = [
+  { value: "middle_school", labelKey: "onb.level.middle" },
+  { value: "high_school", labelKey: "onb.level.high" },
+  { value: "university", labelKey: "onb.level.university" },
+  { value: "other", labelKey: "onb.other" },
 ];
 
-const SUBJECTS = [
-  "Maths",
-  "Physics",
-  "Chemistry",
-  "Biology",
-  "History & Geography",
-  "Languages",
-  "Economics",
-  "Computer science",
-  "Philosophy",
-  "Other",
+// The stored value is a stable English slug (write-only analytics metadata,
+// see onboarding_events — never read back to drive matching), independent of
+// the display label so switching UI language doesn't change what gets saved.
+const SUBJECTS: { value: string; labelKey: MessageKey }[] = [
+  { value: "Maths", labelKey: "onb.subject.maths" },
+  { value: "Physics", labelKey: "onb.subject.physics" },
+  { value: "Chemistry", labelKey: "onb.subject.chemistry" },
+  { value: "Biology", labelKey: "onb.subject.biology" },
+  { value: "History & Geography", labelKey: "onb.subject.historyGeo" },
+  { value: "Languages", labelKey: "onb.subject.languages" },
+  { value: "Economics", labelKey: "onb.subject.economics" },
+  { value: "Computer science", labelKey: "onb.subject.cs" },
+  { value: "Philosophy", labelKey: "onb.subject.philosophy" },
+  { value: "Other", labelKey: "onb.other" },
 ];
-
-const DEFAULT_GOAL = "Understand my lessons more deeply and feel ready for exams.";
 
 export function OnboardingForm({
   userId,
@@ -98,6 +101,7 @@ export function OnboardingForm({
 }) {
   const supabase = createClient();
   const router = useRouter();
+  const tr = useTranslate();
 
   const [track, setTrack] = useState<Track | null>(ageOnly ? "raya" : null);
   const [stepIndex, setStepIndex] = useState(ageOnly ? 1 : 0);
@@ -110,7 +114,7 @@ export function OnboardingForm({
   const [displayName, setDisplayName] = useState(initialDisplayName);
   const [level, setLevel] = useState<string | null>(null);
   const [subjects, setSubjects] = useState<string[]>([]);
-  const [goal, setGoal] = useState(DEFAULT_GOAL);
+  const [goal, setGoal] = useState(() => tr("onb.goal.default"));
   const [schoolRole, setSchoolRole] = useState<SchoolRole | null>(null);
   const [focus, setFocus] = useState("");
 
@@ -159,13 +163,13 @@ export function OnboardingForm({
   function validate(): string | null {
     switch (stepKey) {
       case "age":
-        return /^\d{4}$/.test(birthYear.trim()) ? null : "Enter the year you were born.";
+        return /^\d{4}$/.test(birthYear.trim()) ? null : tr("onb.err.age");
       case "name":
-        return identityReady ? null : "Choose a username and a display name.";
+        return identityReady ? null : tr("onb.err.nameRequired");
       case "level":
-        return level ? null : "Pick your level.";
+        return level ? null : tr("onb.err.level");
       case "srole":
-        return schoolRole ? null : "Tell us how you'll use Schools.";
+        return schoolRole ? null : tr("onb.err.srole");
       default:
         return null;
     }
@@ -187,7 +191,7 @@ export function OnboardingForm({
       });
       const data = (await res.json()) as { allowed?: boolean; error?: string };
       if (!res.ok) {
-        setError(data.error ?? `Couldn't save that (${res.status}).`);
+        setError(data.error ?? `${tr("onb.err.saveFailed")} (${res.status}).`);
         return false;
       }
       if (!data.allowed) {
@@ -196,7 +200,7 @@ export function OnboardingForm({
       }
       return true;
     } catch {
-      setError("Couldn't reach the server.");
+      setError(tr("onb.err.network"));
       return false;
     } finally {
       setBusy(false);
@@ -232,7 +236,7 @@ export function OnboardingForm({
     const nameStep = (steps as readonly string[]).indexOf("name");
     if (!u || !d) {
       setStepIndex(nameStep);
-      return setError("Choose a username and a display name.");
+      return setError(tr("onb.err.nameRequired"));
     }
     setBusy(true);
     setError(null);
@@ -255,7 +259,7 @@ export function OnboardingForm({
       setBusy(false);
       if (updErr.code === "23505") {
         setStepIndex(nameStep);
-        return setError("That username is already taken.");
+        return setError(tr("onb.err.usernameTaken"));
       }
       return setError(updErr.message);
     }
@@ -360,19 +364,19 @@ export function OnboardingForm({
                 animation: "writeReveal 2.4s cubic-bezier(0.65,0,0.35,1) 0.3s 1 both",
               }}
             >
-              Welcome to BlueStift, {firstName}.
+              {tr("onb.welcome.greeting")} BlueStift, {firstName}.
             </h1>
           </div>
           <p style={{ maxWidth: 400, margin: "16px auto 0", fontSize: 16, lineHeight: 1.7, color: "#475569" }}>
             {track === "schools" ? (
-              "Your account is ready. Let's get your school set up."
+              tr("onb.welcome.sub.schools")
             ) : (
-              <>Your account is ready. <RayaName /> will adapt to how you learn from your very first session.</>
+              <>{tr("onb.welcome.sub.raya.a")} <RayaName /> {tr("onb.welcome.sub.raya.b")}</>
             )}
           </p>
 
           <button onClick={enterApp} style={{ ...primaryBtn, width: "auto", padding: "14px 28px", marginTop: 26 }}>
-            {track === "schools" ? <>Open <SchoolsName /> →</> : "Start learning →"}
+            {track === "schools" ? <>{tr("onb.welcome.cta.schools")} <SchoolsName /> →</> : tr("onb.welcome.cta.raya")}
           </button>
         </div>
       </div>
@@ -396,7 +400,7 @@ export function OnboardingForm({
         disabled={busy}
         style={{ background: "none", border: "none", padding: 0, fontSize: 14, color: "#64748b", cursor: "pointer", fontFamily: "inherit" }}
       >
-        ← Use a different sign-in method
+        {tr("onb.switchMethod")}
       </button>
     </div>
   );
@@ -408,9 +412,9 @@ export function OnboardingForm({
       <div style={{ marginBottom: 22 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
           <span style={{ fontSize: 13, fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-            Step {stepNumber} of {totalSteps}
+            {tr("onb.stepLabel")} {stepNumber} {tr("onb.of")} {totalSteps}
           </span>
-          <span style={{ fontSize: 13, fontWeight: 700, color: WORDMARK_B }}>{progress}% set up</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: WORDMARK_B }}>{progress}% {tr("onb.setUp")}</span>
         </div>
         <div style={{ height: 6, borderRadius: 99, background: "#eef2f8", overflow: "hidden" }}>
           <div style={{ height: "100%", width: `${progress}%`, borderRadius: 99, background: "linear-gradient(90deg,#2f7fe0,#6366f1)", transition: "width 0.4s ease" }} />
@@ -432,23 +436,23 @@ export function OnboardingForm({
         <>
           {stepKey === "path" && (
             <>
-              <h1 style={heading}>How will you use BlueStift?</h1>
-              <p style={sub}>One account, two ways in — you can do both later.</p>
+              <h1 style={heading}>{tr("onb.path.heading")}</h1>
+              <p style={sub}>{tr("onb.path.sub")}</p>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 <button onClick={() => pickTrack("raya")} style={roleCard(false)}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src="/raya-mark-black.png" alt="Raya" style={cardLogo} />
                   <span style={{ textAlign: "left" }}>
-                    <span style={pathTitle()}>Learn with <RayaName /></span>
-                    <span style={pathDesc()}>Study solo or in rooms with your AI tutor.</span>
+                    <span style={pathTitle()}>{tr("onb.path.raya.title")} <RayaName /></span>
+                    <span style={pathDesc()}>{tr("onb.path.raya.desc")}</span>
                   </span>
                 </button>
                 <button onClick={() => pickTrack("schools")} style={roleCard(false)}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src="/bluestift-mark-dark.png" alt="BlueStift Schools" style={cardLogo} />
                   <span style={{ textAlign: "left" }}>
-                    <span style={pathTitle()}>Teach or run a school</span>
-                    <span style={pathDesc()}>Join a team with a code, or set up your own school.</span>
+                    <span style={pathTitle()}>{tr("onb.path.schools.title")}</span>
+                    <span style={pathDesc()}>{tr("onb.path.schools.desc")}</span>
                   </span>
                 </button>
               </div>
@@ -457,47 +461,44 @@ export function OnboardingForm({
 
           {stepKey === "age" && (
             <>
-              <h1 style={heading}>What year were you born?</h1>
-              <p style={sub}>
-                We ask everyone. It decides what we&apos;re allowed to switch on for your
-                account — nothing more.
-              </p>
-              <label style={fieldLabel}>Year of birth</label>
+              <h1 style={heading}>{tr("onb.age.heading")}</h1>
+              <p style={sub}>{tr("onb.age.sub")}</p>
+              <label style={fieldLabel}>{tr("onb.age.label")}</label>
               <input
                 style={fieldInput}
                 inputMode="numeric"
                 autoComplete="off"
                 maxLength={4}
-                placeholder="e.g. 2009"
+                placeholder={tr("onb.age.placeholder")}
                 value={birthYear}
                 // Digits only, so a stray letter can't turn into a silent NaN.
                 onChange={(e) => setBirthYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
               />
               <p style={{ fontSize: 13, color: "#64748b", margin: "-4px 0 0", lineHeight: 1.6 }}>
-                We store the year only — never a full date of birth.
+                {tr("onb.age.note")}
               </p>
             </>
           )}
 
           {stepKey === "name" && (
             <>
-              <h1 style={heading}>What should we call you?</h1>
-              <p style={sub}>Your username is unique; your display name is what others see.</p>
-              <label style={fieldLabel}>Username (unique)</label>
-              <input style={fieldInput} placeholder="e.g. alex_m" value={username} onChange={(e) => setUsername(e.target.value)} />
-              <label style={fieldLabel}>Display name</label>
-              <input style={fieldInput} placeholder="e.g. Alex" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+              <h1 style={heading}>{tr("onb.name.heading")}</h1>
+              <p style={sub}>{tr("onb.name.sub")}</p>
+              <label style={fieldLabel}>{tr("onb.name.usernameLabel")}</label>
+              <input style={fieldInput} placeholder={tr("onb.name.usernamePlaceholder")} value={username} onChange={(e) => setUsername(e.target.value)} />
+              <label style={fieldLabel}>{tr("onb.name.displayLabel")}</label>
+              <input style={fieldInput} placeholder={tr("onb.name.displayPlaceholder")} value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
             </>
           )}
 
           {stepKey === "level" && (
             <>
-              <h1 style={heading}>Where are you in school?</h1>
-              <p style={sub}>This helps <RayaName /> pitch explanations at the right level.</p>
+              <h1 style={heading}>{tr("onb.level.heading")}</h1>
+              <p style={sub}>{tr("onb.level.sub.a")} <RayaName /> {tr("onb.level.sub.b")}</p>
               <div style={chipRow}>
                 {LEVELS.map((l) => (
                   <button key={l.value} onClick={() => setLevel(l.value)} style={chip(level === l.value)}>
-                    {l.label}
+                    {tr(l.labelKey)}
                   </button>
                 ))}
               </div>
@@ -506,12 +507,12 @@ export function OnboardingForm({
 
           {stepKey === "subjects" && (
             <>
-              <h1 style={heading}>What do you want to work on?</h1>
-              <p style={sub}>Pick a few — you can change these any time. (Optional)</p>
+              <h1 style={heading}>{tr("onb.subjects.heading")}</h1>
+              <p style={sub}>{tr("onb.subjects.sub")}</p>
               <div style={chipRow}>
                 {SUBJECTS.map((s) => (
-                  <button key={s} onClick={() => toggleSubject(s)} style={chip(subjects.includes(s))}>
-                    {s}
+                  <button key={s.value} onClick={() => toggleSubject(s.value)} style={chip(subjects.includes(s.value))}>
+                    {tr(s.labelKey)}
                   </button>
                 ))}
               </div>
@@ -520,8 +521,8 @@ export function OnboardingForm({
 
           {stepKey === "goal" && (
             <>
-              <h1 style={heading}>What&apos;s your goal?</h1>
-              <p style={sub}>A sentence is enough — <RayaName /> keeps it in mind.</p>
+              <h1 style={heading}>{tr("onb.goal.heading")}</h1>
+              <p style={sub}>{tr("onb.goal.sub.a")} <RayaName /> {tr("onb.goal.sub.b")}</p>
               <textarea
                 style={{ ...fieldInput, resize: "vertical", minHeight: 84 }}
                 rows={3}
@@ -533,21 +534,21 @@ export function OnboardingForm({
 
           {stepKey === "srole" && (
             <>
-              <h1 style={heading}>How will you use <SchoolsName />?</h1>
-              <p style={sub}>Pick one — you can also do both from one account.</p>
+              <h1 style={heading}>{tr("onb.srole.heading.a")} <SchoolsName />?</h1>
+              <p style={sub}>{tr("onb.srole.sub")}</p>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 <button onClick={() => setSchoolRole("teacher")} style={roleCard(schoolRole === "teacher")}>
                   <Icon on={schoolRole === "teacher"}>{IconTeacher}</Icon>
                   <span style={{ textAlign: "left" }}>
-                    <span style={pathTitle(schoolRole === "teacher")}>I teach at a school</span>
-                    <span style={pathDesc(schoolRole === "teacher")}>Join the team with the invite code your admin gave you.</span>
+                    <span style={pathTitle(schoolRole === "teacher")}>{tr("onb.srole.teacher.title")}</span>
+                    <span style={pathDesc(schoolRole === "teacher")}>{tr("onb.srole.teacher.desc")}</span>
                   </span>
                 </button>
                 <button onClick={() => setSchoolRole("school")} style={roleCard(schoolRole === "school")}>
                   <Icon on={schoolRole === "school"}>{IconSchool}</Icon>
                   <span style={{ textAlign: "left" }}>
-                    <span style={pathTitle(schoolRole === "school")}>I run a school</span>
-                    <span style={pathDesc(schoolRole === "school")}>Set up your school, classes and access codes.</span>
+                    <span style={pathTitle(schoolRole === "school")}>{tr("onb.srole.school.title")}</span>
+                    <span style={pathDesc(schoolRole === "school")}>{tr("onb.srole.school.desc")}</span>
                   </span>
                 </button>
               </div>
@@ -556,11 +557,11 @@ export function OnboardingForm({
 
           {stepKey === "focus" && (
             <>
-              <h1 style={heading}>{schoolRole === "school" ? "What's your school about?" : "What do you teach?"}</h1>
-              <p style={sub}>A short note helps us tailor your dashboard. (Optional)</p>
+              <h1 style={heading}>{schoolRole === "school" ? tr("onb.focus.heading.school") : tr("onb.focus.heading.teacher")}</h1>
+              <p style={sub}>{tr("onb.focus.sub")}</p>
               <input
                 style={fieldInput}
-                placeholder={schoolRole === "school" ? "e.g. science academy, 600 students" : "e.g. Maths & Physics, final year"}
+                placeholder={schoolRole === "school" ? tr("onb.focus.placeholder.school") : tr("onb.focus.placeholder.teacher")}
                 value={focus}
                 onChange={(e) => setFocus(e.target.value)}
               />
@@ -569,12 +570,10 @@ export function OnboardingForm({
 
           {stepKey === "ready" && (
             <>
-              <h1 style={heading}>You&apos;re all set.</h1>
-              <p style={sub}>Here&apos;s what happens next.</p>
+              <h1 style={heading}>{tr("onb.ready.heading")}</h1>
+              <p style={sub}>{tr("onb.ready.sub")}</p>
               <div style={noteBox}>
-                {schoolRole === "school"
-                  ? "Next: name your school and add classes, access codes and teachers. You'll be its administrator — pricing is shown up front."
-                  : "Next: enter your school's invite code to join the teaching team. No code yet? Your admin can send you one."}
+                {schoolRole === "school" ? tr("onb.ready.note.school") : tr("onb.ready.note.teacher")}
               </div>
             </>
           )}
@@ -583,10 +582,10 @@ export function OnboardingForm({
             <>
               <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
                 <button onClick={back} disabled={busy} style={secondaryBtn}>
-                  Back
+                  {tr("onb.back")}
                 </button>
                 <button onClick={next} disabled={busy} style={{ ...primaryBtn, marginTop: 0, flex: 1, opacity: busy ? 0.6 : 1 }}>
-                  {busy ? "…" : stepIndex === lastStep ? "Finish →" : "Continue"}
+                  {busy ? "…" : stepIndex === lastStep ? tr("onb.finishArrow") : tr("onb.continue")}
                 </button>
               </div>
               {/* Shown at the step that creates the account, not buried in a
@@ -601,13 +600,13 @@ export function OnboardingForm({
                     margin: "14px 0 0",
                   }}
                 >
-                  By continuing you agree to our{" "}
+                  {tr("onb.terms.agree")}{" "}
                   <a href="/terms" target="_blank" rel="noreferrer" style={{ color: WORDMARK_B, fontWeight: 600 }}>
-                    Terms
+                    {tr("onb.terms.termsLink")}
                   </a>{" "}
-                  and{" "}
+                  {tr("onb.terms.and")}{" "}
                   <a href="/privacy" target="_blank" rel="noreferrer" style={{ color: WORDMARK_B, fontWeight: 600 }}>
-                    Privacy Policy
+                    {tr("onb.terms.privacyLink")}
                   </a>
                   .
                 </p>
@@ -644,6 +643,7 @@ function EmailStep({
   onBack: () => void;
   onContinue: () => void;
 }) {
+  const tr = useTranslate();
   const [shown, setShown] = useState(false);
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -677,15 +677,15 @@ function EmailStep({
 
   return (
     <>
-      <h1 style={heading}>Secure your account</h1>
-      <p style={sub}>You&apos;re signed in anonymously. Add an email so you never lose access — or keep just your recovery key.</p>
+      <h1 style={heading}>{tr("onb.email.heading")}</h1>
+      <p style={sub}>{tr("onb.email.sub")}</p>
 
-      <label style={fieldLabel}>Email (recommended)</label>
+      <label style={fieldLabel}>{tr("onb.email.label")}</label>
       <div style={{ display: "flex", gap: 8 }}>
         <input
           style={{ ...fieldInput, marginBottom: 0, flex: 1 }}
           type="email"
-          placeholder="you@example.com"
+          placeholder={tr("onb.email.placeholder")}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           disabled={busy || emailSent}
@@ -695,12 +695,12 @@ function EmailStep({
           disabled={busy || emailSent || !email.trim()}
           style={{ ...secondaryBtn, padding: "12px 16px", opacity: busy || emailSent || !email.trim() ? 0.6 : 1 }}
         >
-          {emailSent ? "Sent ✓" : "Link"}
+          {emailSent ? tr("onb.email.sentBtn") : tr("onb.email.linkBtn")}
         </button>
       </div>
       {emailSent && (
         <p style={{ fontSize: 14, color: "#047857", margin: "8px 0 0", lineHeight: 1.5 }}>
-          Check your inbox to confirm — you can finish setting up now.
+          {tr("onb.email.checkInbox")}
         </p>
       )}
 
@@ -715,7 +715,7 @@ function EmailStep({
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
           <Icon color="#6366f1">{IconKey}</Icon>
-          <span style={{ fontSize: 15, fontWeight: 700, color: "#0b1220" }}>Your recovery key</span>
+          <span style={{ fontSize: 15, fontWeight: 700, color: "#0b1220" }}>{tr("onb.email.recoveryTitle")}</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
           <code
@@ -736,25 +736,25 @@ function EmailStep({
               textOverflow: "ellipsis",
             }}
           >
-            {recoveryCode ? (shown ? formatRecoveryKey(recoveryCode) : masked) : "already shown"}
+            {recoveryCode ? (shown ? formatRecoveryKey(recoveryCode) : masked) : tr("onb.email.alreadyShown")}
           </code>
           <button type="button" style={keyPill} onClick={() => setShown((s) => !s)} disabled={!recoveryCode}>
-            {shown ? "Hide" : "Reveal"}
+            {shown ? tr("onb.email.hide") : tr("onb.email.reveal")}
           </button>
           <button type="button" style={keyPill} onClick={copy} disabled={!recoveryCode}>
-            {copied ? "Copied ✓" : "Copy"}
+            {copied ? tr("onb.email.copied") : tr("onb.email.copy")}
           </button>
           {/* A download, not just a clipboard: the clipboard is gone the moment
               the user copies anything else, which on a shared school machine is
               about a minute. A file survives. */}
           <button type="button" style={keyPill} onClick={download} disabled={!recoveryCode}>
-            {saved ? "Saved ✓" : "Download"}
+            {saved ? tr("onb.email.saved") : tr("onb.email.download")}
           </button>
         </div>
         <ul style={{ margin: 0, paddingLeft: 18, fontSize: 14, color: "#475569", lineHeight: 1.7 }}>
-          <li>This key is how you get back in if you sign out or change device.</li>
-          <li>We keep no copy of it. If you lose it, <strong style={{ color: "#0b1220" }}>nobody can bring it back</strong> — not even us.</li>
-          <li>Anyone who has it can open your account, so keep it to yourself.</li>
+          <li>{tr("onb.email.bullet1")}</li>
+          <li>{tr("onb.email.bullet2.a")} <strong style={{ color: "#0b1220" }}>{tr("onb.email.bullet2.strong")}</strong> {tr("onb.email.bullet2.b")}</li>
+          <li>{tr("onb.email.bullet3")}</li>
         </ul>
       </div>
 
@@ -765,7 +765,7 @@ function EmailStep({
       {recoveryCode ? (
         <div style={{ marginTop: 14 }}>
           <label style={{ ...fieldLabel, display: "block" }}>
-            Type the last four characters to check you have it
+            {tr("onb.email.tailLabel")}
           </label>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <input
@@ -780,36 +780,35 @@ function EmailStep({
               value={tail}
               onChange={(e) => setTail(e.target.value.slice(0, 8))}
               placeholder="••••"
-              aria-label="Last four characters of your recovery key"
+              aria-label={tr("onb.email.tailAria")}
               autoComplete="off"
             />
             {tailOk ? (
-              <span style={{ fontSize: 14, fontWeight: 600, color: "#047857" }}>Got it ✓</span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: "#047857" }}>{tr("onb.email.gotIt")}</span>
             ) : (
               <span style={{ fontSize: 14, color: "#64748b" }}>
-                {tail.trim() ? "Not quite — check the last group." : "The four after the last dash."}
+                {tail.trim() ? tr("onb.email.tailWrong") : tr("onb.email.tailHint")}
               </span>
             )}
           </div>
         </div>
       ) : (
         <p style={{ fontSize: 14, color: "#64748b", marginTop: 14, lineHeight: 1.6 }}>
-          Your key was already shown once — we keep only a fingerprint of it, so it can&apos;t be shown
-          again. If you didn&apos;t save it, add an email above, then generate a replacement in{" "}
-          <strong style={{ color: "#0b1220" }}>Settings</strong>.
+          {tr("onb.email.noKey.a")}{" "}
+          <strong style={{ color: "#0b1220" }}>{tr("onb.email.noKey.strong")}</strong>.
         </p>
       )}
 
       <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
         <button onClick={onBack} disabled={busy} style={secondaryBtn}>
-          Back
+          {tr("onb.back")}
         </button>
         <button
           onClick={onContinue}
           disabled={busy || (!tailOk && !emailSent)}
           style={{ ...primaryBtn, marginTop: 0, flex: 1, opacity: busy || (!tailOk && !emailSent) ? 0.6 : 1 }}
         >
-          Continue →
+          {tr("onb.continueArrow")}
         </button>
       </div>
     </>
@@ -834,6 +833,7 @@ function BlockedScreen({
   onLeave: () => void;
   busy: boolean;
 }) {
+  const tr = useTranslate();
   const [code, setCode] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -854,12 +854,12 @@ function BlockedScreen({
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
-        setError(data.error ?? `Couldn't link that code (${res.status}).`);
+        setError(data.error ?? `${tr("onb.blocked.err.linkFailed")} (${res.status}).`);
         return;
       }
       onLinked();
     } catch {
-      setError("Couldn't reach the server.");
+      setError(tr("onb.err.network"));
     } finally {
       setLinking(false);
     }
@@ -868,34 +868,31 @@ function BlockedScreen({
   return (
     <>
       <h1 style={heading}>
-        You need your school&apos;s permission to use <RayaName />.
+        {tr("onb.blocked.heading.a")} <RayaName />.
       </h1>
-      <p style={sub}>
-        Under 13, we can only open an account when a school sets it up. If your teacher gave
-        you a class code, enter it here and you&apos;re in.
-      </p>
+      <p style={sub}>{tr("onb.blocked.sub")}</p>
 
-      <label style={fieldLabel}>Class code</label>
+      <label style={fieldLabel}>{tr("onb.blocked.codeLabel")}</label>
       <input
         style={fieldInput}
-        placeholder="From your teacher"
+        placeholder={tr("onb.blocked.codePlaceholder")}
         value={code}
         onChange={(e) => setCode(e.target.value)}
         autoCapitalize="characters"
         disabled={linking}
       />
-      <label style={fieldLabel}>Your name (shared only with your school)</label>
+      <label style={fieldLabel}>{tr("onb.blocked.nameLabel")}</label>
       <div style={{ display: "flex", gap: 10 }}>
         <input
           style={fieldInput}
-          placeholder="First name"
+          placeholder={tr("onb.blocked.firstNamePlaceholder")}
           value={firstName}
           onChange={(e) => setFirstName(e.target.value)}
           disabled={linking}
         />
         <input
           style={fieldInput}
-          placeholder="Last name"
+          placeholder={tr("onb.blocked.lastNamePlaceholder")}
           value={lastName}
           onChange={(e) => setLastName(e.target.value)}
           disabled={linking}
@@ -906,20 +903,18 @@ function BlockedScreen({
         disabled={linking || !ready}
         style={{ ...primaryBtn, opacity: linking || !ready ? 0.6 : 1 }}
       >
-        {linking ? "Linking…" : "Use my class code →"}
+        {linking ? tr("onb.blocked.linking") : tr("onb.blocked.submit")}
       </button>
 
       <div style={noteBox}>
-        <strong style={{ color: "#0b1220" }}>No class code?</strong> Ask your teacher for one.
-        A parent or guardian can also write to{" "}
+        <strong style={{ color: "#0b1220" }}>{tr("onb.blocked.note.strong")}</strong> {tr("onb.blocked.note.a")}{" "}
         <a href="mailto:hello@thebluestift.com" style={{ color: WORDMARK_B, fontWeight: 600 }}>
           hello@thebluestift.com
         </a>{" "}
-        and we&apos;ll sort it out with them.
+        {tr("onb.blocked.note.b")}
       </div>
       <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.6, margin: "12px 0 0" }}>
-        Until then this account stays closed. We&apos;ve kept nothing but the year you gave us,
-        and it will be deleted along with the account if it goes unused.
+        {tr("onb.blocked.closed")}
       </p>
 
       <button
@@ -927,7 +922,7 @@ function BlockedScreen({
         disabled={busy}
         style={{ ...secondaryBtn, marginTop: 16, width: "100%" }}
       >
-        Sign out
+        {tr("menu.signOut")}
       </button>
 
       {error && <p style={{ color: "#dc2626", textAlign: "center", marginTop: 14, fontSize: 14 }}>{error}</p>}
