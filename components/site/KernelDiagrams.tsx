@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import type { Theme } from "./theme";
 import { at, useShotSequence } from "./ProductShots";
+import { useTranslate } from "@/components/ui/locale";
+import type { MessageKey } from "@/lib/i18n";
 
 /**
  * The two drawings in the Cognitive Kernel band.
@@ -155,10 +157,12 @@ const bend = (a: P, b: P, bow = 0.2) => {
 };
 
 /** The three surfaces, evenly spaced on the inner shell. */
-const SURFACES: { deg: number; name: string; sub: string; above: boolean }[] = [
-  { deg: 210, name: "Raya", sub: "the tutor they talk to", above: true },
-  { deg: 330, name: "Raya for Schools", sub: "same tutor, in class", above: true },
-  { deg: 90, name: "Homework & challenges", sub: "graded work, same student", above: false },
+const SURFACES: { deg: number; id: string; name?: string; nameKey?: MessageKey; subKey: MessageKey; above: boolean }[] = [
+  // "Raya for Schools" is a product name and stays as-is in every locale, like
+  // "Raya" itself — hence `name` (literal) rather than `nameKey` for these two.
+  { deg: 210, id: "raya", name: "Raya", subKey: "kd.orbit.raya.sub", above: true },
+  { deg: 330, id: "rayaSchools", name: "Raya for Schools", subKey: "kd.orbit.rayaSchools.sub", above: true },
+  { deg: 90, id: "homework", nameKey: "kd.orbit.homework.name", subKey: "kd.orbit.homework.sub", above: false },
 ];
 
 /**
@@ -182,11 +186,11 @@ const SURFACES: { deg: number; name: string; sub: string; above: boolean }[] = [
  * Drawn against a 24-unit box centred on the node, so the whole set shares one
  * optical size and one stroke weight.
  */
-const DIMS: { deg: number; letter: string; word: string; icon: (fill: string) => ReactNode }[] = [
+const DIMS: { deg: number; letter: string; wordKey: MessageKey; icon: (fill: string) => ReactNode }[] = [
   {
     deg: 225,
     letter: "K",
-    word: "Knowledge",
+    wordKey: "kd.word.knowledge",
     icon: (f) => (
       <g fill={f}>
         <rect x={-9} y={-8.4} width={18} height={4.6} rx={1.4} />
@@ -199,7 +203,7 @@ const DIMS: { deg: number; letter: string; word: string; icon: (fill: string) =>
   {
     deg: 315,
     letter: "V",
-    word: "Velocity",
+    wordKey: "kd.word.velocity",
     icon: (f) => (
       <g fill="none" stroke={f} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
         <path d="M-9 6 L-2.6 -0.4 L1.8 4 L8.6 -6" />
@@ -210,7 +214,7 @@ const DIMS: { deg: number; letter: string; word: string; icon: (fill: string) =>
   {
     deg: 45,
     letter: "P",
-    word: "Persistence",
+    wordKey: "kd.word.persistence",
     icon: (f) => (
       <g fill={f}>
         <rect x={-7.6} y={-9.4} width={15.2} height={2.6} rx={1.3} />
@@ -225,7 +229,7 @@ const DIMS: { deg: number; letter: string; word: string; icon: (fill: string) =>
   {
     deg: 135,
     letter: "M",
-    word: "Mindset",
+    wordKey: "kd.word.mindset",
     icon: (f) => (
       <g fill="none" stroke={f} strokeWidth={2.2} strokeLinecap="round">
         <circle cx={0} cy={-4.4} r={4} />
@@ -252,6 +256,7 @@ const DIMS: { deg: number; letter: string; word: string; icon: (fill: string) =>
  * using the product.
  */
 export function KernelLoopShot({ theme: t }: { theme: Theme }) {
+  const tr = useTranslate();
   const c = palette(t);
   const onFill = t.dark ? "#0b1220" : "#ffffff";
   const faint = t.dark ? 0.3 : 0.35;
@@ -408,18 +413,18 @@ export function KernelLoopShot({ theme: t }: { theme: Theme }) {
 
             <g className="pub-orbit-side pub-orbit-side-l shot-fade" style={at(1900)}>
               <text className="pub-orbit-name" x={teacher.x} y={teacher.y + 40} fill={t.text}>
-                Their teacher
+                {tr("kd.orbit.teacher.name")}
               </text>
               <text className="pub-orbit-sub" x={teacher.x} y={teacher.y + 58} fill={t.mutedLight}>
-                reads what came back
+                {tr("kd.orbit.teacher.sub")}
               </text>
             </g>
             <g className="pub-orbit-side pub-orbit-side-r shot-fade" style={at(2000)}>
               <text className="pub-orbit-name" x={school.x} y={school.y + 40} fill={t.text}>
-                The school&rsquo;s programme
+                {tr("kd.orbit.school.name")}
               </text>
               <text className="pub-orbit-sub" x={school.x} y={school.y + 58} fill={t.mutedLight}>
-                sets the order, not the diagnosis
+                {tr("kd.orbit.school.sub")}
               </text>
             </g>
           </g>
@@ -477,7 +482,7 @@ export function KernelLoopShot({ theme: t }: { theme: Theme }) {
             const inner: P = { x: CX + Math.cos(s.deg * DEG) * 42, y: CY + Math.sin(s.deg * DEG) * 42 };
             const outer = on(1, s.deg);
             return (
-              <g key={s.name}>
+              <g key={s.id}>
                 <path
                   className="shot-wire"
                   style={at(500 + i * 110)}
@@ -557,7 +562,7 @@ export function KernelLoopShot({ theme: t }: { theme: Theme }) {
                   <tspan fill={c.kernel} fontWeight={800}>
                     {d.letter}
                   </tspan>
-                  {` · ${d.word}`}
+                  {` · ${tr(d.wordKey)}`}
                 </text>
               </g>
             );
@@ -568,7 +573,7 @@ export function KernelLoopShot({ theme: t }: { theme: Theme }) {
           <g className="shot-fade" style={at(1300)}>
             <rect x={CX - 96} y={CY - SH[1].ry - 13} width={192} height={26} rx={13} fill={t.cardBg} />
             <text className="pub-orbit-chip" x={CX} y={CY - SH[1].ry + 5} textAnchor="middle" fill={c.kernel}>
-              COGNITIVE KERNEL
+              {tr("kd.orbit.chip")}
             </text>
           </g>
 
@@ -577,15 +582,15 @@ export function KernelLoopShot({ theme: t }: { theme: Theme }) {
             const p = on(0, s.deg);
             const ly = s.above ? p.y - 34 : p.y + 40;
             return (
-              <g key={s.name}>
+              <g key={s.id}>
                 {beat(p, 27, c.surface, 300 + i * 1040, 3120)}
                 {disc(p, 20, c.surface, 700 + i * 110)}
                 <g className="shot-fade" style={at(820 + i * 110)}>
                   <text className="pub-orbit-name" x={p.x} y={ly} textAnchor="middle" fill={t.text}>
-                    {s.name}
+                    {s.name ?? tr(s.nameKey!)}
                   </text>
                   <text className="pub-orbit-sub" x={p.x} y={ly + (s.above ? -17 : 18)} textAnchor="middle" fill={t.mutedLight}>
-                    {s.sub}
+                    {tr(s.subKey)}
                   </text>
                 </g>
               </g>
@@ -608,10 +613,10 @@ export function KernelLoopShot({ theme: t }: { theme: Theme }) {
           </g>
           <g className="shot-fade" style={at(560)}>
             <text className="pub-orbit-hero" x={CX} y={CY - 58} textAnchor="middle" fill={t.text}>
-              The learner
+              {tr("kd.orbit.learner.name")}
             </text>
             <text className="pub-orbit-sub" x={CX} y={CY - 40} textAnchor="middle" fill={t.mutedLight}>
-              one profile, everywhere
+              {tr("kd.orbit.learner.sub")}
             </text>
           </g>
         </g>
@@ -621,7 +626,7 @@ export function KernelLoopShot({ theme: t }: { theme: Theme }) {
           same plate, where the chip it replaced was a card floating over it and
           needed to be opaque to be readable. Same rule as the graph's strip. */}
       <div className="pub-orbit-foot shot-fade" style={{ ...at(2400), color: t.mutedLight, borderColor: t.cardBorder }}>
-        Updated mid-conversation, read back before the next answer.
+        {tr("kd.orbit.footer")}
       </div>
     </DiagramFrame>
   );
@@ -842,13 +847,25 @@ const VOCAB: Record<Subject, string[]> = {
 
 const SUBJECTS = Object.keys(SUBJECT_COLOR) as Subject[];
 
+/**
+ * The display label for every concept id in VOCAB — `voc.<id>`, one key per
+ * id, built rather than hand-listed so a vocabulary id can never drift from
+ * its translation key. The id itself (VOCAB) stays English snake_case in
+ * every locale — see the VOCAB comment — but what a visitor actually reads,
+ * on canvas and in the reading strip, is this label, translated like
+ * anything else on the page.
+ */
+const CONCEPT_LABEL_KEY = Object.fromEntries(
+  SUBJECTS.flatMap((s) => VOCAB[s].map((id) => [id, `voc.${id}`])),
+) as Record<string, MessageKey>;
+
 /** How a subject is written when it is said out loud rather than keyed. */
-const SUBJECT_NAME: Record<Subject, string> = {
-  math: "Mathematics",
-  physics: "Physics",
-  chemistry: "Chemistry",
-  biology: "Biology",
-  history: "History",
+const SUBJECT_NAME_KEY: Record<Subject, MessageKey> = {
+  math: "shot.subject.mathematics",
+  physics: "onb.subject.physics",
+  chemistry: "onb.subject.chemistry",
+  biology: "onb.subject.biology",
+  history: "kd.subject.history",
 };
 
 /**
@@ -963,80 +980,92 @@ const G = {
  */
 type CaseSpec = {
   id: string;
-  chip: string;
+  chipKey: MessageKey;
   /** The crossing that carries the cause. `from` says which end fails. */
   bridge: number;
   from: Subject;
   /** Which way to walk back into the failing subject to find the attempt. */
   away: [number, number];
-  /** Four names along the walk, then the root gap. */
+  /** Four names along the walk, then the root gap. English snake_case on
+   *  purpose — see the VOCAB comment above; these are graph node ids, not
+   *  display prose. */
   names: [string, string, string, string, string];
   /** What the two subject callouts say under their names. */
-  note: [string, string];
+  noteKeys: [MessageKey, MessageKey];
   /** One line per step, six of them. */
-  body: [string, string, string, string, string, string];
-  kicker: [string, string, string, string, string, string];
+  bodyKeys: [MessageKey, MessageKey, MessageKey, MessageKey, MessageKey, MessageKey];
+  kickerKeys: [MessageKey, MessageKey, MessageKey, MessageKey, MessageKey, MessageKey];
   alert: string;
   confidence: string;
 };
 
+const CASE_NOTE_KEYS: [MessageKey, MessageKey] = ["kd.note.sessionBroke", "kd.note.actuallyBroke"];
+const CASE_KICKER_KEYS: [MessageKey, MessageKey, MessageKey, MessageKey, MessageKey, MessageKey] = [
+  "kd.kicker.failed",
+  "kd.kicker.sitsOn",
+  "kd.kicker.whichSitsOn",
+  "kd.kicker.andThatOn",
+  "kd.kicker.rootCause",
+  "kd.kicker.alreadySolid",
+];
+
 const SPECS: CaseSpec[] = [
   {
     id: "mechanics",
-    chip: "Physics · mechanics",
+    chipKey: "kd.case.mechanics.chip",
     bridge: 0,
     from: "physics",
     away: [1, -1],
     names: ["newtons_laws", "free_body_diagrams", "kinematic_equations", "acceleration", "derivative_functions"],
-    note: ["where the session broke", "where it actually broke"],
-    kicker: ["Failed", "Sits on", "Which sits on", "And that on", "Root cause", "Already solid"],
-    body: [
-      "Missed twice on the same exercise, four days apart.",
-      "Checked first, and fine. The forces were drawn correctly.",
-      "Also solid on its own. Still not the thing that broke.",
-      "Shaky — but it fails the same way every time, so it is a symptom.",
-      "Another subject. The derivative under the acceleration never held.",
-      "Open the session here. Reteaching them would spend the hour on something known.",
+    noteKeys: CASE_NOTE_KEYS,
+    kickerKeys: CASE_KICKER_KEYS,
+    bodyKeys: [
+      "kd.body.mechanics1",
+      "kd.body.mechanics2",
+      "kd.body.mechanics3",
+      "kd.body.mechanics4",
+      "kd.body.mechanics5",
+      "kd.body.mechanics6",
     ],
     alert: "re_emergence_error",
     confidence: "0.82",
   },
   {
     id: "thermo",
-    chip: "Chemistry · thermochemistry",
+    chipKey: "kd.case.thermo.chip",
     bridge: 3,
     from: "chemistry",
     away: [1, 1],
     names: ["thermochemistry", "reaction_rates", "chemical_equilibrium", "oxidation_numbers", "conservation_of_energy"],
-    note: ["where the session broke", "where it actually broke"],
-    kicker: ["Failed", "Sits on", "Which sits on", "And that on", "Root cause", "Already solid"],
-    body: [
-      "Right answer, wrong sign, three times running.",
-      "Fluent. Rates were never the difficulty here.",
-      "Held up under questioning, including the awkward case.",
-      "Reliable. Which rules out the obvious explanation.",
-      "Not chemistry. Energy in and energy out was never a closed book.",
-      "The way in. Both were solid last week and are solid now.",
+    noteKeys: CASE_NOTE_KEYS,
+    kickerKeys: CASE_KICKER_KEYS,
+    bodyKeys: [
+      "kd.body.thermo1",
+      "kd.body.thermo2",
+      "kd.body.thermo3",
+      "kd.body.thermo4",
+      "kd.body.thermo5",
+      "kd.body.thermo6",
     ],
     alert: "false_mastery",
     confidence: "0.76",
   },
   {
     id: "respiration",
-    chip: "Biology · respiration",
+    chipKey: "kd.case.respiration.chip",
     bridge: 4,
     from: "biology",
     away: [-1, 1],
     names: ["cellular_respiration", "atp", "enzymes", "cell_membrane", "redox_reactions"],
-    note: ["where the session broke", "where it actually broke"],
-    kicker: ["Failed", "Sits on", "Which sits on", "And that on", "Root cause", "Already solid"],
-    body: [
-      "Can recite the stages. Cannot say why any of them happen.",
-      "Named correctly every time. Recall was never the problem.",
-      "Fine, and asked about unprompted — a good sign.",
-      "Solid. The transport story is not where this comes apart.",
-      "Another subject. Respiration is a redox chain, and redox never landed.",
-      "Start from these. They are the half of the chain that already works.",
+    noteKeys: CASE_NOTE_KEYS,
+    kickerKeys: CASE_KICKER_KEYS,
+    bodyKeys: [
+      "kd.body.respiration1",
+      "kd.body.respiration2",
+      "kd.body.respiration3",
+      "kd.body.respiration4",
+      "kd.body.respiration5",
+      "kd.body.respiration6",
     ],
     alert: "passive_dependency",
     confidence: "0.79",
@@ -1122,14 +1151,29 @@ const TRIES: [number, number, "start" | "middle" | "end"][] = [
 type Box = { x0: number; x1: number; y0: number; y1: number };
 const hits = (a: Box, b: Box) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
 
+/**
+ * The label's own font size, scaled down once a translated concept name runs
+ * long. English's compound ids ("free_body_diagrams") and their translations
+ * are usually close in length, but German in particular compounds words the
+ * others don't ("Reaktionsgeschwindigkeiten" for `reaction_rates`) — nearly
+ * twice the width at the same size. Without this, TRIES' close-in offsets
+ * all fail collision for the long label and every one of them falls through
+ * to the ring search, landing far from the node it names even though nothing
+ * is actually overlapping. Shrinking the box first keeps a long label near
+ * its concept instead of solving the crowding by fleeing it.
+ */
+const labelFontSize = (len: number) => (len > 26 ? 10.5 : len > 19 ? 12 : 15);
+
 function placeLabel(
   i: number,
+  labelLength: number,
   taken: Box[],
   nodes: Box[],
   view: { x0: number; x1: number; y0: number; y1: number },
 ) {
   const a = MOL.atoms[i];
-  const w = NAMES[i].length * 15 * 0.6;
+  const fontSize = labelFontSize(labelLength);
+  const w = labelLength * fontSize * 0.6;
   for (const [dx, dy, anchor] of TRIES) {
     const cx = a.x + dx;
     const cy = a.y + dy;
@@ -1139,7 +1183,7 @@ function placeLabel(
     if (box.x0 < view.x0 + 12 || box.x1 > view.x1 - 12) continue;
     if (box.y0 < view.y0 + 12 || box.y1 > view.y1 - 12) continue;
     if ([...taken, ...nodes].some((o) => hits(box, o))) continue;
-    return { dx, dy, anchor, box };
+    return { dx, dy, anchor, box, fontSize };
   }
 
   // The ladder can genuinely run out — a concept in the middle of a cluster
@@ -1147,7 +1191,7 @@ function placeLabel(
   // outwards in rings until something clears, rather than dropping the label
   // somewhere blind and hoping: the blind fallback put a name straight through
   // the numbered node above it, and it took a headless check to notice.
-  for (const r of [34, 44, 56, 70, 86]) {
+  for (const r of [18, 26, 34, 44, 56, 70, 86]) {
     for (let k = 0; k < 16; k++) {
       // Start at 12 o'clock and alternate sides, so a label lands as close to
       // straight above or below its concept as the crowding allows.
@@ -1161,14 +1205,14 @@ function placeLabel(
       if (box.x0 < view.x0 + 12 || box.x1 > view.x1 - 12) continue;
       if (box.y0 < view.y0 + 12 || box.y1 > view.y1 - 12) continue;
       if ([...taken, ...nodes].some((o) => hits(box, o))) continue;
-      return { dx, dy, anchor: anchor as "start" | "middle" | "end", box };
+      return { dx, dy, anchor: anchor as "start" | "middle" | "end", box, fontSize };
     }
   }
 
   // Genuinely nowhere to put it. Flagged so a case added later fails loudly
   // rather than shipping a name printed over a node.
   const x0 = a.x - w / 2;
-  return { dx: 0, dy: -30, anchor: "middle" as const, box: { x0, x1: x0 + w, y0: a.y - 43, y1: a.y - 26 }, over: true };
+  return { dx: 0, dy: -30, anchor: "middle" as const, box: { x0, x1: x0 + w, y0: a.y - 43, y1: a.y - 26 }, over: true, fontSize };
 }
 
 /** One case, fully resolved: atoms, camera, beats, label placement. */
@@ -1224,72 +1268,81 @@ const NAMES: string[] = (() => {
  *
  * Split out from `buildCase` only because the label solver reads NAMES, and
  * NAMES cannot exist until every case has claimed its atoms.
+ *
+ * Takes a `labelLength` reader rather than reading NAMES directly, because the
+ * box the solver clears for a label is sized off how many pixels it will
+ * actually take on screen — and that changes with the language a visitor
+ * reads it in. Built inside the component (see `ConceptGraphShot`) instead of
+ * once at module load, so a locale switch re-solves the eighteen placements
+ * against the real translated text instead of against English's.
  */
-const TOURS = CASES.map((c) => {
-  const A = c.walk.map((i) => MOL.atoms[i]);
-  const AR = MOL.atoms[c.root];
-  const A0 = A[0];
-  const near3 = 3;
-  const cam = [
-    WIDE,
-    shot(A[0].x, A[0].y, near3),
-    shot(A[1].x, A[1].y, near3),
-    shot(A[2].x, A[2].y, near3),
-    shot(A[3].x, A[3].y, near3),
-    shot(AR.x, AR.y, 2.8),
-    shot((AR.x + A0.x) / 2, (AR.y + A0.y) / 2, 1.45),
-    WIDE,
-  ];
-  const views = [
-    frame(A[0].x, A[0].y, near3),
-    frame(A[1].x, A[1].y, near3),
-    frame(A[2].x, A[2].y, near3),
-    frame(A[3].x, A[3].y, near3),
-    frame(AR.x, AR.y, 2.8),
-    frame((AR.x + A0.x) / 2, (AR.y + A0.y) / 2, 1.45),
-  ];
+function buildTours(labelLength: (i: number) => number) {
+  return CASES.map((c) => {
+    const A = c.walk.map((i) => MOL.atoms[i]);
+    const AR = MOL.atoms[c.root];
+    const A0 = A[0];
+    const near3 = 3;
+    const cam = [
+      WIDE,
+      shot(A[0].x, A[0].y, near3),
+      shot(A[1].x, A[1].y, near3),
+      shot(A[2].x, A[2].y, near3),
+      shot(A[3].x, A[3].y, near3),
+      shot(AR.x, AR.y, 2.8),
+      shot((AR.x + A0.x) / 2, (AR.y + A0.y) / 2, 1.45),
+      WIDE,
+    ];
+    const views = [
+      frame(A[0].x, A[0].y, near3),
+      frame(A[1].x, A[1].y, near3),
+      frame(A[2].x, A[2].y, near3),
+      frame(A[3].x, A[3].y, near3),
+      frame(AR.x, AR.y, 2.8),
+      frame((AR.x + A0.x) / 2, (AR.y + A0.y) / 2, 1.45),
+    ];
 
-  // The numbered nodes are obstacles for every label, including their own.
-  const nodes: Box[] = [...c.walk, c.root].map((i) => ({
-    x0: MOL.atoms[i].x - 14,
-    x1: MOL.atoms[i].x + 14,
-    y0: MOL.atoms[i].y - 14,
-    y1: MOL.atoms[i].y + 14,
-  }));
+    // The numbered nodes are obstacles for every label, including their own.
+    const nodes: Box[] = [...c.walk, c.root].map((i) => ({
+      x0: MOL.atoms[i].x - 14,
+      x1: MOL.atoms[i].x + 14,
+      y0: MOL.atoms[i].y - 14,
+      y1: MOL.atoms[i].y + 14,
+    }));
 
-  const taken: Box[] = [];
-  const marks = c.marked.map((i, k) => {
-    const step = k < 4 ? k : k === 4 ? 4 : 5;
-    const at = k < 4 ? G.step[k] + 400 : k === 4 ? G.root : G.secure + (k - 5) * 300;
-    const p = placeLabel(i, taken, nodes, views[step]);
-    taken.push(p.box);
-    return { i, n: k < 5 ? k + 1 : 0, at, dx: p.dx, dy: p.dy, anchor: p.anchor, over: !!p.over };
+    const taken: Box[] = [];
+    const marks = c.marked.map((i, k) => {
+      const step = k < 4 ? k : k === 4 ? 4 : 5;
+      const at = k < 4 ? G.step[k] + 400 : k === 4 ? G.root : G.secure + (k - 5) * 300;
+      const p = placeLabel(i, labelLength(i), taken, nodes, views[step]);
+      taken.push(p.box);
+      return { i, n: k < 5 ? k + 1 : 0, at, dx: p.dx, dy: p.dy, anchor: p.anchor, over: !!p.over, fontSize: p.fontSize };
+    });
+
+    return {
+      cam,
+      marks,
+      /**
+       * The two subjects, called out in the same corner one after the other.
+       *
+       * The first leaves as the camera does — its span ends ON `G.cross`, and the
+       * second arrives 200ms later, so the corner is empty for the crossing
+       * itself and the two names are never on the glass together. It used to run
+       * 400ms past the second one's entrance, which is 400ms of "Mathematics" set
+       * across "Physics" at 40px in two different colours: the one reading this
+       * drawing must never offer, since naming the subject out loud is the whole
+       * point of the callout.
+       *
+       * The second has no span. It is the half of the sentence the reading strip
+       * spends the rest of the cycle unpacking, so there is nothing to hand over
+       * to — and at rest it is the one word worth leaving up.
+       */
+      call: [
+        { s: c.spec.from, noteKey: c.spec.noteKeys[0], at: 2600, span: G.cross - 2600 },
+        { s: MOL.atoms[c.root].s, noteKey: c.spec.noteKeys[1], at: G.cross + 200, span: null as number | null },
+      ],
+    };
   });
-
-  return {
-    cam,
-    marks,
-    /**
-     * The two subjects, called out in the same corner one after the other.
-     *
-     * The first leaves as the camera does — its span ends ON `G.cross`, and the
-     * second arrives 200ms later, so the corner is empty for the crossing
-     * itself and the two names are never on the glass together. It used to run
-     * 400ms past the second one's entrance, which is 400ms of "Mathematics" set
-     * across "Physics" at 40px in two different colours: the one reading this
-     * drawing must never offer, since naming the subject out loud is the whole
-     * point of the callout.
-     *
-     * The second has no span. It is the half of the sentence the reading strip
-     * spends the rest of the cycle unpacking, so there is nothing to hand over
-     * to — and at rest it is the one word worth leaving up.
-     */
-    call: [
-      { s: c.spec.from, name: SUBJECT_NAME[c.spec.from], note: c.spec.note[0], at: 2600, span: G.cross - 2600 },
-      { s: MOL.atoms[c.root].s, name: SUBJECT_NAME[MOL.atoms[c.root].s], note: c.spec.note[1], at: G.cross + 200, span: null as number | null },
-    ],
-  };
-});
+}
 
 /**
  * Per-concept state, the shape `/load_profile` returns it in.
@@ -1341,6 +1394,12 @@ for (const c of CASES) {
 /** The three bands `status` collapses to, and what each one looks like. */
 const statusOf = (i: number) => (STATE[i].ke < 0.4 ? "gap" : STATE[i].ke < 0.72 ? "developing" : "secure");
 
+const STATUS_KEY: Record<ReturnType<typeof statusOf>, MessageKey> = {
+  gap: "kd.status.gap",
+  developing: "kd.status.developing",
+  secure: "kd.status.secure",
+};
+
 /**
  * The whole ontology, and one diagnosis computed against it.
  *
@@ -1357,6 +1416,7 @@ const statusOf = (i: number) => (STATE[i].ke < 0.4 ? "gap" : STATE[i].ke < 0.72 
  * sentences belong off the picture.
  */
 export function ConceptGraphShot({ theme: t }: { theme: Theme }) {
+  const tr = useTranslate();
   const col = (s: Subject) => (t.dark ? SUBJECT_COLOR[s].dark : SUBJECT_COLOR[s].light);
   const bridge = t.dark ? BRIDGE_C.dark : BRIDGE_C.light;
   const fail = t.dark ? FAIL_C.dark : FAIL_C.light;
@@ -1406,7 +1466,13 @@ export function ConceptGraphShot({ theme: t }: { theme: Theme }) {
    */
   const [ex, setEx] = useState(0);
   const kase = CASES[ex];
-  const tour = TOURS[ex];
+  /** A concept's id (from NAMES), translated to what a visitor actually reads. */
+  const conceptLabel = (id: string) => tr((CONCEPT_LABEL_KEY[id] ?? id) as MessageKey);
+  // Rebuilt whenever the locale changes (`tr` is stable across renders in the
+  // same locale — see useTranslate), because the label solver sizes every box
+  // off the real translated text, not off English's.
+  const tours = useMemo(() => buildTours((i) => conceptLabel(NAMES[i]).length), [tr]);
+  const tour = tours[ex];
   // Aliased at their old names so the drawing below reads as one diagnosis
   // rather than as a lookup repeated ninety times.
   const { walk: WALK, root: ROOT, causeSide: CAUSE_SIDE, failed: FAILED, secure: SECURE, bridge: XBRIDGE } = kase;
@@ -1455,20 +1521,20 @@ export function ConceptGraphShot({ theme: t }: { theme: Theme }) {
   /** The six rows of the reading, built from the case that is playing. */
   const tint = [fail, t.text, t.text, t.orangeText, fail, secure];
   const concept = [
-    NAMES[WALK[0]],
-    NAMES[WALK[1]],
-    NAMES[WALK[2]],
-    NAMES[CAUSE_SIDE],
-    NAMES[ROOT],
-    `${NAMES[SECURE[0]]} · ${NAMES[SECURE[1]]}`,
+    conceptLabel(NAMES[WALK[0]]),
+    conceptLabel(NAMES[WALK[1]]),
+    conceptLabel(NAMES[WALK[2]]),
+    conceptLabel(NAMES[CAUSE_SIDE]),
+    conceptLabel(NAMES[ROOT]),
+    `${conceptLabel(NAMES[SECURE[0]])} · ${conceptLabel(NAMES[SECURE[1]])}`,
   ];
-  const STEPS = kase.spec.body.map((body, k) => ({
+  const STEPS = kase.spec.bodyKeys.map((bodyKey, k) => ({
     at: k < 4 ? G.step[k] : k === 4 ? G.root : G.secure,
     n: k + 1,
-    kicker: kase.spec.kicker[k],
+    kicker: tr(kase.spec.kickerKeys[k]),
     concept: concept[k],
     accent: tint[k],
-    body,
+    body: tr(bodyKey),
   }));
 
   /**
@@ -1766,7 +1832,7 @@ export function ConceptGraphShot({ theme: t }: { theme: Theme }) {
                         y={MOL.atoms[m.i].y + m.dy}
                         textAnchor={m.anchor}
                         fill={m.tint}
-                        fontSize={15}
+                        fontSize={m.fontSize}
                         fontWeight={700}
                         fontFamily={MONO}
                         paintOrder="stroke"
@@ -1774,7 +1840,7 @@ export function ConceptGraphShot({ theme: t }: { theme: Theme }) {
                         strokeWidth={6}
                         strokeLinejoin="round"
                       >
-                        {NAMES[m.i]}
+                        {conceptLabel(NAMES[m.i])}
                       </text>
                       {m.n > 0 && (
                         <>
@@ -1853,7 +1919,7 @@ export function ConceptGraphShot({ theme: t }: { theme: Theme }) {
                       y={MOL.atoms[focus].y - 22}
                       textAnchor="middle"
                       fill={t.text}
-                      fontSize={14}
+                      fontSize={Math.min(14, labelFontSize(conceptLabel(NAMES[focus]).length))}
                       fontWeight={700}
                       fontFamily={MONO}
                       paintOrder="stroke"
@@ -1861,7 +1927,7 @@ export function ConceptGraphShot({ theme: t }: { theme: Theme }) {
                       strokeWidth={6}
                       strokeLinejoin="round"
                     >
-                      {NAMES[focus]}
+                      {conceptLabel(NAMES[focus])}
                     </text>
                   </g>
                 )}
@@ -1898,11 +1964,14 @@ export function ConceptGraphShot({ theme: t }: { theme: Theme }) {
                 onPointerEnter={() => setOnly(s)}
                 onPointerLeave={() => setOnly(null)}
               >
-                <i style={{ background: col(s) }} /> {s}
+                {/* Lower-cased on purpose — the legend is the "keyed" form,
+                    kept visually distinct from the capitalised subject named
+                    out loud in the corner callout below. */}
+                <i style={{ background: col(s) }} /> {tr(SUBJECT_NAME_KEY[s]).toLowerCase()}
               </span>
             ))}
             <span>
-              <i style={{ background: bridge }} /> crosses a subject
+              <i style={{ background: bridge }} /> {tr("kd.legend.crosses")}
             </span>
           </div>
 
@@ -1928,15 +1997,15 @@ export function ConceptGraphShot({ theme: t }: { theme: Theme }) {
               className={`pub-graph-subject ${sc.span === null ? "shot-fade" : "shot-span"}`}
               style={sc.span === null ? at(sc.at) : { ...at(sc.at), ["--dur-span" as string]: `${sc.span}ms` }}
             >
-              <b style={{ color: col(sc.s) }}>{sc.name}</b>
-              <span style={{ color: t.mutedLight }}>{sc.note}</span>
+              <b style={{ color: col(sc.s) }}>{tr(SUBJECT_NAME_KEY[sc.s])}</b>
+              <span style={{ color: t.mutedLight }}>{tr(sc.noteKey)}</span>
             </div>
           ))}
 
           <div className="pub-graph-count" style={{ color: t.mutedLight, background: t.cardBg, borderColor: t.cardBorder }}>
-            <b style={{ color: t.text }}>{MOL.atoms.length}</b> concepts ·{" "}
-            <b style={{ color: t.text }}>{MOL.bonds.length + BRIDGES.length}</b> prerequisites ·{" "}
-            <b style={{ color: bridge }}>{BRIDGES.length}</b> across a boundary
+            <b style={{ color: t.text }}>{MOL.atoms.length}</b> {tr("kd.stats.concepts")} ·{" "}
+            <b style={{ color: t.text }}>{MOL.bonds.length + BRIDGES.length}</b> {tr("kd.stats.prerequisites")} ·{" "}
+            <b style={{ color: bridge }}>{BRIDGES.length}</b> {tr("kd.stats.acrossBoundary")}
           </div>
 
         </div>
@@ -1949,9 +2018,9 @@ export function ConceptGraphShot({ theme: t }: { theme: Theme }) {
                   Three overlays on one picture is two too many — it belongs
                   with the reading, where every other sentence already is. */}
               <div className="pub-graph-lede">
-                <span style={{ color: t.text }}>What the Kernel just did with this</span>
+                <span style={{ color: t.text }}>{tr("kd.lede.title")}</span>
                 <span style={{ color: t.mutedLight }}>
-                  Point at any concept — the tour waits. Hollow means not secure yet.
+                  {tr("kd.lede.sub")}
                 </span>
               </div>
 
@@ -1974,7 +2043,7 @@ export function ConceptGraphShot({ theme: t }: { theme: Theme }) {
                     }}
                   >
                     <i style={{ background: col(c.spec.from) }} />
-                    {c.spec.chip}
+                    {tr(c.spec.chipKey)}
                   </button>
                 ))}
               </div>
@@ -2004,10 +2073,10 @@ export function ConceptGraphShot({ theme: t }: { theme: Theme }) {
               </div>
 
               <div className="pub-graph-foot shot-fade" style={{ ...at(G.foot), color: t.mutedLight, borderColor: t.cardBorder }}>
-                Alert raised: <b style={{ color: t.orangeText, fontFamily: MONO }}>{kase.spec.alert}</b> · confidence{" "}
-                <b style={{ color: t.text }}>{kase.spec.confidence}</b> · walked{" "}
-                <b style={{ color: t.text }}>{WALK.length + 1}</b> concepts across{" "}
-                <b style={{ color: t.text }}>2</b> subjects, and back before the next answer was written.
+                {tr("kd.footer.alertRaised")} <b style={{ color: t.orangeText, fontFamily: MONO }}>{kase.spec.alert}</b> · {tr("kd.footer.confidence")}{" "}
+                <b style={{ color: t.text }}>{kase.spec.confidence}</b> · {tr("kd.footer.walked")}{" "}
+                <b style={{ color: t.text }}>{WALK.length + 1}</b> {tr("kd.footer.conceptsAcross")}{" "}
+                <b style={{ color: t.text }}>2</b> {tr("kd.footer.tail")}
               </div>
             </>
           ) : (
@@ -2019,10 +2088,10 @@ export function ConceptGraphShot({ theme: t }: { theme: Theme }) {
               <div className="pub-graph-card-id">
                 <span className="pub-step-n" style={{ color: t.mutedLight }}>
                   <i style={{ background: col(MOL.atoms[focus].s) }} />
-                  {MOL.atoms[focus].s}
+                  {tr(SUBJECT_NAME_KEY[MOL.atoms[focus].s]).toLowerCase()}
                 </span>
                 <span className="pub-step-name" style={{ color: t.text, fontFamily: MONO, fontSize: 15 }}>
-                  {NAMES[focus]}
+                  {conceptLabel(NAMES[focus])}
                 </span>
                 <span
                   className="pub-hud-pill"
@@ -2031,16 +2100,16 @@ export function ConceptGraphShot({ theme: t }: { theme: Theme }) {
                     borderColor: statusOf(focus) === "gap" ? fail : statusOf(focus) === "secure" ? secure : t.orangeText,
                   }}
                 >
-                  {statusOf(focus)}
+                  {tr(STATUS_KEY[statusOf(focus)])}
                 </span>
                 <span className="pub-step-body" style={{ color: t.muted }}>
-                  Sits on <b style={{ color: t.text }}>{ADJ[focus].length}</b> prerequisites
+                  {tr("kd.kicker.sitsOn")} <b style={{ color: t.text }}>{ADJ[focus].length}</b> {tr("kd.stats.prerequisites")}
                   {BRIDGE_AT(focus).length > 0 && (
                     <>
-                      , <b style={{ color: bridge }}>{BRIDGE_AT(focus).length}</b> of them in another subject
+                      , <b style={{ color: bridge }}>{BRIDGE_AT(focus).length}</b> {tr("kd.card.ofThemOther")}
                     </>
                   )}
-                  . {pin === focus ? "Pinned — click again to release." : "Click to pin it."}
+                  . {pin === focus ? tr("kd.card.pinned") : tr("kd.card.clickToPin")}
                 </span>
               </div>
 
@@ -2050,9 +2119,8 @@ export function ConceptGraphShot({ theme: t }: { theme: Theme }) {
                 {metric("V", STATE[focus].v, col(MOL.atoms[focus].s))}
                 {metric("P", STATE[focus].p, col(MOL.atoms[focus].s))}
                 <span className="pub-step-body pub-graph-card-note" style={{ color: t.muted }}>
-                  <b style={{ color: t.text }}>K′</b> is what is left of <b style={{ color: t.text }}>K</b> after{" "}
-                  {STATE[focus].days} {STATE[focus].days === 1 ? "day" : "days"} untouched. That drop is the
-                  forgetting — it is why a concept can slip while nothing at all happens.
+                  <b style={{ color: t.text }}>K′</b> {tr("kd.card.noteA")} <b style={{ color: t.text }}>K</b> {tr("kd.card.noteB")}{" "}
+                  {STATE[focus].days} {tr(STATE[focus].days === 1 ? "kd.card.day" : "kd.card.days")} {tr("kd.card.untouched")}
                 </span>
               </div>
             </div>

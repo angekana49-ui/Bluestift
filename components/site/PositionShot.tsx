@@ -4,6 +4,8 @@ import type { CSSProperties } from "react";
 import type { Theme } from "./theme";
 import { at } from "./ProductShots";
 import { DiagramFrame, kernelInk } from "./KernelDiagrams";
+import { useTranslate } from "@/components/ui/locale";
+import type { MessageKey } from "@/lib/i18n";
 
 /**
  * Where this product sits, argued on the one axis that separates the three
@@ -148,6 +150,12 @@ const actedAt = (w: number) => stateFrom(ACTED_SESSIONS, w);
 
 /** The word the number earns. Derived, so a label can never contradict it. */
 const statusOf = (k: number) => (k < 0.4 ? "fragile" : k < 0.7 ? "developing" : "secure");
+
+const STATUS_KEY: Record<ReturnType<typeof statusOf>, MessageKey> = {
+  fragile: "ps.status.fragile",
+  developing: "kd.status.developing",
+  secure: "kd.status.secure",
+};
 
 /**
  * The mass, as abutting columns.
@@ -295,6 +303,7 @@ const GTOP = 88;
 const GBOT = 172;
 
 export function PositionShot({ theme: t }: { theme: Theme }) {
+  const tr = useTranslate();
   const ink = kernelInk(t);
   const line = t.cardBorder;
   const dim = t.mutedLight;
@@ -315,7 +324,7 @@ export function PositionShot({ theme: t }: { theme: Theme }) {
   const reading = (k: number, cls: string, style: CSSProperties) => (
     <g className={cls} style={style}>
       <text x={GX + 18} y={GTOP + 24} className="pub-pos-sub" fill={dim}>
-        derivatives · right now
+        {tr("ps.gaugeCaption")}
       </text>
       <text x={GX + 18} y={GBOT - 8} className="pub-pos-gauge" fill={ink.bridge} fontFamily={MONO}>
         {k.toFixed(2)}
@@ -326,7 +335,7 @@ export function PositionShot({ theme: t }: { theme: Theme }) {
         className="pub-pos-say"
         fill={statusOf(k) === "fragile" ? ink.bridge : dim}
       >
-        {statusOf(k)}
+        {tr(STATUS_KEY[statusOf(k)])}
       </text>
     </g>
   );
@@ -345,7 +354,7 @@ export function PositionShot({ theme: t }: { theme: Theme }) {
               <path key={`w${i}`} d={`M${x(i)} ${Y_LMS + 16} V${Y_TUTOR - 16}`} stroke={line} strokeWidth={1} />
             ))}
             <text x={X1} y={Y_TUTOR + 46} textAnchor="end" className="pub-pos-sub" fill={dim}>
-              one term
+              {tr("ps.oneTerm")}
             </text>
           </g>
 
@@ -353,7 +362,7 @@ export function PositionShot({ theme: t }: { theme: Theme }) {
           <g className="shot-fade" style={at(T.rails)}>
             <path d={`M${X0} ${Y_LMS} H${X1}`} stroke={line} strokeWidth={2} />
           </g>
-          {rail(Y_LMS, "Your LMS", "what was done", dim, T.rails)}
+          {rail(Y_LMS, tr("ps.rail.lms.name"), tr("ps.rail.lms.sub"), dim, T.rails)}
           {DUE.map((d, i) => {
             /* The two marks after the readout arrive in the late phase — the
                whole point being that the gradebook is behind. */
@@ -405,13 +414,13 @@ export function PositionShot({ theme: t }: { theme: Theme }) {
             strokeWidth={3.5}
             strokeLinecap="round"
           />
-          {rail((Y_CEIL + Y_FLOOR) / 2 - 40, "Raya", "what was understood", ink.bridge, T.rails + 140)}
+          {rail((Y_CEIL + Y_FLOOR) / 2 - 40, "Raya", tr("ps.rail.raya.sub"), ink.bridge, T.rails + 140)}
 
           {/* ── rail 2: the tutor. Many instants, none of them kept ──────── */}
           <g className="shot-fade" style={at(T.rails + 280)}>
             <path d={`M${X0} ${Y_TUTOR} H${X1}`} stroke={line} strokeWidth={2} />
           </g>
-          {rail(Y_TUTOR, "A tutor", "the moment", dim, T.rails + 280)}
+          {rail(Y_TUTOR, tr("ps.rail.tutor.name"), tr("ps.rail.tutor.sub"), dim, T.rails + 280)}
           {SESSIONS.map((s) => (
             /* An impulse, rising toward the mass it feeds and dying where it
                stands. Height varies with how much the session moved the state,
@@ -462,7 +471,7 @@ export function PositionShot({ theme: t }: { theme: Theme }) {
             />
             <circle cx={x(READ_W)} cy={k2y(K_AT_READ)} r={7} fill={ink.bridge} />
             <text x={x(READ_W)} y={Y_TUTOR + 46} textAnchor="middle" className="pub-pos-sub" fill={t.text}>
-              a Tuesday in week 7
+              {tr("ps.tuesdayWeek7")}
             </text>
           </g>
 
@@ -473,14 +482,14 @@ export function PositionShot({ theme: t }: { theme: Theme }) {
               oversight; a stale, comfortable number reads as the problem. */}
           <g className="shot-fade" style={at(T.land + 300)}>
             <text x={x(READ_W) - 16} y={Y_LMS + 44} textAnchor="end" className="pub-pos-say" fill={dim}>
-              last mark: {DUE[1].mark}, {Math.round(READ_W - DUE[1].w)} weeks ago
+              {tr("ps.lastMarkPrefix")} {DUE[1].mark}, {Math.round(READ_W - DUE[1].w)} {tr("ps.weeksAgo")}
             </text>
           </g>
           {/* Above the tallest impulse (416) and below the mass floor (380),
               which is the only clear stripe on this side of the plate. */}
           <g className="shot-fade" style={at(T.land + 560)}>
             <text x={x(READ_W) - 16} y={Y_TUTOR - 54} textAnchor="end" className="pub-pos-say" fill={dim}>
-              no session running — nothing kept
+              {tr("ps.noSessionRunning")}
             </text>
           </g>
 
@@ -499,7 +508,7 @@ export function PositionShot({ theme: t }: { theme: Theme }) {
               className="pub-pos-say"
               fill={ink.bridge}
             >
-              ten days late
+              {tr("ps.tenDaysLate")}
             </text>
           </g>
 
@@ -528,7 +537,7 @@ export function PositionShot({ theme: t }: { theme: Theme }) {
               {actedAt(MARK_W).toFixed(2)}
             </text>
             <text x={x(MARK_W) - 12} y={k2y(actedAt(MARK_W)) + 13} textAnchor="end" className="pub-pos-sub" fill={dim}>
-              {statusOf(actedAt(MARK_W))}
+              {tr(STATUS_KEY[statusOf(actedAt(MARK_W))])}
             </text>
           </g>
         </svg>
@@ -538,19 +547,19 @@ export function PositionShot({ theme: t }: { theme: Theme }) {
             instead of after the mark. */}
         <div className="pub-pos-next" style={{ borderColor: t.cardBorder }}>
           <span className="pub-pos-next-h shot-fade" style={{ ...at(T.ghost + 1200), color: ink.bridge }}>
-            if that Tuesday is read
+            {tr("ps.ifThatTuesdayRead")}
           </span>
           <div className="pub-pos-next-row">
             {NEXT.map((n, i) => (
               <div key={n.days} className="pub-pos-next-cell shot-in" style={at(T.step(i))}>
                 <span className="pub-pos-next-when" style={{ color: t.mutedLight }}>
-                  {n.days === 0 ? "that Tuesday" : `${n.days} days on`}
+                  {n.days === 0 ? tr("ps.thatTuesday") : `${n.days} ${tr("ps.daysOn")}`}
                 </span>
                 <span className="pub-pos-next-k" style={{ color: ink.bridge }}>
                   {n.k.toFixed(2)}
                 </span>
                 <span className="pub-pos-next-say" style={{ color: t.muted }}>
-                  {statusOf(n.k)}
+                  {tr(STATUS_KEY[statusOf(n.k)])}
                 </span>
                 <span className="pub-pos-next-bar" style={{ background: t.inputFieldBg }}>
                   <i style={{ width: `${(n.k / K_CEIL) * 100}%`, background: ink.bridge }} />
@@ -559,8 +568,8 @@ export function PositionShot({ theme: t }: { theme: Theme }) {
             ))}
           </div>
           <span className="pub-pos-next-note shot-fade" style={{ ...at(T.step(2) + 500), color: t.mutedLight }}>
-            Left as it went, the same day reads {stateAt(MARK_W).toFixed(2)} · {statusOf(stateAt(MARK_W))} — and the{" "}
-            {DUE[2].mark} is the first anyone hears of it.
+            {tr("ps.leftAsItWentA")} {stateAt(MARK_W).toFixed(2)} · {tr(STATUS_KEY[statusOf(stateAt(MARK_W))])} {tr("ps.leftAsItWentB")}{" "}
+            {DUE[2].mark} {tr("ps.leftAsItWentC")}
           </span>
         </div>
 
@@ -568,8 +577,7 @@ export function PositionShot({ theme: t }: { theme: Theme }) {
           className="pub-pos-foot shot-fade"
           style={{ ...at(T.foot), color: t.mutedLight, borderColor: t.cardBorder }}
         >
-          Two of these three layers are already paid for, and neither can answer a question asked on a day with
-          nothing due.
+          {tr("ps.footer")}
         </div>
       </div>
     </DiagramFrame>
