@@ -255,6 +255,25 @@ export function sandboxBlockedInProd(): boolean {
   return isProd && process.env.ALLOW_SANDBOX_BILLING !== "true";
 }
 
+/**
+ * Is there a real cashier — can a visitor actually hand us money right now?
+ *
+ * A DIFFERENT question from `sandboxBlockedInProd`, and the two are easy to
+ * confuse. That one asks "would pressing pay fail outright", which is false in
+ * development, where the sandbox completes the loop end to end and is meant to.
+ * This one asks whether the money at the end of that loop is real, and the
+ * sandbox's never is — so it is not live anywhere, production or not.
+ *
+ * Read by lib/entitlements to decide whether the plan limits block or only
+ * count. Deliberately derived from the provider itself rather than re-reading
+ * the same env vars: a second copy of that condition would drift from
+ * `getPaymentProvider` the first time a rail is added, and it would drift
+ * silently, in the direction of walling people off with no way through.
+ */
+export function billingIsLive(): boolean {
+  return getPaymentProvider().id !== "sandbox";
+}
+
 // ---- helpers ----------------------------------------------------------------
 
 function isChannel(v: unknown): v is PaymentChannel {
