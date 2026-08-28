@@ -12,6 +12,8 @@ import {
 } from "@/lib/recovery-key";
 import {
   AuthSplit,
+  BluestiftName,
+  BluestiftText,
   Logo,
   RayaName,
   SchoolsName,
@@ -364,7 +366,7 @@ export function OnboardingForm({
                 animation: "writeReveal 2.4s cubic-bezier(0.65,0,0.35,1) 0.3s 1 both",
               }}
             >
-              {tr("onb.welcome.greeting")} BlueStift, {firstName}.
+              {tr("onb.welcome.greeting")} <BluestiftName>BlueStift</BluestiftName>, {firstName}.
             </h1>
           </div>
           <p style={{ maxWidth: 400, margin: "16px auto 0", fontSize: 16, lineHeight: 1.7, color: "#475569" }}>
@@ -436,7 +438,9 @@ export function OnboardingForm({
         <>
           {stepKey === "path" && (
             <>
-              <h1 style={heading}>{tr("onb.path.heading")}</h1>
+              <h1 style={heading}>
+                <BluestiftText>{tr("onb.path.heading")}</BluestiftText>
+              </h1>
               <p style={sub}>{tr("onb.path.sub")}</p>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 <button onClick={() => pickTrack("raya")} style={roleCard(false)}>

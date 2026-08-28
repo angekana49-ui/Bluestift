@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { RayaName } from "@/components/ui/brand";
+import { BluestiftText, RayaName } from "@/components/ui/brand";
 import { LegalShell, Table, h2, li, link, note, p, ul } from "./legal-chrome";
 import { useTranslate } from "@/components/ui/locale";
 
@@ -28,10 +28,12 @@ export function SubprocessorsView({ signedIn }: { signedIn: boolean }) {
     >
       {(t) => (
         <>
-          <p style={p(t)}>{tr("subprocessors.intro")}</p>
+          <p style={p(t)}>
+            <BluestiftText>{tr("subprocessors.intro")}</BluestiftText>
+          </p>
 
           <div style={note(t)}>
-            <strong>{tr("subprocessors.today.strong")}</strong> {tr("subprocessors.today.body")}
+            <strong>{tr("subprocessors.today.strong")}</strong> <BluestiftText>{tr("subprocessors.today.body")}</BluestiftText>
           </div>
 
           <h2 style={h2(t)}>{tr("subprocessors.current.h2")}</h2>
