@@ -462,6 +462,12 @@ export const es: Partial<Messages> = {
   "auth.login.newHere": "¿Nuevo por aquí?",
   "auth.login.startAnon": "Empezar de forma anónima",
 
+  "auth.hero.a": "Una cuenta.",
+  "auth.hero.b": "Todo",
+  "auth.hero.sub.a": "Aprende con",
+  "auth.hero.sub.b": ", enseña o gestiona todo un centro — configúralo una vez, en unos clics.",
+  "auth.hero.tagline": "Tutor con IA · cualquier nivel, cualquier materia, en cualquier lugar",
+
   "auth.account.changePhoto": "Cambiar foto",
   "auth.account.emailLabel": "Correo",
   "auth.account.anonymous": "(anónimo)",

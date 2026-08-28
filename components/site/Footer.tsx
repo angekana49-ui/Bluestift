@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { Theme } from "./theme";
-import { RayaText } from "@/components/ui/brand";
+import { BluestiftName, RayaText } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
 import { GUTTER, MEASURE } from "./layout";
@@ -76,7 +76,7 @@ export default function Footer({ theme: t, variant = "full" }: { theme: Theme; v
         }}
       >
         <span style={{ fontSize: 13, color: t.footerMuted }}>
-          © 2026 BlueStift. {tr("site.footer.rights")} ·{" "}
+          © 2026 <BluestiftName>BlueStift</BluestiftName>. {tr("site.footer.rights")} ·{" "}
           <Link href="/privacy" style={{ color: t.link, textDecoration: "underline" }}>
             {tr("site.nav.privacy")}
           </Link>
@@ -139,7 +139,7 @@ export default function Footer({ theme: t, variant = "full" }: { theme: Theme; v
             color: t.footerMuted,
           }}
         >
-          <span>© 2026 BlueStift. All rights reserved.</span>
+          <span>© 2026 <BluestiftName>BlueStift</BluestiftName>. All rights reserved.</span>
           <span>hello@thebluestift.com</span>
         </div>
       </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { RayaName } from "@/components/ui/brand";
+import { BluestiftText, RayaName } from "@/components/ui/brand";
 import { LegalShell, h2, li, link, note, p, ul } from "./legal-chrome";
 import { useTranslate } from "@/components/ui/locale";
 
@@ -29,11 +29,13 @@ export function TermsView({ signedIn }: { signedIn: boolean }) {
       {(t) => (
         <>
           <p style={p(t)}>
-            {tr("terms.intro.a")} <RayaName />
-            {tr("terms.intro.b")}
+            <BluestiftText>{tr("terms.intro.a")}</BluestiftText> <RayaName />
+            <BluestiftText>{tr("terms.intro.b")}</BluestiftText>
           </p>
 
-          <h2 style={h2(t)}>{tr("terms.s1.h2")}</h2>
+          <h2 style={h2(t)}>
+            <BluestiftText>{tr("terms.s1.h2")}</BluestiftText>
+          </h2>
           <ul style={ul}>
             <li style={li(t)}>
               <strong>{tr("terms.s1.li1.strong")}</strong> {tr("terms.s1.li1.body")}
@@ -63,7 +65,9 @@ export function TermsView({ signedIn }: { signedIn: boolean }) {
           </p>
 
           <h2 style={h2(t)}>{tr("terms.s4.h2")}</h2>
-          <p style={p(t)}>{tr("terms.s4.intro")}</p>
+          <p style={p(t)}>
+            <BluestiftText>{tr("terms.s4.intro")}</BluestiftText>
+          </p>
           <ul style={ul}>
             <li style={li(t)}>{tr("terms.s4.li1")}</li>
             <li style={li(t)}>{tr("terms.s4.li2")}</li>
@@ -99,7 +103,9 @@ export function TermsView({ signedIn }: { signedIn: boolean }) {
           <p style={p(t)}>{tr("terms.s7.p2")}</p>
 
           <h2 style={h2(t)}>{tr("terms.s8.h2")}</h2>
-          <p style={p(t)}>{tr("terms.s8.body")}</p>
+          <p style={p(t)}>
+            <BluestiftText>{tr("terms.s8.body")}</BluestiftText>
+          </p>
 
           <h2 style={h2(t)}>{tr("terms.s9.h2")}</h2>
           <p style={p(t)}>
@@ -112,14 +118,16 @@ export function TermsView({ signedIn }: { signedIn: boolean }) {
 
           <h2 style={h2(t)}>{tr("terms.s10.h2")}</h2>
           <p style={p(t)}>
-            {tr("terms.s10.a")} <RayaName /> {tr("terms.s10.b")}
+            <BluestiftText>{tr("terms.s10.a")}</BluestiftText> <RayaName /> {tr("terms.s10.b")}
           </p>
 
           <h2 style={h2(t)}>{tr("terms.s11.h2")}</h2>
           <p style={p(t)}>{tr("terms.s11.body")}</p>
 
           <h2 style={h2(t)}>{tr("terms.s12.h2")}</h2>
-          <p style={p(t)}>{tr("terms.s12.body")}</p>
+          <p style={p(t)}>
+            <BluestiftText>{tr("terms.s12.body")}</BluestiftText>
+          </p>
 
           <div style={note(t)}>
             {tr("terms.contact.a")}{" "}

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { RayaName } from "@/components/ui/brand";
+import { BluestiftText, RayaName } from "@/components/ui/brand";
 import { LegalShell, h2, li, link, note, p, ul } from "./legal-chrome";
 import { useTranslate } from "@/components/ui/locale";
 
@@ -35,7 +35,9 @@ export function DpaView({ signedIn }: { signedIn: boolean }) {
     >
       {(t) => (
         <>
-          <p style={p(t)}>{tr("dpa.intro")}</p>
+          <p style={p(t)}>
+            <BluestiftText>{tr("dpa.intro")}</BluestiftText>
+          </p>
 
           <div style={note(t)}>{tr("dpa.shortVersion")}</div>
 

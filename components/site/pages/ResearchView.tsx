@@ -7,6 +7,7 @@ import RoadmapTimeline, { ROADMAP_UPDATED } from "@/components/site/RoadmapTimel
 import type { Theme } from "@/components/site/theme";
 import { GUTTER, MEASURE, PAGE_BOTTOM, lead, pageH1, pageSection, serifEm } from "@/components/site/layout";
 import { useTranslate } from "@/components/ui/locale";
+import { BluestiftText } from "@/components/ui/brand";
 import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
 import { readTime } from "@/components/public/format";
 import type { PublicNewsletterIssue, PublicResearchPost } from "@/lib/content";
@@ -133,7 +134,9 @@ function NewsletterBox({ t }: { t: Theme }) {
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: 16 }}>
         <div style={{ minWidth: 220, flex: 1 }}>
           <div style={{ marginBottom: 8, fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: t.greenText }}>{tr("research.hub.newsletterEyebrow")}</div>
-          <h3 style={{ fontFamily: "var(--font-instrument-serif),'Instrument Serif',serif", fontStyle: "italic", fontSize: 18, margin: "0 0 8px", color: t.greenText }}>{tr("research.hub.newsletterTitle")}</h3>
+          <h3 style={{ fontFamily: "var(--font-instrument-serif),'Instrument Serif',serif", fontStyle: "italic", fontSize: 18, margin: "0 0 8px", color: t.greenText }}>
+            <BluestiftText>{tr("research.hub.newsletterTitle")}</BluestiftText>
+          </h3>
           <p style={{ fontSize: 14, lineHeight: 1.7, color: t.greenText, margin: 0, opacity: 0.85 }}>{tr("research.hub.newsletterTagline")}</p>
         </div>
         {state !== "done" ? (
@@ -188,7 +191,9 @@ function ProposeForm({ t, onClose }: { t: Theme; onClose: () => void }) {
         <div style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: 20, padding: "48px 24px", boxShadow: t.cardShadow, textAlign: "center" }}>
           <div style={{ fontSize: 44, marginBottom: 16 }}>🙏</div>
           <h2 style={{ fontSize: 23, fontWeight: 800, margin: "0 0 10px", color: t.text }}>{tr("research.hub.propose.received")}</h2>
-          <p style={{ fontSize: 15, lineHeight: 1.7, color: t.muted, marginBottom: 24 }}>{tr("research.hub.propose.receivedBody")}</p>
+          <p style={{ fontSize: 15, lineHeight: 1.7, color: t.muted, marginBottom: 24 }}>
+            <BluestiftText>{tr("research.hub.propose.receivedBody")}</BluestiftText>
+          </p>
           <button onClick={onClose} style={{ background: t.greenSolid, color: "#ffffff", border: "none", borderRadius: 12, padding: "10px 24px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>{tr("research.hub.propose.backToArticles")}</button>
         </div>
       </div>
@@ -402,7 +407,7 @@ export function ResearchView({ posts, issues, signedIn, initialTab }: Props) {
               <div style={{ maxWidth: MEASURE.form, margin: "0 auto" }}>
                 <h2 style={{ ...serifEm, fontSize: 21, margin: "0 0 8px", color: t.greenText }}>{tr("research.hub.collab.title")}</h2>
                 <p style={{ fontSize: 15, lineHeight: 1.7, color: t.muted, marginBottom: 16 }}>
-                  {tr("research.hub.collab.body")}
+                  <BluestiftText>{tr("research.hub.collab.body")}</BluestiftText>
                 </p>
                 <div style={{ display: "flex", gap: 12, borderRadius: 12, borderTop: `1px solid ${t.cardBorder}`, borderRight: `1px solid ${t.cardBorder}`, borderBottom: `1px solid ${t.cardBorder}`, borderLeft: "3px solid #6366f1", background: t.cardBg, padding: 16, boxShadow: t.cardShadow }}>
                   <span style={{ fontSize: 23 }}>🤝</span>

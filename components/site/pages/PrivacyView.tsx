@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { RayaName } from "@/components/ui/brand";
+import { BluestiftText, RayaName } from "@/components/ui/brand";
 import { LegalShell, Table, h2, h3, li, link, note, p, ul } from "./legal-chrome";
 import { useTranslate } from "@/components/ui/locale";
 
@@ -30,7 +30,7 @@ export function PrivacyView({ signedIn }: { signedIn: boolean }) {
       {(t) => (
         <>
           <p style={p(t)}>
-            {tr("privacy.intro.a")} <RayaName />
+            <BluestiftText>{tr("privacy.intro.a")}</BluestiftText> <RayaName />
             {tr("privacy.intro.b")}
           </p>
 
@@ -62,13 +62,13 @@ export function PrivacyView({ signedIn }: { signedIn: boolean }) {
           <h2 style={h2(t)}>{tr("privacy.age.h2")}</h2>
           <p style={p(t)}>{tr("privacy.age.p1")}</p>
           <p style={p(t)}>
-            <strong>{tr("privacy.age.under13.strong")}</strong> {tr("privacy.age.under13.body")}
+            <strong>{tr("privacy.age.under13.strong")}</strong> <BluestiftText>{tr("privacy.age.under13.body")}</BluestiftText>
           </p>
           <p style={p(t)}>
             <strong>{tr("privacy.age.under18.strong")}</strong> {tr("privacy.age.under18.body")}
           </p>
           <p style={p(t)}>
-            <strong>{tr("privacy.age.parents.strong")}</strong> {tr("privacy.age.parents.a")}{" "}
+            <strong>{tr("privacy.age.parents.strong")}</strong> <BluestiftText>{tr("privacy.age.parents.a")}</BluestiftText>{" "}
             <a href="mailto:hello@thebluestift.com" style={link(t)}>
               hello@thebluestift.com
             </a>{" "}
@@ -179,7 +179,7 @@ export function PrivacyView({ signedIn }: { signedIn: boolean }) {
           {/* -------------------------------------------------------- schools --- */}
           <h2 style={h2(t)}>{tr("privacy.schools.h2")}</h2>
           <p style={p(t)}>
-            {tr("privacy.schools.p1.a")} <strong>{tr("privacy.schools.p1.strong1")}</strong>{" "}
+            <BluestiftText>{tr("privacy.schools.p1.a")}</BluestiftText> <strong>{tr("privacy.schools.p1.strong1")}</strong>{" "}
             {tr("privacy.schools.p1.b")}{" "}
             <strong>{tr("privacy.schools.p1.strong2")}</strong>{" "}
             {tr("privacy.schools.p1.c")}{" "}

@@ -1,11 +1,12 @@
 "use client";
 
 import React from "react";
-import { RAYA_FONT, RayaName, SchoolsName } from "@/components/ui/brand";
+import { BluestiftName, BluestiftText, RAYA_FONT, RayaName, SchoolsName } from "@/components/ui/brand";
+import { useTranslate } from "@/components/ui/locale";
 
 // The wordmarks live in components/ui/brand.tsx (server-safe, shared with the
 // public site); re-exported here so the auth surfaces keep one import.
-export { RAYA_FONT, RayaName, SchoolsName };
+export { BluestiftName, BluestiftText, RAYA_FONT, RayaName, SchoolsName };
 
 /**
  * Shared visual chrome for the full-screen auth surfaces (onboarding + login),
@@ -92,6 +93,7 @@ export function Flock() {
  * 860px (`.onb-brand`/`.onb-panel`, globals.css). Renders the panel logo at top.
  */
 export function AuthSplit({ children, back }: { children: React.ReactNode; back?: React.ReactNode }) {
+  const tr = useTranslate();
   return (
     <div className="onb-root" style={{ minHeight: "100vh", width: "100%", display: "flex", background: "#ffffff" }}>
       <aside
@@ -117,14 +119,14 @@ export function AuthSplit({ children, back }: { children: React.ReactNode; back?
             <StaticBird size={22} />
           </div>
           <h2 style={{ fontFamily: HAND_FONT, fontWeight: 700, fontSize: "clamp(2rem,3.4vw,3rem)", lineHeight: 1, margin: 0, color: "#0b1220" }}>
-            One account.<br />Everything BlueStift.
+            {tr("auth.hero.a")}<br />{tr("auth.hero.b")} <BluestiftName>BlueStift</BluestiftName>.
           </h2>
           <p style={{ maxWidth: 360, marginTop: 16, fontSize: 16, lineHeight: 1.7, color: "#475569" }}>
-            Learn with <RayaName />, teach, or run a whole school — set it up once,
-            in a few taps.
+            {tr("auth.hero.sub.a")} <RayaName />
+            {tr("auth.hero.sub.b")}
           </p>
         </div>
-        <span style={{ fontSize: 14, color: "#64748b" }}>AI tutor · any level, any subject, anywhere</span>
+        <span style={{ fontSize: 14, color: "#64748b" }}>{tr("auth.hero.tagline")}</span>
       </aside>
 
       <main

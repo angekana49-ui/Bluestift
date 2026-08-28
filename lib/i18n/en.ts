@@ -614,6 +614,15 @@ export const en = {
   "auth.login.newHere": "New here?",
   "auth.login.startAnon": "Start anonymously",
 
+  // The decorative brand pane shared by the onboarding split and the login
+  // screen (components/ui/auth-chrome.tsx) — not part of the onboarding
+  // flow's own steps, hence its own small namespace rather than onb.*.
+  "auth.hero.a": "One account.",
+  "auth.hero.b": "Everything",
+  "auth.hero.sub.a": "Learn with",
+  "auth.hero.sub.b": ", teach, or run a whole school — set it up once, in a few taps.",
+  "auth.hero.tagline": "AI tutor · any level, any subject, anywhere",
+
   "auth.account.changePhoto": "Change photo",
   "auth.account.emailLabel": "Email",
   "auth.account.anonymous": "(anonymous)",
