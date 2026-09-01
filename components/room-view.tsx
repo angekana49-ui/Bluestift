@@ -431,7 +431,13 @@ export function RoomView({
     try {
       const result = await joinRoom(roomId);
       if (result && "error" in result) {
-        dispatchUpgrade({ code: result.code, message: result.error });
+        // An age rule is not an upsell: no plan makes someone 18, so this one
+        // gets the plain error line instead of the upgrade modal.
+        if (result.code === "minor_public_room") {
+          setError(result.error);
+        } else {
+          dispatchUpgrade({ code: result.code, message: result.error });
+        }
         setBusy(false);
         return;
       }

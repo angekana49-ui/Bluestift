@@ -1,7 +1,25 @@
 import "server-only";
 import type { createClient } from "@/lib/supabase/server";
+import { ageBand, isMinor } from "@/lib/compliance/age";
 
 type ServerClient = Awaited<ReturnType<typeof createClient>>;
+
+/**
+ * Is this birth year a minor, for the room rules?
+ *
+ * A thin name over `isMinor(ageBand(...))` so the room code reads as the rule it
+ * is enforcing. The arithmetic stays in lib/compliance/age.ts — `year - birth
+ * year - 1` is already written twice (there, and inside the room triggers in
+ * 20260901140000), and a third copy would be a third place for the rounding rule
+ * to drift.
+ *
+ * An absent or undeclared year is a minor, matching `isMinor(null)`. Callers use
+ * this to decide whether to WITHHOLD a public room, so "we don't know" has to
+ * fail closed.
+ */
+export function isMinorBirthYear(birthYear: number | null | undefined): boolean {
+  return isMinor(ageBand(birthYear ?? null));
+}
 
 /** Clamp a requested session length to the allowed 10–60 minute window. */
 export const ROOM_TIMER_MIN = 10;

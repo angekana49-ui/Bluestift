@@ -98,7 +98,12 @@ export function RoomsList({
         durationMinutes: duration || null,
       });
       if ("error" in result) {
-        dispatchUpgrade({ code: result.code, message: result.error });
+        // See room-view's join(): the age rule is not something a plan fixes.
+        if (result.code === "minor_public_room") {
+          setError(result.error);
+        } else {
+          dispatchUpgrade({ code: result.code, message: result.error });
+        }
         setBusy(false);
         return;
       }

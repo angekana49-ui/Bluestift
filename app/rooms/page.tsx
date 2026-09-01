@@ -8,6 +8,7 @@ import { getPlanLabel } from "@/lib/billing";
 import { softValue } from "@/lib/page-data";
 import { initialsOf } from "@/lib/name";
 import { resolveRayaEntitlements } from "@/lib/entitlements";
+import { isMinorBirthYear } from "@/lib/rooms";
 
 export default async function RoomsPage() {
   const supabase = await createClient();
@@ -73,7 +74,16 @@ export default async function RoomsPage() {
     <RayaScaffold active="rooms" studentName={studentName} studentInitials={initialsOf(studentName)} studentAvatarUrl={profile.profile_picture_url} studentPlan={studentPlan}>
       <div style={{ flex: 1, overflow: "auto", padding: "32px 40px", minWidth: 0 }}>
         <SectionHeader title="Rooms" subtitle="Study in a group with Raya in the room." />
-        <RoomsList rooms={rooms ?? []} myRoomIds={myRoomIds} canChooseVisibility={ent.roomVisibilityChoice} />
+        <RoomsList
+          rooms={rooms ?? []}
+          myRoomIds={myRoomIds}
+          // The plan may grant the choice; being under 18 takes it back, and no
+          // tier can buy past that. Offering the radio and then silently forcing
+          // private (which createRoom does either way) would be a control that
+          // lies about what it does, so the control simply isn't shown.
+          // `birth_year` is already on this row for the age gate above — free.
+          canChooseVisibility={ent.roomVisibilityChoice && !isMinorBirthYear(profile.birth_year)}
+        />
       </div>
     </RayaScaffold>
   );
