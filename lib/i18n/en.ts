@@ -931,6 +931,11 @@ export const en = {
   "pricing.cta.startPilot": "Start free pilot",
   "pricing.cta.createAccount": "Create an account",
   "pricing.cta.get": "Get",
+  // Signed-in variants: the visitor already has an account, so the CTA takes
+  // them straight to where the plan actually lives instead of back through
+  // /login (which only re-resolves to the same place, one hop later).
+  "pricing.cta.manageBilling": "Manage billing",
+  "pricing.cta.continue": "Continue to Raya",
   "pricing.recommended": "RECOMMENDED",
   "pricing.term.monthly": "Monthly",
   "pricing.term.annual": "Annual",

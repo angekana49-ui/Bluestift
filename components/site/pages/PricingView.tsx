@@ -148,11 +148,13 @@ function PlanCard({
   plan,
   audience,
   recommended,
+  signedIn,
 }: {
   t: Theme;
   plan: Plan;
   audience: Audience;
   recommended: boolean;
+  signedIn: boolean;
 }) {
   const tr = useTranslate();
   // Card-local: switching Plus to annual must not silently re-price Max too.
@@ -170,12 +172,20 @@ function PlanCard({
     !free && !bespoke && plan.price != null &&
     (plan.priceUnit === "per_seat" || plan.billingPeriod !== "yearly");
 
+  // Signed-in visitors already cleared /login — sending them there anyway just
+  // bounces them one hop later through the SAME resolver (resolveHome, or the
+  // onboarding-resume banner), off the plan they just picked. A visitor who is
+  // already in Raya or Schools goes straight to where that plan actually lives.
   const cta = isSchool
     ? bespoke
       ? { label: tr("site.finalCta.ctaSecondary"), href: "/contact" } // quoted, not self-serve
-      : { label: tr("pricing.cta.startPilot"), href: "/login" } // listed plans → free pilot first
+      : signedIn
+        ? { label: tr("pricing.cta.manageBilling"), href: "/school?tab=billing" } // school admin activates it there, seats and all
+        : { label: tr("pricing.cta.startPilot"), href: "/login" } // not signed in yet → free pilot first
     : free
-      ? { label: tr("pricing.cta.createAccount"), href: "/login" }
+      ? signedIn
+        ? { label: tr("pricing.cta.continue"), href: "/chat" }
+        : { label: tr("pricing.cta.createAccount"), href: "/login" }
       : {
           label: `${tr("pricing.cta.get")} ${tierName(plan.name)}`,
           // Carry the term through: without `months` the checkout would fall back
@@ -584,7 +594,7 @@ export function PricingView({
                   the section's border-box edge exactly, never past it. */}
               <PlanRail recIndex={recIndex} resetKey={audience}>
                 {plans.map((p, i) => (
-                  <PlanCard key={p.id} t={t} plan={p} audience={audience} recommended={i === recIndex} />
+                  <PlanCard key={p.id} t={t} plan={p} audience={audience} recommended={i === recIndex} signedIn={signedIn} />
                 ))}
               </PlanRail>
 

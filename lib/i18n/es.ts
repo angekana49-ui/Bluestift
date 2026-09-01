@@ -762,6 +762,8 @@ export const es: Partial<Messages> = {
   "pricing.cta.startPilot": "Empezar piloto gratis",
   "pricing.cta.createAccount": "Crear una cuenta",
   "pricing.cta.get": "Elegir",
+  "pricing.cta.manageBilling": "Gestionar la facturación",
+  "pricing.cta.continue": "Continuar a Raya",
   "pricing.recommended": "RECOMENDADO",
   "pricing.term.monthly": "Mensual",
   "pricing.term.annual": "Anual",
