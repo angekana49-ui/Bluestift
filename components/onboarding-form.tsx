@@ -453,7 +453,7 @@ export function OnboardingForm({
                 </button>
                 <button onClick={() => pickTrack("schools")} style={roleCard(false)}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/bluestift-mark-dark.png" alt="BlueStift Schools" style={cardLogo} />
+                  <img src="/bluestift-mark.png" alt="BlueStift Schools" style={cardLogo} />
                   <span style={{ textAlign: "left" }}>
                     <span style={pathTitle()}>{tr("onb.path.schools.title")}</span>
                     <span style={pathDesc()}>{tr("onb.path.schools.desc")}</span>
