@@ -558,9 +558,13 @@ Env (`.env.local`): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
 `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` (public-form captcha —
 skipped when unset), `GEMINI_API_KEY`, `GROQ_API_KEY`, `GEMINI_MODEL`,
 `GROQ_MODEL`, `GROQ_WHISPER_MODEL`, `ENTITLEMENTS_ENFORCE` (forfait gating —
-**defaults `false` = monitor mode**: gates log but never block. Set to `true`
-only once the paid Raya plans are seeded and payment is live; see
-`lib/entitlements.ts`), `NEXT_PUBLIC_POSTHOG_KEY` +
+**an override, no longer the switch**. Unset, enforcement is DERIVED from
+`billingIsLive()`: gates log but never block while no real payment provider is
+configured, and start blocking on their own the moment one is, because a
+paywall with no cashier is a dead end rather than a wall. `"true"` forces them
+up — the way to exercise them locally against the sandbox — and `"false"`
+forces them down on a live deployment. See `lib/entitlements.ts`),
+`NEXT_PUBLIC_POSTHOG_KEY` +
 `NEXT_PUBLIC_POSTHOG_HOST` (PostHog analytics — **opt-in**: nothing is captured
 until the visitor accepts the consent banner. Unset ⇒ analytics fully disabled,
 no banner. Host defaults to `https://eu.i.posthog.com`; see

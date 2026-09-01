@@ -244,6 +244,13 @@ type Props = {
   issues: PublicNewsletterIssue[];
   signedIn: boolean;
   initialTab?: string;
+  /**
+   * The two facts the "Payments & quotas" entry states about itself, resolved
+   * server-side. They live in `server-only` modules, so the page reads them and
+   * this client view is handed the answer rather than the module.
+   */
+  paymentsLive: boolean;
+  quotasEnforced: boolean;
 };
 
 const TYPE_FILTERS = ["all", "paper", "experiment", "article", "update"] as const;
@@ -259,7 +266,7 @@ const TAB_LABEL_KEY: Record<(typeof VALID_TABS)[number], MessageKey> = {
   collaborations: "research.hub.tab.collaborations",
 };
 
-export function ResearchView({ posts, issues, signedIn, initialTab }: Props) {
+export function ResearchView({ posts, issues, signedIn, initialTab, paymentsLive, quotasEnforced }: Props) {
   const tr = useTranslate();
   const [tab, setTab] = useState<string>(VALID_TABS.includes((initialTab ?? "") as (typeof VALID_TABS)[number]) ? (initialTab as string) : "articles");
   const [proposing, setProposing] = useState(false);
@@ -372,7 +379,7 @@ export function ResearchView({ posts, issues, signedIn, initialTab }: Props) {
                 </div>
                 <p style={{ fontSize: 15, lineHeight: 1.7, color: t.muted, margin: "0 0 20px" }}>{tr("site.roadmap.sub")}</p>
                 <div style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: 20, padding: "26px 28px", boxShadow: t.cardShadow }}>
-                  <RoadmapTimeline theme={t} ringColor={t.cardBg} />
+                  <RoadmapTimeline theme={t} ringColor={t.cardBg} paymentsLive={paymentsLive} quotasEnforced={quotasEnforced} />
                 </div>
               </>
             ) : tab === "newsletter" ? (

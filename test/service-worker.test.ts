@@ -50,24 +50,90 @@ describe("service worker", () => {
     expect(SW).toMatch(/url\.pathname\.startsWith\("\/api\/"\)\s*\)\s*return/);
   });
 
-  it("keeps both live caches when it activates", () => {
-    // activate deletes every cache that is not current. A second cache was
-    // added without being listed here once; that would have deleted it on the
-    // next activation, silently turning a two-cache design back into one.
-    const names = SW.match(/const CURRENT = \[([^\]]+)\]/)?.[1];
-    expect(names, "CURRENT not found").toBeDefined();
-    expect(names).toContain("SHELL_CACHE");
-    expect(names).toContain("BUILD_CACHE");
-    expect(SW).toContain("!CURRENT.includes(n)");
-  });
-
   it("gives the two asset kinds separate budgets", () => {
     // One shared budget let a deploy's chunks evict the icons and brand marks,
     // which then cost data to fetch again. They must not be able to.
-    expect(SW).toMatch(/const SHELL_CACHE = `bluestift-shell-\$\{VERSION\}`/);
-    expect(SW).toMatch(/const BUILD_CACHE = `bluestift-build-\$\{VERSION\}`/);
+    expect(SW).toMatch(/const SHELL_CACHE = `\$\{SHELL_PREFIX\}\$\{VERSION\}`/);
+    expect(SW).toMatch(/const BUILD_CACHE = `\$\{BUILD_PREFIX\}\$\{VERSION\}`/);
     expect(SW).toMatch(/cacheFirst\(event, BUILD_CACHE, MAX_BUILD\)/);
     expect(SW).toMatch(/cacheFirst\(event, SHELL_CACHE, MAX_SHELL\)/);
+  });
+
+  /**
+   * `sweepCaches` is the one piece of this file with logic a regex cannot
+   * check — it sorts, keeps one generation and drops the rest — so this runs
+   * the real source instead of reading it. The function is lifted out with the
+   * brace matcher above and evaluated with `caches` passed in, which is why the
+   * constants it closes over are redeclared here rather than imported: sw.js is
+   * not a module and has no exports to import.
+   */
+  function runSweep(names: string[], version = "v7"): Promise<string[]> {
+    const remaining = new Set(names);
+    const fake = {
+      keys: async () => [...remaining],
+      delete: async (n: string) => remaining.delete(n),
+    };
+    const factory = new Function(
+      "caches",
+      `const SHELL_PREFIX = "bluestift-shell-";
+       const BUILD_PREFIX = "bluestift-build-";
+       const SHELL_CACHE = SHELL_PREFIX + ${JSON.stringify(version)};
+       const BUILD_CACHE = BUILD_PREFIX + ${JSON.stringify(version)};
+       return async function sweepCaches() ${body("sweepCaches")};`,
+    );
+    return factory(fake)().then(() => [...remaining].sort());
+  }
+
+  it("never sweeps away the caches it is currently using", async () => {
+    // The regression this replaces: a second cache was added without being
+    // listed in the old CURRENT array, which would have deleted it on the next
+    // activation and silently turned a two-cache design back into one.
+    const left = await runSweep(["bluestift-shell-v7", "bluestift-build-v7"]);
+    expect(left).toEqual(["bluestift-build-v7", "bluestift-shell-v7"]);
+  });
+
+  it("keeps the previous BUILD cache, and drops the previous SHELL cache", async () => {
+    /*
+     * The asymmetry is the whole point, and it is not an optimisation.
+     *
+     * This worker calls skipWaiting(), so a new version takes over tabs that
+     * are already open and running the PREVIOUS build. Those pages fetch chunks
+     * lazily, under content hashes that live in the previous build cache — and
+     * after a deploy the server no longer has those hashes. Deleting that cache
+     * mid-session is what turns a missing chunk into a blank screen.
+     *
+     * Shell entries have the opposite property: stable paths the server still
+     * serves, so dropping one re-fetches the NEW bytes, which is exactly the
+     * bust bumping VERSION is for.
+     */
+    const left = await runSweep([
+      "bluestift-shell-v7",
+      "bluestift-build-v7",
+      "bluestift-shell-v6",
+      "bluestift-build-v6",
+    ]);
+    expect(left).toContain("bluestift-build-v6");
+    expect(left).not.toContain("bluestift-shell-v6");
+  });
+
+  it("keeps exactly one previous build generation, whatever order the keys arrive in", async () => {
+    // Bounded retention, or storage grows without limit on precisely the
+    // low-storage devices this worker exists for. `caches.keys()` order is not
+    // something to rely on, hence the shuffle.
+    const left = await runSweep([
+      "bluestift-build-v5",
+      "bluestift-build-v7",
+      "bluestift-build-v2",
+      "bluestift-build-v6",
+      "bluestift-shell-v7",
+    ]);
+    expect(left).toEqual(["bluestift-build-v6", "bluestift-build-v7", "bluestift-shell-v7"]);
+  });
+
+  it("removes a cache from an older naming scheme outright", async () => {
+    // Not addressable by this worker any more, so it can only be dead weight.
+    const left = await runSweep(["bluestift-v6", "bluestift-shell-v7"]);
+    expect(left).toEqual(["bluestift-shell-v7"]);
   });
 
   it("pins the offline page against eviction, and out of the count", () => {

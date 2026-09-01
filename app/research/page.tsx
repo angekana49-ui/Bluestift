@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getNewsletterIssues, getPublishedPosts } from "@/lib/content";
+import { billingIsLive } from "@/lib/billing/payments";
+import { ENTITLEMENTS_ENFORCE } from "@/lib/entitlements";
 import { ResearchView } from "@/components/site/pages/ResearchView";
 
 export const metadata = {
@@ -20,5 +22,16 @@ export default async function ResearchPage({
     searchParams,
   ]);
 
-  return <ResearchView posts={posts} issues={issues} signedIn={!!auth.user} initialTab={tab} />;
+  // The progress tab states these two about itself rather than asserting them
+  // in prose that would go stale the day the provider keys land.
+  return (
+    <ResearchView
+      posts={posts}
+      issues={issues}
+      signedIn={!!auth.user}
+      initialTab={tab}
+      paymentsLive={billingIsLive()}
+      quotasEnforced={ENTITLEMENTS_ENFORCE}
+    />
+  );
 }
