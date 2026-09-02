@@ -42,7 +42,7 @@ export function StudentBillingCard() {
   const subtitle = free?.features[0] ?? "Unlimited solo Raya sessions";
 
   return (
-    <SettingsCard theme={t} mt>
+    <SettingsCard theme={t} mt id="plan">
       <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: t.text }}>Billing</div>
       <div
         style={{

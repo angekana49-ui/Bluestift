@@ -114,7 +114,7 @@ export function SettingsDataCard({
   } as const;
 
   return (
-    <SettingsCard theme={t}>
+    <SettingsCard theme={t} id="data">
       <div style={{ paddingBottom: 4 }}>
         <div style={label}>Your data</div>
         <div style={desc}>

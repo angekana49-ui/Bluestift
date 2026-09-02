@@ -27,7 +27,7 @@ import { useDarkMode, useAppTheme, AppThemeProvider } from "@/components/ui/them
 import { LocaleProvider, useTranslate } from "@/components/ui/locale";
 import { useLocale } from "@/lib/use-locale";
 import { SchoolsShell, type SchoolNavItem } from "@/components/school/schools-shell";
-import { RightPanel, type ProfileMenuItem } from "@/components/ui/shell";
+import { RightPanel } from "@/components/ui/shell";
 import { RayaName, SchoolsName } from "@/components/ui/brand";
 import { createClient } from "@/lib/supabase/client";
 import { KpiTile, MasteryGauge } from "@/components/ui/widgets";
@@ -41,11 +41,11 @@ import {
   IconFile,
   IconSummary,
   IconBilling,
-  IconLogout,
   IconUpgrade,
 } from "@/components/ui/icons";
 import { FilePicker } from "@/components/ui/file-picker";
 import { neutralButton, formActions } from "@/components/ui/forms";
+import { SettingsSheet, type SettingsGroup } from "@/components/ui/settings-sheet";
 import { initialsOf } from "@/lib/name";
 import type { AppTheme } from "@/components/ui/tokens";
 import type {
@@ -309,7 +309,9 @@ function SchoolChrome({
   const { theme } = useAppTheme();
   const tr = useTranslate();
   const { avatarUrl, memberships, activeSchoolId } = useSchoolUser();
+  const activeSchool = memberships.find((m) => m.schoolId === activeSchoolId) ?? null;
   const router = useRouter();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // The profile chip opens a small menu (like the Raya app) rather than jumping
   // straight to Settings. "Settings" delegates to the caller's `onProfile` (prof
@@ -322,28 +324,73 @@ function SchoolChrome({
     router.refresh();
     router.push("/login");
   }
-  const profileMenu: ProfileMenuItem[] = [
-    // An honest, non-forced door to the person's *own* Raya (solo chat, Tools,
-    // their Kernel). Teaching features live in this dashboard and are covered by
-    // the school; personal Raya is their own account — so we label who-pays and
-    // never redirect silently. This is the "want", not a "need".
+  /**
+   * Staff settings, as the sheet lays them out — deliberately NOT the learner's.
+   *
+   * The two apps ask different questions of the same person. Raya's sheet is
+   * about one account and one learning record; this one has to answer "which
+   * school am I in right now", which is a question the student side does not
+   * have, and it has to keep the door to that person's OWN Raya visible without
+   * making it look like part of the job.
+   *
+   * The active school leads, because on a multi-school account every other row
+   * in this sheet is scoped to it and getting it wrong is how a teacher edits
+   * the wrong school's classes.
+   */
+  const settingsGroups: SettingsGroup[] = [
     {
-      key: "personal-raya",
-      label: tr("menu.personalRaya"),
-      sublabel: tr("menu.personalRaya.sub"),
-      icon: <IconChat />,
-      onSelect: () => router.push("/chat"),
+      key: "school",
+      title: tr("settings.group.school"),
+      rows: [
+        {
+          key: "active-school",
+          icon: <IconClasses />,
+          label: tr("settings.row.activeSchool"),
+          value: activeSchool?.schoolName ?? schoolName,
+          // Switching lives in the sidebar's own switcher, which is visible
+          // without opening anything; a second control here would be two
+          // places that disagree.
+        },
+        {
+          key: "billing",
+          icon: <IconBilling />,
+          label: tr("settings.row.billing"),
+          onSelect: () => onNav("billing"),
+        },
+      ],
     },
-    { key: "settings", label: tr("menu.settings"), icon: <IconSettings />, onSelect: settingsAction },
     {
-      key: "upgrade",
-      label: tr("menu.upgrade"),
-      sublabel: tr("menu.upgrade.sub"),
-      icon: <IconUpgrade />,
-      tone: "accent",
-      onSelect: () => router.push("/pricing"),
+      key: "account",
+      title: tr("settings.group.account"),
+      rows: [
+        {
+          key: "settings",
+          icon: <IconSettings />,
+          label: tr("settings.row.profile"),
+          sublabel: tr("settings.row.profile.sub"),
+          onSelect: settingsAction,
+        },
+        // An honest, non-forced door to the person's *own* Raya (solo chat,
+        // Tools, their Kernel). Teaching features live in this dashboard and
+        // are covered by the school; personal Raya is their own account — so we
+        // label who-pays and never redirect silently. A "want", not a "need".
+        {
+          key: "personal-raya",
+          icon: <IconChat />,
+          label: tr("menu.personalRaya"),
+          sublabel: tr("menu.personalRaya.sub"),
+          onSelect: () => router.push("/chat"),
+        },
+        {
+          key: "upgrade",
+          icon: <IconUpgrade />,
+          label: tr("menu.upgrade"),
+          sublabel: tr("menu.upgrade.sub"),
+          tone: "accent",
+          onSelect: () => router.push("/pricing"),
+        },
+      ],
     },
-    { key: "signout", label: tr("menu.signOut"), tone: "danger", icon: <IconLogout />, onSelect: signOut },
   ];
 
   return (
@@ -358,8 +405,7 @@ function SchoolChrome({
       profileSubtitle={profileSubtitle}
       profileAvatarUrl={avatarUrl}
       roleSwitch={<SchoolSwitcher memberships={memberships} activeSchoolId={activeSchoolId} />}
-      onProfile={onProfile ?? (() => router.push("/account"))}
-      profileMenu={profileMenu}
+      onProfile={() => setSettingsOpen(true)}
       headerTitle={headerTitle}
       headerSubtitle={headerSubtitle}
       headerLogoUrl={headerLogoUrl}
@@ -367,6 +413,16 @@ function SchoolChrome({
       contentFlush={contentFlush}
     >
       {children}
+      {settingsOpen && (
+        <SettingsSheet
+          title={tr("settings.title")}
+          identity={profileName ?? schoolName}
+          identitySub={activeSchool?.schoolName ?? schoolName}
+          groups={settingsGroups}
+          onSignOut={signOut}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
     </SchoolsShell>
   );
 }

@@ -96,7 +96,7 @@ export function SettingsSharesCard() {
   };
 
   return (
-    <SettingsCard theme={t}>
+    <SettingsCard theme={t} id="shares">
       <div style={{ fontSize: 16, fontWeight: 700, color: t.text }}>Shared links</div>
       <div style={{ fontSize: 13, color: t.muted, marginTop: 2, marginBottom: 12, lineHeight: 1.6 }}>
         Anyone with one of these links can read that document — they don&apos;t expire on their own.

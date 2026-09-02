@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import type { AppTheme } from "./tokens";
 import { RayaText } from "./brand";
@@ -354,22 +353,15 @@ export function NavItem({
   );
 }
 
-/** One row in the profile chip's popover menu. `tone` styles incentives (accent)
- *  and destructive actions (danger); everything else is a plain option. */
-export type ProfileMenuItem = {
-  key: string;
-  label: string;
-  sublabel?: string;
-  icon?: ReactNode;
-  onSelect: () => void;
-  tone?: "default" | "accent" | "danger";
-};
-
 /**
  * Bottom-pinned profile row. Shows the user's profile photo when `avatarUrl` is
  * set (like Claude/OpenAI/Google apps); otherwise the tinted initials chip.
- * With `menu`, clicking opens an anchored popover (options + upgrade/email
- * incentives) above the chip instead of firing `onClick`.
+ *
+ * It used to carry its own anchored popover. That popover could only ever hold
+ * a handful of rows — it hung off a chip at the bottom of a 236px rail — so
+ * everything else about the account lived on a page you had to navigate away to
+ * reach. Clicking now opens the shared settings sheet (components/ui/settings-sheet.tsx),
+ * which has room for the real list; this component is back to being a chip.
  */
 export function SidebarProfile({
   theme: t,
@@ -380,7 +372,6 @@ export function SidebarProfile({
   avatarBg,
   avatarUrl,
   onClick,
-  menu,
 }: {
   theme: AppTheme;
   collapsed: boolean;
@@ -391,107 +382,14 @@ export function SidebarProfile({
   avatarBg: string;
   avatarUrl?: string | null;
   onClick?: () => void;
-  /** When present (non-empty), clicking the chip toggles a popover of these items
-   *  above the chip; otherwise the click fires `onClick`. */
-  menu?: ProfileMenuItem[];
 }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const hasMenu = !!menu && menu.length > 0;
-
-  useEffect(() => {
-    if (!open) return;
-    const onDoc = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("mousedown", onDoc);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDoc);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-
-  const accentBg = t.dark ? "rgba(99,102,241,0.16)" : "rgba(99,102,241,0.09)";
-  const accentBorder = t.dark ? "rgba(99,102,241,0.42)" : "rgba(99,102,241,0.3)";
-  const accentInk = t.dark ? "#a5b4fc" : "#6366f1";
 
   return (
-    <div ref={ref} style={{ position: "relative" }}>
-      {open && hasMenu && (
-        <div
-          role="menu"
-          style={{
-            position: "absolute",
-            bottom: "calc(100% + 8px)",
-            left: 0,
-            width: 208,
-            maxWidth: "calc(100vw - 24px)",
-            background: t.cardBg,
-            border: `1px solid ${t.cardBorder}`,
-            borderRadius: 13,
-            boxShadow: t.cardShadow,
-            padding: 5,
-            zIndex: 50,
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
-          }}
-        >
-          {menu!.map((item) => {
-            const accent = item.tone === "accent";
-            const danger = item.tone === "danger";
-            return (
-              <button
-                key={item.key}
-                role="menuitem"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setOpen(false);
-                  item.onSelect();
-                }}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  width: "100%",
-                  textAlign: "left",
-                  background: accent ? accentBg : "transparent",
-                  border: `1px solid ${accent ? accentBorder : "transparent"}`,
-                  borderRadius: 9,
-                  padding: "6px 9px",
-                  cursor: "pointer",
-                  color: danger ? "#ef4444" : t.text,
-                }}
-              >
-                {item.icon && (
-                  <span style={{ flex: "none", display: "flex", color: accent ? accentInk : danger ? "#ef4444" : t.muted }}>
-                    {item.icon}
-                  </span>
-                )}
-                <span style={{ display: "flex", flexDirection: "column", minWidth: 0, lineHeight: 1.25 }}>
-                  <span style={{ fontSize: 13, fontWeight: accent ? 700 : 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    <RayaText>{item.label}</RayaText>
-                  </span>
-                  {item.sublabel && (
-                    <span style={{ fontSize: 11.5, color: accent ? accentInk : t.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      <RayaText>{item.sublabel}</RayaText>
-                    </span>
-                  )}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
     <div
       onClick={(e) => {
+        // The sidebar background toggles the icon rail; the chip must not.
         e.stopPropagation();
-        if (hasMenu) setOpen((o) => !o);
-        else onClick?.();
+        onClick?.();
       }}
       className="app-rail-center"
       style={{
@@ -503,7 +401,6 @@ export function SidebarProfile({
         borderTop: `1px solid ${t.sidebarDivider}`,
         justifyContent: collapsed ? "center" : "flex-start",
         borderRadius: 10,
-        background: open ? t.sidebarActiveBg : undefined,
       }}
     >
       <span
@@ -562,7 +459,6 @@ export function SidebarProfile({
           )}
         </span>
       )}
-    </div>
     </div>
   );
 }

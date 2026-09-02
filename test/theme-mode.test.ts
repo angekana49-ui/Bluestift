@@ -145,3 +145,39 @@ describe("both dark hooks read through this module", () => {
     expect(app).toMatch(/setDark\s*=\s*useCallback\(\(v: boolean\) => setMode\(v \? "dark" : "light"\)/);
   });
 });
+
+describe("the settings sheet replaced the profile popover", () => {
+  const shell = readFileSync(join(process.cwd(), "components/ui/shell.tsx"), "utf8");
+  const raya = readFileSync(join(process.cwd(), "components/raya/raya-shell.tsx"), "utf8");
+  const schools = readFileSync(join(process.cwd(), "components/school-admin.tsx"), "utf8");
+
+  it("the chip no longer carries a menu of its own", () => {
+    // Two mechanisms for the same click is two things to keep in step, and the
+    // popover was the one that could not hold the real list.
+    expect(shell).not.toMatch(/ProfileMenuItem/);
+    expect(shell).not.toMatch(/role="menu"/);
+  });
+
+  it("both apps open the sheet", () => {
+    expect(raya).toMatch(/<SettingsSheet/);
+    expect(schools).toMatch(/<SettingsSheet/);
+  });
+
+  it("each app brings its own groups rather than branching inside the sheet", () => {
+    const sheet = readFileSync(join(process.cwd(), "components/ui/settings-sheet.tsx"), "utf8");
+    // The two apps answer different questions; the sheet owns only what is
+    // genuinely common (identity, language, appearance, sign out).
+    expect(sheet).not.toMatch(/isSchool|schoolsOnly|app === "raya"/);
+    expect(raya).toMatch(/settingsGroups: SettingsGroup\[\]/);
+    expect(schools).toMatch(/settingsGroups: SettingsGroup\[\]/);
+  });
+
+  it("Raya files the Kernel under learning, Schools leads with the active school", () => {
+    // The distinction the user asked for, held in place: these are not the
+    // same sheet with a different title.
+    expect(raya).toMatch(/settings\.group\.learning/);
+    expect(raya).toMatch(/settings\.row\.kernel/);
+    expect(schools).toMatch(/settings\.group\.school/);
+    expect(schools).toMatch(/settings\.row\.activeSchool/);
+  });
+});
