@@ -8,6 +8,7 @@ import { downloadBrandedPdf, downloadBrandedText, type BrandedDoc } from "@/lib/
 import { TestPlayer, ReaderView, type TestAnswer, type TestQuestion, type TestResult } from "@/components/study/focus-player";
 import { ShareLinkButton } from "@/components/study/share-button";
 import { parseDoc } from "@/lib/doc-format";
+import { FilePicker } from "@/components/ui/file-picker";
 
 type Challenge = {
   id: string;
@@ -392,12 +393,13 @@ export function RoomChallenges({
           </div>
         </div>
         <div style={{ marginBottom: 8 }}>
-          <label style={{ fontSize: 14, color: t.muted, marginRight: 8 }}>Source file (optional):</label>
-          <input
-            type="file"
+          <div style={{ fontSize: 14, color: t.muted, marginBottom: 6 }}>Source file (optional)</div>
+          <FilePicker
             accept=".txt,.md,.markdown,.csv,.pdf,.docx,.xlsx,.mp3,.m4a,.wav,.webm,.ogg,.flac,audio/*,application/pdf,text/plain"
-            onChange={(e) => setSourceFile(e.target.files?.[0] ?? null)}
-            style={{ fontSize: 14, color: t.muted }}
+            onPick={(files) => setSourceFile(files?.[0] ?? null)}
+            fileName={sourceFile?.name ?? null}
+            buttonStyle={ghost}
+            hintStyle={{ color: t.muted }}
           />
         </div>
         <button style={{ ...btn, opacity: busy || (!topic.trim() && !goal.trim() && !sourceFile) ? 0.5 : 1 }} onClick={create} disabled={busy || (!topic.trim() && !goal.trim() && !sourceFile)}>

@@ -8,6 +8,7 @@ import type { Theme } from "@/components/site/theme";
 import { GUTTER, MEASURE, PAGE_BOTTOM, lead, pageH1, pageSection, serifEm } from "@/components/site/layout";
 import { useTranslate } from "@/components/ui/locale";
 import { BluestiftText } from "@/components/ui/brand";
+import { FilePicker } from "@/components/ui/file-picker";
 import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
 import { readTime } from "@/components/public/format";
 import type { PublicNewsletterIssue, PublicResearchPost } from "@/lib/content";
@@ -219,10 +220,23 @@ function ProposeForm({ t, onClose }: { t: Theme; onClose: () => void }) {
         </select>
         <input placeholder={tr("research.hub.propose.titlePlaceholder")} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} style={field(t)} />
         <textarea placeholder={tr("research.hub.propose.descPlaceholder")} rows={5} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} style={{ ...field(t), resize: "vertical", lineHeight: 1.6 }} />
-        <label style={{ fontSize: 13, color: t.muted }}>
-          {tr("research.hub.propose.attachment")}
-          <input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} style={{ marginTop: 4, display: "block", fontSize: 13, color: t.muted }} />
-        </label>
+        <div style={{ fontSize: 13, color: t.muted }}>
+          <div style={{ marginBottom: 6 }}>{tr("research.hub.propose.attachment")}</div>
+          <FilePicker
+            onPick={(files) => setFile(files?.[0] ?? null)}
+            fileName={file?.name ?? null}
+            buttonStyle={{
+              background: t.cardBg,
+              color: t.text,
+              border: `1px solid ${t.cardBorder}`,
+              borderRadius: 12,
+              padding: "9px 16px",
+              fontSize: 14,
+              fontWeight: 600,
+            }}
+            hintStyle={{ color: t.muted }}
+          />
+        </div>
         <Turnstile ref={turnstileRef} onVerify={setCaptchaToken} onExpire={() => setCaptchaToken(null)} />
         {state === "error" && <span style={{ fontSize: 13, color: "#ef4444" }}>{tr("research.hub.propose.sendError")}</span>}
         <button

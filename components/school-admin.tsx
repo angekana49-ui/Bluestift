@@ -44,6 +44,7 @@ import {
   IconLogout,
   IconUpgrade,
 } from "@/components/ui/icons";
+import { FilePicker } from "@/components/ui/file-picker";
 import { initialsOf } from "@/lib/name";
 import type { AppTheme } from "@/components/ui/tokens";
 import type {
@@ -1469,16 +1470,15 @@ function SchoolSettings({
             school.name ? initialsOf(school.name) : "?"
           )}
         </div>
-        <label style={{ ...ghost, display: "inline-block" }}>
-          {busy ? "Uploading…" : "Change logo"}
-          <input
-            type="file"
-            accept="image/*"
-            style={{ display: "none" }}
-            onChange={(e) => uploadLogo(e.target.files?.[0] ?? null)}
-            disabled={busy}
-          />
-        </label>
+        <FilePicker
+          accept="image/*"
+          onPick={(files) => uploadLogo(files?.[0] ?? null)}
+          disabled={busy}
+          resetAfterPick
+          label={busy ? "Uploading…" : "Change logo"}
+          icon={null}
+          buttonStyle={ghost}
+        />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.6rem" }}>

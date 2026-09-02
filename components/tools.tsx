@@ -8,6 +8,8 @@ import { ShareLinkButton } from "@/components/study/share-button";
 import { useAppTheme } from "@/components/ui/theme";
 import { display, status as statusColors, type AppTheme } from "@/components/ui/tokens";
 import { IconQuiz, IconFlashcards, IconSummary } from "@/components/ui/icons";
+import { ghostButton } from "@/components/ui/forms";
+import { FilePicker } from "@/components/ui/file-picker";
 
 type QuizQuestion = {
   question: string;
@@ -126,6 +128,8 @@ export function Tools({
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [player, setPlayer] = useState<ActivePlayer | null>(null);
+  /** Files are being dragged over the dropzone — highlights it. */
+  const [dragging, setDragging] = useState(false);
 
   const baseName = (sources[0]?.name ?? "raya").replace(/\.[^.]+$/, "");
   const packetBytes = sources.reduce((s, x) => s + (x.bytes ?? 0), 0);
@@ -310,35 +314,55 @@ export function Tools({
         })}
       </div>
 
-      {/* dropzone — multi-file */}
-      <label
+      {/* Dropzone — multi-file.
+          It used to be a <label> that said "Drop one or more files" and had no
+          drop handler at all: the only thing it accepted was a click, so the
+          sentence was an instruction the zone could not honour. Now it takes an
+          actual drop, and the click affordance is a real focusable button
+          instead of a label (which no keyboard could reach). */}
+      <div
+        onDragOver={(e) => {
+          // Without preventDefault the browser keeps its default "open this
+          // file in a tab" behaviour and no drop event ever fires.
+          e.preventDefault();
+          if (!busy) setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragging(false);
+          if (!busy) void onPick(e.dataTransfer.files);
+        }}
         style={{
-          display: "block",
           marginTop: 16,
-          border: `1px dashed ${t.cardBorder}`,
+          border: `1px dashed ${dragging ? statusColors.aiIndigo : t.cardBorder}`,
           borderRadius: 18,
           padding: 22,
           maxWidth: 900,
           textAlign: "center",
           color: t.mutedLight,
           fontSize: 14,
-          cursor: busy ? "default" : "pointer",
-          background: t.cardBg2,
+          background: dragging ? t.cardBg : t.cardBg2,
+          transition: "border-color 0.15s ease, background 0.15s ease",
         }}
       >
         Drop one or more files (PDF, notes, Word, Excel, audio) — they combine into one packet
         <div style={{ fontSize: 13, color: t.mutedLight, marginTop: 4 }}>
           Up to {Math.round(MAX_PACKET_BYTES / 1024 / 1024)} MB total{packetBytes > 0 ? ` · ${(packetBytes / 1024 / 1024).toFixed(1)} MB used` : ""}
         </div>
-        <input
-          type="file"
-          multiple
-          accept=".txt,.md,.markdown,.csv,.pdf,.docx,.xlsx,.mp3,.m4a,.wav,.webm,.ogg,.flac,audio/*,application/pdf,text/plain"
-          onChange={(e) => onPick(e.target.files)}
-          disabled={busy}
-          style={{ display: "none" }}
-        />
-      </label>
+        <div style={{ display: "flex", justifyContent: "center", marginTop: 12 }}>
+          <FilePicker
+            multiple
+            accept=".txt,.md,.markdown,.csv,.pdf,.docx,.xlsx,.mp3,.m4a,.wav,.webm,.ogg,.flac,audio/*,application/pdf,text/plain"
+            onPick={onPick}
+            disabled={busy}
+            // The packet is cumulative, so the same file may be added, removed
+            // and added again.
+            resetAfterPick
+            buttonStyle={ghostButton(t)}
+          />
+        </div>
+      </div>
 
       {/* picked sources */}
       {sources.length > 0 && (
