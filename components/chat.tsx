@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AnalyzeResponse } from "@/lib/kernel/types";
 import { downloadBrandedPdf, downloadBrandedText, type BrandedDoc } from "@/lib/document";
@@ -66,6 +66,7 @@ export function Chat({
   studentName = "Emma M.",
   studentAvatarUrl,
   studentPlan,
+  openConversationId = null,
 }: {
   conversationId: string | null;
   initialMessages: Msg[];
@@ -76,6 +77,17 @@ export function Chat({
   studentAvatarUrl?: string | null;
   /** Plan/forfait label shown under the name in the sidebar profile chip. */
   studentPlan?: string;
+  /**
+   * A thread the learner explicitly asked for (`/chat?c=<id>`, e.g. from the
+   * Memory list on the Kernel page).
+   *
+   * This does NOT undo "Raya always opens blank". That rule is about the app
+   * deciding on its own to reopen whatever was left behind; this is a link
+   * someone clicked, which is the same act as clicking a row in the history —
+   * and it takes the same client-side path, so the page itself stays free of
+   * the two blocking queries it used to make on every open.
+   */
+  openConversationId?: string | null;
 }) {
   const router = useRouter();
   const { theme: t } = useDarkMode();
@@ -87,6 +99,16 @@ export function Chat({
     initialConversations,
   });
   const { messages, busy, setError, setBusy } = engine;
+
+  // Open the requested thread once, on mount. `selectConversation` already
+  // no-ops when it is busy or the thread is current, and the ref keeps a
+  // re-render from re-issuing it.
+  const deepLinked = useRef(false);
+  useEffect(() => {
+    if (deepLinked.current || !openConversationId) return;
+    deepLinked.current = true;
+    void engine.selectConversation(openConversationId);
+  }, [openConversationId, engine]);
 
   // Kernel analysis is Raya-specific — it stays here, off the shared engine.
   const [analysis, setAnalysis] = useState<AnalyzeResponse | null>(null);

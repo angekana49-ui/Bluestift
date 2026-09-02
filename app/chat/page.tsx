@@ -6,7 +6,15 @@ import { getPlanLabel } from "@/lib/billing";
 import { softValue } from "@/lib/page-data";
 import { Chat } from "@/components/chat";
 
-export default async function ChatPage() {
+export default async function ChatPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ c?: string }>;
+}) {
+  // `?c=<id>` — an explicitly requested thread (the Memory list on the Kernel
+  // page links here). Opened client-side by <Chat/>, so this page keeps making
+  // no message queries at all.
+  const { c: openConversationId } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -66,6 +74,7 @@ export default async function ChatPage() {
       studentName={studentName}
       studentAvatarUrl={profile.profile_picture_url}
       studentPlan={planLabel}
+      openConversationId={openConversationId ?? null}
     />
   );
 }

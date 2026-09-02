@@ -334,7 +334,7 @@ export const es: Partial<Messages> = {
   "hist.delete.menuSub": "Borrarla para siempre",
   "hist.delete.title": "¿Eliminar esta conversación?",
   "hist.delete.body":
-    "La conversación, sus mensajes y sus adjuntos se borran de forma permanente. Esto no se puede deshacer.",
+    "La conversación, sus mensajes y sus adjuntos se borran de forma permanente. No va a una papelera ni volverá a tu historial: no hay vuelta atrás.",
   "hist.delete.caveat":
     "Lo que el Kernel ya aprendió de ella permanece en tu perfil de aprendizaje: borrar el hilo no lo desaprende. Para quitar también eso, ve a Ajustes › Tus datos.",
   "hist.delete.confirm": "Eliminar definitivamente",

@@ -334,7 +334,7 @@ export const fr: Partial<Messages> = {
   "hist.delete.menuSub": "L'effacer définitivement",
   "hist.delete.title": "Supprimer cette conversation ?",
   "hist.delete.body":
-    "La conversation, ses messages et ses pièces jointes sont effacés définitivement. Cette action est irréversible.",
+    "La conversation, ses messages et ses pièces jointes sont effacés définitivement. Elle ne part pas dans une corbeille et ne reviendra pas dans votre historique — il n’y a pas de retour en arrière.",
   "hist.delete.caveat":
     "Ce que le Kernel en a déjà appris reste dans votre profil d'apprentissage — supprimer le fil ne le désapprend pas. Pour retirer cela aussi, passez par Réglages › Vos données.",
   "hist.delete.confirm": "Supprimer définitivement",
