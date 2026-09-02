@@ -2118,6 +2118,29 @@ a {
   }
 }
 
+/* -- Label ⇄ glyph swap for header action pills -------------------- */
+/* The chat header packs a session title, two action pills and two icon buttons
+   into one row. "View kernel profile" is by far the widest item in it and the
+   first thing to squeeze the title to nothing on a narrow screen. Below the
+   tier-2 breakpoint the pill drops its words and keeps its icon — the same
+   brain glyph the sidebar's Kernel item already uses, so the swap costs no
+   recognition. The button keeps its accessible name via aria-label/title. */
+/* Both states are set in CSS, never inline: an inline `display` would outrank
+   the class and the glyph would never hide. */
+.app-pill-glyph {
+  display: flex;
+}
+@media (max-width: 899px) {
+  .app-pill-label {
+    display: none;
+  }
+}
+@media (min-width: 900px) {
+  .app-pill-glyph {
+    display: none;
+  }
+}
+
 /* Drawer dimmer — active whenever a panel is an overlay (< 900px, covering
    both the tablet right-drawer and the phone sidebar+right drawers). Above
    900px it stays display:none, so an always-mounted scrim is harmless. */

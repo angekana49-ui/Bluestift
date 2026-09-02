@@ -13,8 +13,21 @@ export type Msg = {
   status?: "sending" | "failed";
 };
 
-/** A conversation as the history list shows it. */
-export type Conversation = { id: string; title: string | null; updated_at: string };
+/**
+ * A conversation as the history list shows it. The two stamps are optional
+ * because only the Raya solo surface has them — the Schools staff chat reads the
+ * same list component with a plain `{id, title, updated_at}` row, and `undefined`
+ * there means "this surface has no such notion", not "false".
+ */
+export type Conversation = {
+  id: string;
+  title: string | null;
+  updated_at: string;
+  /** Non-null = filed away: hidden behind the Archived disclosure, messages kept. */
+  archived_at?: string | null;
+  /** Non-null = the learner had the Kernel absorb this thread on purpose. */
+  memorized_at?: string | null;
+};
 
 /** A conversation_files row: attached to a message, or still staged (null). */
 export type ConversationFile = Attachment & { message_id: string | null };

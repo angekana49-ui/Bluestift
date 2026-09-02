@@ -437,6 +437,57 @@ export const en = {
   "chat.sendFailed": "Not sent — your message is saved.",
   "chat.retry": "Retry",
 
+  // ── File picker (components/ui/file-picker.tsx) ──
+  "file.choose": "Choose a file",
+  "file.chooseMulti": "Choose files",
+  "file.none": "No file chosen",
+
+  // ── Conversation history (components/chat/chat-history-list.tsx) ──
+  // Every destructive or irreversible row action states its consequence BEFORE
+  // it runs, in the dialog. These strings are the promise the app then has to
+  // keep, so they say what actually happens — including the awkward part
+  // (deleting a thread does not unlearn what the Kernel took from it).
+  "hist.new": "+ New session",
+  "hist.empty": "No conversations yet.",
+  "hist.untitled": "New conversation",
+  "hist.actions": "Conversation options",
+  "hist.memorized": "Memorized",
+  "hist.archivedSection": "Archived",
+  "hist.cancel": "Cancel",
+  "hist.working": "Working…",
+
+  "hist.memorize": "Memorize",
+  "hist.memorize.menuSub": "Fold it into your Kernel",
+  "hist.memorize.title": "Memorize this conversation?",
+  "hist.memorize.body":
+    "Raya will read the whole thread and fold what it shows into your Kernel: your concept states and learning profile get updated, and this conversation is anchored as something Raya can draw on later. Nothing is deleted, and nothing leaves your account. This can take a few seconds.",
+  "hist.memorize.confirm": "Memorize it",
+  "hist.memorize.done": "Memorized — your learning profile has been updated.",
+  "hist.memorize.doneGap": "Root gap picked up:",
+
+  "hist.archive": "Archive",
+  "hist.archive.menuSub": "File it out of the way",
+  "hist.archive.title": "Archive this conversation?",
+  "hist.archive.body":
+    "It leaves your history list and Raya stops offering it as context. Every message and attachment is kept — you'll find it under Archived, and you can restore it at any time. If it's the conversation you have open, it closes and you get a fresh session.",
+  "hist.archive.confirm": "Archive it",
+
+  "hist.unarchive": "Restore",
+  "hist.unarchive.menuSub": "Put it back in the list",
+  "hist.unarchive.title": "Restore this conversation?",
+  "hist.unarchive.body":
+    "It goes back into your history list, and Raya can use it as context again. Nothing else changes.",
+  "hist.unarchive.confirm": "Restore it",
+
+  "hist.delete": "Delete",
+  "hist.delete.menuSub": "Erase it permanently",
+  "hist.delete.title": "Delete this conversation?",
+  "hist.delete.body":
+    "The conversation, its messages and its attachments are permanently erased. This cannot be undone.",
+  "hist.delete.caveat":
+    "What the Kernel already learned from it stays in your learning profile — deleting the thread does not unlearn it. To remove that too, use Settings › Your data.",
+  "hist.delete.confirm": "Delete permanently",
+
   // ── Onboarding (post-signup account setup, components/onboarding-form.tsx) ─
   // No interpolation helper exists in this catalogue, so anywhere the English
   // sentence needs a dynamic value (a step count, a percentage, a name, a status

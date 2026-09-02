@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { rayaComplete } from "@/lib/raya/llm";
+import { kernel, clampHistory } from "@/lib/kernel/client";
+import { setLatestAnalysis, invalidateProfile } from "@/lib/kernel/profile-cache";
+import type { KernelMessage } from "@/lib/kernel/types";
 
 /**
  * Conversation history for the solo /chat surface.
  * GET  ?id=<convId>  -> its messages + attachments (RLS enforces ownership)
  * POST {conversationId} -> auto-name it: Raya distils the exchange into a
  *                          one-sentence title (called around the 2nd exchange).
+ * PATCH {conversationId, action} -> archive | unarchive | memorize (see below)
  * DELETE ?id=<convId> -> remove the conversation and its messages (owner only)
  *
  * Attachments come back flat. The client groups them by `message_id`; the ones
@@ -119,6 +123,134 @@ export async function POST(request: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({ title });
+}
+
+/**
+ * The three verbs the history list offers, beyond opening a thread.
+ *
+ *   archive / unarchive  a pure state flip. Cheap, instant, reversible — the
+ *                        messages are never touched.
+ *
+ *   memorize             the expensive one: the Kernel reads the WHOLE thread
+ *                        and folds it into the learner's cognitive profile,
+ *                        then the thread is stamped as deliberately anchored.
+ *
+ * Memorize is deliberately synchronous, unlike the every-3rd-turn analysis in
+ * the chat route, which is fire-and-forget. That one is ambient and nobody is
+ * waiting on it; this one is a button someone pressed after reading a dialog
+ * that promised their profile would be updated. Telling them "done" before
+ * knowing it worked would make that promise a guess.
+ */
+export async function PATCH(request: Request) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  let body: { conversationId?: string; action?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "invalid json" }, { status: 400 });
+  }
+  const id = body.conversationId;
+  const action = body.action;
+  if (!id) return NextResponse.json({ error: "missing conversationId" }, { status: 400 });
+  if (action !== "archive" && action !== "unarchive" && action !== "memorize") {
+    return NextResponse.json({ error: "unknown action" }, { status: 400 });
+  }
+
+  // Owner + kind gate, same as the auto-title path: a private room channel is
+  // the room's, not the learner's, so it is not theirs to file or absorb.
+  const { data: conv } = await supabase
+    .schema("learning")
+    .from("conversations")
+    .select("id, user_id, is_private_room_channel")
+    .eq("id", id)
+    .maybeSingle();
+  if (!conv || conv.user_id !== user.id || conv.is_private_room_channel) {
+    return NextResponse.json({ error: "not found" }, { status: 404 });
+  }
+
+  if (action === "archive" || action === "unarchive") {
+    const archived_at = action === "archive" ? new Date().toISOString() : null;
+    const { error } = await supabase
+      .schema("learning")
+      .from("conversations")
+      .update({ archived_at })
+      .eq("id", id)
+      .eq("user_id", user.id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true, archived_at });
+  }
+
+  // ── memorize ────────────────────────────────────────────────
+  const { data: msgs } = await supabase
+    .schema("learning")
+    .from("messages")
+    .select("role, content")
+    .eq("conversation_id", id)
+    .order("created_at", { ascending: true });
+
+  const history: KernelMessage[] = (msgs ?? [])
+    .map((m) => ({
+      role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
+      content: m.content ?? "",
+    }))
+    .filter((m) => m.content.trim().length > 0);
+  // Nothing was said, so there is nothing to learn. Refused rather than stamped:
+  // an empty thread marked "memorized" would be a lie the profile page repeats.
+  if (history.length === 0) {
+    return NextResponse.json({ error: "empty" }, { status: 400 });
+  }
+
+  // About one student, who is the caller: send their token, not the skeleton key.
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  let analysis;
+  try {
+    analysis = await kernel.analyze(
+      {
+        user_id: user.id,
+        conversation_history: clampHistory(history),
+        trigger: "post_conversation",
+      },
+      // Someone is watching a spinner, and the container may be cold.
+      { accessToken: session?.access_token, timeoutMs: 25_000 },
+    );
+  } catch {
+    // The stamp is NOT written on failure. A conversation marked memorized whose
+    // analysis never landed is the worst of both: the learner stops asking, and
+    // the profile never got the thread.
+    return NextResponse.json({ error: "kernel_unreachable" }, { status: 502 });
+  }
+
+  setLatestAnalysis(user.id, analysis);
+  invalidateProfile(user.id);
+
+  const memorized_at = new Date().toISOString();
+  const { error } = await supabase
+    .schema("learning")
+    .from("conversations")
+    .update({ memorized_at, kernel_triggered: true })
+    .eq("id", id)
+    .eq("user_id", user.id);
+  // The Kernel already absorbed it — the profile IS updated. Failing the whole
+  // call over the stamp would tell the learner nothing happened, which is false.
+  if (error) {
+    return NextResponse.json({ ok: true, memorized_at: null, root_gap: analysis.root_gap ?? null });
+  }
+
+  return NextResponse.json({
+    ok: true,
+    memorized_at,
+    root_gap: analysis.root_gap ?? null,
+    summary: analysis.summary ?? null,
+    concepts: Object.keys(analysis.mastery_map ?? {}).length,
+  });
 }
 
 export async function DELETE(request: Request) {

@@ -29,6 +29,10 @@ export async function GET() {
         .select("title")
         .eq("user_id", user.id)
         .is("room_id", null)
+        // Archived means "stop offering me this", which is exactly what these
+        // welcome-screen hooks do. Leaving them in would make the archive
+        // dialog's promise false on the very next screen the learner sees.
+        .is("archived_at", null)
         .not("title", "is", null)
         .order("updated_at", { ascending: false })
         .limit(5),

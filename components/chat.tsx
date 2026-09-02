@@ -7,6 +7,7 @@ import { downloadBrandedPdf, downloadBrandedText, type BrandedDoc } from "@/lib/
 import { useDarkMode } from "@/components/ui/theme";
 import { RayaShell } from "@/components/raya/raya-shell";
 import { RightPanel } from "@/components/ui/shell";
+import { IconKernel } from "@/components/ui/icons";
 import { type AppTheme } from "@/components/ui/tokens";
 import { initialsOf, avatarInitials } from "@/lib/name";
 import { useChatEngine } from "@/components/chat/use-chat-engine";
@@ -144,15 +145,24 @@ export function Chat({
       onNew={engine.newChat}
       onSelect={engine.selectConversation}
       onDelete={engine.deleteConversation}
+      onArchive={engine.setArchived}
+      onMemorize={engine.memorizeConversation}
     />
   );
 
   const headerActions = (
     <>
+      {/* Below 900px this pill drops its words and keeps the brain glyph — the
+          header has a title, two pills and two icon buttons to fit, and this
+          label is the widest thing in the row. */}
       <span
         onClick={() => router.push("/profile")}
+        title="View kernel profile"
+        aria-label="View kernel profile"
         style={{
           flex: "none",
+          display: "flex",
+          alignItems: "center",
           whiteSpace: "nowrap",
           maxWidth: 150,
           overflow: "hidden",
@@ -165,7 +175,10 @@ export function Chat({
           cursor: "pointer",
         }}
       >
-        View kernel profile
+        <span className="app-pill-label">View kernel profile</span>
+        <span className="app-pill-glyph">
+          <IconKernel size={15} />
+        </span>
       </span>
       <span
         onClick={() => !busy && messages.length > 0 && onAnalyze()}

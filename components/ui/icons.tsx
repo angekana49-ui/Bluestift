@@ -195,3 +195,54 @@ export const IconUpgrade = (p: IconProps) => (
     <path d="m6 11 6-6 6 6M6 17l6-6 6 6" />
   </Svg>
 );
+
+/** Row overflow menu — three dots. Filled, because 1.7px-stroked rings at this
+ *  size render as grey mush rather than dots. */
+export const IconDots = ({ size = 16, style }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" style={{ flex: "none", ...style }}>
+    <circle cx="12" cy="5" r="1.7" />
+    <circle cx="12" cy="12" r="1.7" />
+    <circle cx="12" cy="19" r="1.7" />
+  </svg>
+);
+
+/** Archive — a lidded box. The lid is what separates it from a plain folder. */
+export const IconArchive = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3" y="4" width="18" height="4" rx="1" />
+    <path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8" />
+    <path d="M10 12h4" />
+  </Svg>
+);
+
+/** Restore from archive — the same box, with the arrow coming back out of it. */
+export const IconUnarchive = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3" y="4" width="18" height="4" rx="1" />
+    <path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8" />
+    <path d="M12 17v-5m0 0-2 2m2-2 2 2" />
+  </Svg>
+);
+
+/** Delete — a bin, lid and two staves. */
+export const IconTrash = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 7h16" />
+    <path d="M9 7V5.5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1V7" />
+    <path d="M6 7v12a1.5 1.5 0 0 0 1.5 1.5h9A1.5 1.5 0 0 0 18 19V7" />
+    <path d="M10 11v6M14 11v6" />
+  </Svg>
+);
+
+/** Memorize into the Kernel — a node with its edges, i.e. a thread being tied
+ *  into the graph. Deliberately NOT a brain: the Kernel is a concept graph, and
+ *  the icon should say "this joins a structure", not "an AI thinks". */
+export const IconMemorize = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="2.6" />
+    <circle cx="5" cy="6" r="1.8" />
+    <circle cx="19" cy="6" r="1.8" />
+    <circle cx="12" cy="20" r="1.8" />
+    <path d="m6.4 7.3 3.7 3.2M17.6 7.3l-3.7 3.2M12 14.6v3.6" />
+  </Svg>
+);

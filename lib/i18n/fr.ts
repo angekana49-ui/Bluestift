@@ -292,6 +292,53 @@ export const fr: Partial<Messages> = {
   "chat.sendFailed": "Non envoyé — votre message est conservé.",
   "chat.retry": "Réessayer",
 
+  // ── Sélecteur de fichier ──
+  "file.choose": "Choisir un fichier",
+  "file.chooseMulti": "Choisir des fichiers",
+  "file.none": "Aucun fichier choisi",
+
+  // ── Historique des conversations ──
+  "hist.new": "+ Nouvelle session",
+  "hist.empty": "Aucune conversation pour l'instant.",
+  "hist.untitled": "Nouvelle conversation",
+  "hist.actions": "Options de la conversation",
+  "hist.memorized": "Mémorisée",
+  "hist.archivedSection": "Archivées",
+  "hist.cancel": "Annuler",
+  "hist.working": "En cours…",
+
+  "hist.memorize": "Mémoriser",
+  "hist.memorize.menuSub": "L'intégrer à votre Kernel",
+  "hist.memorize.title": "Mémoriser cette conversation ?",
+  "hist.memorize.body":
+    "Raya va lire tout le fil et intégrer ce qu'il révèle à votre Kernel : vos états de concepts et votre profil d'apprentissage sont mis à jour, et cette conversation devient un point d'ancrage que Raya pourra mobiliser plus tard. Rien n'est supprimé, et rien ne sort de votre compte. Cela peut prendre quelques secondes.",
+  "hist.memorize.confirm": "Mémoriser",
+  "hist.memorize.done": "Mémorisée — votre profil d'apprentissage a été mis à jour.",
+  "hist.memorize.doneGap": "Lacune racine repérée :",
+
+  "hist.archive": "Archiver",
+  "hist.archive.menuSub": "La ranger hors de la liste",
+  "hist.archive.title": "Archiver cette conversation ?",
+  "hist.archive.body":
+    "Elle quitte votre historique et Raya cesse de la proposer comme contexte. Chaque message et chaque pièce jointe sont conservés — vous la retrouverez sous Archivées et pourrez la restaurer à tout moment. Si c'est la conversation ouverte, elle se ferme et vous repartez sur une session vierge.",
+  "hist.archive.confirm": "Archiver",
+
+  "hist.unarchive": "Restaurer",
+  "hist.unarchive.menuSub": "La remettre dans la liste",
+  "hist.unarchive.title": "Restaurer cette conversation ?",
+  "hist.unarchive.body":
+    "Elle revient dans votre historique et Raya peut de nouveau s'en servir comme contexte. Rien d'autre ne change.",
+  "hist.unarchive.confirm": "Restaurer",
+
+  "hist.delete": "Supprimer",
+  "hist.delete.menuSub": "L'effacer définitivement",
+  "hist.delete.title": "Supprimer cette conversation ?",
+  "hist.delete.body":
+    "La conversation, ses messages et ses pièces jointes sont effacés définitivement. Cette action est irréversible.",
+  "hist.delete.caveat":
+    "Ce que le Kernel en a déjà appris reste dans votre profil d'apprentissage — supprimer le fil ne le désapprend pas. Pour retirer cela aussi, passez par Réglages › Vos données.",
+  "hist.delete.confirm": "Supprimer définitivement",
+
   // ── Onboarding (configuration du compte après inscription) ────────
   "onb.stepLabel": "Étape",
   "onb.of": "sur",

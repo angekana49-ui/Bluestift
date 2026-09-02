@@ -4,7 +4,7 @@ import { needsAgeGate } from "@/lib/compliance/guard";
 import { getStudentRecommendations } from "@/lib/school-admin";
 import { getPlanLabel } from "@/lib/billing";
 import { softValue } from "@/lib/page-data";
-import { Chat, type ConversationFile } from "@/components/chat";
+import { Chat } from "@/components/chat";
 
 export default async function ChatPage() {
   const supabase = await createClient();
@@ -22,11 +22,13 @@ export default async function ChatPage() {
       .select("account_state, display_name, username, profile_picture_url, birth_year, minor_consent_source, school_id")
       .eq("id", user.id)
       .single(),
-    // Full solo-chat history (room-private channels are excluded).
+    // Full solo-chat history (room-private channels are excluded). Archived
+    // threads come down too — the list keeps them behind a disclosure rather
+    // than pretending they are gone, so archiving stays distinct from deleting.
     supabase
       .schema("learning")
       .from("conversations")
-      .select("id, title, updated_at")
+      .select("id, title, updated_at, archived_at, memorized_at")
       .eq("user_id", user.id)
       .is("room_id", null)
       .order("updated_at", { ascending: false }),
@@ -40,36 +42,25 @@ export default async function ChatPage() {
   }
   const studentName = profile.display_name || profile.username || "";
   const conversations = convs ?? [];
-  const conversationId = conversations[0]?.id ?? null;
 
-  let messages: { id: string; role: string; content: string | null }[] = [];
-  let files: ConversationFile[] = [];
-  if (conversationId) {
-    // Attachments are fetched with the thread so bubbles render complete on the
-    // first paint, rather than popping in after a client round-trip.
-    const [{ data: msgs }, { data: convFiles }] = await Promise.all([
-      supabase
-        .schema("learning")
-        .from("messages")
-        .select("id, role, content")
-        .eq("conversation_id", conversationId)
-        .order("created_at", { ascending: true }),
-      supabase
-        .schema("learning")
-        .from("conversation_files")
-        .select("id, message_id, file_name, file_type, mime_type, file_size")
-        .eq("conversation_id", conversationId)
-        .order("created_at", { ascending: true }),
-    ]);
-    messages = msgs ?? [];
-    files = convFiles ?? [];
-  }
-
+  /**
+   * Raya always opens on a blank session — never on the last thread.
+   *
+   * Resuming the most recent conversation sounds helpful and is not: it decides
+   * for the learner what today is about, and it silently reopens whatever they
+   * left behind, including a thread they had just archived (which is supposed to
+   * be out of the way) or, on a stale tab, one they had just deleted. The
+   * history list is one click away and says what each thread is; a blank page
+   * says "what are we cracking today", which is the actual question.
+   *
+   * It also removes two blocking queries (messages + attachments) from the
+   * app's most-opened page.
+   */
   return (
     <Chat
-      conversationId={conversationId}
-      initialMessages={messages}
-      initialFiles={files}
+      conversationId={null}
+      initialMessages={[]}
+      initialFiles={[]}
       conversations={conversations}
       recommendations={recommendations}
       studentName={studentName}

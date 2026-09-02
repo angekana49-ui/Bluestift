@@ -211,6 +211,100 @@ export function useChatEngine({
   }
 
   /**
+   * File a thread away, or bring it back. Not a delete: the row and every
+   * message survive, it just leaves the default list.
+   *
+   * Archiving the OPEN thread also clears the surface. Leaving it on screen
+   * would contradict the dialog the learner just accepted — they asked for it to
+   * be out of the way, and it would still be the thing they are typing into.
+   */
+  async function setArchived(id: string, archived: boolean): Promise<boolean> {
+    if (busy) return false;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await netFetch(config.endpoints.conversations, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          ...config.extraBody,
+          conversationId: id,
+          action: archived ? "archive" : "unarchive",
+        }),
+      });
+      if (!res.ok) {
+        setError("Could not archive conversation.");
+        return false;
+      }
+      const stamp = archived ? new Date().toISOString() : null;
+      setConversations((list) => list.map((c) => (c.id === id ? { ...c, archived_at: stamp } : c)));
+      if (archived && id === conversationId) {
+        setConversationId(null);
+        setMessages([]);
+        setPending([]);
+        setFilesByMessage({});
+      }
+      return true;
+    } catch {
+      setError("Could not archive conversation.");
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /**
+   * Hand the whole thread to the Kernel and stamp it as anchored.
+   *
+   * Slow on purpose — the caller awaits a real analysis rather than a queued
+   * intention, so the confirmation it shows ("your profile has been updated")
+   * is something we actually know. Returns null when the Kernel could not be
+   * reached, and nothing is stamped in that case.
+   */
+  async function memorizeConversation(
+    id: string,
+  ): Promise<{ root_gap: string | null; concepts: number | null } | null> {
+    if (busy) return null;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await netFetch(
+        config.endpoints.conversations,
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ ...config.extraBody, conversationId: id, action: "memorize" }),
+        },
+        // The Kernel call behind this can wake a cold container; the client must
+        // outlast the 25s the server is willing to wait, or it gives up first
+        // and reports a failure that did not happen.
+        { timeoutMs: 35_000 },
+      );
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setError(
+          data?.error === "empty"
+            ? "Nothing to memorize in this conversation yet."
+            : "Raya could not memorize this conversation — try again in a moment.",
+        );
+        return null;
+      }
+      setConversations((list) =>
+        list.map((c) => (c.id === id ? { ...c, memorized_at: data?.memorized_at ?? new Date().toISOString() } : c)),
+      );
+      return {
+        root_gap: typeof data?.root_gap === "string" ? data.root_gap : null,
+        concepts: typeof data?.concepts === "number" ? data.concepts : null,
+      };
+    } catch {
+      setError("Raya could not memorize this conversation — try again in a moment.");
+      return null;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /**
    * Auto-name the conversation once, around the 2nd exchange: Raya distils the
    * thread into a one-sentence title. Best-effort and fire-and-forget — a failure
    * just leaves the first-message seed title. Off when no `summarize` endpoint is
@@ -478,6 +572,8 @@ export function useChatEngine({
     removePending,
     selectConversation,
     deleteConversation,
+    setArchived,
+    memorizeConversation,
     onSend,
     retrySend,
   };
