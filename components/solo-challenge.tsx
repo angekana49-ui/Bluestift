@@ -9,6 +9,7 @@ import { parseDoc } from "@/lib/doc-format";
 import { useAppTheme } from "@/components/ui/theme";
 import { type AppTheme } from "@/components/ui/tokens";
 import { FilePicker } from "@/components/ui/file-picker";
+import { neutralButton, formActions } from "@/components/ui/forms";
 
 type Question = { id: string; type: "mcq" | "open"; content: string | null; options: string[] };
 
@@ -371,13 +372,15 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
             accept=".txt,.md,.markdown,.csv,.pdf,.docx,.xlsx,.mp3,.m4a,.wav,.webm,.ogg,.flac,audio/*,application/pdf,text/plain"
             onPick={(files) => setFile(files?.[0] ?? null)}
             fileName={file?.name ?? null}
-            buttonStyle={ghost(t)}
+            buttonStyle={neutralButton(t)}
             hintStyle={{ color: t.muted }}
           />
         </div>
-        <button style={{ ...cta(t), opacity: busy || (!topic.trim() && !goal.trim() && !file) ? 0.5 : 1 }} onClick={create} disabled={busy || (!topic.trim() && !goal.trim() && !file)}>
-          {busy ? "Generating…" : "Create the self-test"}
-        </button>
+        <div style={formActions}>
+          <button style={{ ...cta(t), opacity: busy || (!topic.trim() && !goal.trim() && !file) ? 0.5 : 1 }} onClick={create} disabled={busy || (!topic.trim() && !goal.trim() && !file)}>
+            {busy ? "Generating…" : "Create the self-test"}
+          </button>
+        </div>
         {error && <p style={{ color: "#f87171", fontSize: 15 }}>{error}</p>}
       </div>
 

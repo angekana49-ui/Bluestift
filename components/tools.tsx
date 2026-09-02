@@ -8,7 +8,7 @@ import { ShareLinkButton } from "@/components/study/share-button";
 import { useAppTheme } from "@/components/ui/theme";
 import { display, status as statusColors, type AppTheme } from "@/components/ui/tokens";
 import { IconQuiz, IconFlashcards, IconSummary } from "@/components/ui/icons";
-import { ghostButton } from "@/components/ui/forms";
+import { neutralButton, formActions } from "@/components/ui/forms";
 import { FilePicker } from "@/components/ui/file-picker";
 
 type QuizQuestion = {
@@ -359,7 +359,7 @@ export function Tools({
             // The packet is cumulative, so the same file may be added, removed
             // and added again.
             resetAfterPick
-            buttonStyle={ghostButton(t)}
+            buttonStyle={neutralButton(t)}
           />
         </div>
       </div>
@@ -398,11 +398,11 @@ export function Tools({
         </div>
       )}
 
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 16, maxWidth: 900 }}>
+      <div style={{ ...formActions, maxWidth: 900 }}>
+        {statusMsg && <span style={{ fontSize: 14, color: t.muted, marginRight: "auto" }}>{statusMsg}</span>}
         <button style={{ ...cta(t), opacity: busy || sources.length === 0 ? 0.5 : 1 }} onClick={generate} disabled={busy || sources.length === 0}>
           Generate
         </button>
-        {statusMsg && <span style={{ fontSize: 14, color: t.muted }}>{statusMsg}</span>}
       </div>
       {error && <p style={{ color: "#f87171", marginTop: 12, fontSize: 15 }}>{error}</p>}
 

@@ -85,8 +85,8 @@ export function RoomGroupChat({
   const tr = useTranslate();
   const bubble = (kind: "me" | "raya" | "other"): React.CSSProperties => ({
     minWidth: 0,
-    background: kind === "me" ? t.ctaBg : kind === "raya" ? t.bubbleBg : t.bubbleAccentBg,
-    color: kind === "me" ? t.ctaText : t.text,
+    background: kind === "me" ? t.bubbleMineBg : kind === "raya" ? t.bubbleBg : t.bubbleAccentBg,
+    color: kind === "me" ? t.bubbleMineText : t.text,
     // Raya's bubble takes the card white, so it needs an edge to stay a bubble.
     border: kind === "raya" ? `1px solid ${t.cardBorder}` : "1px solid transparent",
     borderRadius: kind === "me" ? "16px 16px 4px 16px" : "16px 16px 16px 4px",

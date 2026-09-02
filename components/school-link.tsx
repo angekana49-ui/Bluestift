@@ -80,7 +80,7 @@ export function SchoolLink({ initial }: { initial: SchoolLinkInfo | null }) {
         </div>
         <button
           type="submit"
-          style={{ ...btn, alignSelf: "flex-start", opacity: busy ? 0.7 : 1 }}
+          style={{ ...btn, alignSelf: "flex-end", opacity: busy ? 0.7 : 1 }}
           disabled={busy || !code.trim() || !firstName.trim() || !lastName.trim()}
         >
           {busy ? "Linking…" : "Link my account"}

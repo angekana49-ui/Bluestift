@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAppTheme } from "@/components/ui/theme";
-import { panelCard, textInput, ctaButton, ghostButton } from "@/components/ui/forms";
+import { panelCard, textInput, ctaButton, ghostButton, formActions } from "@/components/ui/forms";
 import { DocumentView } from "@/components/ui/document";
 import { Modal } from "@/components/ui/modal";
 import { downloadBrandedPdf, downloadBrandedText, type BrandedDoc } from "@/lib/document";
@@ -221,13 +221,13 @@ export function PrepareView({
           maxLength={200}
           disabled={busy}
         />
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginTop: "0.75rem" }}>
+        <div style={formActions}>
+          <span style={{ opacity: 0.6, fontSize: "0.78rem", marginRight: "auto" }}>
+            Download &amp; print, or assign it to a class from your library below.
+          </span>
           <button style={{ ...btn, opacity: busy ? 0.7 : 1 }} onClick={generate} disabled={busy}>
             {busy ? "Generating…" : "Generate"}
           </button>
-          <span style={{ opacity: 0.5, fontSize: "0.78rem" }}>
-            Download &amp; print, or assign it to a class from your library below.
-          </span>
         </div>
         {error && <p style={{ color: "#f87171", margin: "0.75rem 0 0" }}>{error}</p>}
       </div>

@@ -391,8 +391,8 @@ function Bubble({ theme: t, maxWidth, me, children }: { theme: AppTheme; maxWidt
       style={{
         maxWidth,
         alignSelf: me ? "flex-end" : "flex-start",
-        background: me ? t.ctaBg : t.bubbleBg,
-        color: me ? t.ctaText : t.text,
+        background: me ? t.bubbleMineBg : t.bubbleBg,
+        color: me ? t.bubbleMineText : t.text,
         borderRadius: me ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
         padding: "13px 16px",
         fontSize: 16,

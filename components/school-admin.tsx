@@ -45,6 +45,7 @@ import {
   IconUpgrade,
 } from "@/components/ui/icons";
 import { FilePicker } from "@/components/ui/file-picker";
+import { neutralButton } from "@/components/ui/forms";
 import { initialsOf } from "@/lib/name";
 import type { AppTheme } from "@/components/ui/tokens";
 import type {
@@ -1372,7 +1373,7 @@ function SchoolSettings({
   school: AdminSchool;
   onUpdated: (s: AdminSchool) => void;
 }) {
-  const { t, box, input, btn, ghost } = useSchoolStyles();
+  const { t, box, input, btn } = useSchoolStyles();
   const [name, setName] = useState(school.name);
   const [city, setCity] = useState(school.city ?? "");
   const [countryCode, setCountryCode] = useState(school.countryCode ?? "");
@@ -1477,7 +1478,7 @@ function SchoolSettings({
           resetAfterPick
           label={busy ? "Uploading…" : "Change logo"}
           icon={null}
-          buttonStyle={ghost}
+          buttonStyle={neutralButton(t)}
         />
       </div>
 

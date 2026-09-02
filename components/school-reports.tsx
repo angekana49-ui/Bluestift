@@ -141,7 +141,7 @@ export function SchoolReports({
               ))}
             </select>
           )}
-          <button style={{ ...btn, opacity: busy ? 0.7 : 1 }} onClick={generate} disabled={busy}>
+          <button style={{ ...btn, marginLeft: "auto", opacity: busy ? 0.7 : 1 }} onClick={generate} disabled={busy}>
             {busy ? "Generating…" : "Generate"}
           </button>
         </div>

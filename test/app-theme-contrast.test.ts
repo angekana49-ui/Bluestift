@@ -140,3 +140,59 @@ describe("the app shell publishes its interaction tokens", () => {
     expect(css).toMatch(/outline: 2px solid var\(--app-focus/);
   });
 });
+
+describe("the two button roles stay told apart", () => {
+  for (const [name, t] of themes) {
+    it(`${name}: the primary action and the neutral are not the same fill`, () => {
+      // Create/Generate is blue, Choose file is the neutral solid. If a later
+      // change collapses them, every card goes back to having two identical
+      // buttons and nothing saying which one is the point.
+      expect(t.ctaBg).not.toBe(t.neutralBg);
+      expect(contrast(t.ctaBg, t.neutralBg)).toBeGreaterThan(1.6);
+    });
+
+    it(`${name}: both carry their own label at AA`, () => {
+      expect(contrast(t.ctaText, t.ctaBg)).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(t.neutralText, t.neutralBg)).toBeGreaterThanOrEqual(4.5);
+    });
+
+    it(`${name}: both are findable against the content ground`, () => {
+      // 3:1 is the floor for a UI component's boundary. A neutral that matched
+      // the page would be a hole rather than a button — which is exactly why
+      // `neutralBg` inverts in dark mode instead of staying #0b1220.
+      expect(contrast(t.ctaBg, t.contentBg)).toBeGreaterThanOrEqual(3);
+      expect(contrast(t.neutralBg, t.contentBg)).toBeGreaterThanOrEqual(3);
+    });
+
+    it(`${name}: the primary action is not the body ink`, () => {
+      // The bug being fixed: ctaBg was #0b1220, the same value as `text`.
+      expect(t.ctaBg).not.toBe(t.text);
+    });
+
+    it(`${name}: the learner's bubble is decoupled from the action colour`, () => {
+      // Its own token. Joined to ctaBg, recolouring the primary button silently
+      // recoloured half of every conversation.
+      expect(t.bubbleMineBg).toBeTruthy();
+      expect(contrast(t.bubbleMineText, t.bubbleMineBg)).toBeGreaterThanOrEqual(4.5);
+    });
+  }
+});
+
+describe("actions sit on the trailing edge", () => {
+  const forms = readFileSync(join(process.cwd(), "components/ui/forms.tsx"), "utf8");
+
+  it("there is one shared action row, and it is right-aligned", () => {
+    expect(forms).toMatch(/export const formActions/);
+    const block = /export const formActions: CSSProperties = \{([^}]*)\}/.exec(forms)?.[1] ?? "";
+    expect(block).toMatch(/justifyContent:\s*"flex-end"/);
+  });
+
+  it("no card pins its primary action to the leading edge", () => {
+    // `alignSelf: "flex-start"` on a cta button is the old habit: it puts the
+    // commit at the START of the reading order instead of at its end.
+    for (const p of ["components/school-link.tsx", "components/rooms-list.tsx"]) {
+      const src = readFileSync(join(process.cwd(), p), "utf8");
+      expect(src, p).not.toMatch(/\.\.\.btn, alignSelf: "flex-start"/);
+    }
+  });
+});

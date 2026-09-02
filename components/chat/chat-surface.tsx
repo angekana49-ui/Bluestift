@@ -359,8 +359,8 @@ export function ChatSurface({
                     <div
                       style={{
                         minWidth: 0,
-                        background: mine ? t.ctaBg : t.bubbleBg,
-                        color: mine ? t.ctaText : t.text,
+                        background: mine ? t.bubbleMineBg : t.bubbleBg,
+                        color: mine ? t.bubbleMineText : t.text,
                         // Raya's bubble is the same white as a card, so it needs
                         // the same 1px edge to be a bubble and not just text.
                         border: mine ? "1px solid transparent" : `1px solid ${t.cardBorder}`,

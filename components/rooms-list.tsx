@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createRoom } from "@/app/rooms/actions";
 import { dispatchUpgrade } from "@/lib/upgrade";
 import { useAppTheme } from "@/components/ui/theme";
-import { panelCard, cardTitle, textInput, ctaButton, ghostButton } from "@/components/ui/forms";
+import { panelCard, cardTitle, textInput, ctaButton, neutralButton, formActions } from "@/components/ui/forms";
 import { FilePicker } from "@/components/ui/file-picker";
 import { RayaName } from "@/components/ui/brand";
 
@@ -238,7 +238,7 @@ export function RoomsList({
             // The same file may legitimately be picked again after being removed
             // from the chips below.
             resetAfterPick
-            buttonStyle={ghostButton(t)}
+            buttonStyle={neutralButton(t)}
           />
           {docs.length > 0 && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
@@ -272,9 +272,11 @@ export function RoomsList({
             </div>
           )}
         </div>
-        <button style={{ ...ctaButton(t), opacity: busy || !name.trim() ? 0.5 : 1 }} onClick={create} disabled={busy || !name.trim()}>
-          {busy ? (docs.length ? "Creating & uploading…" : "Creating…") : "Create"}
-        </button>
+        <div style={formActions}>
+          <button style={{ ...ctaButton(t), opacity: busy || !name.trim() ? 0.5 : 1 }} onClick={create} disabled={busy || !name.trim()}>
+            {busy ? (docs.length ? "Creating & uploading…" : "Creating…") : "Create"}
+          </button>
+        </div>
         {error && <p style={{ color: "#f87171", marginTop: 8, fontSize: 15 }}>{error}</p>}
       </div>
 

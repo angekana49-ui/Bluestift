@@ -43,6 +43,13 @@ export const textInput = (t: AppTheme): CSSProperties => ({
   outline: "none",
 });
 
+/**
+ * The primary action of a card — Create, Generate, Save, Start.
+ *
+ * Brand blue, not the near-black it used to be. Black is the body ink, so the
+ * one button that does the thing looked like a paragraph in a rounded box, and
+ * on a card with two or three buttons nothing said which one was the point.
+ */
 export const ctaButton = (t: AppTheme): CSSProperties => ({
   background: t.ctaBg,
   color: t.ctaText,
@@ -55,6 +62,49 @@ export const ctaButton = (t: AppTheme): CSSProperties => ({
   lineHeight: 1.2,
   cursor: "pointer",
 });
+
+/**
+ * The neutral solid — file pickers, and anything that FEEDS an action rather
+ * than performing one.
+ *
+ * Picking a file is a step on the way to Generate, not a rival to it, so the
+ * two must be told apart at a glance and must not both be blue. See
+ * `neutralBg` in tokens.ts for why this is not literally "black" in dark mode.
+ */
+export const neutralButton = (t: AppTheme): CSSProperties => ({
+  background: t.neutralBg,
+  color: t.neutralText,
+  border: "1px solid transparent",
+  borderRadius: radius.pill,
+  padding: "9px 16px",
+  fontSize: text.sm,
+  fontWeight: 650,
+  fontFamily: "inherit",
+  lineHeight: 1.2,
+  cursor: "pointer",
+});
+
+/**
+ * The row a card's actions sit in — pinned to the TRAILING edge.
+ *
+ * Primary actions used to sit hard left, under whatever field they submitted,
+ * which put them at the start of the reading order rather than at its end: the
+ * button was the first thing the eye met on the way down a form instead of the
+ * last. Trailing-edge is where a form's commit belongs, and doing it in one
+ * shared style keeps the twenty-odd cards agreeing on it.
+ *
+ * `wrap: "wrap-reverse"` so that when a hint sits beside the button and the row
+ * has to break, the BUTTON stays on top rather than being pushed under its own
+ * explanation.
+ */
+export const formActions: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "flex-end",
+  flexWrap: "wrap-reverse",
+  gap: 12,
+  marginTop: 16,
+};
 
 /**
  * The secondary button. Its old form — `cardBg2` fill, a 1.2:1 border, 13px

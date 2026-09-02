@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { LmsConnection, LmsMapping } from "@/lib/school-admin";
 import { useAppTheme } from "@/components/ui/theme";
-import { panelCard, textInput, ctaButton, ghostButton } from "@/components/ui/forms";
+import { panelCard, textInput, ctaButton, ghostButton, formActions } from "@/components/ui/forms";
 
 type ClassOpt = { id: string; name: string };
 
@@ -68,9 +68,11 @@ export function SchoolLms({ classes }: { classes: ClassOpt[] }) {
             <p style={{ opacity: 0.6, fontSize: "0.85rem", margin: "0 0 0.75rem" }}>
               Connect your Google Workspace to import your courses and map them to your classes.
             </p>
-            <a href="/api/school/lms/google/start" style={{ ...btn, textDecoration: "none", display: "inline-block" }}>
-              Connect Google Classroom
-            </a>
+            <div style={{ ...formActions, marginTop: 0 }}>
+              <a href="/api/school/lms/google/start" style={{ ...btn, textDecoration: "none", display: "inline-block" }}>
+                Connect Google Classroom
+              </a>
+            </div>
           </>
         ) : (
           <GoogleConnection

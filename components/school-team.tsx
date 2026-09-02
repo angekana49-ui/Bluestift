@@ -285,11 +285,12 @@ export function SchoolTeam({ classes }: { classes: ClassOpt[] }) {
           </div>
         ))}
         <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginTop: "0.75rem", flexWrap: "wrap" }}>
-          <button style={btn} onClick={generateInvite}>Generate code</button>
-          <label style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", fontSize: "0.85rem", opacity: 0.85 }}>
+          <label style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", fontSize: "0.85rem", opacity: 0.85, marginRight: "auto" }}>
             <input type="checkbox" checked={autoApprove} onChange={(e) => setAutoApprove(e.target.checked)} />
             Auto-approve (join without my approval)
           </label>
+          {/* The setting stays where it reads, the action moves to the edge. */}
+          <button style={btn} onClick={generateInvite}>Generate code</button>
         </div>
       </div>
 

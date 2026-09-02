@@ -7,7 +7,7 @@ import { clearLocalData } from "@/lib/net/local-data";
 import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
 import { useResolvedTheme } from "@/components/ui/theme";
 import { useTranslate } from "@/components/ui/locale";
-import { panelCard, cardTitle, textInput, ctaButton } from "@/components/ui/forms";
+import { panelCard, cardTitle, textInput, ctaButton, neutralButton } from "@/components/ui/forms";
 import { FilePicker } from "@/components/ui/file-picker";
 import { status } from "@/components/ui/tokens";
 import { avatarInitials } from "@/lib/name";
@@ -292,7 +292,7 @@ export function AuthPanel({
           resetAfterPick
           label={tr("auth.account.changePhoto")}
           icon={null}
-          buttonStyle={ghost}
+          buttonStyle={neutralButton(t)}
         />
       </div>
 

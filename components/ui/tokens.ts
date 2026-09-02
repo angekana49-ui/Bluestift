@@ -50,11 +50,40 @@ export type AppTheme = {
   mutedLight: string;
   /** Link colour. Links must read as links, and stay legible as body-size text. */
   link: string;
+  /**
+   * The PRIMARY ACTION — Create, Generate, Send, Save, Refresh.
+   *
+   * Brand blue rather than near-black, so the one button that does the thing is
+   * the one coloured thing on the card. It used to be `#0b1220`, which is the
+   * same ink as the body text: the action carried no more signal than a
+   * paragraph, and on a screen with several buttons nothing said which one was
+   * the point.
+   */
   ctaBg: string;
   ctaText: string;
+  /**
+   * The NEUTRAL solid — file pickers, and anything that supplies input to an
+   * action rather than performing one.
+   *
+   * Deliberately the opposite end from `ctaBg`: choosing a file is a step on the
+   * way to Generate, not a rival to it, so the two must not compete. In dark
+   * mode "black" is the page, so the neutral inverts to near-white — the same
+   * role (maximum contrast, no hue) expressed for the surface it lands on.
+   */
+  neutralBg: string;
+  neutralText: string;
   inputBg: string;
   inputBorder: string;
   bubbleBg: string;
+  /**
+   * The learner's OWN bubble. Its own token because it was borrowing `ctaBg`,
+   * which coupled "what colour is a message I sent" to "what colour is the
+   * button that does the thing" — two decisions with nothing in common. Keeping
+   * them joined meant recolouring the primary action silently recoloured half
+   * the conversation.
+   */
+  bubbleMineBg: string;
+  bubbleMineText: string;
   bubbleAccentBg: string;
   rowActiveBg: string;
   pillTrackBg: string;
@@ -107,8 +136,13 @@ const light: AppTheme = {
   // Darker than the brand blue #2f7fe0 (only ~3.6:1 on white), which links used
   // to take and which read as decoration rather than text.
   link: "#1b5fc1",
-  ctaBg: "#0b1220",
+  // 6.1:1 with white, 5.7:1 against the content ground — readable as a label
+  // and findable as a shape. Same value in both themes: one action colour for
+  // the product, not a light one and a dark one that read as different brands.
+  ctaBg: "#1f66c2",
   ctaText: "#ffffff",
+  neutralBg: "#0b1220",
+  neutralText: "#ffffff",
   // A field is where you type: it reads as an opening in the surface, so it goes
   // lighter than the (now tinted) ground, with a border you can actually see.
   // #dde5ee was ~1.2:1 against its own fill — an input with no visible edge.
@@ -119,6 +153,8 @@ const light: AppTheme = {
   // in the app and a visible edge (see chat-surface), instead of an off-white
   // block that dissolved into the page behind it.
   bubbleBg: "#ffffff",
+  bubbleMineBg: "#0b1220",
+  bubbleMineText: "#ffffff",
   bubbleAccentBg: "#fef3c7",
   rowActiveBg: "#e3eaf5",
   pillTrackBg: "rgba(0,0,0,0.05)",
@@ -163,9 +199,15 @@ const dark: AppTheme = {
   // dark ground, so the button is both readable and findable.
   ctaBg: "#1f66c2",
   ctaText: "#ffffff",
+  // Inverted, not "black": a #0b1220 button on a #0b111f page would be a hole.
+  // The role is "maximum contrast, no hue", and on a dark ground that is light.
+  neutralBg: "#e9eef7",
+  neutralText: "#0b1220",
   inputBg: "#0a1120",
   inputBorder: "rgba(255,255,255,0.26)",
   bubbleBg: "#1c2742",
+  bubbleMineBg: "#1f66c2",
+  bubbleMineText: "#ffffff",
   bubbleAccentBg: "#3a3010",
   rowActiveBg: "#1c2742",
   pillTrackBg: "rgba(255,255,255,0.06)",

@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { FilePreview, type Attachment } from "@/components/attachment";
 import { useDarkMode } from "@/components/ui/theme";
 import { RayaName, RayaText } from "@/components/ui/brand";
-import { ghostButton } from "@/components/ui/forms";
+import { neutralButton } from "@/components/ui/forms";
 import { FilePicker } from "@/components/ui/file-picker";
 
 type RoomFile = Attachment & {
@@ -86,7 +86,7 @@ export function RoomFiles({ roomId, readOnly = false }: { roomId: string; readOn
           // line — but a failed upload must be retryable with the same file.
           resetAfterPick
           label={busy ? "Uploading…" : undefined}
-          buttonStyle={ghostButton(t)}
+          buttonStyle={neutralButton(t)}
         />
       )}
       {status && <p style={{ color: t.muted, marginTop: 8, fontSize: 14 }}><RayaText>{status}</RayaText></p>}

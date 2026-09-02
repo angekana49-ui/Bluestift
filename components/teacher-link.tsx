@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAppTheme } from "@/components/ui/theme";
-import { panelCard, cardTitle, textInput, ctaButton, linkText } from "@/components/ui/forms";
+import { panelCard, cardTitle, textInput, ctaButton, linkText, formActions } from "@/components/ui/forms";
 import { COUNTRIES } from "@/lib/school-constants";
 
 type Staff = { schoolName: string; role: string };
@@ -164,7 +164,7 @@ export function TeacherLink({
             </option>
           ))}
         </select>
-        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ ...formActions, marginTop: 0 }}>
           <button type="submit" style={{ ...btn, opacity: busy || !name.trim() ? 0.6 : 1 }} disabled={busy || !name.trim()}>
             {busy ? "Creating…" : "Create school"}
           </button>

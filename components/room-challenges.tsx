@@ -9,6 +9,7 @@ import { TestPlayer, ReaderView, type TestAnswer, type TestQuestion, type TestRe
 import { ShareLinkButton } from "@/components/study/share-button";
 import { parseDoc } from "@/lib/doc-format";
 import { FilePicker } from "@/components/ui/file-picker";
+import { neutralButton, formActions } from "@/components/ui/forms";
 
 type Challenge = {
   id: string;
@@ -398,13 +399,15 @@ export function RoomChallenges({
             accept=".txt,.md,.markdown,.csv,.pdf,.docx,.xlsx,.mp3,.m4a,.wav,.webm,.ogg,.flac,audio/*,application/pdf,text/plain"
             onPick={(files) => setSourceFile(files?.[0] ?? null)}
             fileName={sourceFile?.name ?? null}
-            buttonStyle={ghost}
+            buttonStyle={neutralButton(t)}
             hintStyle={{ color: t.muted }}
           />
         </div>
-        <button style={{ ...btn, opacity: busy || (!topic.trim() && !goal.trim() && !sourceFile) ? 0.5 : 1 }} onClick={create} disabled={busy || (!topic.trim() && !goal.trim() && !sourceFile)}>
-          {busy ? "Generating…" : "Generate the challenge"}
-        </button>
+        <div style={formActions}>
+          <button style={{ ...btn, opacity: busy || (!topic.trim() && !goal.trim() && !sourceFile) ? 0.5 : 1 }} onClick={create} disabled={busy || (!topic.trim() && !goal.trim() && !sourceFile)}>
+            {busy ? "Generating…" : "Generate the challenge"}
+          </button>
+        </div>
         {error && <p style={{ color: "#f87171", fontSize: 15 }}>{error}</p>}
       </div>
       )}

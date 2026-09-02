@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useAppTheme } from "@/components/ui/theme";
-import { panelCard, ctaButton, ghostButton } from "@/components/ui/forms";
+import { panelCard, ctaButton, formActions } from "@/components/ui/forms";
 import { TestPlayer, type TestAnswer, type TestQuestion, type TestResult } from "@/components/study/focus-player";
 
 type Assignment = {
@@ -37,7 +37,6 @@ export function AssignmentsView() {
   const { theme: t } = useAppTheme();
   const box = panelCard(t);
   const btn = ctaButton(t);
-  const ghost = ghostButton(t);
 
   const [items, setItems] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -152,8 +151,8 @@ export function AssignmentsView() {
           );
         })
       )}
-      <div style={{ marginTop: 8 }}>
-        <button style={ghost} onClick={() => void load()}>
+      <div style={{ ...formActions, marginTop: 8 }}>
+        <button style={btn} onClick={() => void load()}>
           Refresh
         </button>
       </div>
