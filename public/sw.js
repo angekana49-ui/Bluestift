@@ -32,8 +32,9 @@
 // Bump on any change to a STABLE public asset. The shell cache never
 // revalidates, so a file that keeps its name but changes its bytes (the brand
 // marks did) would otherwise be served from the old cache forever. Bumping the
-// version renames both caches, and `activate` deletes every cache that is not
-// current — that is the only cache-bust this worker has.
+// version renames both caches, and `sweepCaches` retires what that stranded —
+// that is the only cache-bust this worker has. Read the note on `sweepCaches`
+// before assuming it retires both the same way: it deliberately does not.
 const VERSION = "v7";
 
 /*
@@ -48,9 +49,10 @@ const VERSION = "v7";
  * this worker exists to avoid, so the two now have separate budgets and cannot
  * evict each other.
  */
-const SHELL_CACHE = `bluestift-shell-${VERSION}`;
-const BUILD_CACHE = `bluestift-build-${VERSION}`;
-const CURRENT = [SHELL_CACHE, BUILD_CACHE];
+const SHELL_PREFIX = "bluestift-shell-";
+const BUILD_PREFIX = "bluestift-build-";
+const SHELL_CACHE = `${SHELL_PREFIX}${VERSION}`;
+const BUILD_CACHE = `${BUILD_PREFIX}${VERSION}`;
 
 const OFFLINE_URL = "/offline.html";
 
@@ -93,14 +95,64 @@ self.addEventListener("activate", (event) => {
       if (self.registration.navigationPreload) {
         await self.registration.navigationPreload.enable();
       }
-      const names = await caches.keys();
-      await Promise.all(
-        names.filter((n) => !CURRENT.includes(n)).map((n) => caches.delete(n)),
-      );
+      await sweepCaches();
       await self.clients.claim();
     })(),
   );
 });
+
+/**
+ * Retire what a VERSION bump stranded — but never out from under a page that is
+ * still running.
+ *
+ * This used to delete every cache that was not current, immediately, and it is
+ * paired with `skipWaiting()`: the new worker takes over tabs that are ALREADY
+ * OPEN, rendered by the previous build. Those pages fetch their chunks lazily —
+ * a route transition, a dynamic import — and those chunks sit under content
+ * hashes in the build cache of the version that served them. Dropping it
+ * mid-session turns the cache from a shield into the cause of the outage: the
+ * request goes to the network, and after a deploy the server no longer has that
+ * hash. A blank screen, for the one visitor who had the page open.
+ *
+ * The two caches have opposite answers here, for the same reason their
+ * lifetimes differ.
+ *
+ * SHELL entries sit at STABLE paths — /icon.png is /icon.png in every version —
+ * so deleting one is safe by construction: the next request re-fetches it from
+ * a server that still serves that path, and gets the new bytes. That IS the
+ * bust VERSION exists for, so it happens now, eagerly.
+ *
+ * BUILD entries are content-hashed and so cannot go stale at all. There is no
+ * correctness reason to ever bust them, only a storage one — so the previous
+ * generation is KEPT, and only what is older than it is dropped. A tab open
+ * across two VERSION bumps still loses its chunks, but a tab open that long is
+ * already at the mercy of what the server still serves, and the alternative is
+ * unbounded growth on exactly the low-storage devices this worker exists for.
+ */
+async function sweepCaches() {
+  const names = await caches.keys();
+  const stale = [];
+
+  for (const n of names) {
+    // Anything from an older naming scheme is not addressable by this worker
+    // and can only be dead weight.
+    if (!n.startsWith(SHELL_PREFIX) && !n.startsWith(BUILD_PREFIX)) stale.push(n);
+    else if (n.startsWith(SHELL_PREFIX) && n !== SHELL_CACHE) stale.push(n);
+  }
+
+  // Build caches, newest generation first. Index 0 is the newest non-current
+  // one — the one a page open right now was most likely served by — so the
+  // slice starts after it.
+  const generation = (n) => Number(n.slice(n.lastIndexOf("-v") + 2)) || 0;
+  stale.push(
+    ...names
+      .filter((n) => n.startsWith(BUILD_PREFIX) && n !== BUILD_CACHE)
+      .sort((a, b) => generation(b) - generation(a))
+      .slice(1),
+  );
+
+  await Promise.all(stale.map((n) => caches.delete(n)));
+}
 
 /** Stable public assets: same name for months, so cached until VERSION moves. */
 const STABLE_ASSET = /\.(?:js|css|woff2?|png|jpe?g|webp|svg|ico)$/i;

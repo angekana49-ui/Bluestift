@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { assertRoomOpen, ROOM_TIMER_MIN, ROOM_TIMER_MAX } from "@/lib/rooms";
+import { assertRoomOpen, isMinorBirthYear, ROOM_TIMER_MIN, ROOM_TIMER_MAX } from "@/lib/rooms";
 import {
   resolveRayaEntitlements,
   assertQuota,
@@ -12,8 +12,15 @@ import {
 } from "@/lib/entitlements";
 import { captureServer } from "@/lib/analytics/server";
 
-/** Shape returned by a room action when a plan gate blocks it (enforcing only). */
-export type RoomGateError = { error: string; code: "feature_locked" | "quota_reached" };
+/**
+ * Shape returned by a room action when it is blocked. `feature_locked` and
+ * `quota_reached` are plan gates (enforcing mode only); `minor_public_room` is
+ * an age rule, which is not a plan gate and is never in monitor mode.
+ */
+export type RoomGateError = {
+  error: string;
+  code: "feature_locked" | "quota_reached" | "minor_public_room";
+};
 
 /**
  * Create a room and add the creator as its first member. An optional
@@ -63,7 +70,24 @@ export async function createRoom(input: {
    * choice, so an arriving "public" is a stale form or a crafted request, and in
    * both cases the safe answer beats the honest one.
    */
-  const visibility = ent.roomVisibilityChoice ? (input.visibility ?? "private") : "private";
+  /*
+   * ...and above the plan sits the age rule, which no tier can buy out of.
+   *
+   * `roomVisibilityChoice` is a paid feature, so without this line a paying
+   * 15-year-old could open a room the whole platform can find — the plan would
+   * be selling its way past a child-safety default. The room triggers
+   * (20260901140000) refuse the same thing at the database, so this is the
+   * courteous half of the rule: the learner gets a private room rather than an
+   * error about their age.
+   */
+  const { data: creatorProfile } = await supabase
+    .from("users")
+    .select("birth_year")
+    .eq("id", user.id)
+    .maybeSingle();
+  const creatorIsMinor = isMinorBirthYear(creatorProfile?.birth_year);
+  const visibility =
+    ent.roomVisibilityChoice && !creatorIsMinor ? (input.visibility ?? "private") : "private";
   // Gates throw EntitlementError when enforcing; surface it as a structured result
   // (a thrown error would be masked in prod, so the client couldn't show the modal).
   try {
@@ -142,10 +166,38 @@ export async function joinRoom(roomId: string): Promise<void | RoomGateError> {
   const { data: room } = await admin
     .schema("learning")
     .from("rooms")
-    .select("id, created_by")
+    .select("id, created_by, visibility")
     .eq("id", roomId)
     .maybeSingle();
   if (!room) throw new Error("Room not found.");
+
+  /*
+   * A member under 18 only ever belongs to a private room.
+   *
+   * "Public" here means discoverable by every account on the platform, which is
+   * precisely the exposure the private-by-default rule exists to prevent — so
+   * letting a minor walk into one through Discover would undo that rule from the
+   * other end. Private rooms stay fully open to them: those are reached by
+   * invite link, which is someone they know handing them the room.
+   *
+   * Checked here as well as in the database trigger because THIS insert runs on
+   * the service role and so bypasses RLS entirely; the trigger is the guarantee,
+   * this is the readable refusal the UI can act on instead of a raw 500.
+   */
+  if (room.visibility === "public") {
+    const { data: joinerProfile } = await admin
+      .from("users")
+      .select("birth_year")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (isMinorBirthYear(joinerProfile?.birth_year)) {
+      return {
+        error:
+          "This room is public. Rooms that include a member under 18 stay private — ask for an invite link instead.",
+        code: "minor_public_room",
+      };
+    }
+  }
 
   // Participant cap is set by the ROOM's plan (its creator's), not the joiner's.
   // A member re-joining (already counted) is fine; the cap bites new members.

@@ -292,6 +292,53 @@ export const es: Partial<Messages> = {
   "chat.sendFailed": "No enviado: tu mensaje está guardado.",
   "chat.retry": "Reintentar",
 
+  // ── Selector de archivo ──
+  "file.choose": "Elegir un archivo",
+  "file.chooseMulti": "Elegir archivos",
+  "file.none": "Ningún archivo elegido",
+
+  // ── Historial de conversaciones ──
+  "hist.new": "+ Nueva sesión",
+  "hist.empty": "Aún no hay conversaciones.",
+  "hist.untitled": "Nueva conversación",
+  "hist.actions": "Opciones de la conversación",
+  "hist.memorized": "Memorizada",
+  "hist.archivedSection": "Archivadas",
+  "hist.cancel": "Cancelar",
+  "hist.working": "Procesando…",
+
+  "hist.memorize": "Memorizar",
+  "hist.memorize.menuSub": "Integrarla en tu Kernel",
+  "hist.memorize.title": "¿Memorizar esta conversación?",
+  "hist.memorize.body":
+    "Raya leerá todo el hilo e integrará lo que revela en tu Kernel: se actualizan tus estados de conceptos y tu perfil de aprendizaje, y esta conversación queda anclada como algo a lo que Raya podrá recurrir más adelante. No se borra nada y nada sale de tu cuenta. Puede tardar unos segundos.",
+  "hist.memorize.confirm": "Memorizarla",
+  "hist.memorize.done": "Memorizada: tu perfil de aprendizaje se ha actualizado.",
+  "hist.memorize.doneGap": "Laguna raíz detectada:",
+
+  "hist.archive": "Archivar",
+  "hist.archive.menuSub": "Guardarla fuera de la lista",
+  "hist.archive.title": "¿Archivar esta conversación?",
+  "hist.archive.body":
+    "Sale de tu historial y Raya deja de ofrecerla como contexto. Se conservan todos los mensajes y adjuntos: la encontrarás en Archivadas y podrás restaurarla cuando quieras. Si es la conversación abierta, se cierra y empiezas una sesión nueva.",
+  "hist.archive.confirm": "Archivarla",
+
+  "hist.unarchive": "Restaurar",
+  "hist.unarchive.menuSub": "Devolverla a la lista",
+  "hist.unarchive.title": "¿Restaurar esta conversación?",
+  "hist.unarchive.body":
+    "Vuelve a tu historial y Raya puede usarla de nuevo como contexto. No cambia nada más.",
+  "hist.unarchive.confirm": "Restaurarla",
+
+  "hist.delete": "Eliminar",
+  "hist.delete.menuSub": "Borrarla para siempre",
+  "hist.delete.title": "¿Eliminar esta conversación?",
+  "hist.delete.body":
+    "La conversación, sus mensajes y sus adjuntos se borran de forma permanente. Esto no se puede deshacer.",
+  "hist.delete.caveat":
+    "Lo que el Kernel ya aprendió de ella permanece en tu perfil de aprendizaje: borrar el hilo no lo desaprende. Para quitar también eso, ve a Ajustes › Tus datos.",
+  "hist.delete.confirm": "Eliminar definitivamente",
+
   // ── Onboarding (configuración de la cuenta tras el registro) ──────
   "onb.stepLabel": "Paso",
   "onb.of": "de",
@@ -762,6 +809,8 @@ export const es: Partial<Messages> = {
   "pricing.cta.startPilot": "Empezar piloto gratis",
   "pricing.cta.createAccount": "Crear una cuenta",
   "pricing.cta.get": "Elegir",
+  "pricing.cta.manageBilling": "Gestionar la facturación",
+  "pricing.cta.continue": "Continuar a Raya",
   "pricing.recommended": "RECOMENDADO",
   "pricing.term.monthly": "Mensual",
   "pricing.term.annual": "Anual",

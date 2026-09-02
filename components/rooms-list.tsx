@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { createRoom } from "@/app/rooms/actions";
 import { dispatchUpgrade } from "@/lib/upgrade";
 import { useAppTheme } from "@/components/ui/theme";
-import { panelCard, cardTitle, textInput, ctaButton } from "@/components/ui/forms";
+import { panelCard, cardTitle, textInput, ctaButton, ghostButton } from "@/components/ui/forms";
+import { FilePicker } from "@/components/ui/file-picker";
 import { RayaName } from "@/components/ui/brand";
 
 type Room = {
@@ -98,7 +99,12 @@ export function RoomsList({
         durationMinutes: duration || null,
       });
       if ("error" in result) {
-        dispatchUpgrade({ code: result.code, message: result.error });
+        // See room-view's join(): the age rule is not something a plan fixes.
+        if (result.code === "minor_public_room") {
+          setError(result.error);
+        } else {
+          dispatchUpgrade({ code: result.code, message: result.error });
+        }
         setBusy(false);
         return;
       }
@@ -225,15 +231,14 @@ export function RoomsList({
           <div style={{ fontSize: 13, color: t.mutedLight, marginBottom: 6 }}>
             <RayaName /> reads these from the start, so it can skip the obvious questions. Max 20 MB total.
           </div>
-          <input
-            type="file"
+          <FilePicker
             multiple
             accept={DOC_ACCEPT}
-            onChange={(e) => {
-              addDocs(e.target.files);
-              e.target.value = "";
-            }}
-            style={{ fontSize: 14, color: t.muted }}
+            onPick={addDocs}
+            // The same file may legitimately be picked again after being removed
+            // from the chips below.
+            resetAfterPick
+            buttonStyle={ghostButton(t)}
           />
           {docs.length > 0 && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>

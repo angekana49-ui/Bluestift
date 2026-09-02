@@ -8,6 +8,7 @@ import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
 import { useResolvedTheme } from "@/components/ui/theme";
 import { useTranslate } from "@/components/ui/locale";
 import { panelCard, cardTitle, textInput, ctaButton } from "@/components/ui/forms";
+import { FilePicker } from "@/components/ui/file-picker";
 import { status } from "@/components/ui/tokens";
 import { avatarInitials } from "@/lib/name";
 import {
@@ -283,10 +284,16 @@ export function AuthPanel({
           <div style={{ fontSize: 16, fontWeight: 700, color: t.text }}>{profile?.display_name ?? "—"}</div>
           <div style={{ fontSize: 14, color: t.muted }}>@{profile?.username ?? "—"}</div>
         </div>
-        <label style={{ ...ghost, display: "inline-block" }}>
-          {tr("auth.account.changePhoto")}
-          <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => uploadAvatar(e.target.files?.[0] ?? null)} disabled={busy} />
-        </label>
+        <FilePicker
+          accept="image/*"
+          onPick={(files) => uploadAvatar(files?.[0] ?? null)}
+          disabled={busy}
+          // Re-picking the same photo after a failed upload must work.
+          resetAfterPick
+          label={tr("auth.account.changePhoto")}
+          icon={null}
+          buttonStyle={ghost}
+        />
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>

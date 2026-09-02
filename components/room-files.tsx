@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/client";
 import { FilePreview, type Attachment } from "@/components/attachment";
 import { useDarkMode } from "@/components/ui/theme";
 import { RayaName, RayaText } from "@/components/ui/brand";
+import { ghostButton } from "@/components/ui/forms";
+import { FilePicker } from "@/components/ui/file-picker";
 
 type RoomFile = Attachment & {
   file_type: string | null;
@@ -76,12 +78,15 @@ export function RoomFiles({ roomId, readOnly = false }: { roomId: string; readOn
           🔒 This session has ended — no new documents can be shared.
         </p>
       ) : (
-        <input
-          type="file"
+        <FilePicker
           accept=".txt,.md,.markdown,.csv,.pdf,.docx,.xlsx,.mp3,.m4a,.wav,.webm,.ogg,.flac,audio/*,application/pdf,text/plain"
-          onChange={(e) => upload(e.target.files?.[0] ?? null)}
+          onPick={(files) => upload(files?.[0] ?? null)}
           disabled={busy}
-          style={{ fontSize: 14, color: t.muted }}
+          // Uploads on pick and lists the result below, so it needs no filename
+          // line — but a failed upload must be retryable with the same file.
+          resetAfterPick
+          label={busy ? "Uploading…" : undefined}
+          buttonStyle={ghostButton(t)}
         />
       )}
       {status && <p style={{ color: t.muted, marginTop: 8, fontSize: 14 }}><RayaText>{status}</RayaText></p>}

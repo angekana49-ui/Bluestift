@@ -512,6 +512,10 @@ export type Database = {
           message_count: number
           kernel_triggered: boolean
           is_training_eligible: boolean
+          /** Non-null = filed away by the learner: out of the default list, messages kept. */
+          archived_at: string | null
+          /** Non-null = the learner had the Kernel absorb this thread on purpose. */
+          memorized_at: string | null
           created_at: string
           updated_at: string
         }
@@ -532,6 +536,8 @@ export type Database = {
           message_count?: number
           kernel_triggered?: boolean
           is_training_eligible?: boolean
+          archived_at?: string | null
+          memorized_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -552,6 +558,8 @@ export type Database = {
           message_count?: number
           kernel_triggered?: boolean
           is_training_eligible?: boolean
+          archived_at?: string | null
+          memorized_at?: string | null
           created_at?: string
           updated_at?: string
         }

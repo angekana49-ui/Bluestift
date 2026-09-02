@@ -40,7 +40,17 @@ export const ROADMAP_UPDATED = "26 August 2026";
  * items were written, so a new entry that belongs in the middle keeps its own
  * number rather than renumbering four locales for nothing.
  */
-const ITEMS: { status: Status; titleKey: MessageKey; bodyKey: MessageKey }[] = [
+const ITEMS: {
+  status: Status;
+  titleKey: MessageKey;
+  bodyKey: MessageKey;
+  /**
+   * An entry whose status and closing clauses are READ OFF THE DEPLOYMENT
+   * rather than typed above. `status` and `bodyKey` are then the pre-launch
+   * state — what this item says when the thing it describes is not switched on.
+   */
+  live?: "payments";
+}[] = [
   { status: "shipped", titleKey: "site.roadmap.i1.title", bodyKey: "site.roadmap.i1.body" },
   { status: "shipped", titleKey: "site.roadmap.i2.title", bodyKey: "site.roadmap.i2.body" },
   { status: "shipped", titleKey: "site.roadmap.i3.title", bodyKey: "site.roadmap.i3.body" },
@@ -49,7 +59,12 @@ const ITEMS: { status: Status; titleKey: MessageKey; bodyKey: MessageKey }[] = [
   // being sold on the landing page and missing from the page that lists what
   // exists — which is the only page where an omission costs anything.
   { status: "shipped", titleKey: "site.roadmap.i8.title", bodyKey: "site.roadmap.i8.body" },
-  { status: "progress", titleKey: "site.roadmap.i4.title", bodyKey: "site.roadmap.i4.body" },
+  // The one entry on this page that used to be able to go stale on its own.
+  // "Live acquiring isn't switched on" and "the limits do not turn anyone away"
+  // were both hand-written, and both stop being true the afternoon somebody
+  // adds the provider keys to an environment — silently, on the page whose
+  // whole value is that it would have told them. It reads them instead.
+  { status: "progress", titleKey: "site.roadmap.i4.title", bodyKey: "site.roadmap.i4.body", live: "payments" },
   { status: "progress", titleKey: "site.roadmap.i5.title", bodyKey: "site.roadmap.i5.body" },
   // LMS sync was listed "Coming" while the integration was finished: OAuth
   // start/callback, token refresh, course + roster import and the admin UI all
@@ -76,12 +91,38 @@ export default function RoadmapTimeline({
   /** Colour behind the rail, used as the halo around each dot so the line
    *  appears to pass under it. Whatever surface the timeline is sitting on. */
   ringColor,
+  /** `billingIsLive()` — a real payment provider is configured. */
+  paymentsLive = false,
+  /** `ENTITLEMENTS_ENFORCE` — the published plan limits refuse rather than log. */
+  quotasEnforced = false,
 }: {
   theme: Theme;
   ringColor?: string;
+  paymentsLive?: boolean;
+  quotasEnforced?: boolean;
 }) {
   const tr = useTranslate();
   const ring = ringColor ?? t.cardBg;
+
+  /**
+   * Both halves of "Payments & quotas", each stated from the deployment.
+   *
+   * They are two independent facts, not one — enforcement can be held down by
+   * hand on a live deployment for a demo — so they get a clause each rather
+   * than one sentence chosen from a pair, which could only ever be right about
+   * one of them at a time. "Shipped" needs both.
+   */
+  const resolve = (item: (typeof ITEMS)[number]): { status: Status; body: string } => {
+    if (item.live !== "payments") return { status: item.status, body: tr(item.bodyKey) };
+    return {
+      status: paymentsLive && quotasEnforced ? "shipped" : item.status,
+      body: [
+        tr(item.bodyKey),
+        tr(paymentsLive ? "site.roadmap.i4.pay.live" : "site.roadmap.i4.pay.sandbox"),
+        tr(quotasEnforced ? "site.roadmap.i4.quota.enforcing" : "site.roadmap.i4.quota.counting"),
+      ].join(" "),
+    };
+  };
 
   const inProgressBg = t.dark ? "rgba(78,155,245,0.14)" : "rgba(23,61,138,0.1)";
   const inProgressText = t.dark ? "#7ab3f7" : "#173d8a";
@@ -103,7 +144,9 @@ export default function RoadmapTimeline({
 
   return (
     <ol style={{ listStyle: "none", margin: 0, padding: "4px 0 0 26px", borderLeft: `1px solid ${t.cardBorder}` }}>
-      {ITEMS.map((item, i) => (
+      {ITEMS.map((item, i) => {
+        const { status, body } = resolve(item);
+        return (
         <li key={item.titleKey} style={{ position: "relative", paddingBottom: i === ITEMS.length - 1 ? 0 : 34 }}>
           <span
             style={{
@@ -117,15 +160,16 @@ export default function RoadmapTimeline({
               boxShadow: `0 0 0 4px ${ring}`,
             }}
           />
-          {pill(item.status)}
+          {pill(status)}
           <p style={{ margin: "12px 0 0", fontWeight: 700, fontSize: 18, color: t.text }}>
             <RayaText>{tr(item.titleKey)}</RayaText>
           </p>
           <p style={{ margin: "5px 0 0", fontSize: 14.5, color: t.muted, lineHeight: 1.65 }}>
-            <RayaText>{tr(item.bodyKey)}</RayaText>
+            <RayaText>{body}</RayaText>
           </p>
         </li>
-      ))}
+        );
+      })}
     </ol>
   );
 }

@@ -292,6 +292,53 @@ export const de: Partial<Messages> = {
   "chat.sendFailed": "Nicht gesendet — deine Nachricht ist gespeichert.",
   "chat.retry": "Erneut versuchen",
 
+  // ── Dateiauswahl ──
+  "file.choose": "Datei auswählen",
+  "file.chooseMulti": "Dateien auswählen",
+  "file.none": "Keine Datei ausgewählt",
+
+  // ── Gesprächsverlauf ──
+  "hist.new": "+ Neue Sitzung",
+  "hist.empty": "Noch keine Gespräche.",
+  "hist.untitled": "Neues Gespräch",
+  "hist.actions": "Gesprächsoptionen",
+  "hist.memorized": "Gemerkt",
+  "hist.archivedSection": "Archiviert",
+  "hist.cancel": "Abbrechen",
+  "hist.working": "Läuft…",
+
+  "hist.memorize": "Merken",
+  "hist.memorize.menuSub": "In deinen Kernel aufnehmen",
+  "hist.memorize.title": "Dieses Gespräch merken?",
+  "hist.memorize.body":
+    "Raya liest den gesamten Verlauf und nimmt auf, was er zeigt: deine Konzeptzustände und dein Lernprofil werden aktualisiert, und dieses Gespräch wird als Anker verankert, auf den Raya später zurückgreifen kann. Nichts wird gelöscht, und nichts verlässt dein Konto. Das kann einige Sekunden dauern.",
+  "hist.memorize.confirm": "Merken",
+  "hist.memorize.done": "Gemerkt — dein Lernprofil wurde aktualisiert.",
+  "hist.memorize.doneGap": "Erkannte Grundlücke:",
+
+  "hist.archive": "Archivieren",
+  "hist.archive.menuSub": "Aus der Liste räumen",
+  "hist.archive.title": "Dieses Gespräch archivieren?",
+  "hist.archive.body":
+    "Es verlässt deinen Verlauf, und Raya bietet es nicht mehr als Kontext an. Alle Nachrichten und Anhänge bleiben erhalten — du findest es unter Archiviert und kannst es jederzeit zurückholen. Ist es das geöffnete Gespräch, wird es geschlossen und du startest eine neue Sitzung.",
+  "hist.archive.confirm": "Archivieren",
+
+  "hist.unarchive": "Zurückholen",
+  "hist.unarchive.menuSub": "Zurück in die Liste",
+  "hist.unarchive.title": "Dieses Gespräch zurückholen?",
+  "hist.unarchive.body":
+    "Es kehrt in deinen Verlauf zurück, und Raya kann es wieder als Kontext nutzen. Sonst ändert sich nichts.",
+  "hist.unarchive.confirm": "Zurückholen",
+
+  "hist.delete": "Löschen",
+  "hist.delete.menuSub": "Endgültig entfernen",
+  "hist.delete.title": "Dieses Gespräch löschen?",
+  "hist.delete.body":
+    "Das Gespräch, seine Nachrichten und seine Anhänge werden endgültig gelöscht. Das lässt sich nicht rückgängig machen.",
+  "hist.delete.caveat":
+    "Was der Kernel bereits daraus gelernt hat, bleibt in deinem Lernprofil — den Verlauf zu löschen verlernt es nicht. Um auch das zu entfernen, geh zu Einstellungen › Deine Daten.",
+  "hist.delete.confirm": "Endgültig löschen",
+
   // ── Onboarding (Kontoeinrichtung nach der Registrierung) ───────────
   "onb.stepLabel": "Schritt",
   "onb.of": "von",
@@ -762,6 +809,8 @@ export const de: Partial<Messages> = {
   "pricing.cta.startPilot": "Kostenlosen Pilot starten",
   "pricing.cta.createAccount": "Konto erstellen",
   "pricing.cta.get": "Hol dir",
+  "pricing.cta.manageBilling": "Abrechnung verwalten",
+  "pricing.cta.continue": "Weiter zu Raya",
   "pricing.recommended": "EMPFOHLEN",
   "pricing.term.monthly": "Monatlich",
   "pricing.term.annual": "Jährlich",

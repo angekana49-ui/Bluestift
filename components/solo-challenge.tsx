@@ -8,6 +8,7 @@ import { ShareLinkButton } from "@/components/study/share-button";
 import { parseDoc } from "@/lib/doc-format";
 import { useAppTheme } from "@/components/ui/theme";
 import { type AppTheme } from "@/components/ui/tokens";
+import { FilePicker } from "@/components/ui/file-picker";
 
 type Question = { id: string; type: "mcq" | "open"; content: string | null; options: string[] };
 
@@ -365,12 +366,13 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
           </div>
         </div>
         <div style={{ marginBottom: 8 }}>
-          <label style={{ fontSize: 14, color: t.muted, marginRight: 8 }}>Source file (optional):</label>
-          <input
-            type="file"
+          <div style={{ fontSize: 14, color: t.muted, marginBottom: 6 }}>Source file (optional)</div>
+          <FilePicker
             accept=".txt,.md,.markdown,.csv,.pdf,.docx,.xlsx,.mp3,.m4a,.wav,.webm,.ogg,.flac,audio/*,application/pdf,text/plain"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            style={{ fontSize: 14, color: t.muted }}
+            onPick={(files) => setFile(files?.[0] ?? null)}
+            fileName={file?.name ?? null}
+            buttonStyle={ghost(t)}
+            hintStyle={{ color: t.muted }}
           />
         </div>
         <button style={{ ...cta(t), opacity: busy || (!topic.trim() && !goal.trim() && !file) ? 0.5 : 1 }} onClick={create} disabled={busy || (!topic.trim() && !goal.trim() && !file)}>

@@ -50,8 +50,16 @@ const KERNEL_SECRET = process.env.KERNEL_API_SECRET;
  */
 const USER_SCOPED_AUTH = process.env.KERNEL_USER_SCOPED_AUTH === "1";
 
-/** Per-call auth: the token of the student the call is about. */
-export type KernelCallOptions = { accessToken?: string | null };
+/**
+ * Per-call auth: the token of the student the call is about.
+ *
+ * `timeoutMs` overrides the 6s default, which is tuned for background work that
+ * must never sit on a request's critical path. A call a user is WAITING on
+ * needs the opposite trade — see `resolveAlert` — because a Railway cold start
+ * on a Python service outlasts 6s and reporting failure to someone who pressed a
+ * button is worse than making them wait.
+ */
+export type KernelCallOptions = { accessToken?: string | null; timeoutMs?: number };
 
 class KernelError extends Error {
   constructor(
@@ -115,6 +123,7 @@ export const kernel = {
       method: "POST",
       json: payload,
       accessToken: opts?.accessToken,
+      timeoutMs: opts?.timeoutMs,
     }),
 
   loadProfile: (payload: LoadProfileRequest, opts?: KernelCallOptions) =>

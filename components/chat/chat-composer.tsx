@@ -5,6 +5,7 @@ import { AttachmentChip, type Attachment } from "@/components/attachment";
 import { IconButton, THREAD_MAX_W } from "@/components/ui/shell";
 import { IconMic, IconAttach, IconAiMode } from "@/components/ui/icons";
 import { text, type AppTheme } from "@/components/ui/tokens";
+import { FilePicker } from "@/components/ui/file-picker";
 
 /** The minimal voice-recorder shape the composer needs (see useVoiceRecorder). */
 export type ComposerVoice = {
@@ -224,33 +225,29 @@ export function ChatComposer({
             }}
           />
           {onUpload && (
-            <label
-              title="Attach a file"
-              style={{
+            <FilePicker
+              accept={COMPOSER_ACCEPT}
+              onPick={(files) => onUpload(files?.[0] ?? null)}
+              disabled={busy || uploading}
+              // Same file twice in a row is normal here (a failed upload, or a
+              // doc sent to two different threads).
+              resetAfterPick
+              label=""
+              ariaLabel="Attach a file"
+              icon={<IconAttach size={16} />}
+              wrapperStyle={{ flex: "none" }}
+              buttonStyle={{
                 width: 38,
                 height: 38,
                 borderRadius: "50%",
                 background: t.cardBg2,
                 color: t.mutedLight,
-                display: "flex",
-                alignItems: "center",
+                border: "none",
                 justifyContent: "center",
-                cursor: busy || uploading ? "default" : "pointer",
-                flex: "none",
+                gap: 0,
+                padding: 0,
               }}
-            >
-              <IconAttach size={16} />
-              <input
-                type="file"
-                accept={COMPOSER_ACCEPT}
-                style={{ display: "none" }}
-                onChange={(e) => {
-                  onUpload(e.target.files?.[0] ?? null);
-                  e.target.value = "";
-                }}
-                disabled={busy || uploading}
-              />
-            </label>
+            />
           )}
           <IconButton theme={t} size={38} radius={999} title="AI mode — Encouraging" color={t.text}>
             <IconAiMode size={16} />

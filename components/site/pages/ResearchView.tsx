@@ -8,6 +8,7 @@ import type { Theme } from "@/components/site/theme";
 import { GUTTER, MEASURE, PAGE_BOTTOM, lead, pageH1, pageSection, serifEm } from "@/components/site/layout";
 import { useTranslate } from "@/components/ui/locale";
 import { BluestiftText } from "@/components/ui/brand";
+import { FilePicker } from "@/components/ui/file-picker";
 import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
 import { readTime } from "@/components/public/format";
 import type { PublicNewsletterIssue, PublicResearchPost } from "@/lib/content";
@@ -219,10 +220,23 @@ function ProposeForm({ t, onClose }: { t: Theme; onClose: () => void }) {
         </select>
         <input placeholder={tr("research.hub.propose.titlePlaceholder")} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} style={field(t)} />
         <textarea placeholder={tr("research.hub.propose.descPlaceholder")} rows={5} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} style={{ ...field(t), resize: "vertical", lineHeight: 1.6 }} />
-        <label style={{ fontSize: 13, color: t.muted }}>
-          {tr("research.hub.propose.attachment")}
-          <input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} style={{ marginTop: 4, display: "block", fontSize: 13, color: t.muted }} />
-        </label>
+        <div style={{ fontSize: 13, color: t.muted }}>
+          <div style={{ marginBottom: 6 }}>{tr("research.hub.propose.attachment")}</div>
+          <FilePicker
+            onPick={(files) => setFile(files?.[0] ?? null)}
+            fileName={file?.name ?? null}
+            buttonStyle={{
+              background: t.cardBg,
+              color: t.text,
+              border: `1px solid ${t.cardBorder}`,
+              borderRadius: 12,
+              padding: "9px 16px",
+              fontSize: 14,
+              fontWeight: 600,
+            }}
+            hintStyle={{ color: t.muted }}
+          />
+        </div>
         <Turnstile ref={turnstileRef} onVerify={setCaptchaToken} onExpire={() => setCaptchaToken(null)} />
         {state === "error" && <span style={{ fontSize: 13, color: "#ef4444" }}>{tr("research.hub.propose.sendError")}</span>}
         <button
@@ -244,6 +258,13 @@ type Props = {
   issues: PublicNewsletterIssue[];
   signedIn: boolean;
   initialTab?: string;
+  /**
+   * The two facts the "Payments & quotas" entry states about itself, resolved
+   * server-side. They live in `server-only` modules, so the page reads them and
+   * this client view is handed the answer rather than the module.
+   */
+  paymentsLive: boolean;
+  quotasEnforced: boolean;
 };
 
 const TYPE_FILTERS = ["all", "paper", "experiment", "article", "update"] as const;
@@ -259,7 +280,7 @@ const TAB_LABEL_KEY: Record<(typeof VALID_TABS)[number], MessageKey> = {
   collaborations: "research.hub.tab.collaborations",
 };
 
-export function ResearchView({ posts, issues, signedIn, initialTab }: Props) {
+export function ResearchView({ posts, issues, signedIn, initialTab, paymentsLive, quotasEnforced }: Props) {
   const tr = useTranslate();
   const [tab, setTab] = useState<string>(VALID_TABS.includes((initialTab ?? "") as (typeof VALID_TABS)[number]) ? (initialTab as string) : "articles");
   const [proposing, setProposing] = useState(false);
@@ -372,7 +393,7 @@ export function ResearchView({ posts, issues, signedIn, initialTab }: Props) {
                 </div>
                 <p style={{ fontSize: 15, lineHeight: 1.7, color: t.muted, margin: "0 0 20px" }}>{tr("site.roadmap.sub")}</p>
                 <div style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: 20, padding: "26px 28px", boxShadow: t.cardShadow }}>
-                  <RoadmapTimeline theme={t} ringColor={t.cardBg} />
+                  <RoadmapTimeline theme={t} ringColor={t.cardBg} paymentsLive={paymentsLive} quotasEnforced={quotasEnforced} />
                 </div>
               </>
             ) : tab === "newsletter" ? (
