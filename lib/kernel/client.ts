@@ -114,9 +114,17 @@ async function kernelFetch<T>(
 }
 
 export const kernel = {
-  health: () => kernelFetch<HealthResponse>("/health", { method: "GET" }),
+  /**
+   * Liveness and readiness both take a timeout, because the only caller that
+   * matters is the scheduled monitor and it must not confuse a COLD START with
+   * an outage. A Python container waking up outlasts the 6s default; reporting
+   * that as down would train whoever reads the alerts to ignore them.
+   */
+  health: (opts?: KernelCallOptions) =>
+    kernelFetch<HealthResponse>("/health", { method: "GET", timeoutMs: opts?.timeoutMs }),
 
-  ready: () => kernelFetch<ReadyResponse>("/ready", { method: "GET" }),
+  ready: (opts?: KernelCallOptions) =>
+    kernelFetch<ReadyResponse>("/ready", { method: "GET", timeoutMs: opts?.timeoutMs }),
 
   analyze: (payload: AnalyzeRequest, opts?: KernelCallOptions) =>
     kernelFetch<AnalyzeResponse>("/analyze", {

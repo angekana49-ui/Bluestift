@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { timingSafeEqual } from "node:crypto";
+import { authorizedCron } from "@/lib/cron-auth";
 import { createAdminClient, adminRpc } from "@/lib/supabase/admin";
 import { eraseAccount } from "@/lib/compliance/erasure";
 
@@ -31,24 +31,8 @@ const DELETE_DAYS = Number(process.env.ANON_DELETE_DAYS ?? "180");
 const DEACTIVATE_BATCH = 500;
 const DELETE_BATCH = 50;
 
-/**
- * Constant-time bearer check. `!==` on a secret leaks its prefix through timing;
- * the window is narrow over HTTP, but this endpoint erases accounts, so it is not
- * the place to rely on the attack being inconvenient. Compares digests-of-equal-
- * length so a length mismatch doesn't throw and doesn't leak the length either.
- */
-function authorized(request: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false; // unset = closed, never open
-  const presented = request.headers.get("authorization") ?? "";
-  const a = Buffer.from(presented);
-  const b = Buffer.from(`Bearer ${secret}`);
-  if (a.length !== b.length) return false;
-  return timingSafeEqual(a, b);
-}
-
 export async function GET(request: Request) {
-  if (!authorized(request)) {
+  if (!authorizedCron(request)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
