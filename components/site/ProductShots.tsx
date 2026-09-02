@@ -1680,13 +1680,13 @@ export function ReturnShot({ theme: t }: { theme: Theme }) {
 /**
  * The student app's nav, in the app's own order and with the app's own icons
  * (components/raya/raya-shell.tsx). Labels come from the message catalogue —
- * "My Kernel", not "Kernel", and "Homework", not "Exercises".
+ * "My Kernel", not "Kernel", and "Assignments", not "Exercises".
  */
 const RAYA_NAV: { labelKey: MessageKey; Icon: typeof IconChat }[] = [
   { labelKey: "nav.chat", Icon: IconChat },
   { labelKey: "nav.rooms", Icon: IconRooms },
   { labelKey: "nav.tools", Icon: IconTools },
-  { labelKey: "nav.homework", Icon: IconQuiz },
+  { labelKey: "nav.assignments", Icon: IconQuiz },
   { labelKey: "nav.kernel", Icon: IconKernel },
   { labelKey: "nav.settings", Icon: IconSettings },
 ];

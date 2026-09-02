@@ -5,7 +5,7 @@ export const es: Partial<Messages> = {
   "nav.chat": "Chat",
   "nav.rooms": "Rooms",
   "nav.tools": "Tools",
-  "nav.homework": "Tareas",
+  "nav.assignments": "Tareas",
   "nav.kernel": "Mi Kernel",
   "nav.settings": "Ajustes",
 

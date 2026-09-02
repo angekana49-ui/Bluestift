@@ -16,7 +16,7 @@ export const en = {
   "nav.chat": "Chat",
   "nav.rooms": "Rooms",
   "nav.tools": "Tools",
-  "nav.homework": "Homework",
+  "nav.assignments": "Assignments",
   "nav.kernel": "My Kernel",
   "nav.settings": "Settings",
 

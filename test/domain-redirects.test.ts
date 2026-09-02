@@ -13,13 +13,27 @@ const SITE = "https://thebluestift.com";
 const RAYA = "https://raya.thebluestift.com";
 const SCHOOLS = "https://schools.thebluestift.com";
 
-async function redirectsWith(env: Record<string, string>): Promise<Redirect[]> {
+async function allRedirectsWith(env: Record<string, string>): Promise<Redirect[]> {
   for (const k of ["NEXT_PUBLIC_SITE_URL", "NEXT_PUBLIC_RAYA_URL", "NEXT_PUBLIC_SCHOOLS_URL"]) {
     vi.stubEnv(k, env[k] ?? "");
   }
   vi.resetModules();
   const config = (await import("@/next.config")).default;
   return ((await config.redirects?.()) ?? []) as Redirect[];
+}
+
+/**
+ * Only the CROSS-ORIGIN rules — the ones this file is about.
+ *
+ * `redirects()` also carries same-origin path renames (/homework →
+ * /assignments), which are a different class entirely: they have no product
+ * origin to switch on, no host to condition on, and no loop to avoid. Folding
+ * them into the assertions below would make "emits nothing until the origins
+ * exist" quietly false for a reason that has nothing to do with the property.
+ * A cross-origin destination is absolute; a rename's is a path.
+ */
+async function redirectsWith(env: Record<string, string>): Promise<Redirect[]> {
+  return (await allRedirectsWith(env)).filter((r) => /^https?:\/\//.test(r.destination));
 }
 
 afterEach(() => vi.unstubAllEnvs());
@@ -71,7 +85,7 @@ describe("apex redirects", () => {
       NEXT_PUBLIC_SCHOOLS_URL: SCHOOLS,
     });
     const owned: [string, string][] = [
-      ["/chat", RAYA], ["/rooms", RAYA], ["/homework", RAYA], ["/tools", RAYA], ["/profile", RAYA],
+      ["/chat", RAYA], ["/rooms", RAYA], ["/assignments", RAYA], ["/tools", RAYA], ["/profile", RAYA],
       ["/school", SCHOOLS],
     ];
     for (const [path, origin] of owned) {
@@ -89,6 +103,24 @@ describe("apex redirects", () => {
       );
     }
     expect(rules).toHaveLength(owned.length * 2);
+  });
+
+  it("keeps the /homework rename alive regardless of the origin split", async () => {
+    // A same-origin rename, so it must fire in EVERY configuration — including
+    // the repo's current one, where no product origin is set and the
+    // cross-origin rules are silent. Links to /homework are already in the wild
+    // (a bookmark, an installed PWA shortcut) and outlive the rename.
+    const envs: Record<string, string>[] = [
+      {},
+      { NEXT_PUBLIC_SITE_URL: SITE },
+      { NEXT_PUBLIC_SITE_URL: SITE, NEXT_PUBLIC_RAYA_URL: RAYA },
+    ];
+    for (const env of envs) {
+      const all = await allRedirectsWith(env);
+      const bare = all.find((r) => r.source === "/homework");
+      expect(bare, JSON.stringify(env)).toMatchObject({ destination: "/assignments", permanent: true });
+      expect(all.some((r) => r.source === "/homework/:rest*")).toBe(true);
+    }
   });
 
   it("leaves the site's own paths alone", async () => {

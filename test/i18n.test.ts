@@ -14,7 +14,7 @@ describe("i18n catalogue", () => {
     // "Rooms" is a product brand name (like Raya/Schools/Tools) — never
     // translated, in any locale.
     expect(lookup("es", "nav.rooms")).toBe("Rooms");
-    expect(lookup("de", "nav.homework")).toBe("Hausaufgaben");
+    expect(lookup("de", "nav.assignments")).toBe("Aufgaben");
   });
 
   it("falls back to English for a key a locale hasn't translated", () => {

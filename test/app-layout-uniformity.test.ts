@@ -10,7 +10,7 @@ import { join } from "node:path";
  * centrées et uniformes". They were, and for a mechanical reason — every screen
  * declared its own scroller inline:
  *
- *   /rooms /tools /homework /profile   padding: "32px 40px"
+ *   /rooms /tools /assignments /profile   padding: "32px 40px"
  *   Schools content zone               padding: "24px 26px"
  *   a room                             padding: "28px 32px"
  *   the chat thread                    padding: "28px 24px"
@@ -63,7 +63,7 @@ describe("no screen re-invents the page frame", () => {
     for (const p of [
       "app/rooms/page.tsx",
       "app/tools/page.tsx",
-      "app/homework/page.tsx",
+      "app/assignments/page.tsx",
       "app/profile/page.tsx",
       "components/school/schools-shell.tsx",
       "components/room-view.tsx",

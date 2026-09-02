@@ -8,7 +8,7 @@ import { getPlanLabel } from "@/lib/billing";
 import { softValue } from "@/lib/page-data";
 import { initialsOf } from "@/lib/name";
 
-export default async function HomeworkPage() {
+export default async function AssignmentsPage() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -32,7 +32,7 @@ export default async function HomeworkPage() {
 
   return (
     <RayaScaffold
-      active="homework"
+      active="assignments"
       studentName={studentName}
       studentInitials={initialsOf(studentName)}
       studentAvatarUrl={profile.profile_picture_url}

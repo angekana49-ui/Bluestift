@@ -37,7 +37,7 @@ const NAV = [
   { key: "chat", labelKey: "nav.chat", href: "/chat", Icon: IconChat },
   { key: "rooms", labelKey: "nav.rooms", href: "/rooms", Icon: IconRooms },
   { key: "tools", labelKey: "nav.tools", href: "/tools", Icon: IconTools },
-  { key: "homework", labelKey: "nav.homework", href: "/homework", Icon: IconQuiz },
+  { key: "assignments", labelKey: "nav.assignments", href: "/assignments", Icon: IconQuiz },
   { key: "kernel", labelKey: "nav.kernel", href: "/profile", Icon: IconKernel },
   { key: "settings", labelKey: "nav.settings", href: "/account", Icon: IconSettings },
 ] as const;

@@ -5,7 +5,7 @@ export const de: Partial<Messages> = {
   "nav.chat": "Chat",
   "nav.rooms": "Rooms",
   "nav.tools": "Tools",
-  "nav.homework": "Hausaufgaben",
+  "nav.assignments": "Aufgaben",
   "nav.kernel": "Mein Kernel",
   "nav.settings": "Einstellungen",
 

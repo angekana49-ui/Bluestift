@@ -84,7 +84,7 @@ const csp = [
  * checkout pages — belongs to the site and stays on the apex.
  */
 const PRODUCT_PATHS = {
-  raya: ["/chat", "/rooms", "/homework", "/tools", "/profile"],
+  raya: ["/chat", "/rooms", "/assignments", "/tools", "/profile"],
   schools: ["/school"],
 };
 
@@ -145,7 +145,16 @@ const nextConfig: NextConfig = {
   // Keep native doc parsers out of the bundle (run as Node modules at runtime).
   serverExternalPackages: ["mammoth", "xlsx"],
   async redirects() {
-    return productRedirects();
+    return [
+      // /homework became /assignments. Permanent, and unconditional: unlike the
+      // product-origin rules below this is a rename inside one app, so there is
+      // no host to condition on and no loop to avoid. It stays because links to
+      // it are already in the wild — a student's bookmark, an installed PWA
+      // shortcut — and those outlive the rename.
+      { source: "/homework", destination: "/assignments", permanent: true },
+      { source: "/homework/:rest*", destination: "/assignments/:rest*", permanent: true },
+      ...(await productRedirects()),
+    ];
   },
   async headers() {
     return [

@@ -29,7 +29,7 @@ const pct = (v: number | null) => (v == null ? "—" : `${Math.round(v * 100)}%`
 const fmt = (d: string | null) => (d ? new Date(d).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : null);
 
 /**
- * Student "Homework" surface: exams/exercises a teacher assigned to the student's
+ * Student "Assignments" surface: exams/exercises a teacher assigned to the student's
  * class. One attempt each (an optional deadline closes it); taking reuses the shared
  * TestPlayer + the assignment grading route, so it behaves like every other test.
  */
@@ -51,7 +51,7 @@ export function AssignmentsView() {
       const d = await (await fetch("/api/assignments")).json();
       setItems((d.assignments ?? []) as Assignment[]);
     } catch {
-      setError("Could not load your homework.");
+      setError("Could not load your assignments.");
     } finally {
       setLoading(false);
     }
@@ -110,7 +110,7 @@ export function AssignmentsView() {
   return (
     <div>
       <div style={{ ...box, marginTop: 0 }}>
-        <h1 style={{ fontSize: "1.25rem", margin: 0 }}>Homework</h1>
+        <h1 style={{ fontSize: "1.25rem", margin: 0 }}>Assignments</h1>
         <p style={{ opacity: 0.6, fontSize: "0.9rem", margin: "6px 0 0" }}>
           Exams and exercises your teacher assigned to your class. Each one is a single attempt.
         </p>
