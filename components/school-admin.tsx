@@ -45,7 +45,7 @@ import {
   IconUpgrade,
 } from "@/components/ui/icons";
 import { FilePicker } from "@/components/ui/file-picker";
-import { neutralButton } from "@/components/ui/forms";
+import { neutralButton, formActions } from "@/components/ui/forms";
 import { initialsOf } from "@/lib/name";
 import type { AppTheme } from "@/components/ui/tokens";
 import type {
@@ -1128,11 +1128,11 @@ function TeachingPreferencesCard({ classes }: { classes: AdminClass[] }) {
         />
         Aim prepared material at my class&apos;s weakest concepts
       </label>
-      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginTop: "0.9rem" }}>
+      <div style={{ ...formActions, marginTop: "0.9rem" }}>
+        {msg && <span style={{ color: "#22c55e", fontSize: "0.85rem", marginRight: "auto" }}>{msg}</span>}
         <button style={{ ...btn, opacity: busy ? 0.7 : 1 }} onClick={save} disabled={busy}>
           {busy ? "Saving…" : "Save preferences"}
         </button>
-        {msg && <span style={{ color: "#22c55e", fontSize: "0.85rem" }}>{msg}</span>}
         {error && <span style={{ color: "#f87171", fontSize: "0.85rem" }}>{error}</span>}
       </div>
     </div>
@@ -1526,11 +1526,11 @@ function SchoolSettings({
         </label>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginTop: "0.9rem" }}>
+      <div style={{ ...formActions, marginTop: "0.9rem" }}>
+        {msg && <span style={{ color: "#22c55e", fontSize: "0.85rem", marginRight: "auto" }}>{msg}</span>}
         <button type="submit" style={{ ...btn, opacity: busy ? 0.7 : 1 }} disabled={busy || !name.trim()}>
           {busy ? "Saving…" : "Save changes"}
         </button>
-        {msg && <span style={{ color: "#22c55e", fontSize: "0.85rem" }}>{msg}</span>}
         {error && <span style={{ color: "#f87171", fontSize: "0.85rem" }}>{error}</span>}
       </div>
       </form>

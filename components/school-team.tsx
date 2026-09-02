@@ -322,7 +322,10 @@ export function SchoolTeam({ classes }: { classes: ClassOpt[] }) {
               <option key={s.id} value={s.id}>{s.name}</option>
             ))}
           </select>
-          <button type="submit" style={btn}>Assign</button>
+          {/* The three selects are fixed-width, so without this the free space
+              all pools to the RIGHT of the button and the action sits hard left
+              — the same shape as the report row above. */}
+          <button type="submit" style={{ ...btn, marginLeft: "auto" }}>Assign</button>
         </form>
       </div>
     </div>

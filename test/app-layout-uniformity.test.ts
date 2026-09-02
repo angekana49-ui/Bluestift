@@ -127,3 +127,44 @@ describe("the chat's three subtrees share one column", () => {
     expect(css).toMatch(/\.chat-thread\s*\{[^}]*scrollbar-gutter:\s*stable both-edges/);
   });
 });
+
+describe("no primary action is left stranded at the leading edge", () => {
+  /**
+   * The failure mode this catches, in the shape it actually takes.
+   *
+   * A flex row whose children are all FIXED width (three `<select>`s, say)
+   * leaves its free space at the trailing end — so a button written last still
+   * renders hard left, with a gap after it. It looks correct in the source and
+   * wrong on screen, which is why it survived three passes over these files:
+   * the Assignments row in school-team and the report row in school-reports had
+   * the same bug and neither reads as one until you see it rendered.
+   *
+   * The fix at each site is `marginLeft: "auto"` on the action (or the shared
+   * `formActions` row). This test asserts the fix is present wherever the
+   * pattern is, rather than trying to detect the pattern itself — a CSS layout
+   * bug is not something a regex can see.
+   */
+  const SELECT_ROWS = ["components/school-team.tsx", "components/school-reports.tsx"];
+
+  it("every fixed-width select row pushes its action to the trailing edge", () => {
+    for (const p of SELECT_ROWS) {
+      const src = read(p);
+      // Each file has exactly one such row, and its button must claim the slack.
+      expect(src, p).toMatch(/\.\.\.btn, marginLeft: "auto"|marginLeft: "auto", opacity/);
+    }
+  });
+
+  it("a status message beside an action never pushes the action off the edge", () => {
+    // [button][msg] rows put the commit first and the confirmation after it, so
+    // the button sits left and the message drifts. Reversed, the message keeps
+    // its place via marginRight:auto and the action lands on the edge.
+    for (const p of [
+      "components/school-admin.tsx",
+      "components/tools.tsx",
+      "components/school/prof-prepare.tsx",
+    ]) {
+      const src = read(p);
+      expect(src, p).toMatch(/marginRight: "auto"/);
+    }
+  });
+});
