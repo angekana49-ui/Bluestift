@@ -48,6 +48,13 @@ export function useDarkMode(): DarkModeValue {
   // is white in light mode where the marketing site's is #eef3f9.
   useEffect(() => {
     syncThemeColor(dark, APP_THEME_COLORS);
+    // Publish the interaction tokens on the ROOT, not just on .app-shell.
+    // Menus and modals render through a portal into <body>, so they are not
+    // inside the shell and would otherwise fall back to the light-mode hover
+    // filter — which reads as "switched off" on a dark popover.
+    const root = document.documentElement.style;
+    root.setProperty("--app-hover-filter", dark ? "brightness(1.18)" : "brightness(0.95)");
+    root.setProperty("--app-focus", dark ? "#7ab3f7" : "#1b5fc1");
   }, [dark]);
 
   const setDark = useCallback((v: boolean) => {

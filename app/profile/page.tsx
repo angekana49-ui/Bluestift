@@ -12,6 +12,7 @@ import { getPlanLabel } from "@/lib/billing";
 import { softValue } from "@/lib/page-data";
 import { hasRealEmail } from "@/lib/auth";
 import { RayaScaffold } from "@/components/raya/raya-scaffold";
+import { PageBody } from "@/components/ui/shell";
 import { SectionHeader } from "@/components/raya/section-header";
 import { initialsOf } from "@/lib/name";
 
@@ -67,14 +68,14 @@ export default async function ProfilePage({
 
   return (
     <RayaScaffold active="kernel" studentName={studentName} studentInitials={initialsOf(studentName)} studentAvatarUrl={profile.profile_picture_url} studentPlan={studentPlan}>
-      <div style={{ flex: 1, overflow: "auto", padding: "32px 40px", minWidth: 0 }}>
+      <PageBody>
         <SectionHeader title="My Kernel" subtitle="Your mastery, concept by concept — not a single grade." />
         <SchoolLink initial={schoolLink} />
         <TeacherLink initial={staff} startCreate={startCreateSchool} hasEmail={hasRealEmail(user.email)} />
         <ProgressCurve points={points} />
         <CognitiveProfile />
         <StudentSimulation />
-      </div>
+      </PageBody>
     </RayaScaffold>
   );
 }

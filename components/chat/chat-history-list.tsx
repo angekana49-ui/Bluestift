@@ -3,7 +3,14 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Modal } from "@/components/ui/modal";
-import { IconArchive, IconDots, IconMemorize, IconTrash, IconUnarchive } from "@/components/ui/icons";
+import {
+  IconArchive,
+  IconChevron,
+  IconDots,
+  IconMemorize,
+  IconTrash,
+  IconUnarchive,
+} from "@/components/ui/icons";
 import { useTranslate } from "@/components/ui/locale";
 import type { AppTheme } from "@/components/ui/tokens";
 import type { MessageKey } from "@/lib/i18n";
@@ -78,26 +85,34 @@ export function ChatHistoryList({
 
   return (
     <>
-      <div
+      {/* A real <button>, not a clickable div: it is the primary action of this
+          list and was previously unreachable by keyboard and invisible to
+          assistive tech. Same for the Archived disclosure below. */}
+      <button
+        type="button"
+        disabled={busy}
         onClick={(e) => {
           e.stopPropagation();
           onNew();
         }}
         style={{
-          cursor: "pointer",
+          cursor: busy ? "default" : "pointer",
           background: t.sidebarActiveBg,
           color: t.sidebarText,
+          border: `1px solid ${t.sidebarBorder}`,
           borderRadius: 9,
           padding: "8px 10px",
+          width: "100%",
           fontSize: 13,
-          fontWeight: 600,
+          fontWeight: 650,
+          fontFamily: "inherit",
           textAlign: "center",
           marginBottom: 2,
           opacity: busy ? 0.5 : 1,
         }}
       >
         {tr("hist.new")}
-      </div>
+      </button>
 
       {conversations.length === 0 && (
         <div style={{ fontSize: 13, color: t.sidebarMuted, padding: "6px 10px" }}>
@@ -112,7 +127,9 @@ export function ChatHistoryList({
           the whole menu exists to draw. */}
       {archived.length > 0 && (
         <>
-          <div
+          <button
+            type="button"
+            aria-expanded={showArchived}
             onClick={(e) => {
               e.stopPropagation();
               setShowArchived((s) => !s);
@@ -122,26 +139,31 @@ export function ChatHistoryList({
               display: "flex",
               alignItems: "center",
               gap: 6,
+              width: "100%",
+              background: "none",
+              border: "none",
+              borderRadius: 9,
               padding: "8px 10px",
               marginTop: 4,
               fontSize: 12,
               fontWeight: 700,
+              fontFamily: "inherit",
               letterSpacing: "0.06em",
               textTransform: "uppercase",
+              textAlign: "left",
               color: t.sidebarMuted,
             }}
           >
-            <span
+            <IconChevron
+              size={11}
               style={{
-                display: "inline-block",
+                flex: "none",
                 transition: "transform 0.15s ease",
-                transform: showArchived ? "rotate(90deg)" : "none",
+                transform: showArchived ? "rotate(0deg)" : "rotate(-90deg)",
               }}
-            >
-              ›
-            </span>
+            />
             {tr("hist.archivedSection")} ({archived.length})
-          </div>
+          </button>
           {showArchived && archived.map(row)}
         </>
       )}
@@ -293,7 +315,7 @@ function ConversationRow({
           border: "none",
           padding: "2px 1px",
           cursor: "pointer",
-          color: t.mutedLight,
+          color: t.sidebarMuted,
           fontFamily: "inherit",
         }}
       >

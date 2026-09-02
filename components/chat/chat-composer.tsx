@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 import { AttachmentChip, type Attachment } from "@/components/attachment";
-import { IconButton, THREAD_MAX_W } from "@/components/ui/shell";
+import { IconButton } from "@/components/ui/shell";
 import { IconMic, IconAttach, IconAiMode } from "@/components/ui/icons";
 import { text, type AppTheme } from "@/components/ui/tokens";
 import { FilePicker } from "@/components/ui/file-picker";
@@ -106,15 +106,19 @@ export function ChatComposer({
     <div
       style={
         centered
-          ? { width: "100%", maxWidth: THREAD_MAX_W, margin: "0 auto" }
-          : { borderTop: `1px solid ${t.cardBorder}` }
+          ? { width: "100%" }
+          : { borderTop: `1px solid ${t.cardBorder}`, background: t.cardBg }
       }
       data-centered={centered || undefined}
     >
-      <div style={{ maxWidth: THREAD_MAX_W, margin: "0 auto", paddingTop: centered ? 0 : 12 }}>
+      {/* `.chat-col` — the one box the thread and the banner also use. The
+          gutter is INSIDE its max-width, which is the whole point: the field
+          and the message bubbles above it now resolve to the same left edge
+          instead of sitting 24px apart. */}
+      <div className="chat-col" style={{ paddingTop: centered ? 0 : 12 }}>
         {/* pending attachments */}
         {(pending.length > 0 || uploading) && (
-          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.4rem", padding: "0 24px 8px" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.4rem", padding: "0 0 8px" }}>
             {pending.map((a) => (
               <AttachmentChip key={a.id} file={a} onRemove={() => onRemovePending?.(a.id)} busy={busy} />
             ))}
@@ -125,7 +129,7 @@ export function ChatComposer({
         {/* the day's plan allowance — deliberately not styled as an error:
             reaching it is the plan working, not something going wrong */}
         {left != null && (spent || left <= LOW_WATER) && (
-          <div style={{ padding: "0 24px 8px", fontSize: text.sm, color: spent ? t.text : t.mutedLight }}>
+          <div style={{ padding: "0 0 8px", fontSize: text.sm, color: spent ? t.text : t.mutedLight }}>
             {spent ? (
               <>
                 That&apos;s your {quota?.limit} messages for today. They come back tomorrow —{" "}
@@ -142,7 +146,7 @@ export function ChatComposer({
 
         {/* error */}
         {(error || voice?.error) && (
-          <div style={{ padding: "0 24px 8px", fontSize: text.sm, color: "#f87171" }}>
+          <div style={{ padding: "0 0 8px", fontSize: text.sm, color: "#f87171" }}>
             {error || voice?.error}
             {/* A recording that failed to transcribe is held, not lost — a
                 spoken answer can't be scrolled back to and retyped. */}
@@ -175,7 +179,7 @@ export function ChatComposer({
         )}
 
         {/* composer */}
-        <div style={{ padding: "16px 24px", display: "flex", gap: 8, alignItems: "flex-end" }}>
+        <div style={{ padding: "16px 0", display: "flex", gap: 8, alignItems: "flex-end" }}>
           {voice && (
             <IconButton
               theme={t}
@@ -184,7 +188,7 @@ export function ChatComposer({
               onClick={voice.toggle}
               title="Voice message"
               bg={voice.recording ? "#e0245e" : t.cardBg2}
-              color={voice.recording ? "#fff" : t.mutedLight}
+              color={voice.recording ? "#fff" : t.muted}
             >
               {voice.recording ? <span style={{ fontSize: 14 }}>■</span> : <IconMic size={16} />}
             </IconButton>
@@ -241,8 +245,8 @@ export function ChatComposer({
                 height: 38,
                 borderRadius: "50%",
                 background: t.cardBg2,
-                color: t.mutedLight,
-                border: "none",
+                color: t.muted,
+                border: `1px solid ${t.cardBorder}`,
                 justifyContent: "center",
                 gap: 0,
                 padding: 0,

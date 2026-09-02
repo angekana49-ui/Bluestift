@@ -5,7 +5,6 @@ import { AttachmentCard, type Attachment } from "@/components/attachment";
 import { ChatComposer, type ComposerVoice } from "@/components/chat/chat-composer";
 import { ChatAvatar } from "@/components/chat/chat-avatar";
 import { RichText } from "@/components/chat/rich-text";
-import { THREAD_MAX_W } from "@/components/ui/shell";
 import { Bird } from "@/components/ui/widgets";
 import { status, hand, type AppTheme } from "@/components/ui/tokens";
 import { RayaName, RayaText } from "@/components/ui/brand";
@@ -88,6 +87,8 @@ export function RoomGroupChat({
     minWidth: 0,
     background: kind === "me" ? t.ctaBg : kind === "raya" ? t.bubbleBg : t.bubbleAccentBg,
     color: kind === "me" ? t.ctaText : t.text,
+    // Raya's bubble takes the card white, so it needs an edge to stay a bubble.
+    border: kind === "raya" ? `1px solid ${t.cardBorder}` : "1px solid transparent",
     borderRadius: kind === "me" ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
     padding: "13px 16px",
     fontSize: 16,
@@ -135,7 +136,7 @@ export function RoomGroupChat({
         just on reconnect rather than instantly. Say so instead of letting the
         thread look frozen. */}
     {liveDown && (
-      <div style={{ maxWidth: THREAD_MAX_W, margin: "0 auto", width: "100%", padding: "0 24px" }}>
+      <div className="chat-col">
         <div
           role="status"
           style={{
@@ -174,8 +175,20 @@ export function RoomGroupChat({
 
   return (
     <div
-      className={t.dark ? "chat-welcome-bg is-dark" : "chat-welcome-bg"}
-      style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0 }}
+      /* The wash backs the welcome screen only — once the room is talking, a
+         drifting gradient behind every bubble is noise. Same rule as the solo
+         chat surface, so the two read identically. */
+      className={
+        messages.length === 0 ? (t.dark ? "chat-welcome-bg is-dark" : "chat-welcome-bg") : undefined
+      }
+      style={{
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        minWidth: 0,
+        minHeight: 0,
+        background: messages.length === 0 ? undefined : t.contentBg,
+      }}
     >
       {messages.length === 0 ? (
         <div style={{ flex: 1, position: "relative", overflow: "auto", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: 24 }}>
@@ -234,8 +247,8 @@ export function RoomGroupChat({
           </div>
         </div>
       ) : (
-        <div style={{ flex: 1, overflow: "auto", padding: "28px 24px" }}>
-          <div style={{ maxWidth: THREAD_MAX_W, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>
+        <div className="chat-thread">
+          <div className="chat-col" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {messages.map((m) => {
               // A shared-document notice (livestreamed when someone uploads).
               if (m.has_media) {
