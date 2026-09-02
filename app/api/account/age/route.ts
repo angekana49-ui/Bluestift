@@ -2,7 +2,13 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAgeStatus } from "@/lib/compliance/gate";
-import { evaluateAccess, isPlausibleBirthYear } from "@/lib/compliance/age";
+import {
+  ageBand,
+  allowsOptionalProcessing,
+  evaluateAccess,
+  isPlausibleBirthYear,
+} from "@/lib/compliance/age";
+import { forgetOptionalProcessing } from "@/lib/compliance/optional-processing";
 
 /**
  * The age declaration (COPPA age screen / GDPR art. 8).
@@ -54,7 +60,7 @@ export async function POST(request: Request) {
   const admin = createAdminClient();
   const { data: existing } = await admin
     .from("users")
-    .select("age_declared_at, school_id, minor_consent_source")
+    .select("age_declared_at, school_id, minor_consent_source, training_consent_at")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -67,11 +73,34 @@ export async function POST(request: Request) {
     );
   }
 
+  /**
+   * This is where "on by default for adults" is actually applied.
+   *
+   * It cannot be a column default: the row is created at sign-up and the birth
+   * year only arrives here, so at INSERT nobody's age is known and the storage
+   * floor (migration 20260903100000) holds the column false until it is. An
+   * adult's default therefore lands at the one moment we learn they are an
+   * adult — which is also the first moment it could lawfully be granted.
+   *
+   * Only for an account that has never expressed a choice. `training_consent_at`
+   * is the record of that, in either direction, so a "no" made earlier survives
+   * declaring an age.
+   */
+  const isAdult = allowsOptionalProcessing(ageBand(birthYear));
+  const grantDefault = isAdult && !existing?.training_consent_at;
+
   const { error } = await admin
     .from("users")
-    .update({ birth_year: birthYear, age_declared_at: new Date().toISOString() })
+    .update({
+      birth_year: birthYear,
+      age_declared_at: new Date().toISOString(),
+      ...(grantDefault ? { training_consent: true } : {}),
+    })
     .eq("id", user.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // The band just changed, and the read path memoises it for five minutes.
+  forgetOptionalProcessing(user.id);
 
   // Decided from what we just stored, alongside any school that already vouches
   // for this student — a child who joined a class first is not blocked.
