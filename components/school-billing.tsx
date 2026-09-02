@@ -175,11 +175,15 @@ export function SchoolBilling() {
             lineHeight: 1.5,
           }}
         >
-          <strong>How billing works:</strong> you pay per <em>enrolled</em> student — your
-          effectif — <strong>not</strong> per active user. A school of{" "}
-          {billing.declaredEffectif ?? "N"} students pays for {billing.declaredEffectif ?? "N"},
-          whether 250 or all of them use Raya this month. The contracted number caps how many
-          students can join.
+          <strong>What you pay for:</strong> seats, not sessions. You hold{" "}
+          {billing.declaredEffectif != null ? (
+            <strong>{billing.declaredEffectif} seats</strong>
+          ) : (
+            "a set number of seats"
+          )}{" "}
+          — one per enrolled student — and the bill is the same whether one of them opens Raya
+          this month or every one of them. That number is also the ceiling: when the seats are
+          taken, the next student can&apos;t join until you add more.
         </div>
         <p style={{ fontSize: 14, color: t.muted, margin: "0 0 14px" }}>
           Record a payment received out-of-band (transfer, invoice) to activate your plan. Prices
