@@ -84,10 +84,24 @@ describe("archive is reversible and reachable", () => {
   });
 
   it("the history list separates archived from live and can restore them", () => {
-    expect(historyList).toMatch(/const live = conversations\.filter\(\(c\) => !c\.archived_at\)/);
-    expect(historyList).toMatch(/const archived = conversations\.filter\(\(c\) => c\.archived_at\)/);
+    // Matched on the PREDICATE, not on the name of the array it splits: the
+    // list is now filtered by the sidebar search first, so the source of rows
+    // changes while the archived/live distinction — the thing under test — must
+    // not. `archived_at` is still the only thing that decides which side a
+    // thread lands on.
+    expect(historyList).toMatch(/const live = \w+\.filter\(\(c\) => !c\.archived_at\)/);
+    expect(historyList).toMatch(/const archived = \w+\.filter\(\(c\) => c\.archived_at\)/);
     expect(historyList).toMatch(/hist\.archivedSection/);
     expect(historyList).toMatch(/hist\.unarchive/);
+  });
+
+  it("searching reaches archived threads instead of burying them", () => {
+    // The distinction archiving exists to draw only holds if an archived thread
+    // can still be FOUND. Behind a collapsed disclosure at the bottom of a
+    // two-hundred-row sidebar it cannot be, so a query filters both sides and
+    // opens the section whenever it has a hit.
+    expect(historyList).toMatch(/filterBySearch\(conversations/);
+    expect(historyList).toMatch(/archivedOpen/);
   });
 });
 

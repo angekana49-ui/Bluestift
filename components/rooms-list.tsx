@@ -7,6 +7,7 @@ import { dispatchUpgrade } from "@/lib/upgrade";
 import { useAppTheme } from "@/components/ui/theme";
 import { panelCard, cardTitle, textInput, ctaButton, neutralButton, formActions } from "@/components/ui/forms";
 import { FilePicker } from "@/components/ui/file-picker";
+import { ListNoMatch, ListToolbar, useListSearch } from "@/components/ui/list-filter";
 import { RayaName } from "@/components/ui/brand";
 
 type Room = {
@@ -131,6 +132,7 @@ export function RoomsList({
   const mySet = new Set(myRoomIds);
   const mine = rooms.filter((r) => mySet.has(r.id));
   const discover = rooms.filter((r) => !mySet.has(r.id));
+  const discoverSearch = useListSearch(discover, (r) => [r.name, r.subject], { noun: "rooms" });
 
   const sectionLabel: React.CSSProperties = {
     fontSize: 13,
@@ -287,9 +289,15 @@ export function RoomsList({
       </div>
 
       <div style={{ marginTop: 24 }}>
-        <div style={sectionLabel}>Discover</div>
+        <div style={{ ...sectionLabel, marginBottom: 10 }}>Discover</div>
+        {/* The one list here that grows without the learner doing anything —
+            every public room in the product lands in it. Subject as well as
+            name, since "who else is revising physics" is the question this
+            section is actually browsed with. */}
+        <ListToolbar search={discoverSearch} />
         {discover.length === 0 && <p style={{ color: t.muted, marginTop: 12, fontSize: 15 }}>No other public rooms.</p>}
-        {discover.map(roomCard)}
+        {discoverSearch.visible.map(roomCard)}
+        <ListNoMatch search={discoverSearch} />
       </div>
     </div>
   );

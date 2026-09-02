@@ -329,6 +329,8 @@ export const es: Partial<Messages> = {
   "hist.actions": "Opciones de la conversación",
   "hist.memorized": "Memorizada",
   "hist.archivedSection": "Archivadas",
+  "hist.search": "Buscar conversaciones",
+  "hist.noMatch": "Ninguna conversación coincide con tu búsqueda.",
   "hist.cancel": "Cancelar",
   "hist.working": "Procesando…",
 

@@ -329,6 +329,8 @@ export const de: Partial<Messages> = {
   "hist.actions": "Gesprächsoptionen",
   "hist.memorized": "Gemerkt",
   "hist.archivedSection": "Archiviert",
+  "hist.search": "Gespräche durchsuchen",
+  "hist.noMatch": "Kein Gespräch passt zu deiner Suche.",
   "hist.cancel": "Abbrechen",
   "hist.working": "Läuft…",
 

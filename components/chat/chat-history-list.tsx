@@ -12,6 +12,8 @@ import {
   IconUnarchive,
 } from "@/components/ui/icons";
 import { useTranslate } from "@/components/ui/locale";
+import { filterBySearch } from "@/lib/search";
+import { LIST_SEARCH_MIN } from "@/components/ui/list-filter";
 import type { AppTheme } from "@/components/ui/tokens";
 import type { MessageKey } from "@/lib/i18n";
 import type { Conversation } from "./types";
@@ -63,11 +65,37 @@ export function ChatHistoryList({
   const [menuFor, setMenuFor] = useState<{ conv: Conversation; x: number; y: number } | null>(null);
   const [pending, setPending] = useState<PendingAction | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [query, setQuery] = useState("");
+
+  /**
+   * Search is what makes archiving worth choosing over deleting.
+   *
+   * "Archive" promises the thread is put away but kept. Behind a collapsed
+   * disclosure at the bottom of a two-hundred-row sidebar, kept is only true in
+   * the database — nobody is scrolling to it. Filtering by title reaches
+   * archived threads as readily as live ones, and the disclosure opens by itself
+   * whenever the query finds something inside it, so a match is never hidden
+   * behind a click the reader does not know to make.
+   *
+   * Titles only: transcripts are not held client-side, and a field that quietly
+   * searches less than the user assumes is worse than a narrower promise.
+   */
+  const searchable = conversations.length >= LIST_SEARCH_MIN;
+
+  // A query must not outlive the field that set it — delete enough threads and
+  // the input goes away, so the text has to go with it.
+  useEffect(() => {
+    if (!searchable) setQuery("");
+  }, [searchable]);
+
+  const q = searchable ? query.trim() : "";
+  const matching = q ? filterBySearch(conversations, q, (c) => [c.title]) : conversations;
 
   // `archived_at` is optional on the type: a surface that has no such notion
   // (Schools) sends rows without it, and those must all count as live.
-  const live = conversations.filter((c) => !c.archived_at);
-  const archived = conversations.filter((c) => c.archived_at);
+  const live = matching.filter((c) => !c.archived_at);
+  const archived = matching.filter((c) => c.archived_at);
+  const archivedOpen = showArchived || (q.length > 0 && archived.length > 0);
 
   const row = (c: Conversation) => (
     <ConversationRow
@@ -114,9 +142,83 @@ export function ChatHistoryList({
         {tr("hist.new")}
       </button>
 
+      {/* Not the shared <ListToolbar>: the sidebar has its own palette
+          (sidebarBg/sidebarText/sidebarMuted, not card/input), and a field
+          borrowing the card colours reads as a panel dropped into the rail. The
+          part that must not diverge — what counts as a match — is shared, and
+          lives in lib/search.ts. */}
+      {searchable && (
+        <div style={{ position: "relative", margin: "6px 0 4px" }}>
+          <input
+            type="search"
+            className="list-search-input"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape" && query) {
+                e.stopPropagation();
+                setQuery("");
+              }
+            }}
+            placeholder={tr("hist.search")}
+            aria-label={tr("hist.search")}
+            style={{
+              width: "100%",
+              boxSizing: "border-box",
+              background: t.sidebarActiveBg,
+              color: t.sidebarText,
+              border: `1px solid ${t.sidebarBorder}`,
+              borderRadius: 9,
+              padding: "7px 26px 7px 10px",
+              fontSize: 13,
+              fontFamily: "inherit",
+              outline: "none",
+            }}
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              aria-label={tr("hist.cancel")}
+              style={{
+                position: "absolute",
+                right: 4,
+                top: "50%",
+                transform: "translateY(-50%)",
+                width: 20,
+                height: 20,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 0,
+                border: "none",
+                borderRadius: 999,
+                background: "transparent",
+                color: t.sidebarMuted,
+                fontSize: 13,
+                lineHeight: 1,
+                cursor: "pointer",
+              }}
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      )}
+
       {conversations.length === 0 && (
         <div style={{ fontSize: 13, color: t.sidebarMuted, padding: "6px 10px" }}>
           {tr("hist.empty")}
+        </div>
+      )}
+
+      {/* "Nothing here" and "nothing matched" are different sentences, and only
+          the second one has a remedy. Telling a learner with 200 threads that
+          they have no conversations because they mistyped a word is the version
+          of this that gets reported as data loss. */}
+      {conversations.length > 0 && matching.length === 0 && (
+        <div style={{ fontSize: 13, color: t.sidebarMuted, padding: "6px 10px", lineHeight: 1.5 }}>
+          {tr("hist.noMatch")}
         </div>
       )}
 
@@ -129,7 +231,7 @@ export function ChatHistoryList({
         <>
           <button
             type="button"
-            aria-expanded={showArchived}
+            aria-expanded={archivedOpen}
             onClick={(e) => {
               e.stopPropagation();
               setShowArchived((s) => !s);
@@ -159,12 +261,12 @@ export function ChatHistoryList({
               style={{
                 flex: "none",
                 transition: "transform 0.15s ease",
-                transform: showArchived ? "rotate(0deg)" : "rotate(-90deg)",
+                transform: archivedOpen ? "rotate(0deg)" : "rotate(-90deg)",
               }}
             />
             {tr("hist.archivedSection")} ({archived.length})
           </button>
-          {showArchived && archived.map(row)}
+          {archivedOpen && archived.map(row)}
         </>
       )}
 

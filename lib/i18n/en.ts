@@ -478,6 +478,8 @@ export const en = {
   "hist.actions": "Conversation options",
   "hist.memorized": "Memorized",
   "hist.archivedSection": "Archived",
+  "hist.search": "Search conversations",
+  "hist.noMatch": "No conversation matches your search.",
   "hist.cancel": "Cancel",
   "hist.working": "Working…",
 

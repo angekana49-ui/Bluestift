@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAppTheme } from "@/components/ui/theme";
 import { panelCard, cardTitle, ghostButton } from "@/components/ui/forms";
 import { IconMemorize } from "@/components/ui/icons";
+import { ListNoMatch, ListToolbar, useListSearch } from "@/components/ui/list-filter";
 import { text } from "@/components/ui/tokens";
 import { RayaText } from "@/components/ui/brand";
 
@@ -33,6 +34,12 @@ export function KernelMemory({ initial }: { initial: MemorizedConversation[] }) 
   const [confirming, setConfirming] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Untitled threads keep the label the list shows them under, so searching
+  // "untitled" finds the ones with no title rather than nothing.
+  const search = useListSearch(items, (c) => [c.title ?? "Untitled conversation"], {
+    noun: "conversations",
+  });
 
   async function forget(id: string) {
     if (busy) return;
@@ -80,8 +87,10 @@ export function KernelMemory({ initial }: { initial: MemorizedConversation[] }) 
           </RayaText>
         </p>
       ) : (
+        <>
+        <ListToolbar search={search} />
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {items.map((c) => {
+          {search.visible.map((c) => {
             const open = confirming === c.id;
             return (
               <div
@@ -152,6 +161,8 @@ export function KernelMemory({ initial }: { initial: MemorizedConversation[] }) 
             );
           })}
         </div>
+        <ListNoMatch search={search} />
+        </>
       )}
 
       {error && (
