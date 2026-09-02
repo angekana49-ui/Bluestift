@@ -365,10 +365,21 @@ function LibraryRow({
             title="Deadline (optional)"
             disabled={busy}
           />
-          <button style={{ ...btn, opacity: busy || !classId ? 0.6 : 1 }} onClick={assign} disabled={busy || !classId}>
+          {/* A select and a date field are both fixed-width, so the row's slack
+              pooled AFTER the button and it sat hard left with empty space to
+              its right — the same shape as the Assignments row in school-team.
+              The error takes a full row of its own rather than sitting past the
+              button and pushing it back off the edge. */}
+          <button
+            style={{ ...btn, marginLeft: "auto", opacity: busy || !classId ? 0.6 : 1 }}
+            onClick={assign}
+            disabled={busy || !classId}
+          >
             {busy ? "Assigning…" : "Assign to class"}
           </button>
-          {error && <span style={{ color: "#f87171", fontSize: "0.8rem" }}>{error}</span>}
+          {error && (
+            <span style={{ color: "#f87171", fontSize: "0.8rem", flexBasis: "100%" }}>{error}</span>
+          )}
         </div>
       )}
     </div>

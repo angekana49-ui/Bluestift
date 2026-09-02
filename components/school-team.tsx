@@ -11,6 +11,13 @@ import type {
 
 import { useAppTheme } from "@/components/ui/theme";
 import { panelCard, textInput, ctaButton, ghostButton } from "@/components/ui/forms";
+import {
+  ListNoMatch,
+  ListToolbar,
+  useListSearch,
+  withCount,
+} from "@/components/ui/list-filter";
+import { sortByName } from "@/lib/search";
 
 type ClassOpt = { id: string; name: string };
 
@@ -194,20 +201,49 @@ export function SchoolTeam({ classes }: { classes: ClassOpt[] }) {
     }
   }
 
+  /**
+   * Sorted, then searchable — in that order.
+   *
+   * These four lists all rendered in insertion order, which for a school that
+   * has been running two years means "the order people happened to be added in",
+   * i.e. none. Alphabetical first so scanning works at all, then a field for
+   * when scanning stops being enough (see LIST_SEARCH_MIN: none of these show a
+   * search box until they are actually long).
+   *
+   * Assignments are keyed on the teacher, since "what does this teacher teach"
+   * is the question the row is read to answer; the search covers class and
+   * subject too, so typing a class name filters to that class without needing a
+   * second control.
+   */
+  const sortedSubjects = sortByName(subjects, (s) => s.name);
+  const sortedProfs = sortByName(profs, (p) => p.name);
+  const sortedAssignments = sortByName(assignments, (a) => a.profName);
+
+  const subjectSearch = useListSearch(sortedSubjects, (s) => [s.name, s.code], { noun: "subjects" });
+  const requestSearch = useListSearch(requests, (r) => [r.name, r.email], { noun: "requests" });
+  const profSearch = useListSearch(sortedProfs, (p) => [p.name, p.email], { noun: "teachers" });
+  const assignmentSearch = useListSearch(
+    sortedAssignments,
+    (a) => [a.profName, a.className, a.subjectName],
+    { noun: "assignments" },
+  );
+
   return (
     <div>
       {error && <p style={{ color: "#f87171" }}>{error}</p>}
 
       {/* Subjects */}
       <div style={box}>
-        <h3 style={{ marginTop: 0 }}>Subjects</h3>
+        <h3 style={{ marginTop: 0 }}>{withCount("Subjects", subjects.length, t)}</h3>
         {subjects.length === 0 && <p style={{ opacity: 0.55, fontSize: "0.85rem" }}>No subjects yet.</p>}
-        {subjects.map((s) => (
+        <ListToolbar search={subjectSearch} />
+        {subjectSearch.visible.map((s) => (
           <div key={s.id} style={{ padding: "0.2rem 0" }}>
             {s.name}
             {s.code ? <span style={{ opacity: 0.5 }}> · {s.code}</span> : null}
           </div>
         ))}
+        <ListNoMatch search={subjectSearch} />
         <form onSubmit={addSubject} style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem", flexWrap: "wrap" }}>
           <input style={{ ...input, flex: 2, minWidth: 160 }} placeholder="Subject name" value={sName} onChange={(e) => setSName(e.target.value)} />
           <input style={{ ...input, flex: 1, minWidth: 90 }} placeholder="Code (e.g. MATH)" value={sCode} onChange={(e) => setSCode(e.target.value)} />
@@ -219,7 +255,8 @@ export function SchoolTeam({ classes }: { classes: ClassOpt[] }) {
       {requests.length > 0 && (
         <div style={box}>
           <h3 style={{ marginTop: 0 }}>Requests to join ({requests.length})</h3>
-          {requests.map((r) => (
+          <ListToolbar search={requestSearch} />
+          {requestSearch.visible.map((r) => (
             <div
               key={r.id}
               style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.35rem 0" }}
@@ -232,14 +269,16 @@ export function SchoolTeam({ classes }: { classes: ClassOpt[] }) {
               <button style={ghost} onClick={() => decideRequest(r, "reject")}>Reject</button>
             </div>
           ))}
+          <ListNoMatch search={requestSearch} />
         </div>
       )}
 
       {/* Profs */}
       <div style={box}>
-        <h3 style={{ marginTop: 0 }}>Teachers</h3>
+        <h3 style={{ marginTop: 0 }}>{withCount("Teachers", profs.length, t)}</h3>
         {profs.length === 0 && <p style={{ opacity: 0.55, fontSize: "0.85rem" }}>No teachers yet.</p>}
-        {profs.map((p) => (
+        <ListToolbar search={profSearch} />
+        {profSearch.visible.map((p) => (
           <div key={p.adminId} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.2rem 0" }}>
             <span style={{ flex: 1 }}>
               {p.name}
@@ -254,6 +293,7 @@ export function SchoolTeam({ classes }: { classes: ClassOpt[] }) {
             </button>
           </div>
         ))}
+        <ListNoMatch search={profSearch} />
         <form onSubmit={addProf} style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem", flexWrap: "wrap" }}>
           <input style={{ ...input, flex: 1, minWidth: 200 }} placeholder="Teacher email or username" value={profId} onChange={(e) => setProfId(e.target.value)} />
           <button type="submit" style={btn}>Add teacher</button>
@@ -296,29 +336,37 @@ export function SchoolTeam({ classes }: { classes: ClassOpt[] }) {
 
       {/* Assignments */}
       <div style={box}>
-        <h3 style={{ marginTop: 0 }}>Assignments (teacher → class → subject)</h3>
+        <h3 style={{ marginTop: 0 }}>
+          {withCount("Assignments (teacher → class → subject)", assignments.length, t)}
+        </h3>
         {assignments.length === 0 && <p style={{ opacity: 0.55, fontSize: "0.85rem" }}>No assignments yet.</p>}
-        {assignments.map((a) => (
+        <ListToolbar search={assignmentSearch} />
+        {assignmentSearch.visible.map((a) => (
           <div key={a.id} style={{ padding: "0.2rem 0" }}>
             {a.profName} → {a.className} → {a.subjectName}
           </div>
         ))}
+        <ListNoMatch search={assignmentSearch} />
         <form onSubmit={addAssignment} style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem", flexWrap: "wrap" }}>
+          {/* Sorted, like the lists above. A native <select> only offers
+              first-letter type-ahead, so with a hundred teachers in it the
+              alphabetical order is the ONLY thing making the control usable —
+              in insertion order, type-ahead lands you somewhere arbitrary. */}
           <select style={select} value={aProf} onChange={(e) => setAProf(e.target.value)}>
             {profs.length === 0 && <option value="">No teachers</option>}
-            {profs.map((p) => (
+            {sortedProfs.map((p) => (
               <option key={p.adminId} value={p.adminId}>{p.name}</option>
             ))}
           </select>
           <select style={select} value={aClass} onChange={(e) => setAClass(e.target.value)}>
             {classes.length === 0 && <option value="">No classes</option>}
-            {classes.map((c) => (
+            {sortByName(classes, (c) => c.name).map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
           <select style={select} value={aSubject} onChange={(e) => setASubject(e.target.value)}>
             {subjects.length === 0 && <option value="">No subjects</option>}
-            {subjects.map((s) => (
+            {sortedSubjects.map((s) => (
               <option key={s.id} value={s.id}>{s.name}</option>
             ))}
           </select>

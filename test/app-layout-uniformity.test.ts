@@ -144,7 +144,14 @@ describe("no primary action is left stranded at the leading edge", () => {
    * pattern is, rather than trying to detect the pattern itself — a CSS layout
    * bug is not something a regex can see.
    */
-  const SELECT_ROWS = ["components/school-team.tsx", "components/school-reports.tsx"];
+  const SELECT_ROWS = [
+    "components/school-team.tsx",
+    "components/school-reports.tsx",
+    // "Assign to class": a <select> and a datetime field, both fixed — the same
+    // shape, found on the second sweep because it only renders once a teacher
+    // expands a resource in their library.
+    "components/school/prof-prepare.tsx",
+  ];
 
   it("every fixed-width select row pushes its action to the trailing edge", () => {
     for (const p of SELECT_ROWS) {
@@ -152,6 +159,32 @@ describe("no primary action is left stranded at the leading edge", () => {
       // Each file has exactly one such row, and its button must claim the slack.
       expect(src, p).toMatch(/\.\.\.btn, marginLeft: "auto"|marginLeft: "auto", opacity/);
     }
+  });
+
+  it("Generate is blue and on the edge in BOTH places a class code is made", () => {
+    /**
+     * The same verb on the same object, rendered two ways: the Team tab's
+     * "Generate code" was a blue button at the trailing edge, while the class
+     * card's was a grey ghost sitting hard left under its own list — so the
+     * card's primary action read as a footnote to the codes above it.
+     *
+     * Pinned as a pair, because the failure was never either one alone. It was
+     * the disagreement.
+     */
+    const team = read("components/school-team.tsx");
+    const admin = read("components/school-admin.tsx");
+    expect(team).toMatch(/style=\{btn\}\s*onClick=\{generateInvite\}/);
+    // The class card: inside a formActions row (trailing edge) and taking `btn`.
+    expect(admin).toMatch(/\{\{ \.\.\.formActions, marginTop: "0\.75rem" \}\}[\s\S]{0,200}style=\{btn\}/);
+    expect(admin).toMatch(/Regenerate code" : "\+ Generate code"/);
+  });
+
+  it("a row of actions after a fixed-width label claims the slack", () => {
+    // The access-code row: [code][Copy][Deactivate], all intrinsic width, so the
+    // free space pooled to the RIGHT of the buttons and they sat mid-card with
+    // an empty half beside them. The <code> takes flex:1 and pushes them out.
+    const admin = read("components/school-admin.tsx");
+    expect(admin).toMatch(/flex: 1,\s*\n\s*minWidth: 0,\s*\n\s*fontSize: "1\.05rem"/);
   });
 
   it("a status message beside an action never pushes the action off the edge", () => {

@@ -32,6 +32,14 @@ import { RayaName, SchoolsName } from "@/components/ui/brand";
 import { createClient } from "@/lib/supabase/client";
 import { KpiTile, MasteryGauge } from "@/components/ui/widgets";
 import {
+  FilterChips,
+  ListNoMatch,
+  ListToolbar,
+  useListSearch,
+  withCount,
+} from "@/components/ui/list-filter";
+import { sortByName } from "@/lib/search";
+import {
   IconOverview,
   IconClasses,
   IconKernel,
@@ -977,7 +985,7 @@ function FocusView({
           value={classId}
           onChange={(e) => setClassId(e.target.value)}
         >
-          {classes.map((c) => (
+          {sortByName(classes, (c) => c.name).map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
             </option>
@@ -993,9 +1001,13 @@ function FocusView({
           <p style={{ margin: 0, opacity: 0.65 }}>No students have joined this class yet.</p>
         </div>
       )}
-      {roster?.students.map((s) => (
-        <RosterRow key={s.userId} s={s} busy={busy} onOpen={() => onOpenStudent(roster.classId, s.userId)} />
-      ))}
+      {roster && roster.students.length > 0 && (
+        <RosterList
+          students={roster.students}
+          busy={busy}
+          onStudent={(userId) => onOpenStudent(roster.classId, userId)}
+        />
+      )}
     </div>
   );
 }
@@ -1330,6 +1342,18 @@ function ProfInsightsView({ onStudent, schoolName }: { onStudent: (classId: stri
     })();
   }, []);
 
+  /**
+   * A teacher with six classes can be looking at forty at-risk students, which
+   * is the list they most need to narrow — usually to one class, or to the one
+   * name a parent just asked about. Declared above the early returns: the data
+   * arrives asynchronously and a hook cannot start existing on the second render.
+   */
+  const alertSearch = useListSearch(
+    data?.alerts ?? [],
+    (a) => [a.name, a.className, a.statusLabel, ...(a.alertTypes ?? [])],
+    { noun: "students" },
+  );
+
   if (loading) return <p style={{ opacity: 0.6 }}>Loading…</p>;
   if (error) return <p style={{ color: "#f87171" }}>{error}</p>;
   if (!data) return null;
@@ -1338,7 +1362,7 @@ function ProfInsightsView({ onStudent, schoolName }: { onStudent: (classId: stri
     <div>
       <div style={box}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          <h3 style={{ margin: 0, flex: 1 }}>At-risk students</h3>
+          <h3 style={{ margin: 0, flex: 1 }}>{withCount("At-risk students", data.alerts.length)}</h3>
           {(data.alerts.length > 0 || data.insights.length > 0) && (
             <button style={ghost} onClick={() => downloadBrandedPdf(profInsightsToDoc(data, schoolName))}>
               Download PDF
@@ -1355,7 +1379,9 @@ function ProfInsightsView({ onStudent, schoolName }: { onStudent: (classId: stri
         ) : data.alerts.length === 0 ? (
           <p style={{ opacity: 0.55, fontSize: "0.85rem", margin: 0 }}>No students need attention right now.</p>
         ) : (
-          data.alerts.map((a) => (
+          <>
+          <ListToolbar search={alertSearch} style={{ marginTop: 12 }} />
+          {alertSearch.visible.map((a) => (
             <div
               key={`${a.classId}:${a.userId}`}
               style={{ display: "flex", alignItems: "center", gap: "0.6rem", padding: "0.35rem 0" }}
@@ -1381,7 +1407,9 @@ function ProfInsightsView({ onStudent, schoolName }: { onStudent: (classId: stri
               ) : null}
               <button style={ghost} onClick={() => onStudent(a.classId, a.userId)}>Open →</button>
             </div>
-          ))
+          ))}
+          <ListNoMatch search={alertSearch} />
+          </>
         )}
         {ackError && (
           <p style={{ color: "#f87171", fontSize: "0.8rem", margin: "0.4rem 0 0" }}>{ackError}</p>
@@ -1859,9 +1887,13 @@ function Dashboard({
 
         {navBusy && <p style={{ color: t.muted, fontSize: 15 }}>Loading…</p>}
 
-        {dash.classes.map((c) => (
-          <ClassCard key={c.id} c={c} onGenCode={genCode} onToggleCode={toggleCode} onSetEffectif={updateEffectif} onOpen={() => openClass(c.id)} />
-        ))}
+        <ClassesList
+          classes={dash.classes}
+          onGenCode={genCode}
+          onToggleCode={toggleCode}
+          onSetEffectif={updateEffectif}
+          onOpen={openClass}
+        />
       </>
     );
 
@@ -1935,6 +1967,11 @@ function OverviewView({
   onClass: (classId: string) => void;
 }) {
   const { t, box } = useSchoolStyles();
+  // Before the early returns: hooks cannot sit behind a loading branch, and this
+  // one has two. An absent overview is an empty list, which the hook handles.
+  const sortedClasses = sortByName(overview?.classes ?? [], (c) => c.name);
+  const search = useListSearch(sortedClasses, (c) => [c.name], { noun: "classes" });
+
   if (busy && !overview) return <p style={{ color: t.muted, fontSize: 15 }}>Loading overview…</p>;
   if (!overview) return <p style={{ color: t.muted, fontSize: 15 }}>No overview available.</p>;
 
@@ -1947,7 +1984,9 @@ function OverviewView({
         <KpiTile theme={t} label="Average mastery" value={pctOrDash(overview.totals.avgMastery)} />
       </div>
 
-      <div style={{ fontSize: 15, fontWeight: 700, color: t.text, margin: "0 0 10px" }}>{school} · by class</div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: t.text, margin: "0 0 10px" }}>
+        {withCount(`${school} · by class`, overview.classes.length, t)}
+      </div>
 
       {overview.classes.length === 0 ? (
         <div style={box}>
@@ -1956,7 +1995,13 @@ function OverviewView({
           </p>
         </div>
       ) : (
-        overview.classes.map((c) => <OverviewClassRow key={c.id} c={c} onOpen={() => onClass(c.id)} />)
+        <>
+          <ListToolbar search={search} />
+          {search.visible.map((c) => (
+            <OverviewClassRow key={c.id} c={c} onOpen={() => onClass(c.id)} />
+          ))}
+          <ListNoMatch search={search} />
+        </>
       )}
     </div>
   );
@@ -2047,6 +2092,54 @@ function OverviewRightPanel({ overview }: { overview: SchoolOverview }) {
   );
 }
 
+/**
+ * The "Classes & codes" list. Its own component only because the search needs a
+ * hook, and the tab that used to render this inline is chosen by a ternary —
+ * a hook cannot live in a branch.
+ *
+ * Search covers the access CODES as well as the names, which is the lookup this
+ * screen exists for in the other direction: a student calls to say their code
+ * does not work and reads it out, and the admin has to find which class it
+ * belongs to.
+ */
+function ClassesList({
+  classes,
+  onGenCode,
+  onToggleCode,
+  onSetEffectif,
+  onOpen,
+}: {
+  classes: AdminClass[];
+  onGenCode: (classId: string) => void;
+  onToggleCode: (classId: string, codeId: string, isActive: boolean) => void;
+  onSetEffectif: (classId: string, expectedSize: number | null) => Promise<void>;
+  onOpen: (classId: string) => void;
+}) {
+  const sorted = sortByName(classes, (c) => c.name);
+  const search = useListSearch(
+    sorted,
+    (c) => [c.name, c.level, ...c.codes.map((k) => k.code)],
+    { noun: "classes" },
+  );
+
+  return (
+    <>
+      <ListToolbar search={search} />
+      {search.visible.map((c) => (
+        <ClassCard
+          key={c.id}
+          c={c}
+          onGenCode={onGenCode}
+          onToggleCode={onToggleCode}
+          onSetEffectif={onSetEffectif}
+          onOpen={() => onOpen(c.id)}
+        />
+      ))}
+      <ListNoMatch search={search} />
+    </>
+  );
+}
+
 function ClassCard({
   c,
   onGenCode,
@@ -2060,7 +2153,7 @@ function ClassCard({
   onSetEffectif: (classId: string, expectedSize: number | null) => Promise<void>;
   onOpen: () => void;
 }) {
-  const { box, input, ghost } = useSchoolStyles();
+  const { box, input, btn, ghost } = useSchoolStyles();
   const [copied, setCopied] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(c.expectedSize != null ? String(c.expectedSize) : "");
@@ -2169,6 +2262,11 @@ function ClassCard({
           <div key={k.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <code
               style={{
+                // Claims the slack, so Copy/Deactivate land on the card's
+                // trailing edge instead of trailing the code by one gap and
+                // leaving the rest of the row empty.
+                flex: 1,
+                minWidth: 0,
                 fontSize: "1.05rem",
                 letterSpacing: "0.12em",
                 fontWeight: 700,
@@ -2188,23 +2286,29 @@ function ClassCard({
         ))}
       </div>
 
-      <button
-        style={{ ...ghost, marginTop: "0.75rem" }}
-        onClick={() => {
-          // Regenerating retires the current code for good — confirm first.
-          if (
-            c.codes.length > 0 &&
-            !window.confirm(
-              "This permanently deactivates the current code — students who already joined keep their access. Continue?",
-            )
-          ) {
-            return;
-          }
-          onGenCode(c.id);
-        }}
-      >
-        {c.codes.length > 0 ? "Regenerate code" : "+ Generate code"}
-      </button>
+      {/* The card's primary action, and it was neither blue nor on the edge —
+          "Generate code" in the Team tab is both, for the same verb on the same
+          object. A ghost button hard left read as a footnote to the code list
+          rather than the thing that makes a code. */}
+      <div style={{ ...formActions, marginTop: "0.75rem" }}>
+        <button
+          style={btn}
+          onClick={() => {
+            // Regenerating retires the current code for good — confirm first.
+            if (
+              c.codes.length > 0 &&
+              !window.confirm(
+                "This permanently deactivates the current code — students who already joined keep their access. Continue?",
+              )
+            ) {
+              return;
+            }
+            onGenCode(c.id);
+          }}
+        >
+          {c.codes.length > 0 ? "Regenerate code" : "+ Generate code"}
+        </button>
+      </div>
     </div>
   );
 }
@@ -2267,9 +2371,7 @@ function RosterView({
           </p>
         </div>
       ) : (
-        roster.students.map((s) => (
-          <RosterRow key={s.userId} s={s} busy={busy} onOpen={() => onStudent(s.userId)} />
-        ))
+        <RosterList students={roster.students} busy={busy} onStudent={onStudent} />
       )}
 
       <InstructionsPanel classId={roster.classId} />
@@ -2277,6 +2379,93 @@ function RosterView({
   );
 }
 
+
+/**
+ * A class roster, made navigable: sorted by surname, searchable, and filterable
+ * by the one thing a teacher opens the list to find.
+ *
+ * Rendered in both places a roster appears (the admin's class drill-down and the
+ * teacher's "Focus on a student"), because two copies of a filtered list is two
+ * chances for them to disagree about what "needs attention" means.
+ *
+ * Search runs first and the chip counts are taken from its result, so the
+ * numbers on the chips always add up to what is on screen — a facet count that
+ * silently ignores the active query is a number that lies.
+ */
+function RosterList({
+  students,
+  busy,
+  onStudent,
+}: {
+  students: RosterStudent[];
+  busy: boolean;
+  onStudent: (userId: string) => void;
+}) {
+  const { t } = useSchoolStyles();
+  const [risk, setRisk] = useState("all");
+
+  // Surname first: a class list is read as "who is Kouamé", not "who is Marie",
+  // and a school's paperwork is ordered that way everywhere else.
+  const sorted = sortByName(students, (s) => `${s.lastName} ${s.firstName}`.trim());
+  const search = useListSearch(sorted, (s) => [s.firstName, s.lastName, s.statusLabel], {
+    noun: "students",
+  });
+
+  const found = search.visible;
+  const isAlert = (s: RosterStudent) =>
+    s.riskLevel === "high" || s.riskLevel === "medium" || s.riskLevel === "med";
+  const hasData = (s: RosterStudent) => s.riskLevel != null;
+
+  const buckets: Record<string, (s: RosterStudent) => boolean> = {
+    all: () => true,
+    alert: isAlert,
+    ok: (s) => hasData(s) && !isAlert(s),
+    // Kept as its own chip rather than folded into "On track": a student the
+    // Kernel has never seen is not a student who is doing fine, and merging the
+    // two is how a class looks healthier than it is.
+    none: (s) => !hasData(s),
+  };
+
+  const shown = found.filter(buckets[risk] ?? buckets.all);
+  const showChips = students.length >= 8;
+
+  return (
+    <>
+      <ListToolbar search={search}>
+        {showChips && (
+          <FilterChips
+            value={risk}
+            onChange={setRisk}
+            options={[
+              { key: "all", label: "All", count: found.length },
+              { key: "alert", label: "Needs attention", count: found.filter(isAlert).length },
+              { key: "ok", label: "On track", count: found.filter(buckets.ok).length },
+              { key: "none", label: "No data", count: found.filter(buckets.none).length },
+            ]}
+          />
+        )}
+      </ListToolbar>
+
+      {shown.map((s) => (
+        <RosterRow key={s.userId} s={s} busy={busy} onOpen={() => onStudent(s.userId)} />
+      ))}
+
+      <ListNoMatch search={search} />
+      {!search.noMatch && shown.length === 0 && found.length > 0 && (
+        <p style={{ color: t.muted, fontSize: 15, padding: "8px 2px" }}>
+          No students in this filter.{" "}
+          <button
+            type="button"
+            onClick={() => setRisk("all")}
+            style={{ background: "none", border: "none", padding: 0, color: t.link, fontSize: 15, fontWeight: 650, fontFamily: "inherit", cursor: "pointer" }}
+          >
+            Show all
+          </button>
+        </p>
+      )}
+    </>
+  );
+}
 
 function RosterRow({ s, busy, onOpen }: { s: RosterStudent; busy: boolean; onOpen: () => void }) {
   const { box, ghost } = useSchoolStyles();
