@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { FilePreview, type Attachment } from "@/components/attachment";
-import { useDarkMode } from "@/components/ui/theme";
+import { useAppTheme } from "@/components/ui/theme";
 import { RayaName, RayaText } from "@/components/ui/brand";
 import { neutralButton } from "@/components/ui/forms";
 import { FilePicker } from "@/components/ui/file-picker";
@@ -14,7 +14,7 @@ type RoomFile = Attachment & {
 };
 
 export function RoomFiles({ roomId, readOnly = false }: { roomId: string; readOnly?: boolean }) {
-  const { theme: t } = useDarkMode();
+  const { theme: t } = useAppTheme();
   const box: React.CSSProperties = {
     background: t.cardBg2,
     border: `1px solid ${t.cardBorder}`,

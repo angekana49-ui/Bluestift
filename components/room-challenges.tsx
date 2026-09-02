@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useDarkMode } from "@/components/ui/theme";
+import { useAppTheme } from "@/components/ui/theme";
 import { type AppTheme } from "@/components/ui/tokens";
 import { downloadBrandedPdf, downloadBrandedText, type BrandedDoc } from "@/lib/document";
 import { TestPlayer, ReaderView, type TestAnswer, type TestQuestion, type TestResult } from "@/components/study/focus-player";
@@ -101,7 +101,7 @@ export function RoomChallenges({
   /** When the room's timer has ended: no new challenges, no new attempts. */
   readOnly?: boolean;
 }) {
-  const { theme: t } = useDarkMode();
+  const { theme: t } = useAppTheme();
   const btn = mkBtn(t);
   const ghost = mkGhost(t);
   const box = mkBox(t);

@@ -12,7 +12,9 @@ import { RoomFiles } from "@/components/room-files";
 import { FilePreview, type Attachment } from "@/components/attachment";
 import { downloadBrandedPdf, downloadBrandedText, type BrandedDoc } from "@/lib/document";
 import { ShareLinkButton } from "@/components/study/share-button";
-import { useDarkMode } from "@/components/ui/theme";
+import { useDarkMode, useAppTheme, AppThemeProvider } from "@/components/ui/theme";
+import { LocaleProvider } from "@/components/ui/locale";
+import { useLocale } from "@/lib/use-locale";
 import { RayaShell } from "@/components/raya/raya-shell";
 import { RightPanel, IconButton, PageBody } from "@/components/ui/shell";
 import { IconPanel, IconFile } from "@/components/ui/icons";
@@ -104,7 +106,25 @@ const mkListBox = (t: AppTheme): React.CSSProperties => ({
   margin: "16px 0",
 });
 
-export function RoomView({
+/**
+ * The second site that rendered `RayaShell` without the providers above it —
+ * same defect as /chat, same fix. See the note on `Chat`: the shell's Settings
+ * sheet reads the theme from CONTEXT because it has to be able to change it,
+ * so anything mounting the shell has to provide it.
+ */
+export function RoomView(props: React.ComponentProps<typeof RoomViewBody>) {
+  const value = useDarkMode();
+  const localeValue = useLocale();
+  return (
+    <AppThemeProvider value={value}>
+      <LocaleProvider value={localeValue}>
+        <RoomViewBody {...props} />
+      </LocaleProvider>
+    </AppThemeProvider>
+  );
+}
+
+function RoomViewBody({
   roomId,
   roomName,
   subject,
@@ -144,7 +164,7 @@ export function RoomView({
   initialReport: RoomReport;
 }) {
   const router = useRouter();
-  const { theme: t } = useDarkMode();
+  const { theme: t } = useAppTheme();
   const btn = mkBtn(t);
   const ghost = mkGhost(t);
   const listBox = mkListBox(t);

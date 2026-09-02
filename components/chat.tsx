@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AnalyzeResponse } from "@/lib/kernel/types";
 import { downloadBrandedPdf, downloadBrandedText, type BrandedDoc } from "@/lib/document";
-import { useDarkMode } from "@/components/ui/theme";
+import { useDarkMode, useAppTheme, AppThemeProvider } from "@/components/ui/theme";
+import { LocaleProvider } from "@/components/ui/locale";
+import { useLocale } from "@/lib/use-locale";
 import { RayaShell } from "@/components/raya/raya-shell";
 import { RightPanel } from "@/components/ui/shell";
 import { IconKernel } from "@/components/ui/icons";
@@ -57,7 +59,35 @@ function analysisToText(a: AnalyzeResponse): string {
     .join("\n");
 }
 
-export function Chat({
+/**
+ * `/chat` was the one Raya route that rendered `RayaShell` bare.
+ *
+ * Every other one — /rooms, /tools, /profile, /assignments, /account — goes
+ * through `RayaScaffold`, which mounts `AppThemeProvider` and `LocaleProvider`
+ * above the shell. This route called `useDarkMode()` privately and threaded the
+ * theme down as props instead, which worked for as long as nothing inside the
+ * shell read the CONTEXT. `SettingsSheet` does — it needs `setMode`, not just a
+ * palette — so opening Settings on the most-used screen in the product threw.
+ *
+ * The providers have to sit ABOVE whatever renders the shell, so the body is
+ * split out rather than wrapped in place: this component owns the single
+ * `useDarkMode` instance and the body reads it back through `useAppTheme()`,
+ * which is also what makes the theme switch inside Settings re-render the
+ * conversation behind it instead of only the sheet.
+ */
+export function Chat(props: React.ComponentProps<typeof ChatBody>) {
+  const value = useDarkMode();
+  const localeValue = useLocale();
+  return (
+    <AppThemeProvider value={value}>
+      <LocaleProvider value={localeValue}>
+        <ChatBody {...props} />
+      </LocaleProvider>
+    </AppThemeProvider>
+  );
+}
+
+function ChatBody({
   conversationId: initialId,
   initialMessages,
   initialFiles,
@@ -90,7 +120,7 @@ export function Chat({
   openConversationId?: string | null;
 }) {
   const router = useRouter();
-  const { theme: t } = useDarkMode();
+  const { theme: t } = useAppTheme();
   const engine = useChatEngine({
     config: RAYA_CONFIG,
     initialId,
