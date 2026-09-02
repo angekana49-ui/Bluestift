@@ -8,15 +8,29 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { getTheme, THEME_KEY, type AppTheme } from "./tokens";
+import { getTheme, type AppTheme } from "./tokens";
 import { APP_THEME_COLORS, syncThemeColor } from "@/lib/theme-color";
-import { readPref, writePref } from "@/lib/shared-pref";
+import {
+  THEME_KEY,
+  parseThemeMode,
+  prefersDark,
+  readThemeMode,
+  resolveDark,
+  watchSystemTheme,
+  writeThemeMode,
+  type ThemeMode,
+} from "@/lib/theme-mode";
 
 export type DarkModeValue = {
   dark: boolean;
   theme: AppTheme;
   toggle: () => void;
   setDark: (v: boolean) => void;
+  /** The stored ANSWER, which "dark" alone cannot express: on `system` the app
+   *  follows the device, and a settings UI has to show that as its own choice
+   *  rather than as whichever of light/dark it currently resolves to. */
+  mode: ThemeMode;
+  setMode: (m: ThemeMode) => void;
 };
 
 /**
@@ -28,18 +42,29 @@ export type DarkModeValue = {
  * preference. Returns the resolved theme.
  */
 export function useDarkMode(): DarkModeValue {
-  const [dark, setDarkState] = useState(false);
+  // Both start at the light-mode answer so the server HTML and the client's
+  // first paint agree; the effect below swaps in the real ones after mount.
+  const [mode, setModeState] = useState<ThemeMode>("light");
+  const [systemDark, setSystemDark] = useState(false);
+  const dark = resolveDark(mode, systemDark);
 
   useEffect(() => {
-    setDarkState(readPref(THEME_KEY) === "1");
+    setModeState(readThemeMode());
+    setSystemDark(prefersDark());
     // Keep both apps in sync across tabs/windows. This is why the preference is
     // still written to localStorage and not to the cookie alone: cookies fire
     // no event, so a toggle in one tab would never reach the others.
     const onStorage = (e: StorageEvent) => {
-      if (e.key === THEME_KEY) setDarkState(e.newValue === "1");
+      if (e.key === THEME_KEY) setModeState(parseThemeMode(e.newValue));
     };
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    // On `system` the OS is the source of truth, and it changes while the tab is
+    // open — the automatic sunset switch being the ordinary case.
+    const unwatch = watchSystemTheme(setSystemDark);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      unwatch();
+    };
   }, []);
 
   // The browser's own chrome follows the toggle — and, via the storage listener
@@ -57,14 +82,19 @@ export function useDarkMode(): DarkModeValue {
     root.setProperty("--app-focus", dark ? "#7ab3f7" : "#1b5fc1");
   }, [dark]);
 
-  const setDark = useCallback((v: boolean) => {
-    setDarkState(v);
-    writePref(THEME_KEY, v ? "1" : "0");
+  const setMode = useCallback((m: ThemeMode) => {
+    setModeState(m);
+    writeThemeMode(m);
   }, []);
+
+  // Picking a side is picking a side: the old two-state switch still works, and
+  // using it leaves `system` behind rather than silently staying subscribed to
+  // a device preference the person has just overridden.
+  const setDark = useCallback((v: boolean) => setMode(v ? "dark" : "light"), [setMode]);
 
   const toggle = useCallback(() => setDark(!dark), [dark, setDark]);
 
-  return { dark, theme: getTheme(dark), toggle, setDark };
+  return { dark, theme: getTheme(dark), toggle, setDark, mode, setMode };
 }
 
 /**

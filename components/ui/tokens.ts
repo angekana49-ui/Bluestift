@@ -5,12 +5,10 @@
  * it reads from the returned `AppTheme`. Values are ported verbatim from the
  * design handoff references (`design_handoff_raya_schools_app/reference-*.html`).
  *
- * The dark flag is persisted to localStorage under `THEME_KEY`, shared across
- * both apps. Read it on mount only (see components/ui/theme.tsx) — never during
- * SSR, to avoid a hydration mismatch.
+ * The light/dark/system answer lives in lib/theme-mode.ts, shared across both
+ * apps and the marketing site. Read it on mount only (see components/ui/theme.tsx)
+ * — never during SSR, to avoid a hydration mismatch.
  */
-
-export const THEME_KEY = "bluestift-dark";
 
 export type AppTheme = {
   dark: boolean;

@@ -14,7 +14,6 @@ import {
   RETRACT_HEADER_PAD,
   RETRACT_HEADER_MIN_H,
   Scrim,
-  type ProfileMenuItem,
 } from "@/components/ui/shell";
 import { IconPanel } from "@/components/ui/icons";
 import { display, type AppTheme } from "@/components/ui/tokens";
@@ -50,7 +49,6 @@ export function SchoolsShell({
   profileSubtitle,
   profileAvatarUrl,
   onProfile,
-  profileMenu,
   headerTitle,
   headerSubtitle,
   headerLogoUrl,
@@ -73,9 +71,6 @@ export function SchoolsShell({
   profileSubtitle?: string;
   profileAvatarUrl?: string | null;
   onProfile?: () => void;
-  /** When provided, the profile chip opens this popover menu instead of firing
-   *  `onProfile` directly. */
-  profileMenu?: ProfileMenuItem[];
   headerTitle?: string;
   headerSubtitle?: string;
   /** School logo shown as a small avatar before the header title, so the header
@@ -152,7 +147,6 @@ export function SchoolsShell({
             avatarBg="#2f7fe0"
             avatarUrl={profileAvatarUrl}
             onClick={() => onProfile?.()}
-            menu={profileMenu}
           />
         </div>
       </Sidebar>

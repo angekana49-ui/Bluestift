@@ -13,8 +13,8 @@ import {
   MainCard,
   MobileHeader,
   Scrim,
-  type ProfileMenuItem,
 } from "@/components/ui/shell";
+import { SettingsSheet, type SettingsGroup } from "@/components/ui/settings-sheet";
 import {
   IconChat,
   IconRooms,
@@ -24,8 +24,10 @@ import {
   IconSettings,
   IconChevron,
   IconMail,
-  IconLogout,
   IconUpgrade,
+  IconBilling,
+  IconLock,
+  IconAttach,
 } from "@/components/ui/icons";
 import type { AppTheme } from "@/components/ui/tokens";
 import { RayaName } from "@/components/ui/brand";
@@ -88,16 +90,19 @@ export function RayaShell({
   const [chatHistOpen, setChatHistOpen] = useState(true);
   /** Small-screen only: the sidebar is an overlay drawer. */
   const [navOpen, setNavOpen] = useState(false);
-  // Anonymous = no real email linked (the synthetic recovery address doesn't
-  // count). Drives the "Add your email" incentive in the profile menu.
-  const [isAnon, setIsAnon] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  // The real email, or null for an anonymous account — the synthetic recovery
+  // address is not one and must never surface as the learner's. Drives both the
+  // "Add your email" incentive and the identity line at the top of the sheet.
+  const [email, setEmail] = useState<string | null>(null);
+  const isAnon = email == null;
 
   useEffect(() => {
     let active = true;
     void supabase.auth.getUser().then(({ data }) => {
       if (!active) return;
-      const email = data.user?.email?.toLowerCase() ?? null;
-      setIsAnon(!email || email.endsWith("@anon.bluestift.local"));
+      const addr = data.user?.email?.toLowerCase() ?? null;
+      setEmail(!addr || addr.endsWith("@anon.bluestift.local") ? null : addr);
     });
     return () => {
       active = false;
@@ -125,32 +130,87 @@ export function RayaShell({
     router.push(href);
   };
 
-  // The profile chip opens this menu instead of jumping straight to Settings:
-  // coherent options, a gentle incentive to secure an anonymous account, and an
-  // always-present door to a higher plan. Real line-icons throughout (no emoji)
-  // so the rows align in the narrow popover.
-  const profileMenu: ProfileMenuItem[] = [
-    ...(isAnon
-      ? [{
-          key: "email",
-          label: tr("menu.addEmail"),
-          sublabel: tr("menu.addEmail.sub"),
-          icon: <IconMail />,
-          tone: "accent" as const,
-          onSelect: () => go("/account"),
-        }]
-      : []),
-    { key: "settings", label: tr("menu.settings"), icon: <IconSettings />, onSelect: () => go("/account") },
-    { key: "kernel", label: tr("menu.kernel"), icon: <IconKernel />, onSelect: () => go("/profile") },
+  /**
+   * The learner's settings, as the sheet lays them out.
+   *
+   * Two groups, because they answer two different questions: "my account" and
+   * "my learning". The Kernel sits in the second on purpose — it is not a
+   * preference, it is the record of what Raya knows, and filing it under
+   * Account next to the sign-in details would misdescribe it.
+   *
+   * The rows that point into /account point at a CARD, not at the page: the
+   * page is long and three rows landing at its top would be three rows that
+   * look like they do the same nothing.
+   */
+  const settingsGroups: SettingsGroup[] = [
     {
-      key: "upgrade",
-      label: tr("menu.upgrade"),
-      sublabel: tr("menu.upgrade.sub"),
-      icon: <IconUpgrade />,
-      tone: "accent",
-      onSelect: () => go("/pricing"),
+      key: "account",
+      title: tr("settings.group.account"),
+      rows: [
+        // An anonymous account is one cleared browser away from gone, and the
+        // learner has no way to know that. Kept first, and kept an incentive
+        // rather than a warning.
+        ...(isAnon
+          ? [{
+              key: "email",
+              icon: <IconMail />,
+              label: tr("menu.addEmail"),
+              sublabel: tr("menu.addEmail.sub"),
+              tone: "accent" as const,
+              onSelect: () => go("/account"),
+            }]
+          : []),
+        {
+          key: "profile",
+          icon: <IconSettings />,
+          label: tr("settings.row.profile"),
+          sublabel: tr("settings.row.profile.sub"),
+          onSelect: () => go("/account"),
+        },
+        {
+          key: "plan",
+          icon: <IconBilling />,
+          label: tr("settings.row.plan"),
+          value: profileSubtitle,
+          onSelect: () => go("/account#plan"),
+        },
+        {
+          key: "upgrade",
+          icon: <IconUpgrade />,
+          label: tr("menu.upgrade"),
+          sublabel: tr("menu.upgrade.sub"),
+          tone: "accent",
+          onSelect: () => go("/pricing"),
+        },
+        {
+          key: "shares",
+          icon: <IconAttach />,
+          label: tr("settings.row.shares"),
+          sublabel: tr("settings.row.shares.sub"),
+          onSelect: () => go("/account#shares"),
+        },
+        {
+          key: "privacy",
+          icon: <IconLock />,
+          label: tr("settings.row.privacy"),
+          sublabel: tr("settings.row.privacy.sub"),
+          onSelect: () => go("/account#data"),
+        },
+      ],
     },
-    { key: "signout", label: tr("menu.signOut"), tone: "danger", icon: <IconLogout />, onSelect: signOut },
+    {
+      key: "learning",
+      title: tr("settings.group.learning"),
+      rows: [
+        {
+          key: "kernel",
+          icon: <IconKernel />,
+          label: tr("settings.row.kernel"),
+          sublabel: tr("settings.row.kernel.sub"),
+          onSelect: () => go("/profile"),
+        },
+      ],
+    },
   ];
 
   return (
@@ -232,7 +292,7 @@ export function RayaShell({
             subtitle={profileSubtitle}
             avatarBg={profileAvatarBg}
             avatarUrl={profileAvatarUrl}
-            menu={profileMenu}
+            onClick={() => setSettingsOpen(true)}
           />
         </div>
       </Sidebar>
@@ -260,6 +320,17 @@ export function RayaShell({
         <Scrim open onClick={onToggleRight} />
       )}
       {rightPanel}
+
+      {settingsOpen && (
+        <SettingsSheet
+          title={tr("settings.title")}
+          identity={email ?? profileName}
+          identitySub={email ? profileName : tr("settings.anonymous")}
+          groups={settingsGroups}
+          onSignOut={signOut}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
     </AppShell>
   );
 }
