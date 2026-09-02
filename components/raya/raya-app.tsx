@@ -665,11 +665,15 @@ function SettingsView({ theme: t, dark, onToggleDark }: { theme: AppTheme; dark:
 }
 
 /* ── settings shared bits (also used by Schools) ─────────── */
-export function SettingsCard({ theme: t, mt, children }: { theme: AppTheme; mt?: boolean; children: React.ReactNode }) {
+export function SettingsCard({ theme: t, mt, id, children }: { theme: AppTheme; mt?: boolean; id?: string; children: React.ReactNode }) {
   return (
     <div
+      /* An anchor, so the settings sheet can send someone to the one card they
+         asked for instead of dropping them at the top of a long page. */
+      id={id}
       style={{
-        background: t.cardBg2,
+        scrollMarginTop: 24,
+        background: t.cardBg,
         border: `1px solid ${t.cardBorder}`,
         borderRadius: 20,
         padding: 24,
