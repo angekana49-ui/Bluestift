@@ -234,6 +234,13 @@ export const IconTrash = (p: IconProps) => (
   </Svg>
 );
 
+export const IconSearch = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="11" cy="11" r="6.5" />
+    <path d="m16 16 4.5 4.5" />
+  </Svg>
+);
+
 /** Memorize into the Kernel — a node with its edges, i.e. a thread being tied
  *  into the graph. Deliberately NOT a brain: the Kernel is a concept graph, and
  *  the icon should say "this joins a structure", not "an AI thinks". */

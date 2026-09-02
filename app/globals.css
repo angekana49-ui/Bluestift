@@ -2542,6 +2542,23 @@ a {
   outline-offset: 2px;
 }
 
+/* ============================================================
+   List search field (components/ui/list-filter.tsx).
+
+   `type="search"` is right for the semantics and gives mobile keyboards their
+   Search key, but WebKit then draws its OWN clear button: a fixed grey ✕ that
+   cannot be themed, sits at a different inset than ours, and on a dark card is
+   an invisible control standing next to a visible one. Two clear buttons is
+   also simply wrong. The native decorations go; ours stays, and Escape covers
+   the keyboard gesture the native one would have provided.
+   ============================================================ */
+.list-search-input::-webkit-search-cancel-button,
+.list-search-input::-webkit-search-decoration,
+.list-search-input::-webkit-search-results-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .navitem {
     transition: none;
