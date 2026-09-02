@@ -25,7 +25,24 @@ export function AppShell({
   return (
     <div
       className="app-shell"
-      style={{ background: t.pageBase, color: t.text, transition: "background .4s ease" }}
+      style={{
+        background: t.pageBase,
+        color: t.text,
+        transition: "background .4s ease",
+        /* The interaction layer (see `.app-shell` rules in globals.css). Hover
+           and focus can only be expressed in CSS, but they need the theme's
+           colours — which live here — so the theme publishes them as custom
+           properties and the stylesheet consumes them. Without this the app had
+           NO hover feedback and no keyboard focus ring anywhere: every control
+           looked and behaved like a static image until you clicked it.
+
+           The hover filter has to flip with the theme: darkening a control is
+           the "pressed" reading on a light surface and reads as switched-off on
+           a dark one. */
+        ["--app-hover-filter" as string]: t.dark ? "brightness(1.18)" : "brightness(0.95)",
+        ["--app-hover-bg" as string]: t.sidebarActiveBg,
+        ["--app-focus" as string]: t.dark ? "#7ab3f7" : "#1b5fc1",
+      }}
     >
       {children}
     </div>
@@ -575,7 +592,10 @@ export function MainCard({
     <div
       className="app-main"
       style={{
-        background: t.cardBg,
+        // The GROUND, not a card: whatever a page puts here needs something to
+        // sit on. When this was `cardBg` the two were the same colour and every
+        // card in every dashboard dissolved into the page behind it.
+        background: t.contentBg,
         flexDirection: column ? "column" : "row",
         transition: "background .4s ease",
       }}
@@ -589,6 +609,40 @@ export function MainCard({
  *  the content zone's own header instead of sitting a few px off. */
 export const RETRACT_HEADER_PAD = "16px 24px";
 export const RETRACT_HEADER_MIN_H = 64;
+
+/**
+ * The scrolling body of any screen inside the shell — the one page frame.
+ *
+ * Every route used to roll its own `{flex:1, overflow:auto, padding:"32px 40px"}`
+ * with a different gutter and no measure, so tabs of the same app disagreed on
+ * where a heading starts and wide monitors stretched dashboard rows edge to
+ * edge. This owns both: `.app-page` is the gutter (responsive, hence a class),
+ * `.app-page-inner` is the measure.
+ *
+ * `maxWidth` widens or narrows the measure for a screen that needs it — a dense
+ * table wants more room than a settings form. `flush` drops the inner column for
+ * a child that manages its own (a full-bleed chat).
+ */
+export function PageBody({
+  maxWidth,
+  flush = false,
+  style,
+  children,
+}: {
+  maxWidth?: number;
+  flush?: boolean;
+  style?: CSSProperties;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className="app-page"
+      style={maxWidth ? { ["--app-page-max" as string]: `${maxWidth}px`, ...style } : style}
+    >
+      {flush ? children : <div className="app-page-inner">{children}</div>}
+    </div>
+  );
+}
 
 /** Comfortable reading width for a conversation column on wide screens; the
  *  thread and composer centre within it and fall back to full width below it.
@@ -720,7 +774,9 @@ export function IconButton({
         height: size,
         borderRadius: radius,
         background: bg ?? t.cardBg2,
-        color: color ?? t.mutedLight,
+        // `mutedLight` is the tertiary tone — it made these read as disabled.
+        // An icon that IS the whole control gets the secondary tone.
+        color: color ?? t.muted,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

@@ -10,6 +10,9 @@ import {
   MainCard,
   IconButton,
   MobileHeader,
+  PageBody,
+  RETRACT_HEADER_PAD,
+  RETRACT_HEADER_MIN_H,
   Scrim,
   type ProfileMenuItem,
 } from "@/components/ui/shell";
@@ -164,8 +167,22 @@ export function SchoolsShell({
 
         {/* When the content is flush (a full-height chat owns the card), the
             child renders its own header — the shell one would double it up. */}
+        {/* RETRACT_HEADER_* — the same pad and height as the chat header and the
+            right panel's title bar, so the three line up instead of each
+            landing a couple of pixels off the other two. */}
         {!contentFlush && (
-        <div style={{ padding: "16px 26px", display: "flex", alignItems: "center", gap: 12, borderBottom: `1px solid ${t.cardBorder}` }}>
+        <div
+          style={{
+            padding: RETRACT_HEADER_PAD,
+            minHeight: RETRACT_HEADER_MIN_H,
+            boxSizing: "border-box",
+            background: t.cardBg,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            borderBottom: `1px solid ${t.cardBorder}`,
+          }}
+        >
           {headerLogoUrl !== undefined && (
             <span
               style={{
@@ -221,18 +238,23 @@ export function SchoolsShell({
           </div>
         </div>
         )}
-        <div
-          style={
-            contentFlush
-              ? { flex: 1, minHeight: 0, minWidth: 0, display: "flex", flexDirection: "column", color: t.text }
-              : { flex: 1, overflow: "auto", padding: "24px 26px", minWidth: 0, color: t.text }
-          }
-        >
-          {/* One honest connectivity strip for every staff tab — each of them
-              loads over the network and would otherwise just look empty. */}
-          <DegradedBanner />
-          {children}
-        </div>
+        {contentFlush ? (
+          <div style={{ flex: 1, minHeight: 0, minWidth: 0, display: "flex", flexDirection: "column", color: t.text }}>
+            <DegradedBanner />
+            {children}
+          </div>
+        ) : (
+          /* The same PageBody every Raya route uses. The staff tabs are the
+             densest screens in the app, so they get a wider measure than the
+             1120px default — but a measure all the same, instead of rows that
+             ran the full width of a 27" display. */
+          <PageBody maxWidth={1280} style={{ color: t.text }}>
+            {/* One honest connectivity strip for every staff tab — each of them
+                loads over the network and would otherwise just look empty. */}
+            <DegradedBanner />
+            {children}
+          </PageBody>
+        )}
       </MainCard>
 
       {/* Dimmer behind the right panel while it's an overlay (< 900px). */}

@@ -135,6 +135,14 @@ export async function POST(request: Request) {
  *                        and folds it into the learner's cognitive profile,
  *                        then the thread is stamped as deliberately anchored.
  *
+ *   forget               drops the anchor: the thread leaves the Memory list on
+ *                        the Kernel page and stops being one of the threads the
+ *                        learner has designated. It is NOT an unlearn, and the
+ *                        UI says so — the mastery the Kernel already derived
+ *                        lives in the profile, not in this stamp, and pretending
+ *                        otherwise would be the one lie this whole menu exists
+ *                        to avoid.
+ *
  * Memorize is deliberately synchronous, unlike the every-3rd-turn analysis in
  * the chat route, which is fire-and-forget. That one is ambient and nobody is
  * waiting on it; this one is a button someone pressed after reading a dialog
@@ -157,7 +165,12 @@ export async function PATCH(request: Request) {
   const id = body.conversationId;
   const action = body.action;
   if (!id) return NextResponse.json({ error: "missing conversationId" }, { status: 400 });
-  if (action !== "archive" && action !== "unarchive" && action !== "memorize") {
+  if (
+    action !== "archive" &&
+    action !== "unarchive" &&
+    action !== "memorize" &&
+    action !== "forget"
+  ) {
     return NextResponse.json({ error: "unknown action" }, { status: 400 });
   }
 
@@ -183,6 +196,20 @@ export async function PATCH(request: Request) {
       .eq("user_id", user.id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ ok: true, archived_at });
+  }
+
+  // ── forget ──────────────────────────────────────────────────
+  // Clearing the stamp only. `kernel_triggered` is deliberately left alone: it
+  // records that an analysis DID run on this thread, which stays true.
+  if (action === "forget") {
+    const { error } = await supabase
+      .schema("learning")
+      .from("conversations")
+      .update({ memorized_at: null })
+      .eq("id", id)
+      .eq("user_id", user.id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true, memorized_at: null });
   }
 
   // ── memorize ────────────────────────────────────────────────

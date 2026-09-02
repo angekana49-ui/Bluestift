@@ -6,6 +6,7 @@ import { getPlanLabel } from "@/lib/billing";
 import { softValue } from "@/lib/page-data";
 import { AuthPanel } from "@/components/auth-panel";
 import { RayaScaffold } from "@/components/raya/raya-scaffold";
+import { PageBody } from "@/components/ui/shell";
 import { SectionHeader } from "@/components/raya/section-header";
 import { SettingsThemeCard } from "@/components/raya/settings-theme-card";
 import { SettingsLanguageCard } from "@/components/raya/settings-language-card";
@@ -51,8 +52,10 @@ export default async function AccountPage() {
 
   return (
     <RayaScaffold active="settings" studentName={studentName} studentInitials={initialsOf(studentName)} studentAvatarUrl={profile?.profile_picture_url} studentPlan={studentPlan}>
-      <div style={{ flex: 1, overflow: "auto", padding: "32px 40px", minWidth: 0 }}>
-        <div style={{ width: "100%", maxWidth: 700, margin: "0 auto" }}>
+      {/* A settings form reads worst when it is wide, so this screen narrows
+          the shared measure rather than opening its own frame. */}
+      <PageBody maxWidth={700}>
+        <>
           <SectionHeader title="Settings" />
           <SettingsThemeCard />
           <SettingsLanguageCard />
@@ -75,8 +78,8 @@ export default async function AccountPage() {
             trainingConsent={Boolean(profileRow?.training_consent)}
             schoolLinked={Boolean(profileRow?.school_id)}
           />
-        </div>
-      </div>
+        </>
+      </PageBody>
     </RayaScaffold>
   );
 }

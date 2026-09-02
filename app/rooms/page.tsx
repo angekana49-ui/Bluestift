@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { needsAgeGate } from "@/lib/compliance/guard";
 import { RoomsList } from "@/components/rooms-list";
 import { RayaScaffold } from "@/components/raya/raya-scaffold";
+import { PageBody } from "@/components/ui/shell";
 import { SectionHeader } from "@/components/raya/section-header";
 import { getPlanLabel } from "@/lib/billing";
 import { softValue } from "@/lib/page-data";
@@ -72,7 +73,7 @@ export default async function RoomsPage() {
 
   return (
     <RayaScaffold active="rooms" studentName={studentName} studentInitials={initialsOf(studentName)} studentAvatarUrl={profile.profile_picture_url} studentPlan={studentPlan}>
-      <div style={{ flex: 1, overflow: "auto", padding: "32px 40px", minWidth: 0 }}>
+      <PageBody>
         <SectionHeader title="Rooms" subtitle="Study in a group with Raya in the room." />
         <RoomsList
           rooms={rooms ?? []}
@@ -84,7 +85,7 @@ export default async function RoomsPage() {
           // `birth_year` is already on this row for the age gate above — free.
           canChooseVisibility={ent.roomVisibilityChoice && !isMinorBirthYear(profile.birth_year)}
         />
-      </div>
+      </PageBody>
     </RayaScaffold>
   );
 }

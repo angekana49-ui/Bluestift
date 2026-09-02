@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { needsAgeGate } from "@/lib/compliance/guard";
 import { RayaScaffold } from "@/components/raya/raya-scaffold";
+import { PageBody } from "@/components/ui/shell";
 import { AssignmentsView } from "@/components/assignments-view";
 import { getPlanLabel } from "@/lib/billing";
 import { softValue } from "@/lib/page-data";
@@ -37,9 +38,9 @@ export default async function HomeworkPage() {
       studentAvatarUrl={profile.profile_picture_url}
       studentPlan={studentPlan}
     >
-      <div style={{ flex: 1, overflow: "auto", padding: "32px 40px", minWidth: 0 }}>
+      <PageBody>
         <AssignmentsView />
-      </div>
+      </PageBody>
     </RayaScaffold>
   );
 }

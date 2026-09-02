@@ -334,7 +334,7 @@ export const de: Partial<Messages> = {
   "hist.delete.menuSub": "Endgültig entfernen",
   "hist.delete.title": "Dieses Gespräch löschen?",
   "hist.delete.body":
-    "Das Gespräch, seine Nachrichten und seine Anhänge werden endgültig gelöscht. Das lässt sich nicht rückgängig machen.",
+    "Das Gespräch, seine Nachrichten und seine Anhänge werden endgültig gelöscht. Es landet in keinem Papierkorb und kehrt nicht in den Verlauf zurück — es gibt kein Zurück.",
   "hist.delete.caveat":
     "Was der Kernel bereits daraus gelernt hat, bleibt in deinem Lernprofil — den Verlauf zu löschen verlernt es nicht. Um auch das zu entfernen, geh zu Einstellungen › Deine Daten.",
   "hist.delete.confirm": "Endgültig löschen",

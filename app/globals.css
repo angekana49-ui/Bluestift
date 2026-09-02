@@ -2118,6 +2118,91 @@ a {
   }
 }
 
+/* ============================================================
+   One page frame for every screen inside the shell.
+
+   Before this, each route invented its own: /rooms /tools /homework
+   /profile used "32px 40px", the Schools content zone "24px 26px", a
+   room "28px 32px", the chat thread "28px 24px". Four different
+   gutters meant that moving between two tabs of the SAME app shifted
+   every heading sideways, and none of them capped their width — so on
+   a wide monitor a dashboard row ran edge to edge while the chat next
+   to it stayed in a 760px column, which is what reads as "sections
+   décalées / pas uniformes".
+
+   `.app-page` is the scroller and owns the gutter; `.app-page-inner`
+   is the measure. Both are classes, not inline styles, because the
+   gutter has to shrink on a phone and inline styles cannot.
+
+   scrollbar-gutter keeps the centred column from jumping sideways by
+   half a scrollbar the moment the content grows past one screen.
+   ============================================================ */
+.app-page {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
+  padding: 28px 32px 40px;
+  box-sizing: border-box;
+}
+
+.app-page-inner {
+  width: 100%;
+  max-width: var(--app-page-max, 1120px);
+  margin-inline: auto;
+}
+
+@media (max-width: 899px) {
+  .app-page {
+    padding: 22px 20px 32px;
+  }
+}
+
+@media (max-width: 560px) {
+  .app-page {
+    padding: 18px 14px 28px;
+  }
+}
+
+/* ============================================================
+   The chat reading column.
+
+   The thread, the connectivity banner and the composer are three
+   separate subtrees that have to line up to the pixel, and they did
+   not: the thread centred a 760px box inside a zone already inset by
+   24px, while the composer centred a 760px box on the FULL zone and
+   put its 24px inset inside — so the bubbles and the text field sat
+   24px apart, and the banner (16px) at a third offset again.
+
+   One class, one box model: the gutter is part of the max-width, so
+   whatever the parent's padding is, all three resolve to the same
+   left edge.
+   ============================================================ */
+.chat-col {
+  width: 100%;
+  max-width: calc(var(--chat-col, 760px) + 48px);
+  margin-inline: auto;
+  padding-inline: 24px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 560px) {
+  .chat-col {
+    padding-inline: 14px;
+  }
+}
+
+/* The thread's own scroller: the gutter lives on .chat-col, so this only
+   owns the vertical rhythm and a stable scrollbar reservation. */
+.chat-thread {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-gutter: stable both-edges;
+  padding: 28px 0;
+}
+
 /* -- Label ⇄ glyph swap for header action pills -------------------- */
 /* The chat header packs a session title, two action pills and two icon buttons
    into one row. "View kernel profile" is by far the widest item in it and the
@@ -2406,6 +2491,61 @@ a {
   transition:
     background 0.2s ease,
     color 0.2s ease;
+}
+.navitem:hover {
+  background: var(--app-hover-bg);
+}
+
+/* ============================================================
+   App interaction layer.
+
+   The connected app had no :hover and no :focus-visible anywhere —
+   every button, pill and nav row was inert until clicked, which is a
+   large part of why the surface read as flat and unfinished, and
+   which left keyboard users with no visible position at all.
+
+   The colours come from --app-hover-filter / --app-focus, published
+   by AppShell from the active theme (see components/ui/shell.tsx),
+   because the app styles itself inline and CSS cannot read the theme.
+
+   `[role="button"]` is in the selector on purpose: a lot of this app's
+   controls are spans with a role rather than <button> elements.
+   ============================================================ */
+.app-shell button:not(:disabled):hover,
+.app-shell [role="button"]:hover,
+.app-shell [role="menuitem"]:not(:disabled):hover,
+.app-shell a[href]:hover > img {
+  filter: var(--app-hover-filter);
+}
+
+.app-shell button:disabled {
+  cursor: default;
+}
+
+/* Menus and modals render through a PORTAL, so they are siblings of .app-shell
+   rather than descendants and none of the rules above reach them. They are also
+   app-only (the public site uses neither role), so matching them at the document
+   level is safe. */
+[role="menu"] button:not(:disabled):hover,
+[role="dialog"] button:not(:disabled):hover {
+  filter: var(--app-hover-filter, brightness(0.95));
+}
+
+/* One ring, on every focusable thing, in the theme's link colour. Applied
+   through :focus-visible so it appears for keyboard navigation and not on
+   every mouse click. */
+.app-shell :focus-visible,
+.app-page :focus-visible,
+[role="menu"] :focus-visible,
+[role="dialog"] :focus-visible {
+  outline: 2px solid var(--app-focus, #1b5fc1);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navitem {
+    transition: none;
+  }
 }
 .segtab {
   padding: 8px 16px;

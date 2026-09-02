@@ -6,7 +6,6 @@ import {
   IconButton,
   RETRACT_HEADER_PAD,
   RETRACT_HEADER_MIN_H,
-  THREAD_MAX_W,
 } from "@/components/ui/shell";
 import { Bird } from "@/components/ui/widgets";
 import { IconFile, IconImage, IconPanel } from "@/components/ui/icons";
@@ -148,7 +147,7 @@ export function ChatSurface({
     <>
     {/* Honest connectivity, right above the composer — where the student is
         about to type, not buried in a corner. Renders nothing when healthy. */}
-    <div style={{ maxWidth: THREAD_MAX_W, margin: "0 auto", width: "100%", padding: "0 16px" }}>
+    <div className="chat-col">
       <DegradedBanner />
     </div>
     <ChatComposer
@@ -173,11 +172,23 @@ export function ChatSurface({
 
   return (
     <>
-      {/* The pale-blue animated wash backs the whole chat; the header stays solid
-          on top of it so the session bar reads as a distinct strip. */}
+      {/* The pale-blue animated wash is the WELCOME screen's backdrop, and only
+          that. It used to back the whole chat, which meant every message bubble
+          sat on a drifting gradient — the assistant's pale bubble all but
+          dissolved into it, and the thread never held still. Once there is a
+          conversation the ground goes flat and the bubbles carry the contrast. */}
       <div
-        className={t.dark ? "chat-welcome-bg is-dark" : "chat-welcome-bg"}
-        style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0 }}
+        className={
+          messages.length === 0 ? (t.dark ? "chat-welcome-bg is-dark" : "chat-welcome-bg") : undefined
+        }
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          minWidth: 0,
+          minHeight: 0,
+          background: messages.length === 0 ? undefined : t.contentBg,
+        }}
       >
         {/* header */}
         {!hideHeader && (
@@ -198,8 +209,21 @@ export function ChatSurface({
           {/* Session name + state only — no product wordmark or AI avatar. */}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={ell(text.base, 700, t.text)}>{activeTitle}</div>
-            <div style={{ fontSize: text.xs, color: busy ? t.mutedLight : status.positive }}>
-              {busy ? "Thinking…" : "● in session"}
+            {/* The status used to be green TEXT (#10b981 on the header white,
+                ~2.4:1) — a colour carrying meaning at 13px, under AA twice over.
+                The dot carries the colour, the words carry the meaning. */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: text.xs, color: t.muted }}>
+              <span
+                aria-hidden
+                style={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: "50%",
+                  flex: "none",
+                  background: busy ? status.warn : status.positive,
+                }}
+              />
+              {busy ? "Thinking…" : "In session"}
             </div>
           </div>
           {headerActions}
@@ -312,10 +336,10 @@ export function ChatSurface({
             </div>
           </div>
         ) : (
-          <div ref={scrollerRef} onScroll={onThreadScroll} style={{ flex: 1, minHeight: 0, overflow: "auto", padding: "28px 24px" }}>
-            {/* Centred reading column — full width until the zone is narrower
-                than THREAD_MAX_W, capped beyond it. */}
-            <div style={{ maxWidth: THREAD_MAX_W, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>
+          <div ref={scrollerRef} onScroll={onThreadScroll} className="chat-thread">
+            {/* Centred reading column — the SAME `.chat-col` box the composer
+                and the banner use, so all three share one left edge. */}
+            <div className="chat-col" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {messages.map((m) => {
                 const mine = m.role !== "assistant";
                 const files = filesByMessage[m.id] ?? [];
@@ -337,6 +361,9 @@ export function ChatSurface({
                         minWidth: 0,
                         background: mine ? t.ctaBg : t.bubbleBg,
                         color: mine ? t.ctaText : t.text,
+                        // Raya's bubble is the same white as a card, so it needs
+                        // the same 1px edge to be a bubble and not just text.
+                        border: mine ? "1px solid transparent" : `1px solid ${t.cardBorder}`,
                         borderRadius: mine ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
                         padding: "13px 16px",
                         fontSize: text.base,

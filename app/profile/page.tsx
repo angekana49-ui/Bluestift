@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { needsAgeGate } from "@/lib/compliance/guard";
 import { CognitiveProfile } from "@/components/cognitive-profile";
+import { KernelMemory } from "@/components/kernel-memory";
 import { StudentSimulation } from "@/components/student-simulation";
 import { ProgressCurve, type ProgressPoint } from "@/components/progress-curve";
 import { SchoolLink } from "@/components/school-link";
@@ -12,6 +13,7 @@ import { getPlanLabel } from "@/lib/billing";
 import { softValue } from "@/lib/page-data";
 import { hasRealEmail } from "@/lib/auth";
 import { RayaScaffold } from "@/components/raya/raya-scaffold";
+import { PageBody } from "@/components/ui/shell";
 import { SectionHeader } from "@/components/raya/section-header";
 import { initialsOf } from "@/lib/name";
 
@@ -29,7 +31,7 @@ export default async function ProfilePage({
   if (!user) redirect("/login");
 
   // One wave — none of these depend on each other.
-  const [{ data: profile }, { data: attempts }, schoolLink, membership, studentPlan] =
+  const [{ data: profile }, { data: attempts }, { data: memorized }, schoolLink, membership, studentPlan] =
     await Promise.all([
       supabase
         .from("users")
@@ -46,6 +48,17 @@ export default async function ProfilePage({
         .not("completed_at", "is", null)
         .not("score", "is", null)
         .order("completed_at", { ascending: true }),
+      // The threads the learner deliberately anchored. Archived ones are still
+      // memorized — filing a conversation away does not take back the decision
+      // to have Raya build on it — so this deliberately does not filter them.
+      supabase
+        .schema("learning")
+        .from("conversations")
+        .select("id, title, memorized_at")
+        .eq("user_id", user.id)
+        .is("room_id", null)
+        .not("memorized_at", "is", null)
+        .order("memorized_at", { ascending: false }),
       getStudentSchoolLink(user.id),
       getAdminMembership(user.id),
       softValue(getPlanLabel({ userId: user.id }), "User — Free"),
@@ -67,14 +80,21 @@ export default async function ProfilePage({
 
   return (
     <RayaScaffold active="kernel" studentName={studentName} studentInitials={initialsOf(studentName)} studentAvatarUrl={profile.profile_picture_url} studentPlan={studentPlan}>
-      <div style={{ flex: 1, overflow: "auto", padding: "32px 40px", minWidth: 0 }}>
+      <PageBody>
         <SectionHeader title="My Kernel" subtitle="Your mastery, concept by concept — not a single grade." />
         <SchoolLink initial={schoolLink} />
         <TeacherLink initial={staff} startCreate={startCreateSchool} hasEmail={hasRealEmail(user.email)} />
         <ProgressCurve points={points} />
+        <KernelMemory
+          initial={(memorized ?? [])
+            .filter((c): c is { id: string; title: string | null; memorized_at: string } =>
+              c.memorized_at != null,
+            )
+            .map((c) => ({ id: c.id, title: c.title, memorized_at: c.memorized_at }))}
+        />
         <CognitiveProfile />
         <StudentSimulation />
-      </div>
+      </PageBody>
     </RayaScaffold>
   );
 }

@@ -483,7 +483,7 @@ export const en = {
   "hist.delete.menuSub": "Erase it permanently",
   "hist.delete.title": "Delete this conversation?",
   "hist.delete.body":
-    "The conversation, its messages and its attachments are permanently erased. This cannot be undone.",
+    "The conversation, its messages and its attachments are permanently erased. It does not go to a trash and it will not come back in your history — there is no undo.",
   "hist.delete.caveat":
     "What the Kernel already learned from it stays in your learning profile — deleting the thread does not unlearn it. To remove that too, use Settings › Your data.",
   "hist.delete.confirm": "Delete permanently",

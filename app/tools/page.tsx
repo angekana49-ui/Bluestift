@@ -4,6 +4,7 @@ import { needsAgeGate } from "@/lib/compliance/guard";
 import { Tools } from "@/components/tools";
 import { SoloChallenge } from "@/components/solo-challenge";
 import { RayaScaffold } from "@/components/raya/raya-scaffold";
+import { PageBody } from "@/components/ui/shell";
 import { getPlanLabel } from "@/lib/billing";
 import { softValue } from "@/lib/page-data";
 import { initialsOf } from "@/lib/name";
@@ -74,12 +75,12 @@ export default async function ToolsPage() {
 
   return (
     <RayaScaffold active="tools" studentName={studentName} studentInitials={initialsOf(studentName)} studentAvatarUrl={profile.profile_picture_url} studentPlan={studentPlan}>
-      <div style={{ flex: 1, overflow: "auto", padding: "32px 40px", minWidth: 0 }}>
+      <PageBody>
         <Tools uploads={uploads ?? []} outputs={outputs ?? []} selfTests={selfTests} studentName={studentName} />
         <div id="self-test" style={{ marginTop: 8 }}>
           <SoloChallenge myUserId={user.id} studentName={studentName} />
         </div>
-      </div>
+      </PageBody>
     </RayaScaffold>
   );
 }

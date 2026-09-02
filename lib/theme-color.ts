@@ -16,7 +16,7 @@
  * The colours are per SURFACE, not one pair for the whole origin. The marketing
  * site and the connected app keep separate palettes on purpose
  * (components/site/theme.ts vs components/ui/tokens.ts) and their page grounds
- * genuinely differ: the site opens on #eef3f9, the app on white. Sharing one
+ * genuinely differ: the site opens on #eef3f9, the app on #f5f7fb. Sharing one
  * value put a blue-grey status bar above a white app — the seam this module is
  * supposed to remove.
  *
@@ -29,7 +29,7 @@ export type ThemeColors = { light: string; dark: string };
 /** components/site/theme.ts — `pageBg`, first stop of each gradient. */
 export const SITE_THEME_COLORS: ThemeColors = { light: "#eef3f9", dark: "#0a0f1e" };
 /** components/ui/tokens.ts — `pageBase`. */
-export const APP_THEME_COLORS: ThemeColors = { light: "#ffffff", dark: "#0b111f" };
+export const APP_THEME_COLORS: ThemeColors = { light: "#f5f7fb", dark: "#0b111f" };
 
 /**
  * The value app/layout.tsx declares statically, and the manifests' theme_color.

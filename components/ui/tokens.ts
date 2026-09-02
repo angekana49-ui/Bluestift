@@ -27,9 +27,23 @@ export type AppTheme = {
   /** Right notifications panel — its own tone, less blue than the sidebar. */
   rightBg: string;
   rightBorder: string;
+  /**
+   * The GROUND of the content zone — the surface a page's cards sit ON.
+   *
+   * Distinct from `cardBg` on purpose. Both used to be the same value (#ffffff
+   * light, #0b111f dark), which meant a card was told from the page it sat on by
+   * a single ~1.2:1 hairline and nothing else: a dashboard read as one
+   * undifferentiated field, and a popover had no visible edge at all. Keeping
+   * the ground one step back from the card restores figure/ground without
+   * adding the shadows the flat language rules out.
+   */
+  contentBg: string;
   cardBg: string;
   cardBg2: string;
   cardBorder: string;
+  /** Stronger border for anything INTERACTIVE (inputs, buttons, controls),
+   *  where a structural hairline is not enough to find the hit area. */
+  controlBorder: string;
   cardShadow: string;
   text: string;
   muted: string;
@@ -55,7 +69,10 @@ export type AppTheme = {
    tinted panel, `cardBg` the plain one — never translucent, nothing floats. */
 const light: AppTheme = {
   dark: false,
-  pageBase: "#ffffff",
+  // The shell ground. Same value as `contentBg`: a panel gap or an unclaimed
+  // strip should read as the page continuing, not as a white seam between two
+  // tinted panels. It is also what the browser chrome mirrors (APP_THEME_COLORS).
+  pageBase: "#f5f7fb",
   cloudOpacity: 0,
   cloudFilter: "none",
   hazeOverlay: "transparent",
@@ -65,11 +82,13 @@ const light: AppTheme = {
   sidebarMuted: "#4a5a70",
   sidebarActiveBg: "rgba(15,23,42,0.07)",
   sidebarDivider: "rgba(15,23,42,0.10)",
-  rightBg: "#f6f7f9",
-  rightBorder: "rgba(15,23,42,0.09)",
+  rightBg: "#f4f6f9",
+  rightBorder: "rgba(15,23,42,0.14)",
+  contentBg: "#f5f7fb",
   cardBg: "#ffffff",
-  cardBg2: "#f3f6fa",
-  cardBorder: "rgba(15,23,42,0.10)",
+  cardBg2: "#eaeff7",
+  cardBorder: "rgba(15,23,42,0.15)",
+  controlBorder: "rgba(15,23,42,0.26)",
   cardShadow: "none",
   text: "#0b1220",
   // Light-mode secondary text used to sit at #64748b (~4.8:1 on white, and it
@@ -77,18 +96,31 @@ const light: AppTheme = {
   // tier at #8a97a8 that was barely legible (~3:1). Both moved one step darker:
   // muted is now ~7.7:1 on white and mutedLight ~4.8:1, so secondary copy reads
   // on every surface it lands on. Dark mode was already fine and is untouched.
+  //
+  // mutedLight went one step darker again (#64748b → #58687d) when cardBg2 was
+  // deepened to #eaeff7: at the old value it landed on 3.96:1 there, under AA.
+  // It now clears 4.9:1 on the DARKEST surface it is used on, which is the only
+  // number that matters — a tertiary tone that only passes on white is a tone
+  // that fails wherever it is actually used.
   muted: "#44546a",
-  mutedLight: "#64748b",
+  mutedLight: "#58687d",
   // Darker than the brand blue #2f7fe0 (only ~3.6:1 on white), which links used
   // to take and which read as decoration rather than text.
   link: "#1b5fc1",
   ctaBg: "#0b1220",
   ctaText: "#ffffff",
-  inputBg: "#f3f6fa",
-  inputBorder: "#dde5ee",
-  bubbleBg: "#f3f6fa",
+  // A field is where you type: it reads as an opening in the surface, so it goes
+  // lighter than the (now tinted) ground, with a border you can actually see.
+  // #dde5ee was ~1.2:1 against its own fill — an input with no visible edge.
+  inputBg: "#ffffff",
+  inputBorder: "#b9c6d8",
+  // Raya's own bubbles. White ON the tinted ground, rather than a tint on
+  // white: the reply is the thing being read, so it gets the cleanest surface
+  // in the app and a visible edge (see chat-surface), instead of an off-white
+  // block that dissolved into the page behind it.
+  bubbleBg: "#ffffff",
   bubbleAccentBg: "#fef3c7",
-  rowActiveBg: "#eef2f8",
+  rowActiveBg: "#e3eaf5",
   pillTrackBg: "rgba(0,0,0,0.05)",
   gaugeTrack: "#e2e8f0",
   switchTrackBg: "linear-gradient(180deg,#d7e9f7,#f3f9fd)",
@@ -109,22 +141,33 @@ const dark: AppTheme = {
   sidebarActiveBg: "rgba(255,255,255,0.1)",
   sidebarDivider: "rgba(255,255,255,0.09)",
   rightBg: "#10141c",
-  rightBorder: "rgba(255,255,255,0.08)",
-  cardBg: "#0b111f",
-  cardBg2: "#16203a",
-  cardBorder: "rgba(255,255,255,0.09)",
+  rightBorder: "rgba(255,255,255,0.13)",
+  contentBg: "#0b111f",
+  // Was #0b111f — the same value as pageBase and contentBg, so a card, a modal
+  // and a popover were all invisible against the surface behind them.
+  cardBg: "#131c30",
+  cardBg2: "#1c2742",
+  cardBorder: "rgba(255,255,255,0.14)",
+  controlBorder: "rgba(255,255,255,0.28)",
   cardShadow: "none",
   text: "#eef2f8",
   muted: "#9aa7bd",
-  mutedLight: "#7c8aa3",
+  // #7c8aa3 landed on 4.25:1 against cardBg2 (#1c2742), under AA — and cardBg2
+  // is most of where this tone renders. One step brighter clears 5.4:1 there
+  // while staying visibly dimmer than `muted`.
+  mutedLight: "#8b98af",
   link: "#7ab3f7",
-  ctaBg: "#2f7fe0",
+  // The brand blue #2f7fe0 carries white at only 4.0:1 — the primary BUTTON
+  // LABEL, under AA, on the most-pressed control in the dark app. A deeper blue
+  // from the same family takes white to 5.6:1 and still clears 3:1 against the
+  // dark ground, so the button is both readable and findable.
+  ctaBg: "#1f66c2",
   ctaText: "#ffffff",
-  inputBg: "#16203a",
-  inputBorder: "rgba(255,255,255,0.14)",
-  bubbleBg: "#16203a",
+  inputBg: "#0a1120",
+  inputBorder: "rgba(255,255,255,0.26)",
+  bubbleBg: "#1c2742",
   bubbleAccentBg: "#3a3010",
-  rowActiveBg: "#16203a",
+  rowActiveBg: "#1c2742",
   pillTrackBg: "rgba(255,255,255,0.06)",
   gaugeTrack: "rgba(255,255,255,0.12)",
   switchTrackBg: "linear-gradient(180deg,#111b2a,#0b1220)",

@@ -14,7 +14,7 @@ import { downloadBrandedPdf, downloadBrandedText, type BrandedDoc } from "@/lib/
 import { ShareLinkButton } from "@/components/study/share-button";
 import { useDarkMode } from "@/components/ui/theme";
 import { RayaShell } from "@/components/raya/raya-shell";
-import { RightPanel, IconButton } from "@/components/ui/shell";
+import { RightPanel, IconButton, PageBody } from "@/components/ui/shell";
 import { IconPanel, IconFile } from "@/components/ui/icons";
 import { status, type AppTheme } from "@/components/ui/tokens";
 import { RayaName } from "@/components/ui/brand";
@@ -706,7 +706,7 @@ export function RoomView({
   let channelBody: React.ReactNode;
   if (!joined) {
     channelBody = (
-      <div style={{ flex: 1, overflow: "auto", padding: "28px 32px" }}>
+      <PageBody maxWidth={900}>
         <div
           style={{
             background: t.cardBg2,
@@ -722,7 +722,7 @@ export function RoomView({
           </button>
           {error && <p style={{ color: "#f87171", fontSize: 15 }}>{error}</p>}
         </div>
-      </div>
+      </PageBody>
     );
   } else if (channel === "group") {
     channelBody = (
@@ -766,7 +766,7 @@ export function RoomView({
     );
   } else {
     channelBody = (
-      <div style={{ flex: 1, overflow: "auto", padding: "28px 32px" }}>
+      <PageBody maxWidth={900}>
         {channel === "challenge" ? (
           <RoomChallenges roomId={roomId} roomName={roomName} subject={subject} myUserId={myUserId} readOnly={expired} />
         ) : channel === "files" ? (
@@ -829,7 +829,7 @@ export function RoomView({
           </div>
         )}
         {error && <p style={{ color: "#f87171", marginTop: 8, fontSize: 15 }}>{error}</p>}
-      </div>
+      </PageBody>
     );
   }
 
