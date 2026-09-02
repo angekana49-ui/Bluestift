@@ -57,6 +57,8 @@ export const de: Partial<Messages> = {
   "settings.row.shares.sub": "Öffentliche Links, die du vergeben hast",
   "settings.row.privacy": "Datenschutz und Daten",
   "settings.row.privacy.sub": "Was wir behalten und wie du es zurückholst",
+  "settings.row.legal": "Rechtliches",
+  "settings.row.legal.sub": "Datenschutz, AGB, AVV und Subunternehmer",
   "settings.row.activeSchool": "Aktive Schule",
   "settings.row.billing": "Abrechnung und Plätze",
   "settings.row.team": "Team und Klassen",

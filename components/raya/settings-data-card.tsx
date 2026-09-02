@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAppTheme } from "@/components/ui/theme";
 import { SettingsCard } from "@/components/raya/raya-app";
@@ -104,6 +105,12 @@ export function SettingsDataCard({
 
   const label = { fontSize: 16, fontWeight: 700, color: t.text } as const;
   const desc = { fontSize: 13, color: t.muted, marginTop: 2, lineHeight: 1.55 } as const;
+  const legalLink = {
+    color: t.link,
+    fontWeight: 650,
+    textDecoration: "none",
+    whiteSpace: "nowrap" as const,
+  };
   const row = {
     display: "flex",
     alignItems: "flex-start",
@@ -118,7 +125,13 @@ export function SettingsDataCard({
       <div style={{ paddingBottom: 4 }}>
         <div style={label}>Your data</div>
         <div style={desc}>
-          What we hold about you, and what you can do with it — right here, no request form.
+          What we hold about you, and what you can do with it — right here, no request form.{" "}
+          {/* The app has no marketing footer, so until this link existed a student
+              reading a row about their own data had no route to the document
+              describing it. The controls are here; the reasoning is there. */}
+          <Link href="/legal" style={legalLink}>
+            Read the full policy →
+          </Link>
         </div>
       </div>
 

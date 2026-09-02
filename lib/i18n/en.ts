@@ -72,6 +72,8 @@ export const en = {
   "settings.row.shares.sub": "Public links you have handed out",
   "settings.row.privacy": "Privacy & data",
   "settings.row.privacy.sub": "What we keep, and how to take it back",
+  "settings.row.legal": "Legal",
+  "settings.row.legal.sub": "Privacy, terms, DPA and every sub-processor",
   "settings.row.activeSchool": "Active school",
   "settings.row.billing": "Billing & seats",
   "settings.row.team": "Team & classes",

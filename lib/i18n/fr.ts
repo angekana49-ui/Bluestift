@@ -57,6 +57,8 @@ export const fr: Partial<Messages> = {
   "settings.row.shares.sub": "Les liens publics que vous avez donnés",
   "settings.row.privacy": "Confidentialité et données",
   "settings.row.privacy.sub": "Ce que nous gardons, et comment le reprendre",
+  "settings.row.legal": "Mentions légales",
+  "settings.row.legal.sub": "Confidentialité, CGU, DPA et sous-traitants",
   "settings.row.activeSchool": "École active",
   "settings.row.billing": "Facturation et places",
   "settings.row.team": "Équipe et classes",

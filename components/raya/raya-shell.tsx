@@ -28,6 +28,7 @@ import {
   IconBilling,
   IconLock,
   IconAttach,
+  IconFile,
 } from "@/components/ui/icons";
 import type { AppTheme } from "@/components/ui/tokens";
 import { RayaName } from "@/components/ui/brand";
@@ -195,6 +196,17 @@ export function RayaShell({
           label: tr("settings.row.privacy"),
           sublabel: tr("settings.row.privacy.sub"),
           onSelect: () => go("/account#data"),
+        },
+        // The controls are one row up; this is the reasoning behind them. Kept
+        // as its own row rather than folded into "Privacy" because they answer
+        // different questions — "what can I change" and "what are you doing" —
+        // and the second one had no route into it from inside the app at all.
+        {
+          key: "legal",
+          icon: <IconFile />,
+          label: tr("settings.row.legal"),
+          sublabel: tr("settings.row.legal.sub"),
+          onSelect: () => go("/legal"),
         },
       ],
     },

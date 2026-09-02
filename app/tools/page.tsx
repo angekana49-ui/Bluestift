@@ -75,7 +75,18 @@ export default async function ToolsPage() {
 
   return (
     <RayaScaffold active="tools" studentName={studentName} studentInitials={initialsOf(studentName)} studentAvatarUrl={profile.profile_picture_url} studentPlan={studentPlan}>
-      <PageBody>
+      {/*
+        One column for the whole screen.
+
+        Tools used to run at the 1120px default while capping five of its own
+        blocks at 900 inline — so the "Tools Studio" heading, its description and
+        the self-test section below all overhung the content between them by
+        110px on each side, and the page read as three different layouts stacked.
+        The cap belongs to the frame (see PageBody / .app-page-inner), which is
+        also the only place that can keep the heading and the sibling section
+        agreeing with it.
+      */}
+      <PageBody maxWidth={900}>
         <Tools uploads={uploads ?? []} outputs={outputs ?? []} selfTests={selfTests} studentName={studentName} />
         <div id="self-test" style={{ marginTop: 8 }}>
           <SoloChallenge myUserId={user.id} studentName={studentName} />

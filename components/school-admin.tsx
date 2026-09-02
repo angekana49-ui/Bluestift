@@ -397,6 +397,16 @@ function SchoolChrome({
           tone: "accent",
           onSelect: () => router.push("/pricing"),
         },
+        // Same row as Raya's, and it matters more here: the person reading it is
+        // often the one who has to answer a parent about what the school signed.
+        // The DPA is on the other side of this link.
+        {
+          key: "legal",
+          icon: <IconFile />,
+          label: tr("settings.row.legal"),
+          sublabel: tr("settings.row.legal.sub"),
+          onSelect: () => router.push("/legal"),
+        },
       ],
     },
   ];

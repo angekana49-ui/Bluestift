@@ -6,9 +6,10 @@ import { parseDoc } from "@/lib/doc-format";
 import { QuizPlayer, FlashcardsPlayer, ReaderView, MindMapView } from "@/components/study/focus-player";
 import { ShareLinkButton } from "@/components/study/share-button";
 import { useAppTheme } from "@/components/ui/theme";
-import { display, status as statusColors, type AppTheme } from "@/components/ui/tokens";
+import { status as statusColors, type AppTheme } from "@/components/ui/tokens";
 import { IconQuiz, IconFlashcards, IconSummary } from "@/components/ui/icons";
 import { neutralButton, formActions } from "@/components/ui/forms";
+import { SectionHeader } from "@/components/raya/section-header";
 import { FilePicker } from "@/components/ui/file-picker";
 
 type QuizQuestion = {
@@ -279,15 +280,18 @@ export function Tools({
 
   return (
     <div>
-      <div style={{ fontSize: 23, fontWeight: 800, fontFamily: display, marginBottom: 4, color: t.text }}>
-        Tools Studio
-      </div>
-      <div style={{ fontSize: 15, color: t.muted, marginBottom: 24 }}>
-        Generate quizzes, summaries and flashcards from any lesson — then study them one at a time.
-      </div>
+      {/* Was the same 23/800/display + 15/muted pair copied inline, at a
+          different margin and without the brand wrapper — so the one page that
+          rolled its own header was also the one whose header sat 4px off from
+          /rooms, /profile and /account, and the only one where "Raya" in a
+          subtitle could be machine-translated. */}
+      <SectionHeader
+        title="Tools Studio"
+        subtitle="Generate quizzes, summaries and flashcards from any lesson — then study them one at a time."
+      />
 
       {/* tool picker */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 12, maxWidth: 900 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 12 }}>
         {TOOLS.filter((x) => x.ready).map((x) => {
           const on = tool === x.id;
           return (
@@ -338,7 +342,6 @@ export function Tools({
           border: `1px dashed ${dragging ? statusColors.aiIndigo : t.cardBorder}`,
           borderRadius: 18,
           padding: 22,
-          maxWidth: 900,
           textAlign: "center",
           color: t.mutedLight,
           fontSize: 14,
@@ -366,7 +369,7 @@ export function Tools({
 
       {/* picked sources */}
       {sources.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12, maxWidth: 900 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
           {sources.map((s, i) => (
             <span
               key={i}
@@ -398,7 +401,7 @@ export function Tools({
         </div>
       )}
 
-      <div style={{ ...formActions, maxWidth: 900 }}>
+      <div style={formActions}>
         {statusMsg && <span style={{ fontSize: 14, color: t.muted, marginRight: "auto" }}>{statusMsg}</span>}
         <button style={{ ...cta(t), opacity: busy || sources.length === 0 ? 0.5 : 1 }} onClick={generate} disabled={busy || sources.length === 0}>
           Generate
@@ -407,7 +410,7 @@ export function Tools({
       {error && <p style={{ color: "#f87171", marginTop: 12, fontSize: 15 }}>{error}</p>}
 
       {(uploads.length > 0 || outputs.length > 0 || selfTests.length > 0) && (
-        <div style={{ marginTop: 20, maxWidth: 900, display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 14 }}>
           {uploads.length > 0 && (
             <div style={panel(t)}>
               <LibraryHeader theme={t} title="Your files" count={uploads.length} hint="Reuse any of these as a source — no re-upload." />
