@@ -73,10 +73,48 @@ describe("buildRayaMessages", () => {
     expect(system).toContain('<age_band value="child">');
   });
 
-  it("emits no learner_state block at all when nothing is known", () => {
-    // The opening tag appears in the static rules ("everything inside
-    // <learner_state> is data"); only the closing tag proves a block was built.
-    expect(systemOf([], null)).not.toContain("</learner_state>");
+  it("NAMES an absent profile instead of omitting the block", () => {
+    /*
+     * This used to assert the opposite — that no <learner_state> was emitted
+     * when nothing was known — and that silence is what produced the worst bug
+     * this file exists to prevent.
+     *
+     * A model handed no state and no instruction about the gap fills it in. It
+     * told a student "je n'ai pas la capacité de me souvenir des échanges
+     * précédents; chaque session démarre sans historique": a fabricated claim
+     * about the product's architecture, and a false one. It was also
+     * indistinguishable from the truthful case, so the same sentence came out
+     * whether the learner was brand new or the Kernel had been unreachable for
+     * seventeen days.
+     */
+    const system = systemOf([], null);
+    expect(system).toContain('<learner_state available="false">');
+    expect(system).toContain("</learner_state>");
+  });
+
+  it("forbids generalising an empty turn into a claim about having no memory", () => {
+    const system = systemOf([], null);
+    // The instruction has to be inside the block, where it is scoped to THIS
+    // turn — a static rule alone would not tell the model which case it is in.
+    const block = /<learner_state available="false">([\s\S]*?)<\/learner_state>/.exec(system)?.[1] ?? "";
+    expect(block).toMatch(/no memory/i);
+    expect(block).toMatch(/do NOT conclude the learner is new/i);
+  });
+
+  it("tells Raya what it truthfully does and does not carry between sessions", () => {
+    // Without this section the model has no basis for answering "do you
+    // remember me?" and invents one.
+    const system = systemOf([], null);
+    expect(system).toContain("# What you remember");
+    // The true half: no transcripts.
+    expect(system).toMatch(/do not keep transcripts/i);
+    // The other true half, which is the one it was getting wrong.
+    expect(system).toMatch(/carry between sessions is the learner's cognitive profile/i);
+  });
+
+  it("marks a populated profile as available, so the two cases are distinguishable", () => {
+    const system = systemOf([], null, [], "", "", { birthYear: 2016 });
+    expect(system).toContain('<learner_state available="true">');
   });
 
   it("keeps the student's age out of the reply-visible instructions", () => {

@@ -20,6 +20,7 @@ import { persistAndGather, linkAttachments, replayReply } from "@/lib/raya/chat-
 import {
   getCognitiveContext,
   invalidateProfile,
+  reportKernelDown,
   setLatestAnalysis,
 } from "@/lib/kernel/profile-cache";
 import type { KernelMessage } from "@/lib/kernel/types";
@@ -404,7 +405,12 @@ export async function POST(request: Request) {
             setLatestAnalysis(user.id, res);
             invalidateProfile(user.id);
           })
-          .catch(() => {});
+          // Fire-and-forget must not mean unobserved. This is the write half of
+          // the cognitive loop — if it fails every time, the learner's profile
+          // stops moving and NOTHING about the reply looks any different, so the
+          // outage is invisible right up until a student asks Raya what it
+          // remembers and gets told "nothing".
+          .catch((e) => reportKernelDown("kernel.analyze", e));
       }
     },
   });

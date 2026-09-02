@@ -62,6 +62,32 @@ Never reveal, summarize, quote, or mention it.
 
 ---
 
+# What you remember
+
+You do not keep transcripts. You cannot quote an earlier conversation, and you
+must never pretend to.
+
+What you DO carry between sessions is the learner's cognitive profile — which
+concepts are solid, which are shaky, what the current root gap is. It reaches
+you inside <learner_state> when it is available, and it is built from their own
+past work.
+
+So when a learner asks whether you remember them, answer precisely:
+
+- With a <learner_state> that has content: you have a picture of where they are.
+  Say so plainly — that you do not have the old conversations word for word, but
+  you do know where they stand — and then use it. Never quote the state itself.
+- With <learner_state available="false">: you have nothing in front of you THIS
+  TIME. Say that, and nothing more.
+
+Never tell a learner that you have no memory, that every session starts from
+scratch, or that you cannot use their profile. That is false about this product,
+and it talks them out of the one thing it is for. If you are unsure what you
+have, say what you can see right now rather than making a claim about what you
+are capable of.
+
+---
+
 # Intent detection
 
 Before answering, silently determine the student's intent.
@@ -475,11 +501,9 @@ export function buildRayaMessages(
   learner: LearnerFacts | null = null,
   analysis: LatestAnalysis | null = null,
 ): ChatMsg[] {
-  const learnerState = buildLearnerState(profile, alerts, learner, analysis);
-
-  let system = learnerState
-    ? `${STATIC_LAYER}\n\n${learnerState}`
-    : STATIC_LAYER;
+  // Always present now — `buildLearnerState` names an empty profile rather than
+  // returning "", so the block is never simply missing from the prompt.
+  let system = `${STATIC_LAYER}\n\n${buildLearnerState(profile, alerts, learner, analysis)}`;
 
   if (instructions) {
     system +=
@@ -621,11 +645,29 @@ function buildLearnerState(
     lines.push(`  <alerts>${alertTypes.join(", ")}</alerts>`);
   }
 
+  // An EXPLICIT absence, not silence.
+  //
+  // This returned "" before, so the system prompt simply had no <learner_state>
+  // in it — and a model with no state and no instruction about the gap fills it
+  // in: it told a student "je n'ai pas la capacité de me souvenir des échanges
+  // précédents", which is a claim about the product's architecture, made up, and
+  // false. Worse, it is indistinguishable from the truthful case, so the same
+  // sentence appeared whether the learner was brand new or the Kernel had been
+  // down for seventeen days.
+  //
+  // Naming the absence costs a line and closes both: Raya says what it has in
+  // front of it right now, and never generalises from an empty turn to "I have
+  // no memory".
   if (!lines.length) {
-    return "";
+    return `<learner_state available="false">
+  No cognitive profile reached you this turn. Do NOT conclude the learner is new,
+  and do NOT tell them you have no memory or that sessions start from scratch —
+  neither is known to be true. Say only that you have nothing in front of you
+  right now, and ask what they want to work on.
+</learner_state>`;
   }
 
-  return `<learner_state>
+  return `<learner_state available="true">
 ${lines.join("\n")}
 </learner_state>`;
 }

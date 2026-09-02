@@ -2,6 +2,7 @@ import "server-only";
 import { kernel } from "./client";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { withTimeout } from "@/lib/net/timeout";
+import { reportError } from "@/lib/observability/report";
 import { sanitizeConceptLabel } from "./signals";
 import type { AnalyzeResponse, KernelAlert, LoadProfileResponse } from "./types";
 
@@ -242,12 +243,43 @@ async function refresh(userId: string): Promise<void> {
     } catch {
       // the L1 write above already succeeded
     }
-  } catch {
+  } catch (e) {
     // Back off for a full TTL even on failure so we don't hammer a down Kernel.
     cache.set(userId, {
       profile: prev?.profile ?? null,
       at: Date.now(),
       refreshing: false,
     });
+    // SAY SO. This catch used to be empty, and that silence is how a Kernel
+    // that had been returning 404 for seventeen days went unnoticed: every
+    // layer above degrades politely, so a dead Kernel and a brand-new student
+    // produce the identical result — an empty profile and a tutor with no
+    // cognitive context. Non-blocking on purpose (the chat turn must still go
+    // through), but no longer invisible.
+    void reportKernelDown("kernel.loadProfile", e);
   }
+}
+
+/**
+ * One report per scope per window, because this fires on a per-user, per-turn
+ * path: a Kernel outage during class would otherwise emit a line per student
+ * per message. The window is what makes an outage one alert instead of a flood,
+ * and short enough that a recovery followed by a relapse is still reported.
+ */
+const DOWN_REPORT_WINDOW_MS = 5 * 60_000;
+const lastReported = new Map<string, number>();
+
+export function reportKernelDown(scope: string, e: unknown): void {
+  const now = Date.now();
+  const last = lastReported.get(scope) ?? 0;
+  if (now - last < DOWN_REPORT_WINDOW_MS) return;
+  lastReported.set(scope, now);
+  void reportError(scope, e, {
+    // `warning`, not `error`: one failed call is genuinely expected sometimes
+    // (a cold container, a dropped connection). What is never fine is a lot of
+    // them, which is exactly what the rate limit above turns into a steady
+    // drip rather than a spike.
+    severity: "warning",
+    tags: { dependency: "kernel" },
+  });
 }
