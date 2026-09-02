@@ -145,7 +145,9 @@ describe("getCognitiveContext", () => {
   it("empty everywhere → null profile, no throw", async () => {
     const mod = await freshModule();
     const ctx = await mod.getCognitiveContext("u1");
-    expect(ctx).toEqual({ profile: null, alerts: [], analysis: null });
+    // Two analysis slots now: the ambient pass and the anchored one a learner
+    // asked for. Both empty here.
+    expect(ctx).toEqual({ profile: null, alerts: [], analysis: null, anchored: null });
   });
 });
 
@@ -179,6 +181,59 @@ describe("refresh path", () => {
     await vi.waitFor(() => {
       expect(state.upserts.some((u) => u.latest_analysis != null)).toBe(true);
     });
+  });
+
+  it("an ANCHORED analysis is written to its own slot as well", async () => {
+    // Memorize writes both: the ambient slot (so this session benefits now) and
+    // the durable one (so it survives the next ambient pass, three turns away).
+    const mod = await freshModule();
+    mod.setLatestAnalysis("u1", {
+      alerts: [],
+      root_gap: "partage_en_parts_egales",
+      summary: "The learner got stuck on unequal shares.",
+      detection_path: [],
+      recommended_path: [],
+      confidence: 0.8,
+    } as never, { anchored: true });
+
+    const ctx = await mod.getCognitiveContext("u1");
+    expect(ctx.anchored?.root_gap).toBe("partage_en_parts_egales");
+    // The summary used to be computed on every /analyze and discarded here.
+    expect(ctx.anchored?.summary).toBe("The learner got stuck on unequal shares.");
+    await vi.waitFor(() => {
+      expect(state.upserts.some((u) => u.anchored_analysis != null)).toBe(true);
+    });
+  });
+
+  it("an AMBIENT analysis never touches the anchored slot", async () => {
+    // The bug this closes: one column for both meant the automatic pass
+    // overwrote what the learner had explicitly asked to keep.
+    const mod = await freshModule();
+    mod.setLatestAnalysis("u1", { alerts: [], root_gap: "ambient" } as never);
+    const ctx = await mod.getCognitiveContext("u1");
+    expect(ctx.analysis?.root_gap).toBe("ambient");
+    expect(ctx.anchored).toBeNull();
+    expect(state.upserts.every((u) => u.anchored_analysis === undefined)).toBe(true);
+  });
+
+  it("an anchored analysis outlives the ambient TTL", async () => {
+    // Thirty minutes is right for a pass nobody asked for and wrong for one
+    // someone did — the dialog says the thread is "something Raya can draw on
+    // later", and half an hour is not later.
+    const mod = await freshModule();
+    const dayOld = Date.now() - 24 * 60 * 60_000;
+    state.selectRow = {
+      profile: null,
+      alerts: [],
+      latest_analysis: { root_gap: "ambient", detection_path: [], recommended_path: [], confidence: 0.5, at: dayOld },
+      anchored_analysis: { root_gap: "anchored", summary: "kept", detection_path: [], recommended_path: [], confidence: 0.8, at: dayOld },
+      profile_updated_at: null,
+      alerts_updated_at: null,
+      anchored_updated_at: new Date(dayOld).toISOString(),
+    };
+    const ctx = await mod.getCognitiveContext("u1");
+    expect(ctx.analysis).toBeNull();          // ambient: expired
+    expect(ctx.anchored?.root_gap).toBe("anchored"); // anchored: still there
   });
 
   it("an analysis older than the TTL is not served as current", async () => {

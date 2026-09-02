@@ -1,7 +1,12 @@
 import "server-only";
 import type { KernelAlert, LoadProfileResponse } from "@/lib/kernel/types";
 import type { LatestAnalysis } from "@/lib/kernel/profile-cache";
-import { learnerSignals, MASTERY_THRESHOLD } from "@/lib/kernel/signals";
+import {
+  learnerSignals,
+  sanitizeConceptLabel,
+  sanitizeKernelText,
+  MASTERY_THRESHOLD,
+} from "@/lib/kernel/signals";
 import type { ChatMsg } from "@/lib/raya/llm";
 import { audienceLines, resolveAudience } from "@/lib/raya/audience";
 
@@ -500,10 +505,11 @@ export function buildRayaMessages(
   instructions = "",
   learner: LearnerFacts | null = null,
   analysis: LatestAnalysis | null = null,
+  anchored: LatestAnalysis | null = null,
 ): ChatMsg[] {
   // Always present now — `buildLearnerState` names an empty profile rather than
   // returning "", so the block is never simply missing from the prompt.
-  let system = `${STATIC_LAYER}\n\n${buildLearnerState(profile, alerts, learner, analysis)}`;
+  let system = `${STATIC_LAYER}\n\n${buildLearnerState(profile, alerts, learner, analysis, anchored)}`;
 
   if (instructions) {
     system +=
@@ -549,6 +555,7 @@ function buildLearnerState(
   alerts: KernelAlert[],
   learner: LearnerFacts | null = null,
   analysis: LatestAnalysis | null = null,
+  anchored: LatestAnalysis | null = null,
 ): string {
   const { focus, mastered, weakestK, weakestP, mindset } = learnerSignals(profile);
 
@@ -615,12 +622,49 @@ function buildLearnerState(
   // The Kernel's own root-cause finding from the last /analyze. It is the one
   // signal that crosses concepts — the chain it walked to get there — so it
   // says *why* the focus concept is the focus.
+  /*
+   * Sanitised HERE as well as on the write path, and that redundancy is the
+   * point: `setLatestAnalysis` cleans what it stores, but the L2 snapshot is
+   * read straight back out of Postgres into this function, so the database is a
+   * second entrance that skips the first cleaner. Anything that reaches a
+   * system prompt gets scrubbed at the boundary where it enters the prompt —
+   * not only at the boundary where it entered the process.
+   */
   if (analysis?.root_gap) {
-    lines.push(`  <root_cause>${analysis.root_gap}</root_cause>`);
+    const gap = sanitizeConceptLabel(analysis.root_gap);
+    if (gap) lines.push(`  <root_cause>${gap}</root_cause>`);
   }
   if (analysis?.recommended_path?.length) {
+    const path = analysis.recommended_path
+      .slice(0, 5)
+      .map(sanitizeConceptLabel)
+      .filter(Boolean);
+    if (path.length) {
+      lines.push(`  <recommended_path>${path.join(" → ")}</recommended_path>`);
+    }
+  }
+
+  /*
+   * A conversation the learner ASKED Raya to remember.
+   *
+   * Distinct from <root_cause> above, which comes from the ambient pass and
+   * describes this session. This one is why "Memorize" is a button: it is the
+   * learner's own decision about what matters, it survives across sessions, and
+   * it is the only place the CONTENT of an earlier conversation reaches the
+   * tutor at all — we keep no transcripts, so the Kernel's summary of it is the
+   * whole of what can honestly be carried.
+   */
+  const anchoredSummary = sanitizeKernelText(anchored?.summary);
+  const anchoredGap = sanitizeConceptLabel(anchored?.root_gap);
+  if (anchoredSummary || anchoredGap) {
+    const parts: string[] = [];
+    if (anchoredSummary) parts.push(`    <summary>${anchoredSummary}</summary>`);
+    if (anchoredGap) parts.push(`    <root_cause>${anchoredGap}</root_cause>`);
     lines.push(
-      `  <recommended_path>${analysis.recommended_path.slice(0, 5).join(" → ")}</recommended_path>`,
+      `  <anchored_conversation>` +
+        `The learner explicitly asked you to remember this earlier session. ` +
+        `You may say that you remember it and use it; you may NOT quote it as ` +
+        `if you had the transcript.\n${parts.join("\n")}\n  </anchored_conversation>`,
     );
   }
 

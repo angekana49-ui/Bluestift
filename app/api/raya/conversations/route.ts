@@ -255,7 +255,11 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "kernel_unreachable" }, { status: 502 });
   }
 
-  setLatestAnalysis(user.id, analysis);
+  // `anchored`: this one was asked for, so it goes to the durable slot as well
+  // as the ambient one. Without that flag the next automatic pass — three turns
+  // later — overwrites it, and it expires in thirty minutes regardless, which
+  // is what made this button's promise false at the tutor's end.
+  setLatestAnalysis(user.id, analysis, { anchored: true });
   invalidateProfile(user.id);
 
   const memorized_at = new Date().toISOString();

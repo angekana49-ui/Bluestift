@@ -3,7 +3,7 @@ import { kernel } from "./client";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { withTimeout } from "@/lib/net/timeout";
 import { reportError } from "@/lib/observability/report";
-import { sanitizeConceptLabel } from "./signals";
+import { sanitizeConceptLabel, sanitizeKernelText } from "./signals";
 import type { AnalyzeResponse, KernelAlert, LoadProfileResponse } from "./types";
 
 /**
@@ -49,23 +49,50 @@ const alertsCache = new Map<string, { alerts: KernelAlert[]; at: number }>();
  */
 export type LatestAnalysis = {
   root_gap: string | null;
+  /**
+   * The Kernel's own prose account of the conversation it read.
+   *
+   * It was computed on every /analyze and thrown away here — the one field that
+   * carries what the exchange was ABOUT rather than which concepts moved. We do
+   * not keep transcripts, so this is the closest thing to "the conversation and
+   * its content" that can reach a later turn, which is exactly what the
+   * Memorize dialog promises.
+   */
+  summary: string | null;
   detection_path: string[];
   recommended_path: string[];
   confidence: number | null;
   at: number;
 };
 
-/** A root cause older than this describes a session that has moved on. */
+/**
+ * A root cause from the AMBIENT pass older than this describes a session that
+ * has moved on. Short on purpose: nobody asked for that analysis, and a stale
+ * root cause is worse than none — it aims the tutor at last week's problem.
+ */
 const ANALYSIS_TTL_MS = 30 * 60_000;
 
+/**
+ * An ANCHORED analysis is the opposite case, so it gets the opposite bound.
+ * Someone pressed a button and read a dialog saying the thread would be
+ * something Raya could draw on later; thirty minutes is not "later". Still
+ * bounded rather than forever — a learner moves on, and a year-old root cause
+ * is a wrong answer stated confidently.
+ */
+const ANCHORED_TTL_MS = 30 * 24 * 60 * 60_000;
+
 const analysisCache = new Map<string, LatestAnalysis>();
+/** Separate slot, so an ambient pass three turns later cannot overwrite it. */
+const anchoredCache = new Map<string, LatestAnalysis>();
 
 type SnapshotRow = {
   profile: LoadProfileResponse | null;
   alerts: KernelAlert[] | null;
   latest_analysis: LatestAnalysis | null;
+  anchored_analysis: LatestAnalysis | null;
   profile_updated_at: string | null;
   alerts_updated_at: string | null;
+  anchored_updated_at: string | null;
 };
 
 /**
@@ -100,8 +127,11 @@ function snapshots() {
 export type CognitiveContext = {
   profile: LoadProfileResponse | null;
   alerts: KernelAlert[];
-  /** null when there has been no analysis, or it is older than the TTL. */
+  /** The ambient pass. null when there has been none, or it is past its TTL. */
   analysis: LatestAnalysis | null;
+  /** What the learner explicitly asked Raya to remember. Long-lived, and never
+   *  overwritten by the ambient pass. */
+  anchored: LatestAnalysis | null;
 };
 
 /**
@@ -117,13 +147,16 @@ export async function getCognitiveContext(userId: string): Promise<CognitiveCont
   let profile = l1?.profile ?? null;
   let alerts = l1Alerts?.alerts ?? null;
   let analysis = analysisCache.get(userId) ?? null;
+  let anchored = anchoredCache.get(userId) ?? null;
 
-  // L1 miss on any part → one bounded snapshot read fills all three.
-  if ((!l1 || !l1Alerts || !analysis) && (profile === null || alerts === null || analysis === null)) {
+  // L1 miss on any part → one bounded snapshot read fills all four.
+  if (profile === null || alerts === null || analysis === null || anchored === null) {
     const row = await withTimeout(
       (async () => {
         const { data } = await snapshots()
-          .select("profile, alerts, latest_analysis, profile_updated_at, alerts_updated_at")
+          .select(
+            "profile, alerts, latest_analysis, anchored_analysis, profile_updated_at, alerts_updated_at, anchored_updated_at",
+          )
           .eq("user_id", userId)
           .maybeSingle();
         return data;
@@ -145,15 +178,26 @@ export async function getCognitiveContext(userId: string): Promise<CognitiveCont
         analysis = row.latest_analysis;
         analysisCache.set(userId, row.latest_analysis);
       }
+      if (!anchored && row.anchored_analysis) {
+        // `at` is written into the payload, but trust the column when it is
+        // there: a row restored from a backup keeps its real age either way.
+        const at = row.anchored_updated_at
+          ? Date.parse(row.anchored_updated_at)
+          : row.anchored_analysis.at;
+        anchored = { ...row.anchored_analysis, at };
+        anchoredCache.set(userId, anchored);
+      }
     }
   }
 
   // Expiry is applied on read, not on write: a stale row is harmless in the
-  // table and this keeps the one clock that matters in one place.
+  // table and this keeps the one clock that matters in one place. Two clocks
+  // now, because the two slots mean different things — see the constants.
   if (analysis && now - analysis.at > ANALYSIS_TTL_MS) analysis = null;
+  if (anchored && now - anchored.at > ANCHORED_TTL_MS) anchored = null;
 
   if (shouldRefresh(cache.get(userId), now)) void refresh(userId);
-  return { profile, alerts: alerts ?? [], analysis };
+  return { profile, alerts: alerts ?? [], analysis, anchored };
 }
 
 /** Mark the cached profile stale and refresh it from the Kernel right away. */
@@ -170,20 +214,33 @@ export function invalidateProfile(userId: string): void {
  * response. `root_gap` and `recommended_path` are the Kernel's cross-concept
  * reasoning; nothing else in the app can reconstruct them.
  */
-export function setLatestAnalysis(userId: string, res: AnalyzeResponse): void {
+export function setLatestAnalysis(
+  userId: string,
+  res: AnalyzeResponse,
+  /**
+   * `anchored` means a learner pressed Memorize. It writes a SECOND, durable
+   * slot as well as the ambient one — without it, the anchor was overwritten by
+   * the next ambient pass three turns later and expired in thirty minutes
+   * regardless, which made the Memorize dialog's promise false.
+   */
+  opts: { anchored?: boolean } = {},
+): void {
   const alerts = res.alerts ?? [];
   const analysis: LatestAnalysis = {
     // Kernel-authored, but built from student conversations — sanitised here so
     // no caller can forget to, since these end up inside a system prompt.
     root_gap: res.root_gap ? sanitizeConceptLabel(res.root_gap) : null,
+    summary: res.summary ? sanitizeKernelText(res.summary) : null,
     detection_path: (res.detection_path ?? []).slice(0, 8).map(sanitizeConceptLabel).filter(Boolean),
     recommended_path: (res.recommended_path ?? []).slice(0, 8).map(sanitizeConceptLabel).filter(Boolean),
     confidence: typeof res.confidence === "number" ? res.confidence : null,
     at: Date.now(),
   };
 
+  const stamp = new Date().toISOString();
   alertsCache.set(userId, { alerts, at: Date.now() });
   analysisCache.set(userId, analysis);
+  if (opts.anchored) anchoredCache.set(userId, analysis);
 
   void (async () => {
     try {
@@ -191,7 +248,10 @@ export function setLatestAnalysis(userId: string, res: AnalyzeResponse): void {
         user_id: userId,
         alerts,
         latest_analysis: analysis,
-        alerts_updated_at: new Date().toISOString(),
+        alerts_updated_at: stamp,
+        ...(opts.anchored
+          ? { anchored_analysis: analysis, anchored_updated_at: stamp }
+          : {}),
       });
     } catch {
       // best-effort

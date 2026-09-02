@@ -135,7 +135,7 @@ export async function POST(request: Request) {
     turnsToday,
     roomMember,
     roomOpen,
-    { profile, alerts, analysis },
+    { profile, alerts, analysis, anchored },
     instructions,
     learner,
   ] =
@@ -325,6 +325,7 @@ export async function POST(request: Request) {
           schoolLevel: learner?.school_level ?? null,
         },
         analysis,
+        anchored,
       ),
       routing.tier,
     );

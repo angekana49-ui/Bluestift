@@ -76,6 +76,29 @@ export function sanitizeConceptLabel(raw: string | null | undefined): string {
   return cleaned.length > 60 ? `${cleaned.slice(0, 60)}…` : cleaned;
 }
 
+/**
+ * The same treatment for a SENTENCE rather than a label.
+ *
+ * The Kernel's `summary` is model-written prose about a student conversation,
+ * and it lands inside a system prompt — so it is untrusted text in the one
+ * place untrusted text does the most damage. `sanitizeConceptLabel` is the
+ * right idea and the wrong size: it caps at 60 characters, which turns a
+ * summary into a fragment.
+ *
+ * Angle brackets go for the same reason as in a label — the state is XML-framed
+ * and a stray `</learner_state>` would close the block early and promote
+ * everything after it to instructions. Newlines collapse so a summary cannot
+ * fake a new section with its own heading.
+ */
+export function sanitizeKernelText(raw: string | null | undefined, max = 400): string {
+  const cleaned = (raw ?? "")
+    .replace(CONTROL_CHARS, " ")
+    .replace(/[<>]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return cleaned.length > max ? `${cleaned.slice(0, max)}…` : cleaned;
+}
+
 function clamp01(n: number | null | undefined): number {
   if (typeof n !== "number" || Number.isNaN(n)) return 0;
   return n < 0 ? 0 : n > 1 ? 1 : n;
