@@ -224,6 +224,201 @@ export class AggregatorPaymentProvider implements PaymentProvider {
   }
 }
 
+// ---- Stripe (hosted Checkout Session) --------------------------------------
+
+/**
+ * Currencies Stripe treats as having NO minor unit.
+ *
+ * This is the single most dangerous line in the file. Stripe wants the amount in
+ * the smallest currency unit, so $8 is `800` — but XOF, the West African CFA
+ * franc this product will actually bill most of its schools in, has no centimes.
+ * Multiplying it by 100 does not round oddly, it charges a hundred times the
+ * price: a 5 000 XOF invoice presented as 500 000. The mistake looks like a
+ * working integration right up until a real card is used.
+ *
+ * XOF and XAF (Central African CFA) are both here, alongside the rest of
+ * Stripe's zero-decimal set.
+ */
+const ZERO_DECIMAL = new Set([
+  "BIF", "CLP", "DJF", "GNF", "JPY", "KMF", "KRW", "MGA",
+  "PYG", "RWF", "UGX", "VND", "VUV", "XAF", "XOF", "XPF",
+]);
+
+/** Amount in the unit Stripe charges in. Exported for the test that pins XOF. */
+export function stripeMinorUnits(amount: number, currency: string): number {
+  return ZERO_DECIMAL.has(currency.toUpperCase())
+    ? Math.round(amount)
+    : Math.round(amount * 100);
+}
+
+/**
+ * Stripe Checkout, behind the same seam as everything else.
+ *
+ * WHY IT EXISTS ALONGSIDE THE AGGREGATOR, not instead of it. Stripe does not do
+ * African mobile money, and mobile money is how most of this product's users
+ * would pay; CinetPay does mobile money and is not how an international school
+ * or a card-paying parent in Europe expects to pay. They are complementary
+ * rails, not competing ones — which is why `supportedChannels` here is `card`
+ * alone rather than the three the aggregator claims. A provider that overstates
+ * its channels renders buttons that fail at the last step.
+ *
+ * `BILLING_PROVIDER` still picks ONE globally, so today choosing Stripe means no
+ * mobile money and choosing CinetPay means no Stripe. That is a real limitation
+ * and is written down in the README rather than papered over: routing by the
+ * payer's region is a separate change, and pretending this is already regional
+ * would be worse than saying it is not.
+ *
+ * The paywall is closed, so nothing here is exercised by a real payer yet. It is
+ * written now because the shape of the webhook — verified against a raw body,
+ * with a replay window — is not something to discover on the day money starts
+ * moving.
+ */
+export class StripePaymentProvider implements PaymentProvider {
+  readonly id = "stripe";
+  /** Card only. See the class comment: mobile money is not a Stripe rail. */
+  readonly supportedChannels: readonly PaymentChannel[] = ["card"];
+
+  constructor(
+    private readonly cfg: { secretKey: string; webhookSecret?: string; baseUrl?: string },
+  ) {}
+
+  private get api() {
+    return (this.cfg.baseUrl ?? "https://api.stripe.com").replace(/\/$/, "");
+  }
+
+  async createCheckout(input: CheckoutInput): Promise<CheckoutResult> {
+    // Stripe's API is form-encoded, including its bracketed nested keys — there
+    // is no JSON variant, and sending JSON fails with a confusing 400.
+    const form = new URLSearchParams({
+      mode: "payment",
+      success_url: input.returnUrl,
+      cancel_url: input.returnUrl,
+      // Both, deliberately: client_reference_id is what shows in the dashboard
+      // and survives to most events, metadata is what we read back in the
+      // webhook. Reconciling a real payment by hand is the case they are for.
+      client_reference_id: input.paymentId,
+      "metadata[payment_id]": input.paymentId,
+      "metadata[plan_id]": input.planId,
+      "line_items[0][quantity]": "1",
+      "line_items[0][price_data][currency]": input.currency.toLowerCase(),
+      "line_items[0][price_data][unit_amount]": String(
+        stripeMinorUnits(input.amount ?? 0, input.currency),
+      ),
+      "line_items[0][price_data][product_data][name]": input.description,
+    });
+    if (input.customer?.email) form.set("customer_email", input.customer.email);
+
+    const res = await fetch(`${this.api}/v1/checkout/sessions`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${this.cfg.secretKey}`,
+        "content-type": "application/x-www-form-urlencoded",
+        // Our paymentId is unique per intent, so a retried checkout creation
+        // reuses the same session instead of opening a second one the payer
+        // could also complete.
+        "idempotency-key": `checkout_${input.paymentId}`,
+      },
+      body: form.toString(),
+    });
+    const data = (await res.json().catch(() => null)) as { id?: string; url?: string } | null;
+    if (!res.ok || !data?.url) throw new Error("Stripe checkout could not be created.");
+    return { mode: "redirect", url: data.url, providerRef: input.paymentId };
+  }
+
+  async parseNotification({ headers, rawBody, json }: NotificationInput): Promise<Notification | null> {
+    /**
+     * Unlike the aggregator, there is no server-to-server re-check to fall back
+     * on: the signature IS the security boundary, so it is hard-required rather
+     * than soft. Without a configured secret this refuses everything — an
+     * unsigned "paid" event grants a subscription for free.
+     */
+    if (!this.cfg.webhookSecret) return null;
+    if (!verifyStripeSignature(rawBody, headers.get("stripe-signature"), this.cfg.webhookSecret)) {
+      return null;
+    }
+
+    const event = (json ?? {}) as {
+      type?: unknown;
+      data?: { object?: Record<string, unknown> };
+    };
+    const object = event.data?.object ?? {};
+    const meta = (object.metadata ?? {}) as Record<string, unknown>;
+    const ref =
+      (typeof meta.payment_id === "string" && meta.payment_id) ||
+      (typeof object.client_reference_id === "string" && object.client_reference_id) ||
+      null;
+    if (!ref) return null;
+
+    // Only the events that settle something. Anything else is `pending`, which
+    // is a no-op upstream — a stray event must never flip a live payment.
+    switch (event.type) {
+      case "checkout.session.completed":
+      case "checkout.session.async_payment_succeeded":
+        // `completed` fires for delayed methods before the money arrives, so the
+        // payment_status field is what decides, not the event name.
+        return {
+          providerRef: ref,
+          status: object.payment_status === "paid" ? "paid" : "pending",
+          channel: "card",
+        };
+      case "checkout.session.async_payment_failed":
+        return { providerRef: ref, status: "failed", channel: "card" };
+      case "checkout.session.expired":
+        return { providerRef: ref, status: "expired", channel: "card" };
+      default:
+        return { providerRef: ref, status: "pending" };
+    }
+  }
+}
+
+/**
+ * Verify Stripe's `Stripe-Signature` header: `t=<unix>,v1=<hex>[,v1=<hex>]`,
+ * where the signed payload is `${t}.${rawBody}` under HMAC-SHA256.
+ *
+ * Two things this must get right, both of which are easy to skip and neither of
+ * which fails visibly:
+ *
+ *  - the RAW body, byte for byte. Re-serialising the parsed JSON changes key
+ *    order and whitespace and every signature stops matching.
+ *  - the TIMESTAMP window. Without it a valid old event can be replayed forever
+ *    — the signature never expires on its own. Five minutes is Stripe's own
+ *    recommendation and is generous next to a webhook's normal latency.
+ */
+const STRIPE_TOLERANCE_S = 5 * 60;
+
+export function verifyStripeSignature(
+  rawBody: string,
+  header: string | null,
+  secret: string,
+  now: number = Date.now(),
+): boolean {
+  if (!header || !secret) return false;
+  let timestamp: string | null = null;
+  const signatures: string[] = [];
+  for (const part of header.split(",")) {
+    const [k, v] = part.split("=", 2);
+    if (k?.trim() === "t") timestamp = v ?? null;
+    // Stripe sends several v1 entries while a secret is being rotated.
+    else if (k?.trim() === "v1" && v) signatures.push(v.trim());
+  }
+  if (!timestamp || signatures.length === 0) return false;
+
+  const t = Number(timestamp);
+  if (!Number.isFinite(t)) return false;
+  if (Math.abs(Math.floor(now / 1000) - t) > STRIPE_TOLERANCE_S) return false;
+
+  const expected = createHmac("sha256", secret).update(`${timestamp}.${rawBody}`, "utf8").digest();
+  return signatures.some((sig) => {
+    let given: Buffer;
+    try {
+      given = Buffer.from(sig, "hex");
+    } catch {
+      return false;
+    }
+    return given.length === expected.length && timingSafeEqual(given, expected);
+  });
+}
+
 // ---- Selection --------------------------------------------------------------
 
 /**
@@ -233,6 +428,16 @@ export class AggregatorPaymentProvider implements PaymentProvider {
  */
 export function getPaymentProvider(): PaymentProvider {
   const which = (process.env.BILLING_PROVIDER ?? "sandbox").toLowerCase();
+  if (which === "stripe") {
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+    if (secretKey) {
+      return new StripePaymentProvider({
+        secretKey,
+        webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+        baseUrl: process.env.STRIPE_BASE_URL,
+      });
+    }
+  }
   if (which === "cinetpay") {
     const apiKey = process.env.CINETPAY_API_KEY;
     const siteId = process.env.CINETPAY_SITE_ID;

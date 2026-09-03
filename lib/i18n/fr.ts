@@ -569,6 +569,13 @@ export const fr: Partial<Messages> = {
   "auth.recovery.confirmReplace": "Oui, remplacer ma clé",
   "auth.recovery.regenerate": "Générer une nouvelle clé",
   "auth.recovery.generateFirst": "Générer ma clé",
+  "auth.recovery.kw.chooseLabel": "Choisissez un mot mémoire",
+  "auth.recovery.kw.enterLabel": "Votre mot mémoire",
+  "auth.recovery.kw.placeholder": "ex. banane",
+  "auth.recovery.kw.chooseHint":
+    "Un seul mot, auquel vous seul penseriez. Il vous sera redemandé à chaque nouvelle clé, pour que personne qui emprunte votre écran ne puisse en créer une à votre insu. Majuscules et accents n'ont aucune importance.",
+  "auth.recovery.kw.enterHint":
+    "Le mot choisi la première fois. Nous ne pouvons ni le retrouver ni vous l'envoyer — il n'est stocké nulle part où nous pourrions le lire.",
   "auth.recovery.confirmWarning": "Votre clé actuelle cessera de fonctionner.",
   "auth.recovery.cancel": "Annuler",
   "auth.recovery.issued": "Émise le",

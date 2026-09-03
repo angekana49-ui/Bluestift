@@ -569,6 +569,13 @@ export const de: Partial<Messages> = {
   "auth.recovery.confirmReplace": "Ja, meinen Schlüssel ersetzen",
   "auth.recovery.regenerate": "Neuen Schlüssel erzeugen",
   "auth.recovery.generateFirst": "Meinen Schlüssel erzeugen",
+  "auth.recovery.kw.chooseLabel": "Wähle ein Merkwort",
+  "auth.recovery.kw.enterLabel": "Dein Merkwort",
+  "auth.recovery.kw.placeholder": "z. B. Banane",
+  "auth.recovery.kw.chooseHint":
+    "Ein einziges Wort, auf das nur du kommst. Wir fragen bei jedem neuen Schlüssel danach, damit niemand, der sich deinen Bildschirm ausleiht, hinter deinem Rücken einen erzeugt. Groß- und Kleinschreibung und Umlaute spielen keine Rolle.",
+  "auth.recovery.kw.enterHint":
+    "Das Wort, das du beim ersten Mal gewählt hast. Wir können es weder nachsehen noch dir zuschicken — es liegt nirgends, wo wir es lesen könnten.",
   "auth.recovery.confirmWarning": "Dein aktueller Schlüssel funktioniert dann nicht mehr.",
   "auth.recovery.cancel": "Abbrechen",
   "auth.recovery.issued": "Ausgestellt am",

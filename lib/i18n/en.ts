@@ -728,6 +728,13 @@ export const en = {
   "auth.recovery.confirmReplace": "Yes, replace my key",
   "auth.recovery.regenerate": "Generate a new key",
   "auth.recovery.generateFirst": "Generate my key",
+  "auth.recovery.kw.chooseLabel": "Choose a memory word",
+  "auth.recovery.kw.enterLabel": "Your memory word",
+  "auth.recovery.kw.placeholder": "e.g. banana",
+  "auth.recovery.kw.chooseHint":
+    "One word only you would think of. You'll be asked for it every time you make a new key, so that nobody who borrows your screen can make one behind your back. Capitals and accents don't matter.",
+  "auth.recovery.kw.enterHint":
+    "The word you chose the first time. We can't look it up or send it to you — it isn't stored anywhere we can read.",
   "auth.recovery.confirmWarning": "Your current key will stop working.",
   "auth.recovery.cancel": "Cancel",
   "auth.recovery.issued": "Issued",

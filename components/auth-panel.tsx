@@ -28,7 +28,7 @@ type Profile = {
 } | null;
 
 /** What the server can say about the key WITHOUT being able to read it. */
-export type RecoveryKeyInfo = { hasKey: boolean; issuedAt: string | null };
+export type RecoveryKeyInfo = { hasKey: boolean; issuedAt: string | null; hasKeyword: boolean };
 
 type Props = {
   user: { id: string; email: string | null; isAnonymous: boolean } | null;
@@ -42,7 +42,7 @@ type Props = {
 export function AuthPanel({
   user,
   profile,
-  recoveryKey = { hasKey: false, issuedAt: null },
+  recoveryKey = { hasKey: false, issuedAt: null, hasKeyword: false },
   maxWidth = 560,
 }: Props) {
   const { theme: t } = useResolvedTheme();
@@ -304,7 +304,7 @@ export function AuthPanel({
           </>,
         )}
         {infoRow(tr("auth.account.typeLabel"), <code>{profile?.account_type ?? "?"}</code>)}
-        <RecoveryKeyCard hasKey={recoveryKey.hasKey} issuedAt={recoveryKey.issuedAt} />
+        <RecoveryKeyCard hasKey={recoveryKey.hasKey} issuedAt={recoveryKey.issuedAt} hasKeyword={recoveryKey.hasKeyword} />
 
 
         {user.isAnonymous && (
@@ -373,9 +373,11 @@ export function AuthPanel({
 function RecoveryKeyCard({
   hasKey,
   issuedAt,
+  hasKeyword,
 }: {
   hasKey: boolean;
   issuedAt: string | null;
+  hasKeyword: boolean;
 }) {
   const { theme: t } = useResolvedTheme();
   const tr = useTranslate();
@@ -386,6 +388,10 @@ function RecoveryKeyCard({
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [keyword, setKeyword] = useState("");
+  // Local, because the server only tells us on a page load. Once the first
+  // generation has set the word, the card must stop offering to choose one.
+  const [keywordSet, setKeywordSet] = useState(hasKeyword);
 
   async function generate() {
     // Replacing a key the user still holds is destructive, so the second press
@@ -397,17 +403,25 @@ function RecoveryKeyCard({
     setBusy(true);
     setErr(null);
     try {
-      const res = await fetch("/api/account/recovery-key", { method: "POST" });
+      const res = await fetch("/api/account/recovery-key", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ keyword }),
+      });
       const data = (await res.json().catch(() => null)) as
         | { code?: string; error?: string; warning?: string }
         | null;
       if (!res.ok || !data?.code) {
         setErr(data?.error ?? tr("auth.recovery.err.generateFailed"));
+        // A rejected word leaves the confirm state open, so the next press is
+        // the retry rather than a second confirmation of the same intent.
         return;
       }
       setCode(data.code);
       setShown(true); // it exists only now — hiding it on arrival helps nobody
       setConfirming(false);
+      setKeywordSet(true);
+      setKeyword("");
       if (data.warning) setErr(data.warning);
     } catch {
       setErr(tr("auth.recovery.err.generateNetwork"));
@@ -514,8 +528,50 @@ function RecoveryKeyCard({
         </div>
       )}
 
+      {/*
+        The memory word.
+
+        Being signed in is not evidence of being the owner: an anonymous account
+        has no password to re-enter, so until this existed anyone who reached an
+        unlocked browser could press Generate once, write the key down and keep
+        remote access to the account for good.
+
+        Two different asks behind one field. The first generation CHOOSES the
+        word — so the label invites, and the hint says what makes a good one.
+        Every generation after DEMANDS it, and the hint becomes the warning that
+        it cannot be looked up. The field is above the button, because it is a
+        precondition and not an option.
+      */}
+      <div style={{ marginBottom: 10 }}>
+        <label
+          htmlFor="recovery-keyword"
+          style={{ display: "block", fontSize: 14, fontWeight: 650, color: t.text, marginBottom: 5 }}
+        >
+          {keywordSet ? tr("auth.recovery.kw.enterLabel") : tr("auth.recovery.kw.chooseLabel")}
+        </label>
+        <input
+          id="recovery-keyword"
+          type="text"
+          autoComplete="off"
+          spellCheck={false}
+          value={keyword}
+          onChange={(e) => setKeyword(e.target.value)}
+          placeholder={tr("auth.recovery.kw.placeholder")}
+          style={{ ...textInput(t), maxWidth: 280 }}
+          disabled={busy}
+        />
+        <p style={{ fontSize: 13, color: t.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
+          {keywordSet ? tr("auth.recovery.kw.enterHint") : tr("auth.recovery.kw.chooseHint")}
+        </p>
+      </div>
+
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-        <button type="button" style={{ ...pill, opacity: busy ? 0.5 : 1 }} onClick={generate} disabled={busy}>
+        <button
+          type="button"
+          style={{ ...pill, opacity: busy || !keyword.trim() ? 0.5 : 1 }}
+          onClick={generate}
+          disabled={busy || !keyword.trim()}
+        >
           {busy
             ? tr("auth.recovery.generating")
             : confirming

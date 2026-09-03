@@ -308,6 +308,8 @@ export type Database = {
           recovery_code: string | null
           recovery_code_hash: string | null
           recovery_code_issued_at: string | null
+          recovery_keyword_hash: string | null
+          recovery_keyword_set_at: string | null
           role: string
           school_id: string | null
           school_level: string | null
@@ -341,6 +343,8 @@ export type Database = {
           recovery_code?: string | null
           recovery_code_hash?: string | null
           recovery_code_issued_at?: string | null
+          recovery_keyword_hash?: string | null
+          recovery_keyword_set_at?: string | null
           role?: string
           school_id?: string | null
           school_level?: string | null
@@ -374,6 +378,8 @@ export type Database = {
           recovery_code?: string | null
           recovery_code_hash?: string | null
           recovery_code_issued_at?: string | null
+          recovery_keyword_hash?: string | null
+          recovery_keyword_set_at?: string | null
           role?: string
           school_id?: string | null
           school_level?: string | null

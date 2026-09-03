@@ -569,6 +569,13 @@ export const es: Partial<Messages> = {
   "auth.recovery.confirmReplace": "Sí, reemplazar mi clave",
   "auth.recovery.regenerate": "Generar una nueva clave",
   "auth.recovery.generateFirst": "Generar mi clave",
+  "auth.recovery.kw.chooseLabel": "Elige una palabra clave",
+  "auth.recovery.kw.enterLabel": "Tu palabra clave",
+  "auth.recovery.kw.placeholder": "p. ej. plátano",
+  "auth.recovery.kw.chooseHint":
+    "Una sola palabra que solo se te ocurriría a ti. Te la pediremos cada vez que crees una clave nueva, para que nadie que use tu pantalla pueda crear una a tus espaldas. Mayúsculas y acentos no importan.",
+  "auth.recovery.kw.enterHint":
+    "La palabra que elegiste la primera vez. No podemos consultarla ni enviártela: no se guarda en ningún sitio que podamos leer.",
   "auth.recovery.confirmWarning": "Tu clave actual dejará de funcionar.",
   "auth.recovery.cancel": "Cancelar",
   "auth.recovery.issued": "Emitida el",

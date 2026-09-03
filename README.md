@@ -24,7 +24,7 @@ alone — widen the gap between them. Bluestift is the one that closes it.
 | Cognitive engine | **Kernel**, a separate FastAPI service (see `docs/kernel-handoff.md`) |
 | Models | Gemini primary, Groq fallback; Whisper (via Groq) for voice |
 | Analytics | PostHog, opt-in, EU-hosted |
-| Payments | CinetPay (card + mobile money), sandbox provider for dev |
+| Payments | Stripe (international card) and CinetPay (card + mobile money), behind one provider seam; sandbox provider for dev |
 | Email | Resend |
 | Hosting | Vercel |
 
@@ -141,6 +141,35 @@ proper nouns and are never translated.
 
 **The public site and the app do not share styling.** Editing a token in
 `components/ui/tokens.ts` will not move the landing page, and vice versa.
+
+**Payment rails sit behind one seam, and only one runs at a time.**
+`lib/billing/payments.ts` exposes a `PaymentProvider` interface; `sandbox`,
+`stripe`, `cinetpay` and `manual` implement it, and `BILLING_PROVIDER` picks one.
+Call sites never name a provider, so adding a rail is a class, not a refactor.
+
+Two things about this are worth knowing before you touch it:
+
+- **Stripe and CinetPay are complementary, not alternatives.** Stripe does not
+  process African mobile money — how most of our users would pay — and CinetPay
+  has no international card presence worth the name. Today `BILLING_PROVIDER` is
+  a single global choice, so selecting one genuinely means losing the other.
+  Routing by the payer's region is a real, unbuilt change; the checkout page
+  already renders only `provider.supportedChannels`, so a provider must never
+  overstate them — Stripe's is `card` alone.
+- **Zero-decimal currencies.** Stripe charges in the smallest currency unit, so
+  $8 is `800` — but **XOF**, the CFA franc most of our schools would be invoiced
+  in, has no minor unit. Multiplying it by 100 does not round oddly, it charges a
+  hundred times the price. `stripeMinorUnits()` owns that rule; do not inline an
+  amount conversion anywhere else.
+
+The Stripe webhook verifies `Stripe-Signature` against the **raw** body with a
+five-minute replay window, and refuses everything when `STRIPE_WEBHOOK_SECRET` is
+unset. That is stricter than the CinetPay path on purpose: CinetPay's real
+security boundary is a server-to-server status re-check, and Stripe has no
+equivalent to fall back on, so the signature is all there is.
+
+**The paywall is closed regardless.** All of the above is written and tested but
+no customer can reach it yet — see Status.
 
 ---
 

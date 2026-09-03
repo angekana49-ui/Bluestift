@@ -33,22 +33,26 @@ function syntheticPassword(): string {
 }
 
 /** Columns of the users row that describe the key, without ever exposing it. */
-type RecoveryKeyState = { hasKey: boolean; issuedAt: string | null };
+type RecoveryKeyState = { hasKey: boolean; issuedAt: string | null; hasKeyword: boolean };
 
 export async function recoveryKeyState(userId: string): Promise<RecoveryKeyState> {
   try {
     const admin = createAdminClient();
     const { data } = await admin
       .from("users")
-      .select("recovery_code_hash, recovery_code_issued_at")
+      .select("recovery_code_hash, recovery_code_issued_at, recovery_keyword_set_at")
       .eq("id", userId)
       .maybeSingle();
     return {
       hasKey: Boolean(data?.recovery_code_issued_at),
       issuedAt: data?.recovery_code_issued_at ?? null,
+      // Whether a word EXISTS, never the word or its hash — that is the only
+      // fact the client needs, and the only one it is allowed (the column's
+      // SELECT is revoked for authenticated roles).
+      hasKeyword: Boolean(data?.recovery_keyword_set_at),
     };
   } catch {
-    return { hasKey: false, issuedAt: null };
+    return { hasKey: false, issuedAt: null, hasKeyword: false };
   }
 }
 
