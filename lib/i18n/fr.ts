@@ -18,6 +18,7 @@ export const fr: Partial<Messages> = {
   "nav.reports": "Rapports",
   "nav.team": "Équipe",
   "nav.billing": "Facturation",
+  "nav.archive": "Archives",
 
   "menu.addEmail": "Ajouter votre e-mail",
   "menu.addEmail.sub": "Sécurisez votre progression",

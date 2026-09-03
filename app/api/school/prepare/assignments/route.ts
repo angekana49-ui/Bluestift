@@ -30,10 +30,15 @@ export async function GET() {
 
   const schools = createSchoolsAdminClient();
 
-  // Accessible class ids.
+  // Accessible class ids, scoped to the running year. Without the year filter an
+  // admin sees work assigned to classes of years already archived, mixed in with
+  // this year's — and a class name reused across years makes the two
+  // indistinguishable. getProfClasses is already year-scoped.
   let classIds: string[];
   if (membership.role === "admin_master") {
-    const { data } = await schools.from("classes").select("id").eq("school_id", membership.schoolId);
+    let q = schools.from("classes").select("id").eq("school_id", membership.schoolId);
+    if (membership.currentYearId) q = q.eq("school_year_id", membership.currentYearId);
+    const { data } = await q;
     classIds = ((data as { id: string }[] | null) ?? []).map((c) => c.id);
   } else {
     classIds = (await getProfClasses(user.id)).map((c) => c.id);

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
-import { getAdminMembership } from "@/lib/school-admin";
+import { confirmMembershipForYear, getAdminMembership } from "@/lib/school-admin";
 import { sendBrandedEmail, getUserEmail, siteUrl } from "@/lib/email";
 
 /** Tell a teacher their join request was decided (best-effort, non-blocking). */
@@ -74,7 +74,9 @@ export async function POST(request: Request) {
 
   let adminId: string | null = null;
   if (action === "approve") {
-    // Idempotent membership: reuse the row if they somehow already joined.
+    // Idempotent membership: reuse the row if they somehow already joined. A
+    // returning teacher ALWAYS lands here — the yearly staff code sends them
+    // back through this queue, and their membership and history are kept.
     const { data: existing } = await schools
       .from("school_admins")
       .select("id")
@@ -93,6 +95,12 @@ export async function POST(request: Request) {
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       adminId = (created as { id: string }).id;
     }
+
+    // Confirm them for the running year. Deliberately NOT their classes and
+    // subjects: what a teacher teaches is a fresh decision every year — the maths
+    // teacher on 2nde this year may take Terminale the next. Renewal restores the
+    // person on the team, not last year's timetable.
+    await confirmMembershipForYear(adminId, membership.currentYearId);
   }
 
   const { error: updErr } = await schools

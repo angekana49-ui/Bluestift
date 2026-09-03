@@ -16,6 +16,7 @@ import { SchoolReports } from "@/components/school-reports";
 import { SchoolTeam } from "@/components/school-team";
 import { SchoolInsights } from "@/components/school-insights";
 import { SchoolLms } from "@/components/school-lms";
+import { SchoolArchive } from "@/components/school-archive";
 import { SchoolBilling } from "@/components/school-billing";
 import { InstructionsPanel } from "@/components/school/class-instructions";
 import { FollowupsPanel } from "@/components/school/prof-followups";
@@ -236,6 +237,8 @@ export function SchoolAdmin({
   account = null,
   initialTab = null,
   initialJoinCode = null,
+  needsReconfirmation = false,
+  currentYearLabel = null,
 }: {
   role: SchoolRole | null;
   dashboard: SchoolDashboard | null;
@@ -255,6 +258,9 @@ export function SchoolAdmin({
   activeSchoolId?: string | null;
   initialTab?: string | null;
   initialJoinCode?: string | null;
+  /** The school rolled over and this teacher hasn't entered the new year's code. */
+  needsReconfirmation?: boolean;
+  currentYearLabel?: string | null;
 }) {
   const dm = useDarkMode();
   const localeValue = useLocale();
@@ -268,6 +274,8 @@ export function SchoolAdmin({
      <SchoolUserContext.Provider value={{ avatarUrl: userAvatarUrl, memberships, activeSchoolId }}>
       {showNoMembership ? (
         <NoMembership initialJoinCode={initialJoinCode} />
+      ) : role === "prof" && needsReconfirmation ? (
+        <RenewYear schoolName={profSchoolName} yearLabel={currentYearLabel} />
       ) : role === "prof" ? (
         <ProfView classes={profClasses} teacherName={teacherName} planLabel={planLabel} subjects={profSubjects} schoolName={profSchoolName} schoolLogoUrl={profSchoolLogoUrl} account={account} />
       ) : (
@@ -545,6 +553,87 @@ function NoMembership({ initialJoinCode }: { initialJoinCode: string | null }) {
           Create one from your profile →
         </Link>
       </p>
+    </SchoolChrome>
+  );
+}
+
+/**
+ * A new school year has started and this teacher hasn't re-enrolled yet.
+ *
+ * Every rollover rotates the school's staff code: coming back means entering the
+ * new one and being validated by the admin. It is shown instead of the dashboard
+ * because the dashboard would be empty anyway — what a teacher teaches is decided
+ * afresh each year, so they hold no classes until the admin assigns them. This
+ * screen says why, which an empty class list does not.
+ *
+ * Not a lockout: the membership, and everything they did in past years, is kept.
+ */
+function RenewYear({
+  schoolName,
+  yearLabel,
+}: {
+  schoolName: string | null;
+  yearLabel: string | null;
+}) {
+  const { t, box, input, btn } = useSchoolStyles();
+  const router = useRouter();
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const where = schoolName ?? "your school";
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (busy || !code.trim()) return;
+    setBusy(true);
+    setError(null);
+    setMsg(null);
+    try {
+      const d = (await postJson("/api/school/join-team", { code: code.trim() })) as {
+        status: "joined" | "requested" | "already" | "renewed";
+      };
+      if (d.status === "requested") {
+        setMsg(`Sent to ${where}. You'll be back in as soon as an admin validates it.`);
+      } else {
+        setMsg("You're back in. Loading…");
+        router.refresh();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not confirm with that code.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <SchoolChrome nav={[]} activeKey="" onNav={() => {}} schoolName={where} headerTitle={where}>
+      <form style={box} onSubmit={submit}>
+        <h2 style={{ fontSize: "1.1rem", margin: "0 0 0.25rem" }}>
+          New school year{yearLabel ? ` — ${yearLabel}` : ""}
+        </h2>
+        <p style={{ margin: "0 0 0.85rem", color: t.muted, fontSize: "0.9rem" }}>
+          {where} has started a new year. Enter the year&apos;s staff code to confirm you&apos;re
+          back; your administrator validates it, then assigns your classes for the year.
+        </p>
+        <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
+          <input
+            style={{ ...input, flex: 1, minWidth: 200, letterSpacing: "0.05em" }}
+            placeholder="This year's staff code"
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            disabled={busy}
+          />
+          <button type="submit" style={{ ...btn, opacity: busy ? 0.7 : 1 }} disabled={busy || !code.trim()}>
+            {busy ? "Confirming…" : "Confirm"}
+          </button>
+        </div>
+        {msg && <p style={{ color: "#22c55e", margin: "0.75rem 0 0" }}>{msg}</p>}
+        {error && <p style={{ color: "#f87171", margin: "0.75rem 0 0" }}>{error}</p>}
+        <p style={{ margin: "0.85rem 0 0", color: t.mutedLight, fontSize: 13 }}>
+          Nothing has been deleted — your past years stay on record.
+        </p>
+      </form>
     </SchoolChrome>
   );
 }
@@ -1631,12 +1720,12 @@ function SchoolSettings({
   );
 }
 
-type DashTab = "overview" | "manage" | "team" | "insights" | "lms" | "raya" | "reports" | "billing" | "settings";
+type DashTab = "overview" | "manage" | "team" | "insights" | "lms" | "raya" | "reports" | "archive" | "billing" | "settings";
 // "lms" (Google Classroom) is intentionally omitted from the reachable set: the
 // integration needs a Google OAuth app that isn't provisioned yet, so it's hidden
 // from the nav until it's wired. The tab branch + component are kept so re-enabling
 // is a one-line change (add "lms" back here and to navItems).
-const DASH_TABS: DashTab[] = ["overview", "manage", "team", "insights", "raya", "reports", "billing", "settings"];
+const DASH_TABS: DashTab[] = ["overview", "manage", "team", "insights", "raya", "reports", "archive", "billing", "settings"];
 
 function Dashboard({
   dash,
@@ -1790,6 +1879,42 @@ function Dashboard({
     }
   }
 
+  /**
+   * Rename this year's class. Only this year's row moves — the archived copy
+   * keeps the name it had, with its students, so a school that reorganises its
+   * classes doesn't rewrite what last year was called.
+   */
+  async function renameClass(classId: string, name: string, level: string | null) {
+    setError(null);
+    const d = (await postJson("/api/school/classes", { classId, name, level }, "PATCH")) as {
+      name: string;
+      level: string | null;
+    };
+    setClasses(
+      dash.classes.map((c) => (c.id === classId ? { ...c, name: d.name, level: d.level } : c)),
+    );
+  }
+
+  /** Drop a class the school no longer runs. The server refuses if it has students. */
+  async function removeClass(classId: string) {
+    const cls = dash.classes.find((c) => c.id === classId);
+    if (
+      !window.confirm(
+        `Remove “${cls?.name ?? "this class"}” from ${dash.school.currentYearLabel ?? "this year"}?` +
+          " Previous years keep their own copy, with their students.",
+      )
+    ) {
+      return;
+    }
+    setError(null);
+    try {
+      await postJson("/api/school/classes", { classId }, "DELETE");
+      setClasses(dash.classes.filter((c) => c.id !== classId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not remove the class.");
+    }
+  }
+
   async function updateEffectif(classId: string, expectedSize: number | null) {
     setError(null);
     const d = (await postJson("/api/school/classes", { classId, expectedSize }, "PATCH")) as {
@@ -1838,6 +1963,7 @@ function Dashboard({
     // LMS (Google Classroom) hidden until the OAuth integration is provisioned.
     { key: "raya", label: "Raya", icon: <IconChat /> },
     { key: "reports", label: tr("nav.reports"), icon: <IconSummary /> },
+    { key: "archive", label: tr("nav.archive"), icon: <IconFile /> },
     { key: "billing", label: tr("nav.billing"), icon: <IconBilling /> },
     { key: "settings", label: tr("nav.settings"), icon: <IconSettings /> },
   ];
@@ -1860,14 +1986,16 @@ function Dashboard({
       <SchoolLms classes={dash.classes.map((c) => ({ id: c.id, name: c.name }))} />
     ) : tab === "reports" ? (
       <SchoolReports classes={dash.classes.map((c) => ({ id: c.id, name: c.name }))} schoolName={dash.school.name} />
+    ) : tab === "archive" ? (
+      <SchoolArchive currentYearLabel={dash.school.currentYearLabel} />
     ) : tab === "billing" ? (
       <SchoolBilling />
     ) : tab === "overview" ? (
       <OverviewView school={dash.school.name} overview={overview} busy={overviewBusy} onClass={(id) => openClass(id)} />
     ) : (
       <>
-        <div style={{ ...box, display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ flex: 1 }}>
+        <div style={{ ...box, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ flex: 1, minWidth: 180 }}>
             <h2 style={{ fontSize: 18, margin: 0, color: t.text }}>{dash.school.name}</h2>
             <p style={{ margin: "4px 0 0", color: t.muted, fontSize: 14 }}>
               {dash.school.currentYearLabel ? `Year ${dash.school.currentYearLabel} · ` : ""}
@@ -1901,6 +2029,8 @@ function Dashboard({
           onGenCode={genCode}
           onToggleCode={toggleCode}
           onSetEffectif={updateEffectif}
+          onRename={renameClass}
+          onRemove={removeClass}
           onOpen={openClass}
         />
       </>
@@ -2116,12 +2246,16 @@ function ClassesList({
   onGenCode,
   onToggleCode,
   onSetEffectif,
+  onRename,
+  onRemove,
   onOpen,
 }: {
   classes: AdminClass[];
   onGenCode: (classId: string) => void;
   onToggleCode: (classId: string, codeId: string, isActive: boolean) => void;
   onSetEffectif: (classId: string, expectedSize: number | null) => Promise<void>;
+  onRename: (classId: string, name: string, level: string | null) => Promise<void>;
+  onRemove: (classId: string) => void;
   onOpen: (classId: string) => void;
 }) {
   const sorted = sortByName(classes, (c) => c.name);
@@ -2141,6 +2275,8 @@ function ClassesList({
           onGenCode={onGenCode}
           onToggleCode={onToggleCode}
           onSetEffectif={onSetEffectif}
+          onRename={onRename}
+          onRemove={onRemove}
           onOpen={() => onOpen(c.id)}
         />
       ))}
@@ -2154,12 +2290,16 @@ function ClassCard({
   onGenCode,
   onToggleCode,
   onSetEffectif,
+  onRename,
+  onRemove,
   onOpen,
 }: {
   c: AdminClass;
   onGenCode: (classId: string) => void;
   onToggleCode: (classId: string, codeId: string, isActive: boolean) => void;
   onSetEffectif: (classId: string, expectedSize: number | null) => Promise<void>;
+  onRename: (classId: string, name: string, level: string | null) => Promise<void>;
+  onRemove: (classId: string) => void;
   onOpen: () => void;
 }) {
   const { box, input, btn, ghost } = useSchoolStyles();
@@ -2168,6 +2308,23 @@ function ClassCard({
   const [draft, setDraft] = useState(c.expectedSize != null ? String(c.expectedSize) : "");
   const [saving, setSaving] = useState(false);
   const [editErr, setEditErr] = useState<string | null>(null);
+  const [renaming, setRenaming] = useState(false);
+  const [nameDraft, setNameDraft] = useState(c.name);
+  const [levelDraft, setLevelDraft] = useState(c.level ?? "");
+
+  async function saveName() {
+    if (saving || !nameDraft.trim()) return;
+    setSaving(true);
+    setEditErr(null);
+    try {
+      await onRename(c.id, nameDraft.trim(), levelDraft.trim() || null);
+      setRenaming(false);
+    } catch (err) {
+      setEditErr(err instanceof Error ? err.message : "Could not rename the class.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   function copy(code: string) {
     navigator.clipboard?.writeText(code).then(() => {
@@ -2193,11 +2350,53 @@ function ClassCard({
 
   return (
     <div style={box}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
-        <h3 style={{ margin: 0, flex: 1 }}>
-          {c.name}
-          {c.level ? <span style={{ opacity: 0.5, fontWeight: 400 }}> · {c.level}</span> : null}
-        </h3>
+      <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", flexWrap: "wrap" }}>
+        {renaming ? (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", flex: 1 }}>
+            <input
+              autoFocus
+              value={nameDraft}
+              onChange={(e) => setNameDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") saveName();
+                if (e.key === "Escape") setRenaming(false);
+              }}
+              style={{ ...input, flex: 2, minWidth: 120, padding: "0.3rem 0.5rem", fontSize: "0.85rem" }}
+              disabled={saving}
+            />
+            <input
+              placeholder="Level"
+              value={levelDraft}
+              onChange={(e) => setLevelDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") saveName();
+                if (e.key === "Escape") setRenaming(false);
+              }}
+              style={{ ...input, flex: 1, minWidth: 80, padding: "0.3rem 0.5rem", fontSize: "0.85rem" }}
+              disabled={saving}
+            />
+            <button style={ghost} onClick={saveName} disabled={saving || !nameDraft.trim()}>
+              {saving ? "…" : "Save"}
+            </button>
+            <button
+              style={{ ...ghost, background: "transparent" }}
+              onClick={() => {
+                setRenaming(false);
+                setNameDraft(c.name);
+                setLevelDraft(c.level ?? "");
+                setEditErr(null);
+              }}
+              disabled={saving}
+            >
+              Cancel
+            </button>
+          </span>
+        ) : (
+          <h3 style={{ margin: 0, flex: 1 }}>
+            {c.name}
+            {c.level ? <span style={{ opacity: 0.5, fontWeight: 400 }}> · {c.level}</span> : null}
+          </h3>
+        )}
         {editing ? (
           <span style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem" }}>
             <input
@@ -2248,13 +2447,45 @@ function ClassCard({
               {c.capacity != null ? ` / ${c.capacity}` : ""}{" "}
               {c.studentCount === 1 && c.capacity == null ? "student" : "students"}
             </span>
-            <button
-              style={{ ...ghost, padding: "0.3rem 0.55rem" }}
-              onClick={() => setEditing(true)}
-              title="Edit the class size"
-            >
-              {c.expectedSize != null ? "Size ✎" : "+ Size"}
-            </button>
+            {!renaming && (
+              <>
+                <button
+                  style={{ ...ghost, padding: "0.3rem 0.55rem" }}
+                  onClick={() => setEditing(true)}
+                  title="Edit the class size"
+                >
+                  {c.expectedSize != null ? "Size ✎" : "+ Size"}
+                </button>
+                <button
+                  style={{ ...ghost, padding: "0.3rem 0.55rem" }}
+                  onClick={() => setRenaming(true)}
+                  title="Rename this class (this year only)"
+                >
+                  Rename
+                </button>
+                {/* A class holding students is not removable — that is the
+                    server's rule too. Showing it disabled says why, instead of
+                    spending a confirm dialog and a round-trip on a refusal. */}
+                <button
+                  style={{
+                    ...ghost,
+                    padding: "0.3rem 0.55rem",
+                    background: "transparent",
+                    opacity: c.studentCount > 0 ? 0.4 : 1,
+                    cursor: c.studentCount > 0 ? "not-allowed" : "pointer",
+                  }}
+                  onClick={() => onRemove(c.id)}
+                  disabled={c.studentCount > 0}
+                  title={
+                    c.studentCount > 0
+                      ? "A class with students can't be removed — it is archived at the end of the year"
+                      : "Remove this class from the current year"
+                  }
+                >
+                  Remove
+                </button>
+              </>
+            )}
           </>
         )}
         <button style={ghost} onClick={onOpen}>

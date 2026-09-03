@@ -1,4 +1,5 @@
 import "server-only";
+import { randomInt } from "node:crypto";
 import {
   createAdminClient,
   createSchoolsAdminClient,
@@ -53,12 +54,24 @@ type ClassMetaRow = {
 
 export type SchoolDashboard = { school: AdminSchool; classes: AdminClass[] };
 
-type AdminRow = { id: string; school_id: string; role: string };
+type AdminRow = {
+  id: string;
+  school_id: string;
+  role: string;
+  /** Absent entirely until the yearly-reconfirmation migration is applied. */
+  confirmed_school_year_id?: string | null;
+};
 
 /**
  * The user's *active* school_admins row. A user can have several memberships
  * (multi-school); the one whose school matches the active-school cookie wins,
  * else the first. Centralizes multi-school resolution for the whole data layer.
+ *
+ * Selects `*` rather than a column list on purpose: naming
+ * `confirmed_school_year_id` would make EVERY membership lookup fail on a
+ * database where that migration hasn't been applied yet, which would lock every
+ * teacher out of every school. With `*` the column is simply missing from the
+ * row, and `needsYearReconfirmation` treats "not tracked" as confirmed.
  */
 async function pickActiveAdminRow(
   schools: ReturnType<typeof createSchoolsAdminClient>,
@@ -66,13 +79,39 @@ async function pickActiveAdminRow(
 ): Promise<AdminRow | null> {
   const { data } = await schools
     .from("school_admins")
-    .select("id, school_id, role")
+    .select("*")
     .eq("user_id", userId)
     .order("created_at", { ascending: true });
   const rows = (data ?? []) as AdminRow[];
   if (rows.length === 0) return null;
   const activeId = await getActiveSchoolId();
   return (activeId && rows.find((r) => r.school_id === activeId)) || rows[0];
+}
+
+/**
+ * Must this member re-enrol before working on the school's current year?
+ *
+ * Every rollover rotates the school's staff code: teachers coming back enter the
+ * new one and the admin validates them, which renews the returning staff and
+ * lets the ones who left fall away on their own instead of being hunted down.
+ *
+ * Two deliberate escape hatches, because the cost of a false positive here is
+ * locking a real teacher out of their own school:
+ *  - an admin_master is never asked — somebody has to be able to validate;
+ *  - a database without the tracking column at all (`tracked: false`) confirms
+ *    everyone, so an unapplied migration degrades to the old behaviour rather
+ *    than to a school nobody can enter.
+ */
+export function needsYearReconfirmation(opts: {
+  role: SchoolRole;
+  confirmedYearId: string | null;
+  currentYearId: string | null;
+  tracked: boolean;
+}): boolean {
+  if (opts.role === "admin_master") return false;
+  if (!opts.tracked) return false;
+  if (!opts.currentYearId) return false;
+  return opts.confirmedYearId !== opts.currentYearId;
 }
 
 /** The school this user administers (active membership), or null if none. */
@@ -129,11 +168,192 @@ export async function getAdminSchool(userId: string): Promise<AdminSchool | null
   }
 }
 
+type CarryClassRow = {
+  id: string;
+  name: string;
+  level: string | null;
+  expected_size: number | null;
+  max_overflow: number | null;
+};
+
+/**
+ * Which of the ending year's classes to recreate in the new one. Pure, so the
+ * rule is checkable without a database.
+ *
+ * Only the *structure* travels — name, level, effectif. Rosters and access codes
+ * do not: a class is a shape the school reuses every September, its students are
+ * that year's data. A name already present in the new year is skipped, so a
+ * rollover that runs twice (two admins opening the dashboard at once) adds
+ * nothing the second time.
+ */
+export function planClassCarryForward(
+  previous: CarryClassRow[],
+  existingNames: string[],
+): { name: string; level: string | null; expected_size: number | null; max_overflow: number | null }[] {
+  const taken = new Set(existingNames.map((n) => n.trim().toLowerCase()));
+  const out: { name: string; level: string | null; expected_size: number | null; max_overflow: number | null }[] = [];
+  for (const c of previous) {
+    const key = c.name.trim().toLowerCase();
+    if (taken.has(key)) continue;
+    taken.add(key); // two same-named classes in the source year collapse to one
+    out.push({
+      name: c.name,
+      level: c.level,
+      expected_size: c.expected_size,
+      max_overflow: c.max_overflow,
+    });
+  }
+  return out;
+}
+
+/**
+ * Recreate the ending year's class structure under the new year, each with a
+ * fresh access code.
+ *
+ * Without this, the rollover empties every management screen — classes are
+ * scoped to the school's current year, so a school that set itself up in July
+ * would find "No classes" in Classes & codes, Reports, Team and LMS on the
+ * morning school comes back. Idempotent: a class name already in the new year is
+ * left alone, and a row lost to the unique index (concurrent rollover) is
+ * skipped rather than retried.
+ */
+async function carryClassesForward(
+  schoolId: string,
+  fromYearId: string,
+  toYearId: string,
+): Promise<void> {
+  const schools = createSchoolsAdminClient();
+  const { data: prevData } = await schools
+    .from("classes")
+    .select("id, name, level, expected_size, max_overflow")
+    .eq("school_id", schoolId)
+    .eq("school_year_id", fromYearId)
+    .order("created_at", { ascending: true });
+  const previous = (prevData as CarryClassRow[] | null) ?? [];
+  if (previous.length === 0) return;
+
+  const { data: existData } = await schools
+    .from("classes")
+    .select("name")
+    .eq("school_id", schoolId)
+    .eq("school_year_id", toYearId);
+  const existingNames = ((existData as { name: string }[] | null) ?? []).map((c) => c.name);
+
+  for (const row of planClassCarryForward(previous, existingNames)) {
+    const { data, error } = await schools
+      .from("classes")
+      .insert({ school_id: schoolId, school_year_id: toYearId, ...row })
+      .select("id")
+      .single();
+    if (error) continue; // already created by a concurrent rollover
+    const newId = (data as { id: string } | null)?.id;
+    // Each carried class gets its own code — last year's must not be reusable.
+    if (newId) {
+      await schools.rpc("regenerate_class_code", {
+        p_class_id: newId,
+        p_school_year_id: toYearId,
+      });
+    }
+  }
+
+  // Retire the ending year's live codes. A student who used one would land in an
+  // archived class, invisible on every management screen — the same silent
+  // misfiling this carry-forward exists to prevent. Students who already joined
+  // keep their access (it lives on student_identities, not on the code).
+  await schools
+    .from("class_access_codes")
+    .update({ is_active: false })
+    .in("class_id", previous.map((c) => c.id))
+    .is("retired_at", null);
+}
+
+// Unambiguous alphabet (no 0/O/1/I). 8 chars — a staff code grants a personal
+// membership, so more entropy than a 6-char class code.
+const STAFF_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+export const makeStaffCode = (len = 8) =>
+  Array.from({ length: len }, () => STAFF_CODE_ALPHABET[randomInt(STAFF_CODE_ALPHABET.length)]).join("");
+
+/**
+ * Start a new year's staff roll: retire the school's live invite codes and mint
+ * one fresh code for the year.
+ *
+ * This is how a school renews its team without an audit. Returning teachers enter
+ * the year's code and the admin validates them; the ones who left simply never
+ * enter it and fall out of the year on their own, instead of the admin having to
+ * remember who is gone. Last year's codes stop working the moment the year turns,
+ * so a code that leaked in a staffroom group chat can't carry into the new year.
+ *
+ * The admin_master(s) are confirmed for the new year here and now: the whole
+ * flow depends on someone being able to validate the others.
+ *
+ * Best-effort by design. On a database without `confirmed_school_year_id` the
+ * confirmation update is rejected and nothing is tracked — which is exactly the
+ * state `needsYearReconfirmation` reads as "nobody needs to re-enrol".
+ */
+export async function rotateStaffCodeForYear(
+  schoolId: string,
+  newYearId: string,
+): Promise<{ code: string } | null> {
+  const schools = createSchoolsAdminClient();
+
+  await schools
+    .from("staff_invite_codes")
+    .update({ is_active: false })
+    .eq("school_id", schoolId)
+    .eq("is_active", true);
+
+  let minted: string | null = null;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const code = makeStaffCode();
+    const { error } = await schools
+      .from("staff_invite_codes")
+      .insert({ school_id: schoolId, code, auto_approve: false, is_active: true });
+    if (!error) {
+      minted = code;
+      break;
+    }
+    if (!/duplicate|unique|23505/i.test(error.message)) break;
+  }
+
+  await schools
+    .from("school_admins")
+    .update({ confirmed_school_year_id: newYearId })
+    .eq("school_id", schoolId)
+    .eq("role", "admin_master");
+
+  return minted ? { code: minted } : null;
+}
+
+/**
+ * Stamp a membership as confirmed for a school year.
+ *
+ * Always a separate write, never folded into the INSERT that creates the
+ * membership: on a database without the column an INSERT naming it would be
+ * rejected outright and the teacher would fail to join at all. As its own
+ * best-effort update, the worst case is a membership that isn't tracked — which
+ * `needsYearReconfirmation` already reads as confirmed.
+ */
+export async function confirmMembershipForYear(
+  adminId: string,
+  yearId: string | null,
+): Promise<void> {
+  if (!yearId) return;
+  const schools = createSchoolsAdminClient();
+  await schools.from("school_admins").update({ confirmed_school_year_id: yearId }).eq("id", adminId);
+}
+
 /**
  * Auto-rollover: if the school's active year has ended (end_date < today), roll
  * forward to the academic year spanning today. Forward-only — a school that was
  * manually advanced early (active year not yet ended) is left alone, so this
- * never moves backward. The new year starts empty; past years stay archived.
+ * never moves backward. Past years stay archived, and the ending year's class
+ * *structure* is carried into the new one (see carryClassesForward) — the new
+ * year starts with the same classes, empty.
+ *
+ * This differs from the manual "New year" button on purpose: that one asks the
+ * admin first and promises a fresh start, so it copies nothing. This one is
+ * taken on the school's behalf, without a prompt, and so must not lose their
+ * setup.
  *
  * Lazy (runs when an admin loads /school) — there is no cron in this app, so the
  * rollover materializes on the first admin visit after the year ends.
@@ -161,45 +381,59 @@ export async function ensureCurrentSchoolYear(schoolId: string): Promise<void> {
 
     // One atomic call: find-or-create the target year, activate it, deactivate
     // the rest, repoint the school. Idempotent under concurrent admin loads.
-    await schools.rpc("set_active_school_year", {
+    const { data: rolled } = await schools.rpc("set_active_school_year", {
       p_school_id: schoolId,
       p_label: target.label,
       p_start: target.start_date,
       p_end: target.end_date,
     });
-  } catch {
-    // Never block the dashboard on rollover.
+    const newYearId = ((rolled as { out_id: string }[] | null) ?? [])[0]?.out_id ?? null;
+    if (active?.id && newYearId && newYearId !== active.id) {
+      await carryClassesForward(schoolId, active.id, newYearId);
+      // The classes come back; the team re-declares itself (see the function).
+      await rotateStaffCodeForYear(schoolId, newYearId);
+    }
+  } catch (e) {
+    // Never block the dashboard on rollover — but say so, because a half-done
+    // rollover shows an admin an empty school.
+    console.warn(
+      `[school-year] rollover failed for ${schoolId}: ${e instanceof Error ? e.message : e}`,
+    );
   }
 }
 
-/** Full dashboard: the admin's school with its classes, access codes, and rosters. */
-export async function getSchoolDashboard(userId: string): Promise<SchoolDashboard | null> {
-  const school = await getAdminSchool(userId);
-  if (!school) return null;
-
+/**
+ * A school's classes for ONE year, with their codes and roster counts.
+ *
+ * `yearId` null means "every year" — only for a school that has no active year
+ * at all; otherwise a year is always passed, because past years stay archived
+ * under their own year and "3e B" from two years must never collide in a list.
+ * Shared by the live dashboard and the archive view, so an archived year is
+ * rendered by exactly the code that renders the live one.
+ */
+async function loadClassesForYear(
+  schoolId: string,
+  yearId: string | null,
+): Promise<AdminClass[]> {
   const schools = createSchoolsAdminClient();
-  // Only the active year's classes — past years stay archived under their own
-  // year, so "3e B" from two years never collide in the dashboard.
   let classQuery = schools
     .from("classes")
     .select("id, name, level, school_year_id, expected_size, max_overflow")
-    .eq("school_id", school.id);
-  if (school.currentYearId) classQuery = classQuery.eq("school_year_id", school.currentYearId);
+    .eq("school_id", schoolId);
+  if (yearId) classQuery = classQuery.eq("school_year_id", yearId);
   const { data: classData } = await classQuery.order("created_at", { ascending: true });
-  const classRows =
-    (classData as ClassMetaRow[] | null) ?? [];
+  const classRows = (classData as ClassMetaRow[] | null) ?? [];
   const classIds = classRows.map((c) => c.id);
+  if (classIds.length === 0) return [];
 
   // Codes + rosters for all classes in one round-trip each, tallied in memory.
   const [{ data: codeData }, { data: idData }] = await Promise.all([
-    classIds.length
-      ? schools
-          .from("class_access_codes")
-          .select("id, code, is_active, class_id")
-          .in("class_id", classIds)
-          .is("retired_at", null) // only the current code (0/1 per class)
-      : Promise.resolve({ data: [] as unknown }),
-    schools.from("student_identities").select("class_id").eq("school_id", school.id),
+    schools
+      .from("class_access_codes")
+      .select("id, code, is_active, class_id")
+      .in("class_id", classIds)
+      .is("retired_at", null), // only the current code (0/1 per class)
+    schools.from("student_identities").select("class_id").in("class_id", classIds),
   ]);
   const codes = (codeData as { id: string; code: string; is_active: boolean; class_id: string }[] | null) ?? [];
   const identities = (idData as { class_id: string }[] | null) ?? [];
@@ -207,7 +441,7 @@ export async function getSchoolDashboard(userId: string): Promise<SchoolDashboar
   const countByClass = new Map<string, number>();
   for (const i of identities) countByClass.set(i.class_id, (countByClass.get(i.class_id) ?? 0) + 1);
 
-  const classes: AdminClass[] = classRows.map((c) => ({
+  return classRows.map((c) => ({
     id: c.id,
     name: c.name,
     level: c.level,
@@ -219,8 +453,343 @@ export async function getSchoolDashboard(userId: string): Promise<SchoolDashboar
       .filter((k) => k.class_id === c.id)
       .map((k) => ({ id: k.id, code: k.code, isActive: k.is_active })),
   }));
+}
 
-  return { school, classes };
+/** Full dashboard: the admin's school with its classes, access codes, and rosters. */
+export async function getSchoolDashboard(userId: string): Promise<SchoolDashboard | null> {
+  const school = await getAdminSchool(userId);
+  if (!school) return null;
+  return { school, classes: await loadClassesForYear(school.id, school.currentYearId) };
+}
+
+// ---- The archive: past years, read-only -------------------------------------
+
+export type SchoolYearSummary = {
+  id: string;
+  label: string;
+  startDate: string | null;
+  endDate: string | null;
+  isCurrent: boolean;
+  classCount: number;
+};
+
+/**
+ * A class of a past year is read-only. Renaming or deleting one would rewrite
+ * what that year actually was — and its students, codes and insights still hang
+ * off it. Only the current year's copy is editable; the archive is a record.
+ *
+ * A school with no active year has nothing archived yet (everything it has is
+ * the present), so nothing is locked.
+ */
+export function isArchivedClass(
+  classYearId: string | null,
+  currentYearId: string | null,
+): boolean {
+  return currentYearId != null && classYearId !== currentYearId;
+}
+
+/**
+ * Why this class may not be deleted, or null when it may be.
+ *
+ * A class is allowed to disappear from one year to the next — that is the point
+ * of the current year being editable. What is never allowed is deleting a class
+ * that HOLDS something: its students are that year's data, and the archived copy
+ * is the school's record of a year that really happened.
+ */
+export function deleteBlockReason(archived: boolean, studentCount: number): string | null {
+  if (archived) {
+    return "This class belongs to an archived year. Past years are a record and can't be changed.";
+  }
+  if (studentCount > 0) {
+    return `This class has ${studentCount} student${studentCount === 1 ? "" : "s"}. Remove them first, or leave it — it is archived automatically at the end of the year.`;
+  }
+  return null;
+}
+
+/** Every school year on record for the admin's school, newest first. */
+export async function getSchoolYears(userId: string): Promise<SchoolYearSummary[]> {
+  const school = await getAdminSchool(userId);
+  if (!school) return [];
+
+  const schools = createSchoolsAdminClient();
+  const { data: yearData } = await schools
+    .from("school_years")
+    .select("id, label, start_date, end_date")
+    .eq("school_id", school.id)
+    .order("start_date", { ascending: false });
+  const years =
+    (yearData as { id: string; label: string; start_date: string | null; end_date: string | null }[] | null) ?? [];
+  if (years.length === 0) return [];
+
+  // One count for the whole school, tallied in memory — a year picker that costs
+  // one query per year would grow with the school's history.
+  const { data: classData } = await schools
+    .from("classes")
+    .select("school_year_id")
+    .eq("school_id", school.id);
+  const countByYear = new Map<string, number>();
+  for (const c of (classData as { school_year_id: string | null }[] | null) ?? []) {
+    if (c.school_year_id) countByYear.set(c.school_year_id, (countByYear.get(c.school_year_id) ?? 0) + 1);
+  }
+
+  return years.map((y) => ({
+    id: y.id,
+    label: y.label,
+    startDate: y.start_date,
+    endDate: y.end_date,
+    isCurrent: y.id === school.currentYearId,
+    classCount: countByYear.get(y.id) ?? 0,
+  }));
+}
+
+/**
+ * How a row was attributed to a school year:
+ *  - "year"   the row carries school_year_id — exact;
+ *  - "class"  the row hangs off a class, and the class carries the year — exact;
+ *  - "period" the row carries neither, so it is attributed by created_at falling
+ *             inside the year's dates. A best-effort rule, surfaced to the admin
+ *             rather than hidden, because a row created hours either side of a
+ *             year boundary (or in a school whose timezone isn't UTC) can land
+ *             in the neighbouring year.
+ */
+export type ArchiveBasis = "year" | "class" | "period";
+export type ArchiveItem = { id: string; title: string; detail: string | null; at: string | null };
+export type ArchiveSection = {
+  key: string;
+  label: string;
+  basis: ArchiveBasis;
+  count: number;
+  /** Capped at ARCHIVE_ITEM_CAP; `count` is the real total. */
+  items: ArchiveItem[];
+};
+export type YearArchive = {
+  year: SchoolYearSummary;
+  sections: ArchiveSection[];
+  /** What this record deliberately does not contain. Shown verbatim. */
+  notes: string[];
+};
+
+const ARCHIVE_ITEM_CAP = 200;
+
+/**
+ * The created_at range covering a school year, as a half-open interval
+ * [gte, lt): end_date is an inclusive day, so the upper bound is the day after.
+ * Pure — it is the single definition of "created during that year".
+ */
+export function periodBounds(
+  start: string | null,
+  end: string | null,
+): { gte: string | null; lt: string | null } {
+  const lt = end ? new Date(`${end}T00:00:00.000Z`) : null;
+  if (lt) lt.setUTCDate(lt.getUTCDate() + 1);
+  return {
+    gte: start ? `${start}T00:00:00.000Z` : null,
+    lt: lt ? lt.toISOString() : null,
+  };
+}
+
+const shortDate = (v: string | null) => (v ? v.slice(0, 10) : null);
+
+/** Turn rows into a section, keeping the true count when the list is capped. */
+function section(
+  key: string,
+  label: string,
+  basis: ArchiveBasis,
+  rows: ArchiveItem[],
+): ArchiveSection {
+  return { key, label, basis, count: rows.length, items: rows.slice(0, ARCHIVE_ITEM_CAP) };
+}
+
+/**
+ * Everything the school produced and collected in the app for ONE school year —
+ * the year's record, not just its class list.
+ *
+ * Read-only by construction, and deliberately bounded: it carries what the
+ * SCHOOL owns (its rosters, its classes and codes, what its staff wrote,
+ * generated and decided, its certified class-level aggregates), never a
+ * student's own cognitive profile. That data belongs to the learner, not to the
+ * establishment, and the school boundary is the whole point of school_id — an
+ * archive is not a way around it.
+ */
+export async function getYearArchive(userId: string, yearId: string): Promise<YearArchive | null> {
+  const membership = await getAdminMembership(userId);
+  if (!membership || membership.role !== "admin_master") return null;
+  const year = (await getSchoolYears(userId)).find((y) => y.id === yearId);
+  if (!year) return null;
+
+  const schoolId = membership.schoolId;
+  const schools = createSchoolsAdminClient();
+  // Bounds for the rows that carry no year of their own. Applied at the database
+  // rather than in memory, so a long-lived school doesn't drag its whole history
+  // through the app. A year with no dates at all can attribute nothing this way —
+  // opening the range would file the school's entire history under it.
+  const bounds = periodBounds(year.startDate, year.endDate);
+  const dated = bounds.gte != null || bounds.lt != null;
+  const gte = bounds.gte ?? "0001-01-01T00:00:00.000Z";
+  const lt = bounds.lt ?? "9999-12-31T00:00:00.000Z";
+
+  const classes = await loadClassesForYear(schoolId, yearId);
+  const classIds = classes.map((c) => c.id);
+  const classNameById = new Map(classes.map((c) => [c.id, c.name]));
+  // `in` on an empty list is a valid query that returns nothing, so the guard is
+  // only to skip the round-trip when the year has no classes at all.
+  const hasClasses = classIds.length > 0;
+  const none = Promise.resolve({ data: [] as unknown });
+
+  const [
+    students,
+    codes,
+    insights,
+    adjustments,
+    assignments,
+    instructions,
+    resources,
+    homework,
+    followups,
+    lmsMaps,
+    reports,
+    simulations,
+    directives,
+    joinRequests,
+    invites,
+    staffJoined,
+    payments,
+    logs,
+    subjectRows,
+  ] = await Promise.all([
+    schools.from("student_identities").select("user_id, first_name, last_name, class_id, created_at").eq("school_year_id", yearId),
+    schools.from("class_access_codes").select("id, code, is_active, retired_at, class_id, created_at").eq("school_year_id", yearId),
+    schools.from("class_insights").select("id, class_id, subject_id, avg_mastery, student_count, period, created_at").eq("school_year_id", yearId),
+    schools.from("enrollment_adjustments").select("id, adjustment_type, old_size, new_size, payment_status, created_at").eq("school_year_id", yearId),
+    hasClasses ? schools.from("assignments").select("id, prof_id, class_id, subject_id, created_at").in("class_id", classIds) : none,
+    hasClasses ? schools.from("class_instructions").select("id, class_id, subject_id, content, is_active, created_at").in("class_id", classIds) : none,
+    hasClasses ? schools.from("teacher_resources").select("id, class_id, subject_id, kind, title, status, created_at").in("class_id", classIds) : none,
+    hasClasses ? schools.from("resource_assignments").select("id, class_id, title, kind, due_at, is_active, created_at").in("class_id", classIds) : none,
+    hasClasses ? schools.from("student_followups").select("id, class_id, student_user_id, content, created_at").in("class_id", classIds) : none,
+    hasClasses ? schools.from("lms_class_mappings").select("id, class_id, external_class_name, external_class_id, created_at").in("class_id", classIds) : none,
+    dated ? schools.from("reports").select("id, scope, parameters, created_at").eq("school_id", schoolId).gte("created_at", gte).lt("created_at", lt) : none,
+    dated ? schools.from("simulations").select("id, status, parameters, created_at").eq("school_id", schoolId).gte("created_at", gte).lt("created_at", lt) : none,
+    dated ? schools.from("school_directives").select("id, audience, content, is_active, created_at").eq("school_id", schoolId).gte("created_at", gte).lt("created_at", lt) : none,
+    dated ? schools.from("school_join_requests").select("id, user_id, status, created_at").eq("school_id", schoolId).gte("created_at", gte).lt("created_at", lt) : none,
+    dated ? schools.from("staff_invite_codes").select("id, code, auto_approve, is_active, created_at").eq("school_id", schoolId).gte("created_at", gte).lt("created_at", lt) : none,
+    dated ? schools.from("school_admins").select("id, user_id, role, created_at").eq("school_id", schoolId).gte("created_at", gte).lt("created_at", lt) : none,
+    dated ? schools.from("payments").select("id, status, channel, amount, currency, months, seat_limit, created_at").eq("school_id", schoolId).gte("created_at", gte).lt("created_at", lt) : none,
+    dated ? schools.from("school_admin_logs").select("id, action, target_table, created_at").eq("school_id", schoolId).gte("created_at", gte).lt("created_at", lt) : none,
+    schools.from("subjects").select("id, name").or(`school_id.eq.${schoolId},is_global.eq.true`),
+  ]);
+
+  const rows = <T>(r: { data: unknown }): T[] => (r.data as T[] | null) ?? [];
+  const subjById = new Map(rows<{ id: string; name: string }>(subjectRows).map((s) => [s.id, s.name]));
+  const subjName = (id: string | null) => (id ? subjById.get(id) ?? "Subject" : "—");
+  const clsName = (id: string | null) => (id ? classNameById.get(id) ?? "Class" : "—");
+
+  // Names for the people who appear in the record (staff, requesters).
+  const peopleIds = [
+    ...rows<{ user_id: string }>(staffJoined).map((r) => r.user_id),
+    ...rows<{ user_id: string }>(joinRequests).map((r) => r.user_id),
+  ];
+  const nameByUser = new Map<string, string>();
+  const profNameByAdminId = new Map<string, string>();
+  if (peopleIds.length || rows(assignments).length) {
+    const admin = createAdminClient();
+    const { data: staffRows } = await schools
+      .from("school_admins")
+      .select("id, user_id")
+      .eq("school_id", schoolId);
+    const staff = (staffRows as { id: string; user_id: string }[] | null) ?? [];
+    const ids = [...new Set([...peopleIds, ...staff.map((s) => s.user_id)])];
+    if (ids.length) {
+      const { data: us } = await admin.from("users").select("id, display_name, username").in("id", ids);
+      for (const u of us ?? []) nameByUser.set(u.id, u.display_name || u.username || "Member");
+    }
+    for (const s of staff) profNameByAdminId.set(s.id, nameByUser.get(s.user_id) ?? "Member");
+  }
+
+  const pct = (v: number | null) => (v == null ? "n/a" : `${Math.round(v * 100)}%`);
+  const trim = (v: string | null, n = 120) =>
+    v ? (v.length > n ? `${v.slice(0, n)}…` : v) : null;
+
+  const sections: ArchiveSection[] = [
+    section("classes", "Classes", "year",
+      classes.map((c) => ({
+        id: c.id,
+        title: c.name,
+        detail: [c.level, `${c.studentCount} student${c.studentCount === 1 ? "" : "s"}`, c.codes.map((k) => k.code).join(", ") || null]
+          .filter(Boolean).join(" · "),
+        at: null,
+      }))),
+    section("students", "Students enrolled", "year",
+      rows<{ user_id: string; first_name: string; last_name: string; class_id: string; created_at: string }>(students)
+        .map((s) => ({ id: s.user_id, title: `${s.first_name} ${s.last_name}`.trim(), detail: clsName(s.class_id), at: shortDate(s.created_at) }))),
+    section("codes", "Access codes issued", "year",
+      rows<{ id: string; code: string; is_active: boolean; retired_at: string | null; class_id: string; created_at: string }>(codes)
+        .map((k) => ({ id: k.id, title: k.code, detail: `${clsName(k.class_id)} · ${k.retired_at ? "replaced" : k.is_active ? "active" : "inactive"}`, at: shortDate(k.created_at) }))),
+    section("insights", "Certified class insights", "year",
+      rows<{ id: string; class_id: string; subject_id: string | null; avg_mastery: number | null; student_count: number | null; period: string | null; created_at: string }>(insights)
+        .map((i) => ({ id: i.id, title: `${clsName(i.class_id)} · ${subjName(i.subject_id)}`, detail: `avg mastery ${pct(i.avg_mastery)} · ${i.student_count ?? 0} students${i.period ? ` · ${i.period}` : ""}`, at: shortDate(i.created_at) }))),
+    section("assignments", "Teaching assignments", "class",
+      rows<{ id: string; prof_id: string; class_id: string; subject_id: string; created_at: string }>(assignments)
+        .map((a) => ({ id: a.id, title: profNameByAdminId.get(a.prof_id) ?? "Teacher", detail: `${clsName(a.class_id)} · ${subjName(a.subject_id)}`, at: shortDate(a.created_at) }))),
+    section("instructions", "Raya class instructions", "class",
+      rows<{ id: string; class_id: string; subject_id: string | null; content: string | null; is_active: boolean; created_at: string }>(instructions)
+        .map((r) => ({ id: r.id, title: `${clsName(r.class_id)} · ${subjName(r.subject_id)}`, detail: trim(r.content), at: shortDate(r.created_at) }))),
+    section("resources", "Teacher resources", "class",
+      rows<{ id: string; class_id: string; subject_id: string | null; kind: string | null; title: string | null; status: string | null; created_at: string }>(resources)
+        .map((r) => ({ id: r.id, title: r.title || r.kind || "Resource", detail: `${clsName(r.class_id)} · ${subjName(r.subject_id)}${r.status ? ` · ${r.status}` : ""}`, at: shortDate(r.created_at) }))),
+    section("homework", "Work assigned to classes", "class",
+      rows<{ id: string; class_id: string; title: string | null; kind: string | null; due_at: string | null; created_at: string }>(homework)
+        .map((r) => ({ id: r.id, title: r.title || r.kind || "Assignment", detail: `${clsName(r.class_id)}${r.due_at ? ` · due ${shortDate(r.due_at)}` : ""}`, at: shortDate(r.created_at) }))),
+    section("followups", "Student follow-ups", "class",
+      rows<{ id: string; class_id: string; content: string | null; created_at: string }>(followups)
+        .map((r) => ({ id: r.id, title: clsName(r.class_id), detail: trim(r.content), at: shortDate(r.created_at) }))),
+    section("lms", "LMS class mappings", "class",
+      rows<{ id: string; class_id: string; external_class_name: string | null; external_class_id: string; created_at: string }>(lmsMaps)
+        .map((r) => ({ id: r.id, title: r.external_class_name || r.external_class_id, detail: clsName(r.class_id), at: shortDate(r.created_at) }))),
+    section("reports", "Reports generated", "period",
+      rows<{ id: string; scope: string | null; parameters: unknown; created_at: string }>(reports)
+        .map((r) => ({ id: r.id, title: ((r.parameters ?? {}) as { title?: string }).title ?? "Report", detail: r.scope, at: shortDate(r.created_at) }))),
+    section("simulations", "Simulations run", "period",
+      rows<{ id: string; status: string; parameters: unknown; created_at: string }>(simulations)
+        .map((r) => ({ id: r.id, title: String(((r.parameters ?? {}) as { question?: string; scenario?: string }).question ?? (r.parameters as { scenario?: string })?.scenario ?? "Simulation"), detail: r.status, at: shortDate(r.created_at) }))),
+    section("directives", "School directives", "period",
+      rows<{ id: string; audience: string | null; content: string | null; is_active: boolean; created_at: string }>(directives)
+        .map((r) => ({ id: r.id, title: trim(r.content, 80) ?? "Directive", detail: `${r.audience ?? "—"}${r.is_active ? "" : " · inactive"}`, at: shortDate(r.created_at) }))),
+    section("staff", "Staff who joined", "period",
+      rows<{ id: string; user_id: string; role: string; created_at: string }>(staffJoined)
+        .map((r) => ({ id: r.id, title: nameByUser.get(r.user_id) ?? "Member", detail: r.role, at: shortDate(r.created_at) }))),
+    section("requests", "Join requests", "period",
+      rows<{ id: string; user_id: string; status: string; created_at: string }>(joinRequests)
+        .map((r) => ({ id: r.id, title: nameByUser.get(r.user_id) ?? "Teacher", detail: r.status, at: shortDate(r.created_at) }))),
+    section("invites", "Staff invite codes", "period",
+      rows<{ id: string; code: string; auto_approve: boolean; is_active: boolean; created_at: string }>(invites)
+        .map((r) => ({ id: r.id, title: r.code, detail: `${r.auto_approve ? "auto-approve" : "approval required"}${r.is_active ? "" : " · inactive"}`, at: shortDate(r.created_at) }))),
+    section("enrollment", "Enrolment adjustments", "year",
+      rows<{ id: string; adjustment_type: string | null; old_size: number | null; new_size: number | null; payment_status: string | null; created_at: string }>(adjustments)
+        .map((r) => ({ id: r.id, title: r.adjustment_type ?? "Adjustment", detail: `${r.old_size ?? "?"} → ${r.new_size ?? "?"}${r.payment_status ? ` · ${r.payment_status}` : ""}`, at: shortDate(r.created_at) }))),
+    section("payments", "Payments", "period",
+      rows<{ id: string; status: string; channel: string | null; amount: number | null; currency: string | null; months: number | null; seat_limit: number | null; created_at: string }>(payments)
+        .map((r) => ({ id: r.id, title: `${r.amount ?? "—"} ${r.currency ?? ""}`.trim(), detail: [r.status, r.channel, r.seat_limit ? `${r.seat_limit} seats` : null, r.months ? `${r.months} months` : null].filter(Boolean).join(" · "), at: shortDate(r.created_at) }))),
+    section("logs", "Admin actions logged", "period",
+      rows<{ id: string; action: string; target_table: string | null; created_at: string }>(logs)
+        .map((r) => ({ id: r.id, title: r.action, detail: r.target_table, at: shortDate(r.created_at) }))),
+  ];
+
+  const notes = [
+    "Students' own cognitive profiles are not part of this record — that data belongs to the learner, not the school. What appears here are the school's rosters and its certified class-level aggregates.",
+    "Rows marked “by period” carry no school year of their own and are attributed by their creation date falling inside this year. Dates are UTC, so an entry made within hours of a year boundary may sit on either side of it.",
+    "The school's subject catalogue, API keys and device notification registrations are not year-scoped and are deliberately left out.",
+  ];
+  if (!dated) {
+    notes.push(
+      "This year has no start or end date on record, so nothing could be attributed to it by period. Only entries stamped with the year itself, or reached through one of its classes, are listed.",
+    );
+  }
+  const truncated = sections.filter((s) => s.count > s.items.length).map((s) => s.label);
+  if (truncated.length) {
+    notes.push(`Only the first ${ARCHIVE_ITEM_CAP} entries are listed for: ${truncated.join(", ")}. The counts are complete.`);
+  }
+
+  return { year, sections, notes };
 }
 
 // ---- ClassView / StudentView (Tranche 2): rosters + cognitive detail --------
@@ -303,7 +872,18 @@ export async function canReachStudent(userId: string, studentUserId: string): Pr
 }
 
 export type SchoolRole = "admin_master" | "prof";
-export type Membership = { schoolId: string; adminId: string; role: SchoolRole; schoolName: string };
+export type Membership = {
+  schoolId: string;
+  adminId: string;
+  role: SchoolRole;
+  schoolName: string;
+  /** The school's active year, so callers don't have to re-read the school. */
+  currentYearId: string | null;
+  /** Which year this membership was last confirmed for (null = never / untracked). */
+  confirmedYearId: string | null;
+  /** The school rolled over and this teacher hasn't re-enrolled for the new year. */
+  needsReconfirmation: boolean;
+};
 
 /** The user's *active* school_admins membership (id, role, school), or null. */
 export async function getAdminMembership(userId: string): Promise<Membership | null> {
@@ -311,12 +891,24 @@ export async function getAdminMembership(userId: string): Promise<Membership | n
     const schools = createSchoolsAdminClient();
     const row = await pickActiveAdminRow(schools, userId);
     if (!row) return null;
-    const { data: s } = await schools.from("schools").select("name").eq("id", row.school_id).maybeSingle();
+    const { data: s } = await schools
+      .from("schools")
+      .select("name, current_school_year_id")
+      .eq("id", row.school_id)
+      .maybeSingle();
+    const school = s as { name: string; current_school_year_id: string | null } | null;
+    const role: SchoolRole = row.role === "admin_master" ? "admin_master" : "prof";
+    const tracked = "confirmed_school_year_id" in row;
+    const confirmedYearId = row.confirmed_school_year_id ?? null;
+    const currentYearId = school?.current_school_year_id ?? null;
     return {
       schoolId: row.school_id,
       adminId: row.id,
-      role: row.role === "admin_master" ? "admin_master" : "prof",
-      schoolName: (s as { name: string } | null)?.name ?? "School",
+      role,
+      schoolName: school?.name ?? "School",
+      currentYearId,
+      confirmedYearId,
+      needsReconfirmation: needsYearReconfirmation({ role, confirmedYearId, currentYearId, tracked }),
     };
   } catch {
     return null;
@@ -400,11 +992,19 @@ export async function getProfClasses(userId: string): Promise<AdminClass[]> {
   const classIds = [...new Set(((asgData as { class_id: string }[] | null) ?? []).map((a) => a.class_id))];
   if (classIds.length === 0) return [];
 
-  const { data: classData } = await schools
+  // This year's classes only. An assignment stays pinned to the class row it was
+  // made on, so without this filter a teacher whose school has rolled over would
+  // open their dashboard on last year's archived classes. What they teach is
+  // re-decided each year, so until the admin assigns them, this is empty — and
+  // empty is the honest answer, not last September's timetable.
+  let classQuery = schools
     .from("classes")
     .select("id, name, level, school_year_id, expected_size, max_overflow")
     .in("id", classIds);
+  if (m.currentYearId) classQuery = classQuery.eq("school_year_id", m.currentYearId);
+  const { data: classData } = await classQuery;
   const classRows = (classData as ClassMetaRow[] | null) ?? [];
+  if (classRows.length === 0) return [];
 
   const { data: idData } = await schools
     .from("student_identities")
@@ -432,15 +1032,31 @@ export async function getProfClasses(userId: string): Promise<AdminClass[]> {
  * <subjects>" framing — the prof dashboard is an extension of Raya for a user who
  * also teaches, so we surface their teaching hat explicitly.
  */
-export type ProfContext = { schoolName: string; schoolLogoUrl: string | null; subjects: string[] };
+export type ProfContext = {
+  schoolName: string;
+  schoolLogoUrl: string | null;
+  subjects: string[];
+  /** Label of the school's running year, for the yearly re-enrolment screen. */
+  currentYearLabel: string | null;
+};
 export async function getProfContext(userId: string): Promise<ProfContext> {
   const m = await getAdminMembership(userId);
-  if (!m) return { schoolName: "School", schoolLogoUrl: null, subjects: [] };
+  if (!m) return { schoolName: "School", schoolLogoUrl: null, subjects: [], currentYearLabel: null };
   const schools = createSchoolsAdminClient();
   // The school's logo, so the teacher dashboard header can brand the school
   // (name + logo) rather than a generic "Teacher dashboard" title.
   const { data: sLogo } = await schools.from("schools").select("logo_url").eq("id", m.schoolId).maybeSingle();
   const schoolLogoUrl = (sLogo as { logo_url: string | null } | null)?.logo_url ?? null;
+
+  let currentYearLabel: string | null = null;
+  if (m.currentYearId) {
+    const { data: y } = await schools
+      .from("school_years")
+      .select("label")
+      .eq("id", m.currentYearId)
+      .maybeSingle();
+    currentYearLabel = (y as { label: string | null } | null)?.label ?? null;
+  }
   const { data: asgData } = await schools
     .from("assignments")
     .select("subject_id")
@@ -448,10 +1064,11 @@ export async function getProfContext(userId: string): Promise<ProfContext> {
   const subjectIds = [
     ...new Set(((asgData as { subject_id: string | null }[] | null) ?? []).map((a) => a.subject_id).filter(Boolean) as string[]),
   ];
-  if (subjectIds.length === 0) return { schoolName: m.schoolName, schoolLogoUrl, subjects: [] };
+  if (subjectIds.length === 0)
+    return { schoolName: m.schoolName, schoolLogoUrl, subjects: [], currentYearLabel };
   const { data: subs } = await schools.from("subjects").select("name").in("id", subjectIds);
   const subjects = [...new Set(((subs as { name: string }[] | null) ?? []).map((s) => s.name))];
-  return { schoolName: m.schoolName, schoolLogoUrl, subjects };
+  return { schoolName: m.schoolName, schoolLogoUrl, subjects, currentYearLabel };
 }
 
 // ---- LMS connections + class mappings (admin_master) ------------------------
@@ -852,7 +1469,14 @@ export async function getSimulations(userId: string): Promise<Simulation[] | nul
 
 // ---- Team management (admin_master): subjects, profs, assignments -----------
 
-export type TeamProf = { adminId: string; userId: string; name: string; email: string | null };
+export type TeamProf = {
+  adminId: string;
+  userId: string;
+  name: string;
+  email: string | null;
+  /** False when they haven't entered this year's staff code yet. */
+  confirmedForYear: boolean;
+};
 export type TeamAssignment = { id: string; profName: string; className: string; subjectName: string };
 export type TeamInvite = { id: string; code: string; autoApprove: boolean };
 export type TeamRequest = { id: string; userId: string; name: string; email: string | null; createdAt: string };
@@ -872,12 +1496,15 @@ export async function getTeam(userId: string): Promise<Team | null> {
   const schools = createSchoolsAdminClient();
   const subjects = await getSchoolSubjects(userId);
 
+  // `*` so a database without confirmed_school_year_id still returns the team
+  // (see pickActiveAdminRow) — an unapplied migration must not empty this list.
   const { data: adminData } = await schools
     .from("school_admins")
-    .select("id, user_id")
+    .select("*")
     .eq("school_id", m.schoolId)
     .eq("role", "prof");
-  const profRows = (adminData as { id: string; user_id: string }[] | null) ?? [];
+  const profRows =
+    (adminData as { id: string; user_id: string; confirmed_school_year_id?: string | null }[] | null) ?? [];
 
   const usersById = new Map<string, { display_name: string | null; username: string | null; email: string | null }>();
   if (profRows.length) {
@@ -895,6 +1522,12 @@ export async function getTeam(userId: string): Promise<Team | null> {
       userId: p.user_id,
       name: u?.display_name || u?.username || "Prof",
       email: u?.email ?? null,
+      confirmedForYear: !needsYearReconfirmation({
+        role: "prof",
+        confirmedYearId: p.confirmed_school_year_id ?? null,
+        currentYearId: m.currentYearId,
+        tracked: "confirmed_school_year_id" in p,
+      }),
     };
   });
 
@@ -1112,11 +1745,16 @@ export async function getSchoolOverview(userId: string): Promise<SchoolOverview 
   if (!school) return null;
 
   const schools = createSchoolsAdminClient();
-  const { data: classData } = await schools
+  // Same scope as getSchoolDashboard: the active year only. Overview used to
+  // read every year, so an archived class appeared here — and only here, while
+  // Classes & codes / Reports / Team / LMS all said "No classes". Overview was
+  // the one that lied: it showed last year's class as if it were live.
+  let classQuery = schools
     .from("classes")
     .select("id, name")
-    .eq("school_id", school.id)
-    .order("created_at", { ascending: true });
+    .eq("school_id", school.id);
+  if (school.currentYearId) classQuery = classQuery.eq("school_year_id", school.currentYearId);
+  const { data: classData } = await classQuery.order("created_at", { ascending: true });
   const classRows = (classData as { id: string; name: string }[] | null) ?? [];
 
   const { data: idData } = await schools

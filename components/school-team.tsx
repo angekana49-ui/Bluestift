@@ -163,10 +163,21 @@ export function SchoolTeam({ classes }: { classes: ClassOpt[] }) {
       };
       setRequests((v) => v.filter((r) => r.id !== req.id));
       if (action === "approve" && res.adminId) {
+        // A returning teacher is already on the list, carrying a "Not back yet"
+        // badge — approving clears it rather than adding them a second time.
         setProfs((v) =>
           v.some((p) => p.userId === req.userId)
-            ? v
-            : [...v, { adminId: res.adminId as string, userId: req.userId, name: req.name, email: req.email }],
+            ? v.map((p) => (p.userId === req.userId ? { ...p, confirmedForYear: true } : p))
+            : [
+                ...v,
+                {
+                  adminId: res.adminId as string,
+                  userId: req.userId,
+                  name: req.name,
+                  email: req.email,
+                  confirmedForYear: true,
+                },
+              ],
         );
       }
     } catch (err) {
@@ -217,6 +228,7 @@ export function SchoolTeam({ classes }: { classes: ClassOpt[] }) {
    */
   const sortedSubjects = sortByName(subjects, (s) => s.name);
   const sortedProfs = sortByName(profs, (p) => p.name);
+  const notBack = profs.filter((p) => !p.confirmedForYear).length;
   const sortedAssignments = sortByName(assignments, (a) => a.profName);
 
   const subjectSearch = useListSearch(sortedSubjects, (s) => [s.name, s.code], { noun: "subjects" });
@@ -277,12 +289,36 @@ export function SchoolTeam({ classes }: { classes: ClassOpt[] }) {
       <div style={box}>
         <h3 style={{ marginTop: 0 }}>{withCount("Teachers", profs.length, t)}</h3>
         {profs.length === 0 && <p style={{ opacity: 0.55, fontSize: "0.85rem" }}>No teachers yet.</p>}
+        {/* The yearly roll: who has entered this year's staff code and who hasn't.
+            Nobody is dropped automatically — a teacher who has left simply never
+            comes back, and the admin removes them when they're sure. */}
+        {notBack > 0 && (
+          <p style={{ margin: "0 0 0.6rem", color: t.muted, fontSize: "0.85rem" }}>
+            {notBack} {notBack === 1 ? "teacher hasn’t" : "teachers haven’t"} entered this year’s
+            staff code yet. Their record is kept — remove the ones who have left.
+          </p>
+        )}
         <ListToolbar search={profSearch} />
         {profSearch.visible.map((p) => (
           <div key={p.adminId} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.2rem 0" }}>
             <span style={{ flex: 1 }}>
               {p.name}
               {p.email ? <span style={{ opacity: 0.5 }}> · {p.email}</span> : null}
+              {!p.confirmedForYear && (
+                <span
+                  style={{
+                    marginLeft: "0.5rem",
+                    padding: "0.1rem 0.4rem",
+                    borderRadius: 99,
+                    border: `1px solid ${t.cardBorder}`,
+                    color: t.muted,
+                    fontSize: "0.72rem",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Not back yet
+                </span>
+              )}
             </span>
             <button
               onClick={() => removeProf(p.adminId)}

@@ -116,6 +116,8 @@ export default async function SchoolPage({
       account={account}
       initialTab={tab ?? null}
       initialJoinCode={join ?? null}
+      needsReconfirmation={membership?.needsReconfirmation ?? false}
+      currentYearLabel={profContext?.currentYearLabel ?? dashboard?.school.currentYearLabel ?? null}
     />
   );
 }

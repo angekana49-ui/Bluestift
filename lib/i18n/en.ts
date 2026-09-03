@@ -30,6 +30,7 @@ export const en = {
   "nav.reports": "Reports",
   "nav.team": "Team",
   "nav.billing": "Billing",
+  "nav.archive": "Archive",
 
   // ── Profile chip menu ─────────────────────────────────────────────
   "menu.addEmail": "Add your email",

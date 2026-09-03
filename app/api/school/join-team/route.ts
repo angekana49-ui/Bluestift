@@ -3,6 +3,7 @@ import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { setActiveSchoolCookie } from "@/lib/school-active";
+import { confirmMembershipForYear, needsYearReconfirmation } from "@/lib/school-admin";
 import { hasRealEmail } from "@/lib/auth";
 import { sendBrandedEmail, getUserEmail, siteUrl } from "@/lib/email";
 import { checkStrictRateLimit } from "@/lib/rate-limit";
@@ -10,6 +11,7 @@ import { checkStrictRateLimit } from "@/lib/rate-limit";
 // Local shapes for the untyped `schools` schema.
 type CodeRow = { id: string; school_id: string; auto_approve: boolean };
 type SchoolRow = { name: string };
+type MemberRow = { id: string; confirmed_school_year_id?: string | null };
 
 /**
  * Tell the school's admin(s) a teacher is waiting for approval — otherwise the
@@ -100,27 +102,51 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid or inactive code." }, { status: 404 });
   }
 
-  const schoolName = await schoolNameOf(schools, codeRow.school_id);
+  const { name: schoolName, currentYearId } = await schoolOf(schools, codeRow.school_id);
 
-  // Already a member of this school? Idempotent no-op.
+  // `*`, not a column list: naming confirmed_school_year_id would break this
+  // lookup outright on a database where that migration isn't applied yet.
   const { data: existing } = await schools
     .from("school_admins")
-    .select("id")
+    .select("*")
     .eq("school_id", codeRow.school_id)
     .eq("user_id", user.id)
     .limit(1)
     .maybeSingle();
-  if (existing) {
-    // Already a member — make it the active school so they land in it.
-    await setActiveSchoolCookie(codeRow.school_id);
-    return NextResponse.json({ status: "already", schoolName });
+  const member = (existing ?? null) as MemberRow | null;
+
+  if (member) {
+    // A member who is already confirmed for the running year: idempotent no-op.
+    const stale = needsYearReconfirmation({
+      role: "prof",
+      confirmedYearId: member.confirmed_school_year_id ?? null,
+      currentYearId,
+      tracked: "confirmed_school_year_id" in member,
+    });
+    if (!stale) {
+      await setActiveSchoolCookie(codeRow.school_id);
+      return NextResponse.json({ status: "already", schoolName });
+    }
+
+    // A returning teacher redeeming the new year's code. Their membership and
+    // their history are kept — this renews the year, it doesn't re-create them.
+    if (codeRow.auto_approve) {
+      await confirmMembershipForYear(member.id, currentYearId);
+      await setActiveSchoolCookie(codeRow.school_id);
+      return NextResponse.json({ status: "renewed", schoolName });
+    }
+    // Otherwise the admin validates, through the same request queue as a new
+    // teacher — falls through to the pending-request path below.
   }
 
-  if (codeRow.auto_approve) {
-    const { error } = await schools
+  if (!member && codeRow.auto_approve) {
+    const { data: created, error } = await schools
       .from("school_admins")
-      .insert({ user_id: user.id, school_id: codeRow.school_id, role: "prof" });
+      .insert({ user_id: user.id, school_id: codeRow.school_id, role: "prof" })
+      .select("id")
+      .single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    await confirmMembershipForYear((created as { id: string }).id, currentYearId);
     // Land the teacher in the school they just joined.
     await setActiveSchoolCookie(codeRow.school_id);
     return NextResponse.json({ status: "joined", schoolName });
@@ -158,10 +184,15 @@ export async function POST(request: Request) {
   return NextResponse.json({ status: "requested", schoolName });
 }
 
-async function schoolNameOf(
+async function schoolOf(
   schools: ReturnType<typeof createSchoolsAdminClient>,
   schoolId: string,
-): Promise<string | null> {
-  const { data } = await schools.from("schools").select("name").eq("id", schoolId).maybeSingle();
-  return ((data ?? null) as SchoolRow | null)?.name ?? null;
+): Promise<{ name: string | null; currentYearId: string | null }> {
+  const { data } = await schools
+    .from("schools")
+    .select("name, current_school_year_id")
+    .eq("id", schoolId)
+    .maybeSingle();
+  const row = (data ?? null) as (SchoolRow & { current_school_year_id: string | null }) | null;
+  return { name: row?.name ?? null, currentYearId: row?.current_school_year_id ?? null };
 }

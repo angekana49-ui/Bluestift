@@ -1,8 +1,27 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
-import { getAdminMembership } from "@/lib/school-admin";
+import { getAdminMembership, getSchoolYears, rotateStaffCodeForYear } from "@/lib/school-admin";
 import { academicYear } from "@/lib/school-constants";
+
+/**
+ * Every year the school has on record — the year picker above "Classes & codes".
+ * Past years are how an admin reaches the archive, so this is what makes a
+ * rolled-over class findable instead of looking deleted.
+ */
+export async function GET() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const membership = await getAdminMembership(user.id);
+  if (!membership || membership.role !== "admin_master") {
+    return NextResponse.json({ error: "Admin only." }, { status: 403 });
+  }
+  return NextResponse.json({ years: await getSchoolYears(user.id) });
+}
 
 /** The start year of the next academic year, derived from the active one's label. */
 function nextStartYear(activeLabel: string | null): number {
@@ -56,5 +75,10 @@ export async function POST() {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   const row = ((data as { out_id: string; out_label: string }[] | null) ?? [])[0];
   if (!row) return NextResponse.json({ error: "Could not start the year." }, { status: 500 });
-  return NextResponse.json({ id: row.out_id, label: row.out_label });
+
+  // Same staff roll as the automatic rollover: last year's codes stop working and
+  // the year gets a fresh one for returning teachers to enter.
+  const staff = await rotateStaffCodeForYear(membership.schoolId, row.out_id);
+
+  return NextResponse.json({ id: row.out_id, label: row.out_label, staffCode: staff?.code ?? null });
 }
