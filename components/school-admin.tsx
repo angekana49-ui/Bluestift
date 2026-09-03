@@ -2303,7 +2303,7 @@ function ClassCard({
   onRemove: (classId: string) => void;
   onOpen: () => void;
 }) {
-  const { box, input, btn, ghost } = useSchoolStyles();
+  const { t, box, input, btn, ghost } = useSchoolStyles();
   const [copied, setCopied] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(c.expectedSize != null ? String(c.expectedSize) : "");
@@ -2349,11 +2349,24 @@ function ClassCard({
     }
   }
 
+  const full = c.capacity != null && c.studentCount >= c.capacity;
+  const editRow: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.4rem",
+    flexWrap: "wrap",
+  };
+  const smallInput: React.CSSProperties = { ...input, padding: "6px 10px", fontSize: 14 };
+
   return (
     <div style={box}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", flexWrap: "wrap" }}>
+      {/* Who the class is, and the one way into it. The five controls that used
+          to share this line made the card read as a toolbar with a name in it;
+          managing the class now sits in the footer, next to the action the card
+          exists for. */}
+      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
         {renaming ? (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", flex: 1 }}>
+          <div style={{ ...editRow, flex: 1, minWidth: 240 }}>
             <input
               autoFocus
               value={nameDraft}
@@ -2362,8 +2375,9 @@ function ClassCard({
                 if (e.key === "Enter") saveName();
                 if (e.key === "Escape") setRenaming(false);
               }}
-              style={{ ...input, flex: 2, minWidth: 120, padding: "0.3rem 0.5rem", fontSize: "0.85rem" }}
+              style={{ ...smallInput, flex: "2 1 140px", minWidth: 120 }}
               disabled={saving}
+              aria-label="Class name"
             />
             <input
               placeholder="Level"
@@ -2373,8 +2387,9 @@ function ClassCard({
                 if (e.key === "Enter") saveName();
                 if (e.key === "Escape") setRenaming(false);
               }}
-              style={{ ...input, flex: 1, minWidth: 80, padding: "0.3rem 0.5rem", fontSize: "0.85rem" }}
+              style={{ ...smallInput, flex: "1 1 90px", minWidth: 80 }}
               disabled={saving}
+              aria-label="Level"
             />
             <button style={ghost} onClick={saveName} disabled={saving || !nameDraft.trim()}>
               {saving ? "…" : "Save"}
@@ -2391,52 +2406,19 @@ function ClassCard({
             >
               Cancel
             </button>
-          </span>
-        ) : (
-          <h3 style={{ margin: 0, flex: 1 }}>
-            {c.name}
-            {c.level ? <span style={{ opacity: 0.5, fontWeight: 400 }}> · {c.level}</span> : null}
-          </h3>
-        )}
-        {editing ? (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem" }}>
-            <input
-              type="number"
-              min={1}
-              max={1000}
-              autoFocus
-              placeholder="n (blank = no limit)"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") saveEffectif();
-                if (e.key === "Escape") setEditing(false);
-              }}
-              style={{ ...input, width: 120, padding: "0.3rem 0.5rem", fontSize: "0.85rem" }}
-              disabled={saving}
-            />
-            <button style={ghost} onClick={saveEffectif} disabled={saving}>
-              {saving ? "…" : "Save"}
-            </button>
-            <button
-              style={{ ...ghost, background: "transparent" }}
-              onClick={() => {
-                setEditing(false);
-                setDraft(c.expectedSize != null ? String(c.expectedSize) : "");
-                setEditErr(null);
-              }}
-              disabled={saving}
-            >
-              Cancel
-            </button>
-          </span>
+          </div>
         ) : (
           <>
+            <h3 style={{ margin: 0, flex: 1, minWidth: 0, fontSize: 17 }}>
+              {c.name}
+              {c.level ? <span style={{ opacity: 0.5, fontWeight: 400 }}> · {c.level}</span> : null}
+            </h3>
             <span
               style={{
-                opacity: 0.6,
-                fontSize: "0.85rem",
-                color: c.capacity != null && c.studentCount >= c.capacity ? "#f59e0b" : undefined,
+                fontSize: 13.5,
+                whiteSpace: "nowrap",
+                fontVariantNumeric: "tabular-nums",
+                color: full ? "#f59e0b" : t.muted,
               }}
               title={
                 c.expectedSize != null
@@ -2448,50 +2430,11 @@ function ClassCard({
               {c.capacity != null ? ` / ${c.capacity}` : ""}{" "}
               {c.studentCount === 1 && c.capacity == null ? "student" : "students"}
             </span>
-            {!renaming && (
-              <>
-                <button
-                  style={{ ...ghost, padding: "0.3rem 0.55rem" }}
-                  onClick={() => setEditing(true)}
-                  title="Edit the class size"
-                >
-                  {c.expectedSize != null ? "Size ✎" : "+ Size"}
-                </button>
-                <button
-                  style={{ ...ghost, padding: "0.3rem 0.55rem" }}
-                  onClick={() => setRenaming(true)}
-                  title="Rename this class (this year only)"
-                >
-                  Rename
-                </button>
-                {/* A class holding students is not removable — that is the
-                    server's rule too. Showing it disabled says why, instead of
-                    spending a confirm dialog and a round-trip on a refusal. */}
-                <button
-                  style={{
-                    ...ghost,
-                    padding: "0.3rem 0.55rem",
-                    background: "transparent",
-                    opacity: c.studentCount > 0 ? 0.4 : 1,
-                    cursor: c.studentCount > 0 ? "not-allowed" : "pointer",
-                  }}
-                  onClick={() => onRemove(c.id)}
-                  disabled={c.studentCount > 0}
-                  title={
-                    c.studentCount > 0
-                      ? "A class with students can't be removed — it is archived at the end of the year"
-                      : "Remove this class from the current year"
-                  }
-                >
-                  Remove
-                </button>
-              </>
-            )}
+            <button style={ghost} onClick={onOpen}>
+              Open →
+            </button>
           </>
         )}
-        <button style={ghost} onClick={onOpen}>
-          Open →
-        </button>
       </div>
       {editErr && <p style={{ color: "#f87171", fontSize: "0.8rem", margin: "0.4rem 0 0" }}>{editErr}</p>}
 
@@ -2527,11 +2470,90 @@ function ClassCard({
         ))}
       </div>
 
-      {/* The card's primary action, and it was neither blue nor on the edge —
-          "Generate code" in the Team tab is both, for the same verb on the same
-          object. A ghost button hard left read as a footnote to the code list
-          rather than the thing that makes a code. */}
-      <div style={{ ...formActions, marginTop: "0.75rem" }}>
+      {/* Managing the class sits opposite the card's primary action, quieter
+          than it: "Generate code" in the Team tab is blue and on the edge for
+          the same verb on the same object, and a ghost button hard left read as
+          a footnote to the code list rather than the thing that makes a code. */}
+      <div
+        style={{
+          ...formActions,
+          justifyContent: "space-between",
+          marginTop: "0.9rem",
+          paddingTop: "0.75rem",
+          borderTop: `1px solid ${t.cardBorder}`,
+        }}
+      >
+        <div style={editRow}>
+          {editing ? (
+            <>
+              <input
+                type="number"
+                min={1}
+                max={1000}
+                autoFocus
+                placeholder="n (blank = no limit)"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") saveEffectif();
+                  if (e.key === "Escape") setEditing(false);
+                }}
+                style={{ ...smallInput, width: 170 }}
+                disabled={saving}
+                aria-label="Expected class size"
+              />
+              <button style={ghost} onClick={saveEffectif} disabled={saving}>
+                {saving ? "…" : "Save"}
+              </button>
+              <button
+                style={{ ...ghost, background: "transparent" }}
+                onClick={() => {
+                  setEditing(false);
+                  setDraft(c.expectedSize != null ? String(c.expectedSize) : "");
+                  setEditErr(null);
+                }}
+                disabled={saving}
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            !renaming && (
+              <>
+                <button style={ghost} onClick={() => setEditing(true)} title="Edit the class size">
+                  {c.expectedSize != null ? "Size ✎" : "+ Size"}
+                </button>
+                <button
+                  style={ghost}
+                  onClick={() => setRenaming(true)}
+                  title="Rename this class (this year only)"
+                >
+                  Rename
+                </button>
+                {/* A class holding students is not removable — that is the
+                    server's rule too. Showing it disabled says why, instead of
+                    spending a confirm dialog and a round-trip on a refusal. */}
+                <button
+                  style={{
+                    ...ghost,
+                    background: "transparent",
+                    opacity: c.studentCount > 0 ? 0.4 : 1,
+                    cursor: c.studentCount > 0 ? "not-allowed" : "pointer",
+                  }}
+                  onClick={() => onRemove(c.id)}
+                  disabled={c.studentCount > 0}
+                  title={
+                    c.studentCount > 0
+                      ? "A class with students can't be removed — it is archived at the end of the year"
+                      : "Remove this class from the current year"
+                  }
+                >
+                  Remove
+                </button>
+              </>
+            )
+          )}
+        </div>
         <button
           style={btn}
           onClick={() => {

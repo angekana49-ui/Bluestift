@@ -174,9 +174,13 @@ describe("no primary action is left stranded at the leading edge", () => {
     const team = read("components/school-team.tsx");
     const admin = read("components/school-admin.tsx");
     expect(team).toMatch(/style=\{btn\}\s*onClick=\{generateInvite\}/);
-    // The class card: inside a formActions row (trailing edge) and taking `btn`.
-    expect(admin).toMatch(/\{\{ \.\.\.formActions, marginTop: "0\.75rem" \}\}[\s\S]{0,200}style=\{btn\}/);
-    expect(admin).toMatch(/Regenerate code" : "\+ Generate code"/);
+    // The class card: a formActions row, so the primary lands on the trailing
+    // edge. That row now also carries the class's own management actions on the
+    // left (Size / Rename / Remove), which used to crowd the title line — hence
+    // `space-between`, and hence asserting the row and the button separately
+    // rather than by their proximity in the source.
+    expect(admin).toMatch(/\.\.\.formActions,\s*\n\s*justifyContent: "space-between"/);
+    expect(admin).toMatch(/style=\{btn\}[\s\S]{0,900}Regenerate code" : "\+ Generate code"/);
   });
 
   it("a row of actions after a fixed-width label claims the slack", () => {
