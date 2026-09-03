@@ -5,7 +5,7 @@ import { useAppTheme } from "@/components/ui/theme";
 import { panelCard, textInput, ctaButton, ghostButton, formActions } from "@/components/ui/forms";
 import { DocumentView } from "@/components/ui/document";
 import { Modal } from "@/components/ui/modal";
-import { downloadBrandedPdf, downloadBrandedText, type BrandedDoc } from "@/lib/document";
+import { type BrandedDoc } from "@/lib/document";
 import { RayaName } from "@/components/ui/brand";
 import { netFetch, getJsonCached, invalidateCached } from "@/lib/net/client-fetch";
 
@@ -238,8 +238,7 @@ export function PrepareView({
         <Modal onClose={() => setCurrent(null)} label={current.title}>
           <DocumentView
             {...docFor(current)}
-            onTxt={() => downloadBrandedText(docFor(current))}
-            onPdf={() => downloadBrandedPdf(docFor(current))}
+            doc={docFor(current)}
             onClose={() => setCurrent(null)}
           />
         </Modal>

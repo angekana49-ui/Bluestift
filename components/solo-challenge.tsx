@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { downloadBrandedPdf, downloadBrandedText, type BrandedDoc } from "@/lib/document";
+import { type BrandedDoc } from "@/lib/document";
 import { TestPlayer, ReaderView, type TestAnswer, type TestQuestion, type TestResult } from "@/components/study/focus-player";
 import { ShareLinkButton } from "@/components/study/share-button";
+import { DocumentActions } from "@/components/ui/doc-actions";
 import { parseDoc } from "@/lib/doc-format";
 import { useAppTheme } from "@/components/ui/theme";
 import { type AppTheme } from "@/components/ui/tokens";
@@ -40,16 +41,6 @@ const cta = (t: AppTheme): React.CSSProperties => ({
   border: "none",
   borderRadius: 99,
   padding: "9px 16px",
-  fontSize: 14,
-  fontWeight: 600,
-  cursor: "pointer",
-});
-const ghost = (t: AppTheme): React.CSSProperties => ({
-  background: t.cardBg2,
-  color: t.text,
-  border: `1.5px solid ${t.dark ? "rgba(255,255,255,0.22)" : "rgba(15,23,42,0.20)"}`,
-  borderRadius: 99,
-  padding: "6px 13px",
   fontSize: 14,
   fontWeight: 600,
   cursor: "pointer",
@@ -307,8 +298,7 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
         analyzing={analyzing}
         resultActions={
           <>
-            <button style={ghost(t)} onClick={() => downloadBrandedText(resultDoc())}>TXT</button>
-            <button style={ghost(t)} onClick={() => downloadBrandedPdf(resultDoc())}>PDF</button>
+            <DocumentActions doc={resultDoc()} compact shareable={false} />
             <ShareLinkButton theme={t} doc={resultDoc()} />
           </>
         }
@@ -326,8 +316,7 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
         onExit={() => setView("list")}
         actions={
           <>
-            <button style={ghost(t)} onClick={() => downloadBrandedText(analysisDoc())}>TXT</button>
-            <button style={ghost(t)} onClick={() => downloadBrandedPdf(analysisDoc())}>PDF</button>
+            <DocumentActions doc={analysisDoc()} compact shareable={false} />
             <ShareLinkButton theme={t} doc={analysisDoc()} />
           </>
         }
@@ -389,8 +378,7 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
           <div style={{ flex: 1, fontSize: 13, color: t.mutedLight, textTransform: "uppercase", letterSpacing: "0.06em" }}>Your progress</div>
           {items.length > 0 && (
             <>
-              <button style={ghost(t)} onClick={() => downloadBrandedPdf(progressionDoc())} title="Download your progress">PDF</button>
-              <ShareLinkButton theme={t} doc={progressionDoc()} />
+              <DocumentActions doc={progressionDoc()} compact />
             </>
           )}
         </div>

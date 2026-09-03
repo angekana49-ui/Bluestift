@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { downloadBrandedPdf, downloadBrandedText, type BrandedDoc } from "@/lib/document";
+import { type BrandedDoc } from "@/lib/document";
 import { parseDoc } from "@/lib/doc-format";
 import { QuizPlayer, FlashcardsPlayer, ReaderView, MindMapView } from "@/components/study/focus-player";
-import { ShareLinkButton } from "@/components/study/share-button";
+import { DocumentActions } from "@/components/ui/doc-actions";
 import { useAppTheme } from "@/components/ui/theme";
 import { status as statusColors, type AppTheme } from "@/components/ui/tokens";
 import { IconQuiz, IconFlashcards, IconSummary } from "@/components/ui/icons";
@@ -144,13 +144,10 @@ export function Tools({
     audience: studentName || undefined,
     body,
   });
-  const downloadActions = (d: BrandedDoc) => (
-    <>
-      <button style={ghost(t)} onClick={() => downloadBrandedText(d)}>TXT</button>
-      <button style={ghost(t)} onClick={() => downloadBrandedPdf(d)}>PDF</button>
-      <ShareLinkButton theme={t} doc={d} />
-    </>
-  );
+  // One row for every tool output: language, TXT, PDF, share. The language is
+  // the point — a summary generated in English is now downloadable in the four
+  // shipped languages without regenerating it.
+  const downloadActions = (d: BrandedDoc) => <DocumentActions doc={d} compact />;
 
   // Add one library doc as a reusable source (no re-upload).
   function reuseFromLibrary(u: Upload) {

@@ -1,6 +1,8 @@
 "use client";
 
 import { useAppTheme } from "@/components/ui/theme";
+import { DocumentActions } from "@/components/ui/doc-actions";
+import type { BrandedDoc } from "@/lib/document";
 import { display, type AppTheme } from "@/components/ui/tokens";
 import {
   DOC_BRANDS,
@@ -27,6 +29,7 @@ export function DocumentView({
   body,
   onTxt,
   onPdf,
+  doc,
   onClose,
   maxWidth = 900,
 }: {
@@ -38,6 +41,12 @@ export function DocumentView({
   body: string;
   onTxt?: () => void;
   onPdf?: () => void;
+  /**
+   * Preferred over onTxt/onPdf: hands the whole document over so the header can
+   * offer a LANGUAGE alongside the two formats. The plain callbacks stay for the
+   * few callers that export something which is not a translatable document.
+   */
+  doc?: BrandedDoc;
   onClose?: () => void;
   maxWidth?: number;
 }) {
@@ -70,8 +79,14 @@ export function DocumentView({
         <img src={b.logo} alt="" style={{ height: 22, width: "auto", flex: "none" }} />
         <span style={{ fontSize: 14, fontWeight: 700, color: b.accent, letterSpacing: "0.01em" }}>{b.name}</span>
         <span style={{ flex: 1 }} />
-        {onTxt && <DocButton t={t} onClick={onTxt} label="TXT" />}
-        {onPdf && <DocButton t={t} onClick={onPdf} label="PDF" />}
+        {doc ? (
+          <DocumentActions doc={doc} compact shareable={false} />
+        ) : (
+          <>
+            {onTxt && <DocButton t={t} onClick={onTxt} label="TXT" />}
+            {onPdf && <DocButton t={t} onClick={onPdf} label="PDF" />}
+          </>
+        )}
         {onClose && <DocButton t={t} onClick={onClose} label="✕" title="Close" />}
       </div>
 

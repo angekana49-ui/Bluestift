@@ -10,8 +10,8 @@ import { useVoiceRecorder } from "@/lib/use-voice-recorder";
 import { RoomChallenges } from "@/components/room-challenges";
 import { RoomFiles } from "@/components/room-files";
 import { FilePreview, type Attachment } from "@/components/attachment";
-import { downloadBrandedPdf, downloadBrandedText, type BrandedDoc } from "@/lib/document";
-import { ShareLinkButton } from "@/components/study/share-button";
+import { type BrandedDoc } from "@/lib/document";
+import { DocumentActions } from "@/components/ui/doc-actions";
 import { useDarkMode, useAppTheme, AppThemeProvider } from "@/components/ui/theme";
 import { LocaleProvider } from "@/components/ui/locale";
 import { useLocale } from "@/lib/use-locale";
@@ -797,13 +797,7 @@ function RoomViewBody({
               <h3 style={{ margin: 0, flex: 1, fontSize: 16, fontWeight: 700, color: t.text }}>Session report</h3>
               {report && (
                 <>
-                  <button style={{ ...ghost, padding: "5px 12px", fontSize: 13 }} onClick={() => downloadBrandedText(reportDoc(roomName, report))}>
-                    TXT
-                  </button>
-                  <button style={{ ...ghost, padding: "5px 12px", fontSize: 13 }} onClick={() => downloadBrandedPdf(reportDoc(roomName, report))}>
-                    PDF
-                  </button>
-                  <ShareLinkButton theme={t} doc={reportDoc(roomName, report)} />
+                  <DocumentActions doc={reportDoc(roomName, report)} compact />
                   <button style={{ ...ghost, padding: "5px 12px", fontSize: 13 }} title="Close" onClick={() => setReport(null)}>
                     ✕
                   </button>

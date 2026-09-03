@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import type { ClassInsight, SchoolSubject, Simulation } from "@/lib/school-admin";
 import { useAppTheme } from "@/components/ui/theme";
-import { panelCard, textInput, ctaButton, ghostButton } from "@/components/ui/forms";
-import { downloadBrandedPdf, type BrandedDoc } from "@/lib/document";
+import { DocumentActions } from "@/components/ui/doc-actions";
+import { panelCard, textInput, ctaButton } from "@/components/ui/forms";
+import { type BrandedDoc } from "@/lib/document";
 
 const pct = (v: number | null) => (v == null ? "—" : `${Math.round(v * 100)}%`);
 
@@ -46,7 +47,6 @@ export function SchoolInsights({ schoolName }: { schoolName?: string }) {
   const box = panelCard(t);
   const input = textInput(t);
   const btn = ctaButton(t);
-  const ghost = ghostButton(t);
   const [insights, setInsights] = useState<ClassInsight[]>([]);
   const [subjects, setSubjects] = useState<SchoolSubject[]>([]);
   const [classes, setClasses] = useState<SchoolClass[]>([]);
@@ -113,9 +113,7 @@ export function SchoolInsights({ schoolName }: { schoolName?: string }) {
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           <h3 style={{ margin: 0, flex: 1 }}>Kernel insights</h3>
           {(insights.length > 0 || sims.length > 0) && (
-            <button style={ghost} onClick={() => downloadBrandedPdf(insightsToDoc(insights, sims, schoolName))}>
-              Download PDF
-            </button>
+            <DocumentActions doc={insightsToDoc(insights, sims, schoolName)} compact shareable={false} />
           )}
         </div>
         <p style={{ opacity: 0.55, fontSize: "0.8rem", margin: "0.5rem 0 0.75rem" }}>

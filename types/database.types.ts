@@ -437,6 +437,39 @@ export type Database = {
   }
   learning: {
     Tables: {
+      document_translations: {
+        Row: {
+          source_hash: string
+          locale: string
+          title: string
+          meta: string | null
+          body: string
+          created_at: string
+          last_used_at: string
+          hits: number
+        }
+        Insert: {
+          source_hash: string
+          locale: string
+          title: string
+          meta?: string | null
+          body: string
+          created_at?: string
+          last_used_at?: string
+          hits?: number
+        }
+        Update: {
+          source_hash?: string
+          locale?: string
+          title?: string
+          meta?: string | null
+          body?: string
+          created_at?: string
+          last_used_at?: string
+          hits?: number
+        }
+        Relationships: []
+      }
       shares: {
         Row: {
           id: string

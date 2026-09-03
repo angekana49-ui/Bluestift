@@ -21,7 +21,7 @@ import { InstructionsPanel } from "@/components/school/class-instructions";
 import { FollowupsPanel } from "@/components/school/prof-followups";
 import { ProfOverviewView } from "@/components/school/prof-overview";
 import { PrepareView } from "@/components/school/prof-prepare";
-import { downloadBrandedPdf, type BrandedDoc } from "@/lib/document";
+import { type BrandedDoc } from "@/lib/document";
 import { COUNTRIES, SCHOOL_TYPES } from "@/lib/school-constants";
 import { useDarkMode, useAppTheme, AppThemeProvider } from "@/components/ui/theme";
 import { LocaleProvider, useTranslate } from "@/components/ui/locale";
@@ -31,6 +31,7 @@ import { RightPanel } from "@/components/ui/shell";
 import { RayaName, SchoolsName } from "@/components/ui/brand";
 import { createClient } from "@/lib/supabase/client";
 import { KpiTile, MasteryGauge } from "@/components/ui/widgets";
+import { DocumentActions } from "@/components/ui/doc-actions";
 import {
   FilterChips,
   ListNoMatch,
@@ -1374,9 +1375,7 @@ function ProfInsightsView({ onStudent, schoolName }: { onStudent: (classId: stri
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           <h3 style={{ margin: 0, flex: 1 }}>{withCount("At-risk students", data.alerts.length)}</h3>
           {(data.alerts.length > 0 || data.insights.length > 0) && (
-            <button style={ghost} onClick={() => downloadBrandedPdf(profInsightsToDoc(data, schoolName))}>
-              Download PDF
-            </button>
+            <DocumentActions doc={profInsightsToDoc(data, schoolName)} compact shareable={false} />
           )}
         </div>
         {data.alertsUnavailable ? (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { downloadBrandedPdf, downloadBrandedText } from "@/lib/document";
+import type { BrandedDoc } from "@/lib/document";
 import { useAppTheme } from "@/components/ui/theme";
 import { DocumentView } from "@/components/ui/document";
 import { Modal } from "@/components/ui/modal";
@@ -99,8 +99,8 @@ export function SchoolReports({
   // Every generated report renders — and downloads — through the shared branded
   // document châssis (Bluestift logo + title + footer attribution). The report
   // body is Markdown, so DocumentView typesets it instead of dumping raw `#`.
-  const docFor = (r: ReportItem) => ({
-    brand: "bluestift" as const,
+  const docFor = (r: ReportItem): BrandedDoc => ({
+    brand: "bluestift",
     title: r.title,
     meta: [SCOPE_LABEL[r.scope ?? "school"] ?? r.scope, new Date(r.createdAt).toLocaleDateString()].filter(Boolean).join(" · "),
     audience: schoolName,
@@ -154,8 +154,7 @@ export function SchoolReports({
         <Modal onClose={() => setCurrent(null)} label={current.title}>
           <DocumentView
             {...docFor(current)}
-            onTxt={() => downloadBrandedText(docFor(current))}
-            onPdf={() => downloadBrandedPdf(docFor(current))}
+            doc={docFor(current)}
             onClose={() => setCurrent(null)}
           />
         </Modal>

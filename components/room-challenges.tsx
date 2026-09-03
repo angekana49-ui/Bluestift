@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAppTheme } from "@/components/ui/theme";
+import { DocumentActions } from "@/components/ui/doc-actions";
 import { type AppTheme } from "@/components/ui/tokens";
-import { downloadBrandedPdf, downloadBrandedText, type BrandedDoc } from "@/lib/document";
+import { downloadBrandedPdf, type BrandedDoc } from "@/lib/document";
 import { TestPlayer, ReaderView, type TestAnswer, type TestQuestion, type TestResult } from "@/components/study/focus-player";
 import { ShareLinkButton } from "@/components/study/share-button";
 import { parseDoc } from "@/lib/doc-format";
@@ -282,8 +283,7 @@ export function RoomChallenges({
         analyzing={analyzing}
         resultActions={
           <>
-            <button style={ghost} onClick={() => downloadBrandedText(resultDoc())}>TXT</button>
-            <button style={ghost} onClick={() => downloadBrandedPdf(resultDoc())}>PDF</button>
+            <DocumentActions doc={resultDoc()} compact shareable={false} />
             <ShareLinkButton theme={t} doc={resultDoc()} />
             <button style={ghost} onClick={() => setView("standings")} title="Squad standings">🏆 Standings</button>
           </>
@@ -302,8 +302,7 @@ export function RoomChallenges({
         onExit={() => setView("list")}
         actions={
           <>
-            <button style={ghost} onClick={() => downloadBrandedText(analysisDoc())}>TXT</button>
-            <button style={ghost} onClick={() => downloadBrandedPdf(analysisDoc())}>PDF</button>
+            <DocumentActions doc={analysisDoc()} compact shareable={false} />
             <ShareLinkButton theme={t} doc={analysisDoc()} />
           </>
         }
