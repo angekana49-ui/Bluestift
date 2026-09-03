@@ -1,9 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAppTheme } from "@/components/ui/theme";
 import { panelCard, textInput } from "@/components/ui/forms";
-import type { ArchiveSection, SchoolYearSummary, YearArchive } from "@/lib/school-admin";
+import type { SchoolYearSummary, YearArchive } from "@/lib/school-admin";
+import {
+  EMPTY_ARCHIVE_FILTER,
+  filterArchiveSections,
+  isFiltering,
+  type ArchiveFilter,
+  type FilteredSection,
+} from "@/lib/archive-filter";
 
 const BASIS_LABEL: Record<string, string> = {
   year: "exact — stamped with this school year",
@@ -29,6 +36,9 @@ export function SchoolArchive({ currentYearLabel }: { currentYearLabel?: string 
   const [archive, setArchive] = useState<YearArchive | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<ArchiveFilter>(EMPTY_ARCHIVE_FILTER);
+  const set = <K extends keyof ArchiveFilter>(k: K, v: ArchiveFilter[K]) =>
+    setFilter((f) => ({ ...f, [k]: v }));
 
   useEffect(() => {
     (async () => {
@@ -52,6 +62,9 @@ export function SchoolArchive({ currentYearLabel }: { currentYearLabel?: string 
     (async () => {
       setBusy(true);
       setError(null);
+      // Class and subject ids belong to the year they were picked in; keeping
+      // them across a year change would silently show an empty record.
+      setFilter(EMPTY_ARCHIVE_FILTER);
       try {
         const res = await fetch(`/api/school/archive?yearId=${yearId}`);
         const data = await res.json();
@@ -72,10 +85,21 @@ export function SchoolArchive({ currentYearLabel }: { currentYearLabel?: string 
     };
   }, [yearId]);
 
-  const filled = archive?.sections.filter((s) => s.count > 0) ?? [];
-  const empty = archive?.sections.filter((s) => s.count === 0) ?? [];
+  const narrowed = useMemo(
+    () => filterArchiveSections(archive?.sections ?? [], filter),
+    [archive, filter],
+  );
+  const active = isFiltering(filter);
+  const filled = narrowed.filter((s) => s.count > 0);
+  // Under a filter, three ways a section can be quiet, and they mean different
+  // things: nothing matched, or the filter doesn't reach that kind of entry.
+  const empty = narrowed.filter((s) => s.applies && s.count === 0);
+  const outOfScope = narrowed.filter((s) => !s.applies);
   const total = filled.reduce((n, s) => n + s.count, 0);
+  const grandTotal = (archive?.sections ?? []).reduce((n, s) => n + s.count, 0);
+  const capped = filled.some((s) => s.hiddenByCap);
   const viewingCurrent = years?.find((y) => y.id === yearId)?.isCurrent ?? false;
+  const selectStyle = { ...select, width: "auto", minWidth: 150 };
 
   return (
     <>
@@ -84,7 +108,9 @@ export function SchoolArchive({ currentYearLabel }: { currentYearLabel?: string 
           <h2 style={{ fontSize: 18, margin: 0, color: t.text }}>Archive</h2>
           <p style={{ margin: "4px 0 0", color: t.muted, fontSize: 14 }}>
             {archive
-              ? `${archive.year.label} · ${total} ${total === 1 ? "entry" : "entries"}`
+              ? `${archive.year.label} · ${total} ${total === 1 ? "entry" : "entries"}${
+                  active ? ` of ${grandTotal}` : ""
+                }`
               : "Everything your school produced, year by year."}
           </p>
         </div>
@@ -133,21 +159,109 @@ export function SchoolArchive({ currentYearLabel }: { currentYearLabel?: string 
             </p>
           </div>
 
+          <div style={{ ...box, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <span style={{ color: t.muted, fontSize: 13.5, fontWeight: 600 }}>Filter</span>
+            <input
+              style={{ ...select, width: "auto", minWidth: 170, flex: "1 1 170px" }}
+              value={filter.q}
+              onChange={(e) => set("q", e.target.value)}
+              placeholder="Search this year…"
+              aria-label="Search the record"
+            />
+            <select
+              style={selectStyle}
+              value={filter.classId}
+              onChange={(e) => set("classId", e.target.value)}
+              aria-label="Class"
+            >
+              <option value="">All classes</option>
+              {archive.facets.classes.map((c) => (
+                <option key={c.id} value={c.id}>{c.label}</option>
+              ))}
+            </select>
+            <select
+              style={selectStyle}
+              value={filter.subjectId}
+              onChange={(e) => set("subjectId", e.target.value)}
+              aria-label="Subject"
+              // A year where nothing was ever filed under a subject offers no
+              // subject to pick; saying so beats an empty dropdown.
+              disabled={archive.facets.subjects.length === 0}
+            >
+              <option value="">
+                {archive.facets.subjects.length === 0 ? "No subjects recorded" : "All subjects"}
+              </option>
+              {archive.facets.subjects.map((s) => (
+                <option key={s.id} value={s.id}>{s.label}</option>
+              ))}
+            </select>
+            <select
+              style={selectStyle}
+              value={filter.basis}
+              onChange={(e) => set("basis", e.target.value as ArchiveFilter["basis"])}
+              aria-label="How entries are attributed to the year"
+              title="How an entry was attributed to this school year"
+            >
+              <option value="">Any attribution</option>
+              <option value="year">Stamped with the year</option>
+              <option value="class">Via a class</option>
+              <option value="period">By period (approximate)</option>
+            </select>
+            {active && (
+              <button
+                onClick={() => setFilter(EMPTY_ARCHIVE_FILTER)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: t.muted,
+                  cursor: "pointer",
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
           {filled.length === 0 ? (
             <div style={box}>
               <p style={{ margin: 0, color: t.muted, fontSize: 15 }}>
-                Nothing was recorded for {archive.year.label}.
+                {active
+                  ? "No entry in this year matches that filter."
+                  : `Nothing was recorded for ${archive.year.label}.`}
               </p>
             </div>
           ) : (
-            filled.map((s) => <SectionCard key={s.key} s={s} />)
+            filled.map((s) => <SectionCard key={s.key} s={s} filtering={active} />)
+          )}
+
+          {capped && (
+            <div style={box}>
+              <p style={{ margin: 0, color: t.muted, fontSize: 13.5 }}>
+                Some sections list only their first entries, so a filter searches what is listed —
+                not the whole year. Narrow by class to bring the rest into view.
+              </p>
+            </div>
           )}
 
           {empty.length > 0 && (
             <div style={box}>
-              <h3 style={{ margin: "0 0 6px", fontSize: 15, color: t.text }}>Nothing recorded</h3>
+              <h3 style={{ margin: "0 0 6px", fontSize: 15, color: t.text }}>
+                {active ? "No match" : "Nothing recorded"}
+              </h3>
               <p style={{ margin: 0, color: t.muted, fontSize: 14 }}>
                 {empty.map((s) => s.label).join(" · ")}
+              </p>
+            </div>
+          )}
+
+          {outOfScope.length > 0 && (
+            <div style={box}>
+              <h3 style={{ margin: "0 0 6px", fontSize: 15, color: t.text }}>Outside this filter</h3>
+              <p style={{ margin: 0, color: t.muted, fontSize: 14 }}>
+                {outOfScope.map((s) => s.label).join(" · ")} — these entries carry no class or
+                subject of their own, so they are set aside rather than counted as zero.
               </p>
             </div>
           )}
@@ -166,12 +280,14 @@ export function SchoolArchive({ currentYearLabel }: { currentYearLabel?: string 
   );
 }
 
-function SectionCard({ s }: { s: ArchiveSection }) {
+function SectionCard({ s, filtering }: { s: FilteredSection; filtering: boolean }) {
   const { theme: t } = useAppTheme();
   const box = panelCard(t);
   // Long sections start collapsed: the record is meant to be scanned by section
-  // first, opened second.
+  // first, opened second. A filtered section opens — the admin asked for those
+  // rows, hiding them behind a "Show" defeats the filter.
   const [open, setOpen] = useState(s.items.length <= 12);
+  const shown = open || filtering;
 
   return (
     <div style={box}>
@@ -183,7 +299,7 @@ function SectionCard({ s }: { s: ArchiveSection }) {
         <span style={{ opacity: 0.5, fontSize: "0.78rem" }} title={BASIS_LABEL[s.basis]}>
           {s.basis === "period" ? "by period" : "exact"}
         </span>
-        {s.items.length > 12 && (
+        {s.items.length > 12 && !filtering && (
           <button
             onClick={() => setOpen((v) => !v)}
             style={{
@@ -200,7 +316,7 @@ function SectionCard({ s }: { s: ArchiveSection }) {
         )}
       </div>
 
-      {open && (
+      {shown && (
         <div style={{ marginTop: "0.6rem", display: "flex", flexDirection: "column", gap: "0.35rem" }}>
           {s.items.map((i) => (
             <div

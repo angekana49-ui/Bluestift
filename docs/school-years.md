@@ -147,6 +147,30 @@ ligne créée à quelques heures d'une frontière d'année peut basculer du mauv
 l'UI le dit. Une année sans dates ne rattache **rien** par période (ouvrir l'intervalle
 classerait tout l'historique de l'école sous cette année-là).
 
+### Interroger le registre
+
+Une archive dont on ne peut rien extraire n'est qu'un tas. La barre de filtres
+(`lib/archive-filter.ts`, pure et testée) croise **recherche libre**, **classe**,
+**matière** et **base de rattachement**, et s'applique à toutes les sections d'un coup.
+
+Les entrées portent `classId` / `subjectId` **en propre**, pas seulement dans leur texte :
+deux classes homonymes d'années différentes rendraient un filtre textuel silencieusement
+faux. Les options proposées sont celles que **cette année-là** contient réellement, pas le
+catalogue de l'école — offrir une matière jamais utilisée ne rapporte qu'un écran vide.
+
+Trois façons pour une section d'être muette sous un filtre, et elles ne disent pas la même
+chose — l'écran les sépare :
+
+- **des résultats** ;
+- **aucune correspondance** (la section porte bien la facette, rien ne matche) ;
+- **hors du filtre** (`applies: false`) : un paiement ou une action journalisée n'a pas de
+  classe. Afficher « 0 paiements » sous un filtre de classe se lirait « l'école n'a rien
+  encaissé cette année-là » — une autre affirmation, et fausse.
+
+Attention au plafond : une section tronquée à 200 entrées est filtrée **sur ce qui est
+listé**, pas sur l'année entière. L'écran le dit dès qu'une section affichée est dans ce
+cas ; filtrer par classe est ce qui fait remonter le reste.
+
 ### Ce que le registre ne contient pas, volontairement
 
 - **Le profil cognitif des élèves.** Il appartient à l'apprenant, pas à l'établissement.

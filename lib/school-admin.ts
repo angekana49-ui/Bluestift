@@ -7,6 +7,14 @@ import {
 } from "@/lib/supabase/admin";
 import { getActiveSchoolId } from "@/lib/school-active";
 import { getStudentRisk, SEVERITY_RANK, type StudentRisk } from "@/lib/kernel/risk";
+import type {
+  ArchiveBasis,
+  ArchiveFacet,
+  ArchiveFacetOption,
+  ArchiveItem,
+  ArchiveSection,
+  YearArchive,
+} from "@/lib/archive-filter";
 
 /**
  * School-admin data layer (Tranche 1). All access is via the service_role
@@ -552,22 +560,14 @@ export async function getSchoolYears(userId: string): Promise<SchoolYearSummary[
  *             year boundary (or in a school whose timezone isn't UTC) can land
  *             in the neighbouring year.
  */
-export type ArchiveBasis = "year" | "class" | "period";
-export type ArchiveItem = { id: string; title: string; detail: string | null; at: string | null };
-export type ArchiveSection = {
-  key: string;
-  label: string;
-  basis: ArchiveBasis;
-  count: number;
-  /** Capped at ARCHIVE_ITEM_CAP; `count` is the real total. */
-  items: ArchiveItem[];
-};
-export type YearArchive = {
-  year: SchoolYearSummary;
-  sections: ArchiveSection[];
-  /** What this record deliberately does not contain. Shown verbatim. */
-  notes: string[];
-};
+export type {
+  ArchiveBasis,
+  ArchiveFacet,
+  ArchiveItem,
+  ArchiveSection,
+  ArchiveFacetOption,
+  YearArchive,
+} from "@/lib/archive-filter";
 
 const ARCHIVE_ITEM_CAP = 200;
 
@@ -590,14 +590,20 @@ export function periodBounds(
 
 const shortDate = (v: string | null) => (v ? v.slice(0, 10) : null);
 
-/** Turn rows into a section, keeping the true count when the list is capped. */
+/**
+ * Turn rows into a section, keeping the true count when the list is capped.
+ * `facets` declares which filters reach this section — declared rather than
+ * inferred from the rows, so an empty section still says "a class filter
+ * applies to me" instead of silently dropping out of a filtered view.
+ */
 function section(
   key: string,
   label: string,
   basis: ArchiveBasis,
   rows: ArchiveItem[],
+  facets: ArchiveFacet[] = [],
 ): ArchiveSection {
-  return { key, label, basis, count: rows.length, items: rows.slice(0, ARCHIVE_ITEM_CAP) };
+  return { key, label, basis, facets, count: rows.length, items: rows.slice(0, ARCHIVE_ITEM_CAP) };
 }
 
 /**
@@ -717,34 +723,35 @@ export async function getYearArchive(userId: string, yearId: string): Promise<Ye
         detail: [c.level, `${c.studentCount} student${c.studentCount === 1 ? "" : "s"}`, c.codes.map((k) => k.code).join(", ") || null]
           .filter(Boolean).join(" · "),
         at: null,
-      }))),
+        classId: c.id,
+      })), ["class"]),
     section("students", "Students enrolled", "year",
       rows<{ user_id: string; first_name: string; last_name: string; class_id: string; created_at: string }>(students)
-        .map((s) => ({ id: s.user_id, title: `${s.first_name} ${s.last_name}`.trim(), detail: clsName(s.class_id), at: shortDate(s.created_at) }))),
+        .map((s) => ({ id: s.user_id, title: `${s.first_name} ${s.last_name}`.trim(), detail: clsName(s.class_id), at: shortDate(s.created_at), classId: s.class_id })), ["class"]),
     section("codes", "Access codes issued", "year",
       rows<{ id: string; code: string; is_active: boolean; retired_at: string | null; class_id: string; created_at: string }>(codes)
-        .map((k) => ({ id: k.id, title: k.code, detail: `${clsName(k.class_id)} · ${k.retired_at ? "replaced" : k.is_active ? "active" : "inactive"}`, at: shortDate(k.created_at) }))),
+        .map((k) => ({ id: k.id, title: k.code, detail: `${clsName(k.class_id)} · ${k.retired_at ? "replaced" : k.is_active ? "active" : "inactive"}`, at: shortDate(k.created_at), classId: k.class_id })), ["class"]),
     section("insights", "Certified class insights", "year",
       rows<{ id: string; class_id: string; subject_id: string | null; avg_mastery: number | null; student_count: number | null; period: string | null; created_at: string }>(insights)
-        .map((i) => ({ id: i.id, title: `${clsName(i.class_id)} · ${subjName(i.subject_id)}`, detail: `avg mastery ${pct(i.avg_mastery)} · ${i.student_count ?? 0} students${i.period ? ` · ${i.period}` : ""}`, at: shortDate(i.created_at) }))),
+        .map((i) => ({ id: i.id, title: `${clsName(i.class_id)} · ${subjName(i.subject_id)}`, detail: `avg mastery ${pct(i.avg_mastery)} · ${i.student_count ?? 0} students${i.period ? ` · ${i.period}` : ""}`, at: shortDate(i.created_at), classId: i.class_id, subjectId: i.subject_id })), ["class", "subject"]),
     section("assignments", "Teaching assignments", "class",
       rows<{ id: string; prof_id: string; class_id: string; subject_id: string; created_at: string }>(assignments)
-        .map((a) => ({ id: a.id, title: profNameByAdminId.get(a.prof_id) ?? "Teacher", detail: `${clsName(a.class_id)} · ${subjName(a.subject_id)}`, at: shortDate(a.created_at) }))),
+        .map((a) => ({ id: a.id, title: profNameByAdminId.get(a.prof_id) ?? "Teacher", detail: `${clsName(a.class_id)} · ${subjName(a.subject_id)}`, at: shortDate(a.created_at), classId: a.class_id, subjectId: a.subject_id })), ["class", "subject"]),
     section("instructions", "Raya class instructions", "class",
       rows<{ id: string; class_id: string; subject_id: string | null; content: string | null; is_active: boolean; created_at: string }>(instructions)
-        .map((r) => ({ id: r.id, title: `${clsName(r.class_id)} · ${subjName(r.subject_id)}`, detail: trim(r.content), at: shortDate(r.created_at) }))),
+        .map((r) => ({ id: r.id, title: `${clsName(r.class_id)} · ${subjName(r.subject_id)}`, detail: trim(r.content), at: shortDate(r.created_at), classId: r.class_id, subjectId: r.subject_id })), ["class", "subject"]),
     section("resources", "Teacher resources", "class",
       rows<{ id: string; class_id: string; subject_id: string | null; kind: string | null; title: string | null; status: string | null; created_at: string }>(resources)
-        .map((r) => ({ id: r.id, title: r.title || r.kind || "Resource", detail: `${clsName(r.class_id)} · ${subjName(r.subject_id)}${r.status ? ` · ${r.status}` : ""}`, at: shortDate(r.created_at) }))),
+        .map((r) => ({ id: r.id, title: r.title || r.kind || "Resource", detail: `${clsName(r.class_id)} · ${subjName(r.subject_id)}${r.status ? ` · ${r.status}` : ""}`, at: shortDate(r.created_at), classId: r.class_id, subjectId: r.subject_id })), ["class", "subject"]),
     section("homework", "Work assigned to classes", "class",
       rows<{ id: string; class_id: string; title: string | null; kind: string | null; due_at: string | null; created_at: string }>(homework)
-        .map((r) => ({ id: r.id, title: r.title || r.kind || "Assignment", detail: `${clsName(r.class_id)}${r.due_at ? ` · due ${shortDate(r.due_at)}` : ""}`, at: shortDate(r.created_at) }))),
+        .map((r) => ({ id: r.id, title: r.title || r.kind || "Assignment", detail: `${clsName(r.class_id)}${r.due_at ? ` · due ${shortDate(r.due_at)}` : ""}`, at: shortDate(r.created_at), classId: r.class_id })), ["class"]),
     section("followups", "Student follow-ups", "class",
       rows<{ id: string; class_id: string; content: string | null; created_at: string }>(followups)
-        .map((r) => ({ id: r.id, title: clsName(r.class_id), detail: trim(r.content), at: shortDate(r.created_at) }))),
+        .map((r) => ({ id: r.id, title: clsName(r.class_id), detail: trim(r.content), at: shortDate(r.created_at), classId: r.class_id })), ["class"]),
     section("lms", "LMS class mappings", "class",
       rows<{ id: string; class_id: string; external_class_name: string | null; external_class_id: string; created_at: string }>(lmsMaps)
-        .map((r) => ({ id: r.id, title: r.external_class_name || r.external_class_id, detail: clsName(r.class_id), at: shortDate(r.created_at) }))),
+        .map((r) => ({ id: r.id, title: r.external_class_name || r.external_class_id, detail: clsName(r.class_id), at: shortDate(r.created_at), classId: r.class_id })), ["class"]),
     section("reports", "Reports generated", "period",
       rows<{ id: string; scope: string | null; parameters: unknown; created_at: string }>(reports)
         .map((r) => ({ id: r.id, title: ((r.parameters ?? {}) as { title?: string }).title ?? "Report", detail: r.scope, at: shortDate(r.created_at) }))),
@@ -774,6 +781,17 @@ export async function getYearArchive(userId: string, yearId: string): Promise<Ye
         .map((r) => ({ id: r.id, title: r.action, detail: r.target_table, at: shortDate(r.created_at) }))),
   ];
 
+  // Filter options, taken from what this year actually holds rather than from
+  // the school's whole catalogue: offering a subject the year never touched
+  // only buys the admin an empty result.
+  const classOptions: ArchiveFacetOption[] = classes.map((c) => ({ id: c.id, label: c.name }));
+  const usedSubjects = new Set<string>();
+  for (const s of sections)
+    for (const i of s.items) if (i.subjectId) usedSubjects.add(i.subjectId);
+  const subjectOptions: ArchiveFacetOption[] = [...usedSubjects]
+    .map((id) => ({ id, label: subjName(id) }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+
   const notes = [
     "Students' own cognitive profiles are not part of this record — that data belongs to the learner, not the school. What appears here are the school's rosters and its certified class-level aggregates.",
     "Rows marked “by period” carry no school year of their own and are attributed by their creation date falling inside this year. Dates are UTC, so an entry made within hours of a year boundary may sit on either side of it.",
@@ -789,7 +807,7 @@ export async function getYearArchive(userId: string, yearId: string): Promise<Ye
     notes.push(`Only the first ${ARCHIVE_ITEM_CAP} entries are listed for: ${truncated.join(", ")}. The counts are complete.`);
   }
 
-  return { year, sections, notes };
+  return { year, sections, facets: { classes: classOptions, subjects: subjectOptions }, notes };
 }
 
 // ---- ClassView / StudentView (Tranche 2): rosters + cognitive detail --------

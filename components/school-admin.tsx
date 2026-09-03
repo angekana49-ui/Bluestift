@@ -49,6 +49,7 @@ import {
   IconChat,
   IconRooms,
   IconFile,
+  IconArchive,
   IconSummary,
   IconBilling,
   IconUpgrade,
@@ -1963,7 +1964,7 @@ function Dashboard({
     // LMS (Google Classroom) hidden until the OAuth integration is provisioned.
     { key: "raya", label: "Raya", icon: <IconChat /> },
     { key: "reports", label: tr("nav.reports"), icon: <IconSummary /> },
-    { key: "archive", label: tr("nav.archive"), icon: <IconFile /> },
+    { key: "archive", label: tr("nav.archive"), icon: <IconArchive /> },
     { key: "billing", label: tr("nav.billing"), icon: <IconBilling /> },
     { key: "settings", label: tr("nav.settings"), icon: <IconSettings /> },
   ];
