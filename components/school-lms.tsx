@@ -130,7 +130,13 @@ function MappingRow({
   }
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.25rem 0" }}>
-      <span style={{ flex: 1, fontSize: "0.9rem" }}>{mp.externalClassName || mp.externalClassId}</span>
+      {/* minWidth: 0 — without it a long imported course name can't shrink
+          below its own content width, and next to a select + two buttons in a
+          row with no wrap, that pushes the whole roster row past the viewport
+          on a narrow screen instead of wrapping the name. Same fix as
+          RosterRow above (a `flex: 1` label is only really flexible with
+          this set). */}
+      <span style={{ flex: 1, minWidth: 0, fontSize: "0.9rem" }}>{mp.externalClassName || mp.externalClassId}</span>
       {mp.className ? (
         <span style={{ fontSize: "0.85rem", opacity: 0.8 }}>→ {mp.className}</span>
       ) : (
@@ -189,7 +195,10 @@ function GoogleConnection({
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-        <strong style={{ flex: 1 }}>
+        {/* minWidth: 0 — a long Workspace org name sits next to two buttons in
+            an unwrapped row; without it the name can't shrink and the row
+            overflows on a narrow screen (see MappingRow below). */}
+        <strong style={{ flex: 1, minWidth: 0 }}>
           Connected{conn.externalOrgName ? <span style={{ opacity: 0.5, fontWeight: 400 }}> · {conn.externalOrgName}</span> : null}
         </strong>
         <button style={ghost} onClick={sync} disabled={syncing}>

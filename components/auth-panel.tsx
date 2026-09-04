@@ -280,9 +280,18 @@ export function AuthPanel({
             avatarInitials(profile?.display_name || profile?.username)
           )}
         </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: t.text }}>{profile?.display_name ?? "—"}</div>
-          <div style={{ fontSize: 14, color: t.muted }}>@{profile?.username ?? "—"}</div>
+        {/* minWidth: 0 + ellipsis on both lines — an auto-generated username is
+            one long unbreakable token with no spaces to wrap on, so without
+            this it holds the row open to its own width and pushes "Change
+            photo" (or the row itself) past a narrow phone's edge instead of
+            shrinking. */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {profile?.display_name ?? "—"}
+          </div>
+          <div style={{ fontSize: 14, color: t.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            @{profile?.username ?? "—"}
+          </div>
         </div>
         <FilePicker
           accept="image/*"
