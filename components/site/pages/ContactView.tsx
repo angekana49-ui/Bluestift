@@ -66,7 +66,10 @@ export function ContactView({ signedIn }: { signedIn: boolean }) {
               </div>
             ) : (
               <div style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: 20, padding: 24, display: "flex", flexDirection: "column", gap: 12, boxShadow: t.cardShadow }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                {/* .pub-grid-2 (not an inline "1fr 1fr") so this stacks to one
+                    column under 600px — two fixed-ratio inputs were already
+                    tight for a name and an email at that width. */}
+                <div className="pub-grid-2">
                   <input placeholder={tr("contact.form.namePlaceholder")} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} style={input(t)} />
                   <input placeholder={tr("contact.form.emailPlaceholder")} type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} style={input(t)} />
                 </div>

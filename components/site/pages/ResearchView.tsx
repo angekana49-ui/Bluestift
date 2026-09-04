@@ -208,7 +208,9 @@ function ProposeForm({ t, onClose }: { t: Theme; onClose: () => void }) {
         <h2 style={{ fontFamily: "var(--font-instrument-serif),'Instrument Serif',serif", fontStyle: "italic", fontSize: 23, margin: "0 0 8px", color: t.text }}>{tr("research.hub.propose.title")}</h2>
         <p style={{ fontSize: 15, lineHeight: 1.7, color: t.muted, marginBottom: 20 }}>{tr("research.hub.propose.lead")}</p>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        {/* .pub-grid-2 — same name/email row as ContactView, same reason to
+            stack under 600px rather than keep two cramped fixed halves. */}
+        <div className="pub-grid-2">
           <input placeholder={tr("research.hub.propose.namePlaceholder")} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} style={field(t)} />
           <input placeholder="you@email.com" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} style={field(t)} />
         </div>

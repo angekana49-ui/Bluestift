@@ -119,7 +119,7 @@ export default function Navbar({
           </div>
         </Link>
 
-        <div className="pub-hide-sm" style={{ display: "flex", gap: 2, background: t.pillTrackBg, borderRadius: 999, padding: 4 }}>
+        <div className="pub-nav-links" style={{ display: "flex", gap: 2, background: t.pillTrackBg, borderRadius: 999, padding: 4 }}>
           {LINKS.map((link) => {
             const isActive = link.label === active;
             return (

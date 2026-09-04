@@ -1888,7 +1888,33 @@ a {
   .pub-grid-3 {
     grid-template-columns: 1fr;
   }
+  /* Also hides the dashboard mockup's decorative right column (see
+     DashboardMockup.tsx) — a drawing, not a real panel, so it follows its
+     own "does it still look composed at this size" rule and has no reason
+     to share a breakpoint with the navbar rule below it. */
   .pub-hide-sm {
+    display: none !important;
+  }
+}
+
+/* The navbar's 5-link pill group (Product/Research/Survey/Pricing/Contact —
+   same destinations live in the footer, so nothing is unreachable once this
+   hides). A DIFFERENT class from `.pub-hide-sm` above on purpose: that one
+   also drives an unrelated decorative element, and coupling the two meant
+   fixing the navbar's real overflow would have silently changed when the
+   mockup's panel disappears too.
+   This used to fire only under 600px, which is narrow enough for a portrait
+   phone but not for the gray zone above it: the links pill's own content —
+   5 nowrap labels plus their padding — needs ~740px before it fits without
+   crowding, so from 601px up to ~800px (a tablet in PORTRAIT — iPad Mini is
+   744px — or a big phone in LANDSCAPE, 650-780px) the row had nowhere to
+   shrink to (every label is `white-space: nowrap`) and pushed past the
+   pill's rounded edge instead of wrapping. 899px reuses the same tablet
+   cutoff the connected app already uses elsewhere, rather than inventing a
+   sixth breakpoint, and leaves ~130px of slack at that width (868px of pill
+   for ~740px of content) instead of fitting exactly. */
+@media (max-width: 899px) {
+  .pub-nav-links {
     display: none !important;
   }
 }
@@ -2012,6 +2038,23 @@ a {
    The tablet tier narrows the sidebar to the icon rail instead of hiding it —
    at ~820px (iPad portrait) there is room for it, and dropping to a drawer
    there would waste the space rather than save it.
+
+   That "900px" line is a CSS-pixel width, not a device class, and a fair
+   number of real devices cross it sideways: an iPad (any size, up to the
+   12.9"/13" Pro) in LANDSCAPE reports 1024–1366px, and the largest phones
+   (iPhone Pro Max, big-screen Android) report ~900–950px in landscape. Width
+   alone would hand every one of them the full desktop chrome — sidebar AND
+   right panel both pinned inline — on a touch surface that has no mouse to
+   spare the space for two permanent rails. The fix below: the right-panel
+   drawer rule (and everything that has to agree with it — the scrim, the
+   header pill glyph swap) also fires on any touch-primary device up to
+   1366px, regardless of width. `(pointer: coarse)` reflects the PRIMARY
+   pointer, so a laptop whose trackpad/mouse is its main input stays on the
+   desktop rule even with a touchscreen bolted on; only a device with no
+   fine pointer at all (phone, tablet) takes the touch branch. The sidebar
+   itself is left alone here: even at 1024–1366px a full-width sidebar still
+   leaves 780px+ for content, so there is no gray-zone problem to fix on that
+   side, and it stays a manual collapse/expand toggle everywhere ≥ 700px.
    ============================================================ */
 
 .app-shell {
@@ -2064,8 +2107,13 @@ a {
   display: none;
 }
 
-/* -- Tier 2 (tablet & phone): the right panel folds into a drawer --- */
-@media (max-width: 899px) {
+/* -- Tier 2 (tablet & phone, or ANY touch-primary screen up to 1366px):
+   the right panel folds into a drawer. The second query clause is the
+   landscape-tablet / big-phone fix described above — the same tier, reached
+   by touch instead of by width. Keep this condition identical to the scrim
+   and pill-glyph queries below; all three describe the same tier boundary
+   and will drift silently if only one of them is edited. */
+@media (max-width: 899px), (max-width: 1366px) and (pointer: coarse) {
   .app-right {
     position: fixed;
     top: 0;
@@ -2081,12 +2129,14 @@ a {
   }
 }
 
-/* Tablet (700–899px): the sidebar stays inline and React-controlled — its width
-   follows the collapse toggle (full width ⇄ 68px rail) exactly like the desktop
-   tiers. It is NOT hard-pinned to the rail here: that pin made the collapse
-   toggle a no-op in this band (the "stall" when resizing through it). The right
-   panel is already a drawer below 900px (see Tier 2 above), so an inline sidebar
-   + content fits. */
+/* Tablet (700–899px, or touch up to 1366px): the sidebar stays inline and
+   React-controlled — its width follows the collapse toggle (full width ⇄
+   68px rail) exactly like the desktop tiers. It is NOT hard-pinned to the
+   rail here: that pin made the collapse toggle a no-op in this band (the
+   "stall" when resizing through it). Even at 1366px a full-width sidebar
+   still leaves 1100px+ for content, so there is no gray-zone problem on
+   this side to fix — the right panel is already a drawer in this whole band
+   (see Tier 2 above), so an inline sidebar + content fits everywhere in it. */
 
 /* -- Tier 4 (phone): the sidebar folds into a burger drawer -------- */
 @media (max-width: 699px) {
@@ -2215,21 +2265,25 @@ a {
 .app-pill-glyph {
   display: flex;
 }
-@media (max-width: 899px) {
+@media (max-width: 899px), (max-width: 1366px) and (pointer: coarse) {
   .app-pill-label {
     display: none;
   }
 }
-@media (min-width: 900px) {
+/* The exact negation of the query above (word for word, so the two can't
+   silently drift apart): wide AND not touch-primary. */
+@media (min-width: 1367px), (min-width: 900px) and (pointer: fine) {
   .app-pill-glyph {
     display: none;
   }
 }
 
-/* Drawer dimmer — active whenever a panel is an overlay (< 900px, covering
-   both the tablet right-drawer and the phone sidebar+right drawers). Above
-   900px it stays display:none, so an always-mounted scrim is harmless. */
-@media (max-width: 899px) {
+/* Drawer dimmer — active whenever a panel is an overlay: < 900px, or any
+   touch-primary screen up to 1366px (see the Tier 2 note above), covering
+   the tablet/big-phone right-drawer and the phone sidebar+right drawers.
+   Outside that band it stays display:none, so an always-mounted scrim is
+   harmless. */
+@media (max-width: 899px), (max-width: 1366px) and (pointer: coarse) {
   .app-scrim.is-open {
     display: block;
     position: fixed;

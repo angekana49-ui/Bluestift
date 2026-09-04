@@ -112,7 +112,13 @@ export function CognitiveProfile() {
   return (
     <div>
       {globalMastery != null && (
-        <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 16, marginBottom: 16 }}>
+        /* auto-fit/minmax, not a fixed "260px 1fr" — a hard 260px track can't
+           shrink below itself, so on any small phone (< ~500px available,
+           i.e. anything from an iPhone SE up) this row would overflow the
+           page frame instead of stacking. Same pattern already used for
+           the same reason in tools.tsx, prof-overview.tsx, school-admin.tsx
+           and school-billing.tsx. */
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16, marginBottom: 16 }}>
           <div style={panelCard(t)}>
             <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 10, color: t.text }}>Overall mastery</div>
             <MasteryGauge theme={t} valueLabel={pct(globalMastery)} caption="all concepts" dashoffset={188 * (1 - globalMastery)} />
