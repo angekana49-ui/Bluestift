@@ -403,6 +403,24 @@ a {
   transform: translateX(calc(34px * var(--side, 1))) rotate(calc(1.7deg * var(--side, 1)));
 }
 
+/* On a large screen these four were a 560px card adrift in a 1080px band —
+   the fan read as small print next to the diagrams above and below it, which
+   is backwards: the four fields ARE the Kernel, the diagrams only draw them.
+   Wider, with the paragraph held to its own measure inside so the card gains
+   presence without the body copy stretching to ninety characters a line. The
+   diagrams either side of the stack keep the band's width and are untouched. */
+@media (min-width: 1100px) {
+  .pub-postit {
+    max-width: 780px;
+    padding: 30px 34px !important;
+    border-radius: 22px !important;
+  }
+  .pub-postit p {
+    font-size: 15.5px !important;
+    max-width: 640px;
+  }
+}
+
 /* The two cases where .pub-stack-card gives up its sticky positioning and the
    cards fall back to a plain list. A list of tilted cards is not a fan, it is a
    crooked list — and on a narrow screen the throw would push a card past the
@@ -487,10 +505,12 @@ a {
 }
 
 /* ---- Product shots: choreography ----
-   Each shot plays its sequence once, when it first scrolls into view, so the
-   mockups demonstrate the loop the copy is claiming instead of sitting there
-   as a still. A Kernel profile that fills in front of you is an argument; a
-   screenshot of one is a claim.
+   Each shot plays its sequence when it scrolls into view, so the mockups
+   demonstrate the loop the copy is claiming instead of sitting there as a
+   still. A Kernel profile that fills in front of you is an argument; a
+   screenshot of one is a claim. The showcase shots and the ladder's rungs then
+   replay on their own cycle (`loopMs`), because a band that is read for ten
+   seconds cannot make that argument with two seconds of motion at the front.
 
    Nothing here is decorative-by-default. `.pub-shot-anim` is added by
    ProductShots.tsx ONLY when motion is allowed, IntersectionObserver exists,
@@ -1724,10 +1744,23 @@ a {
   }
   .pub-showcase-card {
     display: grid !important;
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    /* Two thirds to the drawing, one to the words. Not a balanced split on
+       purpose: the drawing is the thing being shown and the paragraph beside
+       it is its caption, so an even split would be the caption claiming equal
+       billing. ~34% still leaves the text a 40-character measure at the
+       narrowest width this layout applies at. */
+    grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr);
   }
   /* Mirrored, so the eye zig-zags down the band instead of running down one
-     edge — and so three rows read as three steps rather than one list. */
+     edge — and so three rows read as three steps rather than one list.
+     The TEMPLATE has to mirror with it: `order` moves the drawing into the
+     second cell, and if the wide track stayed first the mirrored rows would
+     hand their two thirds to the paragraph and squeeze the drawing into the
+     narrow one — the drawing smaller and the row shorter on exactly the rows
+     that were supposed to be identical to their neighbours. */
+  .pub-showcase > *:nth-child(even) .pub-showcase-card {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.9fr);
+  }
   .pub-showcase > *:nth-child(even) .pub-showcase-card > .pub-shot {
     order: 2;
   }
@@ -1754,7 +1787,7 @@ a {
   }
   .pub-showcase-body {
     align-self: center;
-    padding: 36px 44px !important;
+    padding: 32px 36px !important;
   }
 }
 
@@ -1900,15 +1933,18 @@ a {
   /* Not 1fr 1fr: the session is the half that has to stay legible — it holds
      four turns of real chat at a scale set by its own width — while the
      explanation is four lines that read fine narrower. The extra height the
-     merge freed goes into the shot rather than into empty space around it. */
-  grid-template-columns: 1fr 1.15fr;
+     merge freed goes into the shot rather than into empty space around it.
+     Two thirds of it, matching `.pub-showcase-card` above: same shape (a
+     drawing and its caption), so the same split, and the page stops having two
+     answers to the same question. */
+  grid-template-columns: 1fr 1.9fr;
   align-items: center;
   gap: clamp(16px, 2.4vw, 30px);
   padding: clamp(18px, 2.8vw, 30px);
   min-height: clamp(240px, 31vw, 344px);
 }
 .pub-rung-split.is-flipped {
-  grid-template-columns: 1.15fr 1fr;
+  grid-template-columns: 1.9fr 1fr;
 }
 .pub-rung-split.is-flipped .pub-rung-shot {
   grid-column: 1;

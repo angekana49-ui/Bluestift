@@ -6,7 +6,7 @@ import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
 import { RungShot, SocraticShot } from "./ProductShots";
 import Reveal from "./Reveal";
-import { LEAD, SectionBlend, bandColumn, bandSection, eyebrow, lead, sectionH2, serifEm } from "./layout";
+import { LEAD, SectionBlend, bandColumnShowcase, bandSection, eyebrow, lead, sectionH2, serifEm } from "./layout";
 
 /**
  * The pedagogical model, stated openly — as a stack of cards that climb.
@@ -114,7 +114,12 @@ export default function LadderSection({ theme: t }: { theme: Theme }) {
 
       {/* NOTE the section must never gain `overflow: hidden` — it would break
           the sticky scroll-stack below. `bandSection` deliberately omits it. */}
-      <div style={bandColumn("text")}>
+      {/* Showcase width, like the two bands above: a rung card is a session
+          shot beside four lines about it, and at the `text` measure (820) the
+          shot half was ~400px — a transcript of a real screen rendered at half
+          the size of the screen. The card, and with it the drawing inside,
+          grow together. */}
+      <div style={bandColumnShowcase()}>
         <div style={{ textAlign: "center", marginBottom: 40 }}>
           <div style={eyebrow(t)}>{tr("site.ladder.eyebrow")}</div>
           <h2 style={{ ...sectionH2(t), margin: "10px 0 0" }}>

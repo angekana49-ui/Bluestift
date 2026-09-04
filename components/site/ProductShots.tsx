@@ -93,6 +93,42 @@ const uw = (n: number) => `calc(${n} * 100cqw / var(--shot-base-wide, ${BASE_WID
  *  use them without falling back to the 400-wide scale and rendering at 2×. */
 type Unit = (n: number) => string;
 
+/**
+ * The pause between a shot finishing and replaying it.
+ *
+ * Same number RungShot has cycled on since the ladder started looping: under
+ * about two seconds the last beat is gone before it can be read, and the card
+ * reads as a flicker rather than as a session.
+ */
+const SHOT_HOLD = 2600;
+
+/**
+ * How long each showcase shot's own choreography runs — the largest
+ * delay+duration across its beats, measured off the rendered page rather than
+ * added up by hand, because half of these beats are computed (word counts,
+ * row indices) rather than written as literals.
+ *
+ * They exist so the six can cycle: these are the product demos, and a demo
+ * that plays once and then sits there is a screenshot for everyone who arrives
+ * at the section a moment later. A shot is paused whenever it is off screen
+ * (`is-idle`, see useShotSequence) and never animates at all under
+ * `prefers-reduced-motion`, so looping costs nothing when nobody is watching.
+ *
+ * If you change a shot's choreography, re-measure — a cycle SHORTER than its
+ * sequence restarts the shot mid-play.
+ */
+const SEQUENCE_MS = {
+  kernel: 1590,
+  room: 5440,
+  tools: 1670,
+  focus: 1880,
+  guided: 2960,
+  return: 1740,
+} as const;
+
+/** A shot's full cycle: play it, hold the finished composition, replay. */
+const loop = (key: keyof typeof SEQUENCE_MS) => SEQUENCE_MS[key] + SHOT_HOLD;
+
 const ACCENT = {
   indigo: "#4f46e5",
   blue: "#2f7fe0",
@@ -167,14 +203,6 @@ export function useShotSequence(loopMs?: number, restartKey?: unknown) {
     if (!el) return;
     if (typeof IntersectionObserver === "undefined") return;
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-    // Already on screen: playing an entrance now would be a flash, not a reveal.
-    if (el.getBoundingClientRect().top < window.innerHeight * 0.92) return;
-
-    el.classList.add("pub-shot-anim");
-    if (loopMs) {
-      el.style.setProperty("--loop", `${loopMs}ms`);
-      el.classList.add("is-cycling");
-    }
 
     // The one animation whose only job is to be a cycle long. Filtered by name
     // AND by target: every entrance inside this shot also bubbles an
@@ -182,11 +210,50 @@ export function useShotSequence(loopMs?: number, restartKey?: unknown) {
     const onEnd = (e: AnimationEvent) => {
       if (e.animationName === "shotCycle" && e.target === el) rewind();
     };
-    el.addEventListener("animationend", onEnd);
+
+    let first = true;
+    let armed = false;
 
     const io = new IntersectionObserver(
       (entries) => {
         const onScreen = entries.some((e) => e.isIntersecting);
+
+        /*
+         * "Was this shot already on screen before the visitor could scroll to
+         * it" is decided HERE, on the observer's first report, and not by
+         * measuring the element in the effect body.
+         *
+         * It used to be measured: `getBoundingClientRect().top <
+         * innerHeight * 0.92`, read synchronously at mount. That is a layout
+         * read taken before layout is necessarily final — during hydration the
+         * bands above have not all reached their height, so a shot four
+         * screens down can still report a `top` inside the fold and opt itself
+         * OUT of ever animating. It is a race, so it looked fine locally and
+         * left the mockups as stills exactly when the page was slowest, which
+         * is when a visitor is most likely to be watching one load.
+         *
+         * An IntersectionObserver callback runs after layout, by definition,
+         * so its first entry answers the same question without the race.
+         */
+        if (first) {
+          first = false;
+          // On screen already: an entrance now would be a flash, not a reveal.
+          // The shot keeps its finished composition, as it always has.
+          if (onScreen) {
+            io.disconnect();
+            return;
+          }
+          el.classList.add("pub-shot-anim");
+          if (loopMs) {
+            el.style.setProperty("--loop", `${loopMs}ms`);
+            el.classList.add("is-cycling");
+          }
+          el.addEventListener("animationend", onEnd);
+          armed = true;
+          return;
+        }
+        if (!armed) return;
+
         // Behind the fold nothing is paid for. Paused rather than rewound, so
         // scrolling back finds the shot where it was rather than restarted —
         // and the cycle animation is paused with everything else, which is what
@@ -556,7 +623,7 @@ export function KernelShot({ theme: t }: { theme: Theme }) {
   );
 
   return (
-    <ShotFrame theme={t} ratio="4 / 3">
+    <ShotFrame theme={t} ratio="4 / 3" loopMs={loop("kernel")}>
       {/* Score: the gauge and the mindset land first, then each concept card
           resolves out of its placeholder and fills its three axes — the profile
           assembling itself the way it actually loads. */}
@@ -798,7 +865,7 @@ export function RoomShot({ theme: t }: { theme: Theme }) {
   );
 
   return (
-    <ShotFrame theme={t} ratio="4 / 3">
+    <ShotFrame theme={t} ratio="4 / 3" loopMs={loop("room")}>
       {/* Score: the chrome and the channels settle, the shared document lands,
           then the four turns play in order — with Raya composing before hers,
           so the room reads as running rather than transcribed. */}
@@ -1043,7 +1110,7 @@ const LIBRARY: { labelKey: MessageKey; metaKey: MessageKey; pending?: boolean }[
 export function ToolsShot({ theme: t }: { theme: Theme }) {
   const tr = useTranslate();
   return (
-    <ShotFrame theme={t} ratio="4 / 3">
+    <ShotFrame theme={t} ratio="4 / 3" loopMs={loop("tools")}>
       {/* Score: the picker, the dropzone and its three sources, then Generate —
           and the library resolves row by row underneath, the last one arriving
           out of "generating" as the packet finishes. */}
@@ -1250,7 +1317,7 @@ const INSTRUCTIONS: { id: string; textKey: MessageKey; subjectKey: MessageKey; o
 export function FocusShot({ theme: t }: { theme: Theme }) {
   const tr = useTranslate();
   return (
-    <ShotFrame theme={t} ratio="4 / 3">
+    <ShotFrame theme={t} ratio="4 / 3" loopMs={loop("focus")}>
       {/* Score: the panel's rows resolve one after another out of their
           placeholders — the class's standing guidance loading — and only then
           is the new instruction composed and added. */}
@@ -1411,7 +1478,7 @@ export function GuidedShot({ theme: t }: { theme: Theme }) {
         };
 
   return (
-    <ShotFrame theme={t} ratio="4 / 3">
+    <ShotFrame theme={t} ratio="4 / 3" loopMs={loop("guided")}>
       {/* Score: every Raya turn is preceded by its composing dots, so the
           transcript plays like the session it is rather than appearing as a
           finished list. The recommended material resolves last. */}
@@ -1549,7 +1616,7 @@ const FOCUS_ROWS: { name: string; klassKey: MessageKey; subjectKey: MessageKey; 
 export function ReturnShot({ theme: t }: { theme: Theme }) {
   const tr = useTranslate();
   return (
-    <ShotFrame theme={t} ratio="4 / 3">
+    <ShotFrame theme={t} ratio="4 / 3" loopMs={loop("return")}>
       {/* Score: the roll-up resolves first, then the list fills in student by
           student out of its placeholders — the morning's diagnosis arriving —
           and the blocking prerequisite lands last, on the emphasised beat. */}

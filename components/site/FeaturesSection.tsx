@@ -13,8 +13,14 @@ import { SectionBlend, bandColumnShowcase, bandSection, lead, sectionH2, serifEm
  *
  * These cards used to carry a permanent `floatSm` bob and a looping `shine`
  * sweep. Both are gone: motion with nothing behind it reads as filler. The card
- * is now still until you touch it (`pub-lift`), and the entrance is a one-shot
- * reveal — motion that responds to the visitor rather than looping at them.
+ * itself is still until you touch it (`pub-lift`).
+ *
+ * The DRAWING inside it does loop, and that is not the same claim: a shot is a
+ * demo of the surface it draws, so a sequence that plays once and stops is a
+ * screenshot for every visitor who arrives at the section a second late — which
+ * is most of them, since these bands are now rows and a row is read for longer
+ * than it takes to play. It pauses off screen and never runs at all under
+ * `prefers-reduced-motion` (see useShotSequence in ProductShots.tsx).
  *
  * The illustration slot used to hold a generic AI clip per card. It now holds a
  * drawn mockup of the actual screen being described (see ProductShots.tsx), so
