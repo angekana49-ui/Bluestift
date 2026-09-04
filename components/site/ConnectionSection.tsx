@@ -6,7 +6,7 @@ import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
 import Reveal from "./Reveal";
 import { FocusShot, GuidedShot, ReturnShot } from "./ProductShots";
-import { SectionBlend, bandColumn, bandSection, lead, sectionH2, serifEm } from "./layout";
+import { SectionBlend, bandColumnShowcase, bandSection, lead, sectionH2, serifEm } from "./layout";
 
 /**
  * The thesis band — the section the old "memory" landing didn't have.
@@ -30,6 +30,13 @@ import { SectionBlend, bandColumn, bandSection, lead, sectionH2, serifEm } from 
  * teacher's composer, the student's session, the teacher's list again.
  */
 
+// Same three accents ProductShots.tsx already draws its illustrations in —
+// reused here rather than invented, so the numbered badge and the shot above
+// it read as one palette. The order isn't arbitrary either: step 3 (green)
+// hands off directly into the green "Understanding, not surveillance"
+// guardrail below the grid.
+const STEP_COLOR = ["#4f46e5", "#2f7fe0", "#16a34a"];
+
 const STEPS: {
   n: string;
   titleKey: MessageKey;
@@ -48,14 +55,19 @@ export default function ConnectionSection({ theme: t }: { theme: Theme }) {
       {/* This band now sits directly under the hero, so it inherits the
           hero-to-section blend that FeaturesSection used to carry. */}
       <SectionBlend from={t.heroEndSolid} />
-      <div style={bandColumn("wide")}>
+      <div style={bandColumnShowcase()}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
-          <h2 style={sectionH2(t)}>
+          {/* This is one of two bands on the whole site that widen past
+              MEASURE.wide on a large screen (see bandColumnShowcase) — the
+              heading grows past sectionH2's own ceiling to match, so the
+              thesis statement itself reads as the reason the band is wider,
+              not as a coincidence. */}
+          <h2 style={{ ...sectionH2(t), fontSize: "clamp(1.7rem,4.4vw,3.4rem)" }}>
             {tr("site.connection.title.a")}{" "}
             <em style={serifEm}>{tr("site.connection.title.em")}</em>{" "}
             {tr("site.connection.title.b")}
           </h2>
-          <p style={lead(t)}>
+          <p style={{ ...lead(t), maxWidth: 640 }}>
             <RayaText>{tr("site.connection.sub")}</RayaText>
           </p>
         </div>
@@ -86,8 +98,8 @@ export default function ConnectionSection({ theme: t }: { theme: Theme }) {
                     width: 32,
                     height: 32,
                     borderRadius: 999,
-                    background: t.ctaBg,
-                    color: t.ctaText,
+                    background: STEP_COLOR[i],
+                    color: "#ffffff",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",

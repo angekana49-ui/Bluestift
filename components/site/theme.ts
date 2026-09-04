@@ -90,7 +90,12 @@ export interface Theme {
 
 const light: Theme = {
   dark: false,
-  pageBg: "linear-gradient(180deg,#eef3f9 0%,#dde8f3 45%,#c9d9ea 100%)",
+  // Was #eef3f9→#dde8f3→#c9d9ea — a gradient that stayed inside a 86-96%
+  // lightness band top to bottom, so the "colour" never actually read past a
+  // faint grey tint. This keeps the same three-stop shape (light at the nav,
+  // deepening by the fold) but pushes the saturation and the bottom stop hard
+  // enough that the blue is visibly a colour rather than a shade of white.
+  pageBg: "linear-gradient(180deg,#e7effd 0%,#c3ddfb 45%,#8fbcf2 100%)",
   text: "#0b1220",
   // Was #64748b — ~4.8:1 on white and BELOW AA on the tinted section/pricing
   // backgrounds this text actually sits on, which is what made body copy look
@@ -135,14 +140,17 @@ const light: Theme = {
   inputFieldBg: "#f3f6fa",
   inputPlaceholder: "#64748b",
 
-  sectionAltBg: "#eef2f8",
-  pricingBg: "linear-gradient(180deg,#dde8f3 0px,#cfdfec 30%,#c2d5e5 calc(100% - 160px),#ffffff 100%)",
-  heroEndSolid: "#eef2f8",
-  pricingStart: "#dde8f3",
-  pricingMid: "#cfdfec",
-  pricingEnd: "#c2d5e5",
+  // Was #eef2f8 — a hair off white, which is why alternating bands barely
+  // separated from the cardBg ones next to them. Enough more saturated to
+  // read as "the tinted band" at a glance, still light enough under body text.
+  sectionAltBg: "#dbe8fc",
+  pricingBg: "linear-gradient(180deg,#cfe0fa 0px,#a9c9f2 30%,#89b3ea calc(100% - 160px),#ffffff 100%)",
+  heroEndSolid: "#dbe8fc",
+  pricingStart: "#cfe0fa",
+  pricingMid: "#a9c9f2",
+  pricingEnd: "#89b3ea",
   heroFade:
-    "linear-gradient(180deg, rgba(255,255,255,0.5) 0px, rgba(255,255,255,0) 220px, rgba(255,255,255,0) calc(100% - 260px), #eef2f8 100%)",
+    "linear-gradient(180deg, rgba(255,255,255,0.5) 0px, rgba(255,255,255,0) 220px, rgba(255,255,255,0) calc(100% - 260px), #dbe8fc 100%)",
 
   cloudFilter: "none",
   cloudOpacity: 0.9,

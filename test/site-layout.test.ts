@@ -45,6 +45,7 @@ const ALLOWED_LOCAL_CAPS: Record<number, string> = {
   520: "LanguagePrompt — a bar floating over the page, sized to hold a label and four chips",
   620: "LadderSection — body copy inside a rung card",
   640: "FeaturesSection — the only two-line heading on the site, needs a break point",
+  760: "FeaturesSection — same heading, widened alongside its own font-size for bandColumnShowcase's larger canvas",
 };
 
 function tsxFiles(dir: string): string[] {

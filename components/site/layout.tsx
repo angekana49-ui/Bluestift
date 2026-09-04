@@ -115,6 +115,26 @@ export function bandColumn(measure: Measure): CSSProperties {
   return { position: "relative", maxWidth: MEASURE[measure], margin: "0 auto" };
 }
 
+/**
+ * Deliberate exception to "one wide measure, everywhere" — for the two bands
+ * that carry the product's actual thesis (ConnectionSection, FeaturesSection)
+ * and nothing else. Below ~1440px it IS `MEASURE.wide` (1080), so laptop
+ * screens — the majority — render pixel-identical to every other wide band;
+ * past that it grows, reaching 1440 at ~1920px viewport, so a monitor doesn't
+ * spend 800px of a 1920px screen on pale gutter around a page whose subject is
+ * "here is what the product actually does".
+ *
+ * Not added to MEASURE: that registry is content measures decided by
+ * reading/grid role, and every other `wide` band (nav, footer, hero, pricing,
+ * the ladder) still wants to line up with its neighbours as the visitor
+ * scrolls — which this deliberately does NOT do, on the two bands that use it,
+ * for the same reason an `ink` band is used once: the shape changing IS the
+ * emphasis.
+ */
+export function bandColumnShowcase(): CSSProperties {
+  return { position: "relative", maxWidth: `clamp(${MEASURE.wide}px, 75vw, 1440px)`, margin: "0 auto" };
+}
+
 /* ------------------------------------------------------------------ tone --- */
 
 /**
