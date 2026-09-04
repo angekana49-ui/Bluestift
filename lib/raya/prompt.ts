@@ -9,6 +9,7 @@ import {
 } from "@/lib/kernel/signals";
 import type { ChatMsg } from "@/lib/raya/llm";
 import { audienceLines, resolveAudience } from "@/lib/raya/audience";
+import { DEFAULT_AI_MODE, type AiMode } from "@/lib/raya/modes";
 
 /**
  * Raya dual-layer prompt (Bluestift)
@@ -476,6 +477,33 @@ subset, so exotic environments (matrices, aligned, cases) will not display.
 Write those out step by step in prose instead. Use $ only for maths, never for
 currency (write "5 dollars", "3000 FCFA").`;
 
+/**
+ * Per-mode tone overlay, appended after STATIC_LAYER when the student picked
+ * something other than the default (the star button in the composer).
+ *
+ * `encouraging` has no entry: it is not a variant, it is the behaviour the
+ * static prompt above already describes (gradual EMT escalation, warm
+ * feedback), so leaving it out of this map IS the "no overlay" case rather
+ * than a duplicate of it. The other two only ADJUST pacing/scaffolding — they
+ * never touch the instruction hierarchy, safeguarding, or answer policy above
+ * them, which is why each is a few lines rather than a rewritten prompt.
+ */
+const MODE_OVERLAY: Partial<Record<AiMode, string>> = {
+  direct: `# Mode: Direct
+The learner chose a faster, less Socratic style for this conversation.
+Skip the PUMP-level retrieval prompt unless they are visibly guessing — open
+one level higher (a HINT, or a worked step) and keep encouragement to a
+sentence. Still never hand over a full solution they have not attempted at
+all; "direct" shortens the path, it does not remove it.`,
+  challenging: `# Mode: Challenging
+The learner chose a harder, less scaffolded style for this conversation.
+Start one EMT level higher than you normally would for their mastery, prefer
+transfer questions over restating the exercise in front of them, and reveal a
+hint only after a genuine independent attempt. A first attempt failing is not
+the same as genuine struggle — do not soften back to the default pacing
+because of it.`,
+};
+
 /** Teaching prompt, safety layer, then how to write the reply. */
 const STATIC_LAYER = [STATIC_SYSTEM, safetyLayer("solo"), FORMATTING_RULES].join(
   "\n\n---\n\n",
@@ -506,10 +534,17 @@ export function buildRayaMessages(
   learner: LearnerFacts | null = null,
   analysis: LatestAnalysis | null = null,
   anchored: LatestAnalysis | null = null,
+  mode: AiMode = DEFAULT_AI_MODE,
 ): ChatMsg[] {
   // Always present now — `buildLearnerState` names an empty profile rather than
   // returning "", so the block is never simply missing from the prompt.
   let system = `${STATIC_LAYER}\n\n${buildLearnerState(profile, alerts, learner, analysis, anchored)}`;
+
+  // The caller (app/api/raya/chat/route.ts) has already clamped `mode` back to
+  // the default for any plan without RAYA_ENTITLEMENTS.aiModes, so reaching
+  // here with a non-default mode means it is genuinely allowed.
+  const overlay = MODE_OVERLAY[mode];
+  if (overlay) system += `\n\n---\n\n${overlay}`;
 
   if (instructions) {
     system +=

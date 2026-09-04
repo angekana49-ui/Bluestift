@@ -74,6 +74,14 @@ export type ChatConfig = {
    */
   extraBody?: Record<string, string>;
   /**
+   * Offers Raya's tutoring-persona picker (the star button in the composer) —
+   * on for the real Raya b2c surfaces (solo chat, the room's private channel),
+   * which is what RayaEntitlements.aiModes gates. Off for Raya-for-Schools:
+   * there is no such entitlement on the Schools side, and the persona concept
+   * does not exist for that audience.
+   */
+  aiModeSwitcher?: boolean;
+  /**
    * HYBRID new-conversation hooks. Resolved client-side once, only when the
    * thread is empty. When it returns personalized greeting/suggestions (the
    * metadata is present AND reachable), the welcome screen shows them; on

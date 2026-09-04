@@ -5,6 +5,9 @@ import { useVoiceRecorder } from "@/lib/use-voice-recorder";
 import { splitByMessage, type Attachment } from "@/components/attachment";
 import { netFetch, getJsonCached, invalidateCached } from "@/lib/net/client-fetch";
 import { getClientEntitlements } from "@/lib/entitlements-client";
+import { readPref } from "@/lib/shared-pref";
+import { isAiMode, DEFAULT_AI_MODE } from "@/lib/raya/modes";
+import { AI_MODE_PREF_KEY } from "./use-ai-mode";
 import { enqueueOutbox, removeFromOutbox, registerOutboxFlusher } from "@/lib/net/outbox";
 import {
   type ChatConfig,
@@ -33,6 +36,12 @@ import {
 
 /** How long we wait for response headers before calling a send failed. */
 const SEND_TIMEOUT_MS = 20_000;
+
+/** The learner's persisted AI-mode choice, or the default if none is stored. */
+function currentAiMode() {
+  const stored = readPref(AI_MODE_PREF_KEY);
+  return isAiMode(stored) ? stored : DEFAULT_AI_MODE;
+}
 
 
 export function useChatEngine({
@@ -360,6 +369,14 @@ export function useChatEngine({
             responseTimeMs,
             fileIds: sentFiles.map((f) => f.id),
             clientMsgId,
+            // Read fresh at send time rather than threaded through as engine
+            // state — the picker (chat-composer.tsx) owns its own reactive
+            // copy for rendering, and shared-pref writes are synchronous, so
+            // by the time a send follows a mode change the stored value is
+            // already this one. Omitted entirely for a surface with no
+            // persona concept (Raya-for-Schools), which the server route
+            // would ignore anyway.
+            ...(config.aiModeSwitcher ? { mode: currentAiMode() } : {}),
           }),
         },
         { timeoutMs: SEND_TIMEOUT_MS },

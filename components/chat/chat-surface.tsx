@@ -166,6 +166,7 @@ export function ChatSurface({
       error={error}
       quota={quota}
       extraAction={extraComposerAction}
+      showAiMode={config.aiModeSwitcher === true}
     />
     </>
   );

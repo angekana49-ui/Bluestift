@@ -16,6 +16,7 @@ import {
   ENTITLEMENTS_ENFORCE,
 } from "@/lib/entitlements";
 import { reportError } from "@/lib/observability/report";
+import { DEFAULT_AI_MODE, isAiMode, type AiMode } from "@/lib/raya/modes";
 import { persistAndGather, linkAttachments, replayReply } from "@/lib/raya/chat-context";
 import {
   getCognitiveContext,
@@ -89,6 +90,7 @@ export async function POST(request: Request) {
     responseTimeMs?: number | null;
     fileIds?: string[];
     clientMsgId?: string | null;
+    mode?: string;
   };
   try {
     body = await request.json();
@@ -188,6 +190,13 @@ export async function POST(request: Request) {
       { status: 429 },
     );
   }
+  // RAYA_ENTITLEMENTS.aiModes gates every persona but the default. Clamped
+  // rather than refused: the composer already locks the picker for a plan
+  // without the flag, so reaching here with something else is a stale
+  // selection (a since-expired trial, a tampered request) — not a turn worth
+  // failing outright over. Silent, like the client's own fail-open reads.
+  const requestedMode = isAiMode(body.mode) ? body.mode : DEFAULT_AI_MODE;
+  const mode: AiMode = ent.aiModes ? requestedMode : DEFAULT_AI_MODE;
   // The plan quota, which is a different thing from both limits above: it is
   // what the forfait sells, so it names an upgrade rather than asking the
   // student to wait. Counted BEFORE this message is stored, so a limit of N
@@ -326,6 +335,7 @@ export async function POST(request: Request) {
         },
         analysis,
         anchored,
+        mode,
       ),
       routing.tier,
     );
