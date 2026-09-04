@@ -1701,6 +1701,63 @@ a {
   }
 }
 
+/* ---- Showcase bands ----
+   ConnectionSection and FeaturesSection: the two bands whose drawings ARE the
+   argument, rather than decoration beside it. Below 1100px they are the
+   ordinary 3-up card grid (and the phone rail below 600px). From 1100px each
+   item becomes a full-width row — drawing on one side, its words on the other,
+   mirroring every other row.
+
+   The reason is arithmetic: in a 3-up grid a drawing can never be wider than a
+   third of the band, so on a 1920px screen these screenshots of the product
+   render at ~470px however wide the band gets. A row gives each one ~55% of it
+   — roughly twice the area — which is the only way they read at the size the
+   content deserves.
+
+   `!important` throughout because the card and grid carry inline styles from
+   the components; the same reason `.pub-hide-sm` and `.pub-shot-wide` above
+   need it. */
+@media (min-width: 1100px) {
+  .pub-showcase {
+    grid-template-columns: 1fr !important;
+    gap: 28px !important;
+  }
+  .pub-showcase-card {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  }
+  /* Mirrored, so the eye zig-zags down the band instead of running down one
+     edge — and so three rows read as three steps rather than one list. */
+  .pub-showcase > *:nth-child(even) .pub-showcase-card > .pub-shot {
+    order: 2;
+  }
+  .pub-showcase-card > .pub-shot {
+    /* Every length in a shot is width-derived (ProductShots.tsx), so a frame
+       twice as wide is a drawing twice as TALL unless the nominal width it is
+       drawn against grows too. 560 lands the composition at ~1.5× its nominal
+       size — larger than the 3-up card ever rendered it — without a row half a
+       screen tall. */
+    --shot-base: 560;
+    /* The divider belongs between the two columns now; the inline
+       border-bottom is what the frame wears stacked. */
+    border-bottom-width: 0 !important;
+  }
+  /* Follows --shot-base above: the nominal composition is 300 units tall (the
+     4/3 box it is drawn into at BASE 400), so tying the ratio to the same
+     number keeps the fill what it is in card mode rather than clipping it.
+     325 rather than 300 because one shot (KernelShot) is drawn a little past
+     the box it was designed for — barely visible in a 470px card, an obviously
+     sliced last row at twice that. The 25 units are slack for it, and reads as
+     breathing room under the other five. */
+  .pub-showcase-card > .pub-shot .pub-shot-screen {
+    aspect-ratio: 560 / 325 !important;
+  }
+  .pub-showcase-body {
+    align-self: center;
+    padding: 36px 44px !important;
+  }
+}
+
 /* ---- Hover affordances ---- */
 .pub-lift {
   transition:

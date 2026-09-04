@@ -72,11 +72,15 @@ export default function ConnectionSection({ theme: t }: { theme: Theme }) {
           </p>
         </div>
 
-        <div className="pub-grid-3 pub-rail" style={{ gap: 20, alignItems: "stretch" }}>
+        {/* `pub-showcase` — above 1100px each step becomes a full-width row,
+            drawing beside its words and mirroring every other one. Below that
+            it is the ordinary 3-up grid, and the phone rail below 600px. See
+            globals.css. */}
+        <div className="pub-grid-3 pub-rail pub-showcase" style={{ gap: 20, alignItems: "stretch" }}>
           {STEPS.map((s, i) => (
             <Reveal key={s.n} delay={i * 80} style={{ height: "100%" }}>
             <div
-              className="pub-lift"
+              className="pub-lift pub-showcase-card"
               style={{
                 height: "100%",
                 display: "flex",
@@ -92,7 +96,7 @@ export default function ConnectionSection({ theme: t }: { theme: Theme }) {
                   it — same arrangement the feature cards use, so the two bands
                   read as one grammar rather than two. */}
               <s.Shot theme={t} />
-              <div style={{ padding: 24 }}>
+              <div className="pub-showcase-body" style={{ padding: 24 }}>
                 <div
                   style={{
                     width: 32,

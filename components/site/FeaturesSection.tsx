@@ -77,11 +77,13 @@ export default function FeaturesSection({ theme: t }: { theme: Theme }) {
           </div>
         </Reveal>
 
-        <div className="pub-grid-3 pub-rail" style={{ gap: 20 }}>
+        {/* Same showcase layout as ConnectionSection — full-width rows above
+            1100px, 3-up card grid below. See globals.css. */}
+        <div className="pub-grid-3 pub-rail pub-showcase" style={{ gap: 20 }}>
           {FEATURES.map((f, i) => (
             <Reveal key={f.titleKey} delay={i * 80}>
               <div
-                className="pub-lift"
+                className="pub-lift pub-showcase-card"
                 style={{
                   height: "100%",
                   overflow: "hidden",
@@ -92,7 +94,7 @@ export default function FeaturesSection({ theme: t }: { theme: Theme }) {
                 }}
               >
                 <f.Shot theme={t} />
-                <div style={{ padding: 24 }}>
+                <div className="pub-showcase-body" style={{ padding: 24 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     <span style={{ width: 34, height: 34, flex: "none", borderRadius: 12, background: FEATURE_COLOR[i], color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, fontSize: 15 }}>
                       {f.icon}

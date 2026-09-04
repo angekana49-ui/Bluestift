@@ -60,10 +60,22 @@ import {
 
 /** Nominal design width of the three 16/10 feature shots. Those cards are
  *  roughly this wide on desktop and go full-bleed on mobile, so one fixed
- *  nominal width is right at every size. */
+ *  nominal width is right at every size — with one exception, below. */
 const BASE = 400;
-/** Nominal px → container-relative units for the feature shots. */
-const u = (n: number) => `${(n * 100) / BASE}cqw`;
+/**
+ * Nominal px → container-relative units for the feature shots.
+ *
+ * A `calc` over a custom property rather than a number divided in JS, for the
+ * same reason `uw()` below is one: the showcase bands (ConnectionSection,
+ * FeaturesSection) lay their cards out as full-width rows above 1100px, where
+ * a shot is ~2× the width it is in a 3-up card. Every length here is
+ * width-derived, so at a fixed nominal width that would also make it 2× TALLER
+ * — a 600px-tall drawing of a 400px-wide screen. `--shot-base` is what the
+ * stylesheet widens there (globals.css, `.pub-showcase-card`), which scales the
+ * composition up by less than the frame grows instead of in lockstep with it.
+ * Unset — everywhere else — it resolves to BASE and renders exactly as before.
+ */
+const u = (n: number) => `calc(${n} * 100cqw / var(--shot-base, ${BASE}))`;
 
 /**
  * The wide transcript plate is the one shot whose container width changes by
