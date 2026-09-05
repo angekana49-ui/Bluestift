@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { Theme } from "./theme";
-import ThemeToggle from "./ThemeToggle";
+import ThemeToggle, { ThemeToggleCompact } from "./ThemeToggle";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
 import { MEASURE } from "./layout";
@@ -175,6 +175,7 @@ export default function Navbar({
           The measure moved here from the pill for the same reason. */}
       <div ref={barRef} style={{ position: "relative", maxWidth: MEASURE.wide, margin: "0 auto" }}>
       <div
+        className="pub-nav-bar"
         style={{
           display: "flex",
           alignItems: "center",
@@ -207,10 +208,12 @@ export default function Navbar({
             e.preventDefault();
             setMenuOpen((o) => !o);
           }}
+          className="pub-nav-brand"
           style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
+            className="pub-nav-mark"
             // The public site keeps the light mark in both themes, by design:
             // the blue bird is the brand signature and stays put when the page
             // flips to dark. Only the app shell swaps in the -dark variant.
@@ -227,7 +230,10 @@ export default function Navbar({
           <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: "-0.02em", fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif" }}>
             <span style={{ color: t.wordmarkA }}>Blue</span>
             <span style={{ color: t.wordmarkB }}>Stift</span>
-            {section && <span style={{ fontWeight: 400, opacity: 0.6, marginLeft: 4, color: t.text }}>· {section}</span>}
+            {/* Dropped on the narrowest screens (globals.css): it is the widest
+                optional thing in the bar, and the page below it already says
+                which section you are on. */}
+            {section && <span className="pub-nav-section" style={{ fontWeight: 400, opacity: 0.6, marginLeft: 4, color: t.text }}>· {section}</span>}
           </div>
           {/* Hidden above NAV_COLLAPSE, where the click goes home and there is
               nothing to expand (globals.css). */}
@@ -261,8 +267,17 @@ export default function Navbar({
           })}
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <ThemeToggle theme={t} isDark={isDark} onToggle={onToggleTheme} />
+        <div className="pub-nav-actions" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {/* Two controls, one shown at a time by CSS (the same 899/900 boundary
+              as the pills and the chevron). Below it the bar is brand + theme +
+              CTA with nothing to give: the 66px pill pushed "Open app" past the
+              rounded edge on a 375px screen, and 34px is what closes the gap. */}
+          <span className="pub-theme-pill" style={{ display: "flex" }}>
+            <ThemeToggle theme={t} isDark={isDark} onToggle={onToggleTheme} />
+          </span>
+          <span className="pub-theme-icon" style={{ display: "none" }}>
+            <ThemeToggleCompact theme={t} isDark={isDark} onToggle={onToggleTheme} />
+          </span>
           {signedIn ? (
             <Link href={homeHref} className="pub-press" style={ctaPill}>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#34d399" }} />

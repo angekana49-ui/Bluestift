@@ -95,3 +95,85 @@ export default function ThemeToggle({
     </button>
   );
 }
+
+/** Sun and crescent, sized to sit inside the 34px compact button. */
+function SunIcon() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 14 14" fill="none" aria-hidden>
+      <circle cx="7" cy="7" r="3" fill="#f59e0b" />
+      <path
+        d="M7 1.5V3M7 11V12.5M1.5 7H3M11 7H12.5M3.1 3.1L4.1 4.1M9.9 9.9L10.9 10.9M3.1 10.9L4.1 9.9M9.9 4.1L10.9 3.1"
+        stroke="#f59e0b"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+      {/* A crescent as one filled path, not a circle with a circle punched out
+          of it: the bar behind this button is translucent, so a "cut-out" made
+          from a background-coloured disc would show as a solid blob over it. */}
+      <path
+        d="M13.2 9.9A5.6 5.6 0 0 1 6.1 2.8a5.6 5.6 0 1 0 7.1 7.1Z"
+        fill="#bae6fd"
+      />
+    </svg>
+  );
+}
+
+/**
+ * The same switch, as a 34×34 icon button — what the bar carries below 900px.
+ *
+ * Not a style variant of the pill above but a second element, because the pill
+ * cannot shrink into this: its 66px width is what gives the knob somewhere to
+ * travel and the label somewhere to sit. Both are rendered, and CSS shows one
+ * (`.pub-theme-pill` / `.pub-theme-icon` in globals.css) — deliberately not a
+ * `window.innerWidth` check at render, which would have to guess on the server
+ * and correct itself after hydration.
+ *
+ * It shows the CURRENT mode rather than the one a click would bring, matching
+ * the pill's knob, which is on screen at every other width. The two disagreeing
+ * across a breakpoint would be worse than either convention.
+ */
+export function ThemeToggleCompact({
+  theme: t,
+  isDark,
+  onToggle,
+}: {
+  theme: Theme;
+  isDark: boolean;
+  onToggle: () => void;
+}) {
+  const tr = useTranslate();
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={tr("theme.switchAria")}
+      title={tr("theme.switchAria")}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 34,
+        height: 34,
+        borderRadius: 999,
+        boxSizing: "border-box",
+        cursor: "pointer",
+        border: `1px solid ${t.switchBorder}`,
+        background: t.switchTrackBg,
+        // No drop shadow here. The pill's exists to lift a wide control off the
+        // bar; on a 34px circle at this density it only muddies the edge.
+        flexShrink: 0,
+        padding: 0,
+        transition: "background 0.4s ease, border-color 0.4s ease",
+      }}
+    >
+      {isDark ? <MoonIcon /> : <SunIcon />}
+    </button>
+  );
+}

@@ -2027,6 +2027,66 @@ a {
   }
 }
 
+/* The theme control swaps shape at the same boundary. Below it the bar holds
+   brand + theme + CTA and nothing that can shrink: every label is nowrap, so
+   the 66px Day/Night pill pushed "Open app" out past the pill's rounded edge on
+   a 375px screen. The icon button is 34px and buys back the 32px that costs.
+
+   Both are in the DOM and CSS picks one — the same trick as .pub-nav-links
+   above, and for the same reason: a `window.innerWidth` test at render has no
+   answer on the server and would correct itself visibly after hydration.
+   `!important` because the inline `display` on each span is the default that
+   holds before this file's media query applies. */
+@media (max-width: 899px) {
+  .pub-theme-pill {
+    display: none !important;
+  }
+  .pub-theme-icon {
+    display: flex !important;
+  }
+}
+
+/* ---- The 320px class ----
+   Swapping the theme pill for the icon clears the bar at 360px and up. At 320
+   (iPhone SE 1st gen, a fold's cover screen) it is still 32px over: 262px of
+   usable width inside the pill against 294px of content, which shows as the CTA
+   crossing the rounded edge AND 5px of horizontal page scroll.
+
+   What gives, in order of how little it costs:
+     • the mark, 44 -> 30. It is the single widest fixed item and it is still
+       legible next to the wordmark at 30.
+     • the pill's own padding and the two gaps — 14/10 to 10/8, 8 to 6.
+     • the CTA's horizontal padding, 16 -> 11. Its LABEL is untouched: "Start
+       free" is the one thing in this bar that has a job to do, and a narrow
+       screen is no reason to hide the way in.
+     • the "· Research" section suffix, which is decorative here and unbounded
+       in width — a long section name would blow past every budget above.
+
+   Total saved ~32px, landing at ~262 against 268 usable. Verified by measuring
+   rather than by eye: a few px of overflow hide behind the border radius. */
+@media (max-width: 359px) {
+  .pub-nav-bar {
+    padding: 6px 8px 6px 10px !important;
+    gap: 8px !important;
+  }
+  .pub-nav-mark {
+    width: 30px !important;
+    height: 30px !important;
+  }
+  .pub-nav-brand {
+    gap: 6px !important;
+  }
+  .pub-nav-actions {
+    gap: 8px !important;
+  }
+  .pub-nav-bar .pub-press {
+    padding: 7px 11px !important;
+  }
+  .pub-nav-section {
+    display: none !important;
+  }
+}
+
 /* ---- Card rails (phones only) ----
    Below 600px a three- or four-up card grid collapses to one column. That is
    the standard answer and it is the wrong one for cards that are PEERS: three
