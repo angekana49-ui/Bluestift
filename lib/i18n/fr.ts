@@ -710,6 +710,8 @@ export const fr: Partial<Messages> = {
   "subprocessors.row.resend.data": "Adresse e-mail et contenu du message",
   "subprocessors.row.cinetpay.purpose": "Paiements par carte et mobile money",
   "subprocessors.row.cinetpay.data": "Détails de paiement et montant. Nous ne stockons jamais les numéros de carte complets",
+  "subprocessors.row.stripe.purpose": "Paiements par carte hors des régions mobile money",
+  "subprocessors.row.stripe.data": "Détails de paiement et montant. Nous ne stockons jamais les numéros de carte complets",
   "subprocessors.row.classroom.purpose": "Import LMS optionnel, uniquement pour les établissements qui le connectent",
   "subprocessors.row.classroom.data": "Données de cours et de listes d'élèves que l'établissement choisit de partager",
   "subprocessors.require.h2": "Ce que nous exigeons d'eux",

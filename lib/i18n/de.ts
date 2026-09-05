@@ -710,6 +710,8 @@ export const de: Partial<Messages> = {
   "subprocessors.row.resend.data": "E-Mail-Adresse und Nachrichteninhalt",
   "subprocessors.row.cinetpay.purpose": "Karten- und Mobile-Money-Zahlungen",
   "subprocessors.row.cinetpay.data": "Zahlungsdetails und Betrag. Wir speichern nie vollständige Kartennummern",
+  "subprocessors.row.stripe.purpose": "Kartenzahlungen außerhalb der Mobile-Money-Regionen",
+  "subprocessors.row.stripe.data": "Zahlungsdetails und Betrag. Wir speichern nie vollständige Kartennummern",
   "subprocessors.row.classroom.purpose": "Optionaler LMS-Import, nur für Schulen, die ihn verbinden",
   "subprocessors.row.classroom.data": "Kurs- und Klassenlistendaten, die die Schule teilen möchte",
   "subprocessors.require.h2": "Was wir von ihnen verlangen",

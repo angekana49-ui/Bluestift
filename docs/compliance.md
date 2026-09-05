@@ -216,11 +216,19 @@ is the deliberate trade — checkable now, finished later.
    on the legal pages — correction, objection, parent requests, school queries.
    One mailbox on purpose, so launch depends on nothing new existing.
 3. **Provider data processing agreements.** Mostly self-serve in each provider's
-   dashboard (Supabase, Vercel, PostHog, Cloudflare), on request for others
+   dashboard (Supabase, Vercel, PostHog, Cloudflare, **Stripe** — its DPA is
+   accepted in the dashboard and its SCCs come with it), on request for others
    (Groq, Resend), in the contract for CinetPay, and the Cloud Data Processing
    Addendum for Google. These are what carry the Standard Contractual Clauses
    for EU transfers — the one item with no substitute if EU students use Raya.
    Update `/subprocessors` as each lands.
+
+   Both payment rails are on `/subprocessors` even though neither is live: the
+   code for each is written and the paywall is closed, so the page describes
+   what a school would be signing up to rather than what has happened so far.
+   Whichever rail opens first, its DPA has to be in place before the first real
+   payment, not after — a payment processor starts processing on the first
+   transaction, and that is too late to be reading the agreement.
 4. **EU representative (art. 27)** — required for a US-established company
    offering the service to people in the EU/EEA. Not needed until you actually
    have EU users.

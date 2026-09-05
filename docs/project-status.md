@@ -292,6 +292,22 @@ Next.js app  ──HTTP──▶  Kernel (FastAPI, Railway)
   serving both B2C students and B2B schools; chosen for the francophone-Africa
   market. **No real merchant account/keys exist yet** — `sandbox` is the only
   working provider; the CinetPay path is scaffolded and untested against the live API.
+  - **Stripe is written too** (`StripePaymentProvider`), as the international-card
+    rail beside CinetPay's mobile money — the two are complementary, not
+    alternatives, since Stripe does not process African mobile money and CinetPay
+    has no international card presence. It declares `card` alone in
+    `supportedChannels` (the checkout page renders exactly what a provider
+    claims, so overstating channels renders buttons that fail at the last step).
+    Equally untested against the live API, and for the same reason: no account.
+  - `BILLING_PROVIDER` picks **one rail globally**, so today choosing Stripe
+    means no mobile money and choosing CinetPay means no Stripe. Routing by the
+    payer's region is a real, unbuilt change — written down rather than papered
+    over, because the two-rail setup reads as regional until you look.
+  - **Zero-decimal currencies** (`stripeMinorUnits`): Stripe charges in the
+    smallest currency unit, but **XOF/XAF have no minor unit**. Multiplying by
+    100 there does not round oddly, it charges a hundred times the price — and it
+    looks like a working integration until a real card is used. Never inline an
+    amount conversion anywhere else.
   - No new subscription table: `schools.subscriptions` already has a nullable
     `user_id` beside `school_id`, so it holds both B2C and B2B. Migration
     `billing_payments_lifecycle` adds **`schools.payments`** (provider, provider_ref,
@@ -301,8 +317,14 @@ Next.js app  ──HTTP──▶  Kernel (FastAPI, Railway)
   - Seam `lib/billing/payments.ts` — `PaymentProvider {createCheckout,
     parseNotification}`; `CheckoutResult` is `{mode:'redirect',url,providerRef}` or
     `{mode:'manual'}`. `getPaymentProvider()` reads `BILLING_PROVIDER` (default
-    `sandbox`), using CinetPay only when its key + site id are set. The aggregator
-    always **re-verifies** via `/v2/payment/check` — never trusts the webhook POST.
+    `sandbox`), using CinetPay only when its key + site id are set and Stripe only
+    when `STRIPE_SECRET_KEY` is. The aggregator always **re-verifies** via
+    `/v2/payment/check` — never trusts the webhook POST. Stripe has no equivalent
+    re-check, so there the **signature is the whole security boundary**: it
+    verifies `Stripe-Signature` against the **raw** body (re-serialising the
+    parsed JSON breaks every signature) with a five-minute replay window, and
+    refuses everything when `STRIPE_WEBHOOK_SECRET` is unset — an unsigned "paid"
+    event would otherwise grant a subscription for free.
   - **Idempotency**: `markPaymentPaid` claims the row with a conditional UPDATE
     `where status='pending'`, so a replayed webhook returns the existing sub instead
     of activating twice; on activation-write failure it rolls status back to pending
@@ -608,8 +630,9 @@ classes/codes/effectifs, two differentiated roles, team invites & join requests,
 ClassView, StudentView + learning graph, class insights, simulations, Raya-for-Schools,
 reports, Google Classroom OAuth + course sync, billing (plans, seat gate, manual
 activation, online checkout, regional price book). What's genuinely left:
-- **Real payment keys** — the checkout loop only runs against `sandbox`; CinetPay is
-  scaffolded but never exercised against the live API, and no merchant account exists.
+- **Real payment keys** — the checkout loop only runs against `sandbox`; both rails
+  (CinetPay for mobile money, Stripe for international card) are written but never
+  exercised against the live API, and no merchant account exists for either.
 - **LMS**: roster import + recurring background sync (courses sync works; other
   providers are still a manual registry).
 - **A real Kernel simulation endpoint** — both the school and student projections are
@@ -774,8 +797,12 @@ progress curve / signal logging~~ (done).
    do not match the repo's file prefixes — which is how `recovery_key_hash`
    came to be listed here as pending when its columns had existed all along.
 2. ~~**"Raya" wordmark sweep**~~ — done (see §5).
-3. **Real payments** — get a merchant account, then exercise the CinetPay path
-   end-to-end (the whole loop is written and idempotent; only keys are missing).
+3. **Real payments** — get a merchant account, then exercise that rail end-to-end
+   (the whole loop is written and idempotent; only keys are missing). Which rail
+   depends on who pays first: CinetPay for mobile money in francophone Africa,
+   Stripe for international card. `BILLING_PROVIDER` selects one, so this is a
+   choice, not an ordering — and the DPA for whichever is chosen has to be in
+   place before the first real payment (see `docs/compliance.md` §3).
 4. ~~**Usage limits / quotas**~~ — the forfaits now set the limits.
    `messagesPerDay` in the Raya grid, enforced by `gateQuota` in
    `app/api/raya/chat/route.ts` against a count of the day's messages, and

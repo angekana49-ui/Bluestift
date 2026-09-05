@@ -710,6 +710,8 @@ export const es: Partial<Messages> = {
   "subprocessors.row.resend.data": "Dirección de correo y contenido del mensaje",
   "subprocessors.row.cinetpay.purpose": "Pagos con tarjeta y dinero móvil",
   "subprocessors.row.cinetpay.data": "Datos de pago y el importe. Nunca almacenamos números de tarjeta completos",
+  "subprocessors.row.stripe.purpose": "Pagos con tarjeta fuera de las regiones de dinero móvil",
+  "subprocessors.row.stripe.data": "Datos de pago y el importe. Nunca almacenamos números de tarjeta completos",
   "subprocessors.row.classroom.purpose": "Importación opcional de LMS, solo para centros que la conecten",
   "subprocessors.row.classroom.data": "Datos de cursos y listas que el centro decide compartir",
   "subprocessors.require.h2": "Lo que les exigimos",

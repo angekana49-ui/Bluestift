@@ -89,6 +89,20 @@ export function SubprocessorsView({ signedIn }: { signedIn: boolean }) {
                 tr("subprocessors.row.cinetpay.data"),
                 tr("subprocessors.loc.africaEu"),
               ],
+              /* Both payment rails are listed, and neither is processing money
+                 yet — the paywall is closed and no merchant account exists. They
+                 belong here anyway: a school evaluating us reads this page to
+                 decide, and finding out about a payment processor after signing
+                 is the thing the page exists to prevent. The "Where we are
+                 today" note above already says which agreements are still in
+                 progress, which is what keeps this honest rather than a claim
+                 that the DPAs are signed. */
+              [
+                "Stripe",
+                tr("subprocessors.row.stripe.purpose"),
+                tr("subprocessors.row.stripe.data"),
+                tr("subprocessors.loc.euUs"),
+              ],
               [
                 "Google Classroom",
                 tr("subprocessors.row.classroom.purpose"),

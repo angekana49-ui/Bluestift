@@ -876,6 +876,8 @@ export const en = {
   "subprocessors.row.resend.data": "Email address and the message content",
   "subprocessors.row.cinetpay.purpose": "Card and mobile-money payments",
   "subprocessors.row.cinetpay.data": "Payment details and the amount. We never store full card numbers",
+  "subprocessors.row.stripe.purpose": "Card payments outside the mobile-money regions",
+  "subprocessors.row.stripe.data": "Payment details and the amount. We never store full card numbers",
   "subprocessors.row.classroom.purpose": "Optional LMS import, only for schools that connect it",
   "subprocessors.row.classroom.data": "Course and roster data the school chooses to share",
   "subprocessors.require.h2": "What we require of them",
