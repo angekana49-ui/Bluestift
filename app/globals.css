@@ -2012,6 +2012,21 @@ a {
   }
 }
 
+/* What replaces them below that width: the brand block becomes the way into the
+   site, so it grows a chevron and a dropdown (components/site/Navbar.tsx). Both
+   are hidden the moment the five pills come back — the same 899/900 boundary,
+   stated once on each side of it, because a viewport that has neither the pills
+   nor the menu has no navigation at all.
+
+   The menu also carries Legal, which is in no bar at any width and otherwise
+   sits in the footer's fourth column: on a phone, ten screens down. */
+@media (min-width: 900px) {
+  .pub-nav-chevron,
+  .pub-nav-menu {
+    display: none !important;
+  }
+}
+
 /* ---- Card rails (phones only) ----
    Below 600px a three- or four-up card grid collapses to one column. That is
    the standard answer and it is the wrong one for cards that are PEERS: three

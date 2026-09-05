@@ -45,6 +45,7 @@ export const en = {
 
   // ── Shell chrome (mostly accessible names on icon buttons) ────────
   "shell.openMenu": "Open menu",
+  "shell.closeMenu": "Close menu",
   "shell.openPanel": "Open panel",
   "shell.expandSidebar": "Expand sidebar",
   "shell.collapseSidebar": "Collapse sidebar",

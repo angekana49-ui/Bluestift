@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { Theme } from "./theme";
 import ThemeToggle from "./ThemeToggle";
@@ -33,6 +34,51 @@ const LINKS: { label: NavLink; labelKey: MessageKey; href: string }[] = [
 ];
 
 /**
+ * The width the five pills are dropped at (`.pub-nav-links` in globals.css).
+ * Below it the brand block becomes the way to the rest of the site, so the two
+ * numbers have to be the same one — a gap between them is a viewport with no
+ * navigation at all.
+ */
+const NAV_COLLAPSE = 900;
+
+/**
+ * What the brand menu holds below that width: the five pills, plus Legal.
+ *
+ * Legal is not in the bar at any width and lives in the footer's fourth column,
+ * which on a phone is the bottom of a ten-screen page — so the one destination
+ * a parent or a school actually goes looking for was the hardest one to reach.
+ * It costs a row here.
+ */
+const MENU_EXTRA: { labelKey: MessageKey; href: string }[] = [
+  { labelKey: "settings.row.legal", href: "/legal" },
+];
+
+/** Chevron for the brand menu: down when closed, up when open. */
+function MenuChevron({ open }: { open: boolean }) {
+  return (
+    <svg
+      className="pub-nav-chevron"
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      style={{
+        flex: "none",
+        transform: open ? "rotate(180deg)" : "none",
+        transition: "transform .18s ease",
+      }}
+    >
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
+}
+
+/**
  * Shared sticky pill navbar. `active` highlights the current section; `section`
  * appends a "· Research"-style suffix to the wordmark (used on sub-pages).
  * Real navigation via next/link; the theme toggle is driven by the page's
@@ -58,6 +104,56 @@ export default function Navbar({
   homeHref?: string;
 }) {
   const tr = useTranslate();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const barRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * Everything that has to close the menu, in one place: a click outside it,
+   * Escape, and the viewport growing back past the width where the five pills
+   * return — otherwise the panel stays open over a bar that already has the
+   * links in it.
+   */
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      if (barRef.current && !barRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    const onResize = () => {
+      if (window.innerWidth >= NAV_COLLAPSE) setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    window.addEventListener("resize", onResize);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [menuOpen]);
+
+  const menuRow = (labelKey: MessageKey, href: string, isActive: boolean) => (
+    <Link
+      key={href}
+      href={href}
+      onClick={() => setMenuOpen(false)}
+      style={{
+        display: "block",
+        padding: "11px 14px",
+        borderRadius: 12,
+        fontSize: 15,
+        fontWeight: isActive ? 600 : 400,
+        color: isActive ? t.text : t.muted,
+        background: isActive ? t.pillActiveBg : "transparent",
+        textDecoration: "none",
+      }}
+    >
+      {tr(labelKey)}
+    </Link>
+  );
+
   const ctaPill = {
     display: "flex",
     alignItems: "center",
@@ -74,12 +170,12 @@ export default function Navbar({
 
   return (
     <div style={{ position: "sticky", top: 12, zIndex: 50, padding: "0 16px", marginBottom: -56 }}>
+      {/* The pill and its dropdown share one positioned box, so the panel hangs
+          off the bar rather than off the page and travels with it as it sticks.
+          The measure moved here from the pill for the same reason. */}
+      <div ref={barRef} style={{ position: "relative", maxWidth: MEASURE.wide, margin: "0 auto" }}>
       <div
         style={{
-          // Was 1100 — 20px wider than every content column below it, so the
-          // nav pill hung past the page edge by 10px on each side.
-          maxWidth: MEASURE.wide,
-          margin: "0 auto",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -96,7 +192,23 @@ export default function Navbar({
           transition: "background 0.4s ease, border 0.4s ease",
         }}
       >
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
+        {/* Still a real <a href="/">: at full width it is the home link it has
+            always been, and a middle-click or ⌘-click opens home from a phone
+            too. Below NAV_COLLAPSE a plain left-click is intercepted instead
+            and opens the menu, because that is the width where this block is
+            the only route to the rest of the site. */}
+        <Link
+          href="/"
+          aria-expanded={menuOpen}
+          aria-label={menuOpen ? tr("shell.closeMenu") : tr("shell.openMenu")}
+          onClick={(e) => {
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+            if (window.innerWidth >= NAV_COLLAPSE) return;
+            e.preventDefault();
+            setMenuOpen((o) => !o);
+          }}
+          style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             // The public site keeps the light mark in both themes, by design:
@@ -117,6 +229,11 @@ export default function Navbar({
             <span style={{ color: t.wordmarkB }}>Stift</span>
             {section && <span style={{ fontWeight: 400, opacity: 0.6, marginLeft: 4, color: t.text }}>· {section}</span>}
           </div>
+          {/* Hidden above NAV_COLLAPSE, where the click goes home and there is
+              nothing to expand (globals.css). */}
+          <span style={{ display: "flex", color: t.muted }}>
+            <MenuChevron open={menuOpen} />
+          </span>
         </Link>
 
         <div className="pub-nav-links" style={{ display: "flex", gap: 2, background: t.pillTrackBg, borderRadius: 999, padding: 4 }}>
@@ -166,6 +283,39 @@ export default function Navbar({
             </Link>
           )}
         </div>
+      </div>
+
+      {/* The brand menu. Rendered only while open, and `.pub-nav-menu` also
+          hides it above NAV_COLLAPSE so a stale open state can never survive a
+          window being dragged wider before the resize handler runs. */}
+      {menuOpen && (
+        <div
+          className="pub-nav-menu"
+          role="menu"
+          style={{
+            position: "absolute",
+            top: "calc(100% + 8px)",
+            left: 0,
+            right: 0,
+            background: t.navBg,
+            backdropFilter: "blur(24px) saturate(180%)",
+            WebkitBackdropFilter: "blur(24px) saturate(180%)",
+            border: `1px solid ${t.navBorder}`,
+            borderRadius: 20,
+            boxShadow: t.navShadow,
+            padding: 8,
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+          }}
+        >
+          {LINKS.map((link) => menuRow(link.labelKey, link.href, link.label === active))}
+          {/* Ruled off: the five above are where the site takes you, this is
+              where the paperwork is. */}
+          <span style={{ height: 1, background: t.navBorder, margin: "6px 8px" }} />
+          {MENU_EXTRA.map((row) => menuRow(row.labelKey, row.href, false))}
+        </div>
+      )}
       </div>
     </div>
   );

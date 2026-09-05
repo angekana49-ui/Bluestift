@@ -31,6 +31,7 @@ export const de: Partial<Messages> = {
   "menu.personalRaya.sub": "Dein eigenes Konto · privat",
 
   "shell.openMenu": "Menü öffnen",
+  "shell.closeMenu": "Menü schließen",
   "shell.openPanel": "Panel öffnen",
   "shell.expandSidebar": "Seitenleiste ausklappen",
   "shell.collapseSidebar": "Seitenleiste einklappen",
