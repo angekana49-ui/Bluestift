@@ -6,6 +6,7 @@ import type { AnalyzeResponse } from "@/lib/kernel/types";
 import { downloadBrandedPdf, downloadBrandedText, type BrandedDoc } from "@/lib/document";
 import { useDarkMode, useAppTheme, AppThemeProvider } from "@/components/ui/theme";
 import { LocaleProvider } from "@/components/ui/locale";
+import { useRightPanel } from "@/components/ui/use-right-panel";
 import { useLocale } from "@/lib/use-locale";
 import { RayaShell } from "@/components/raya/raya-shell";
 import { RightPanel } from "@/components/ui/shell";
@@ -143,7 +144,7 @@ function ChatBody({
 
   // Kernel analysis is Raya-specific — it stays here, off the shared engine.
   const [analysis, setAnalysis] = useState<AnalyzeResponse | null>(null);
-  const [rightOpen, setRightOpen] = useState(true);
+  const [rightOpen, setRightOpen] = useRightPanel();
 
   // Branded export of the Kernel analysis (Raya logo, title, footer attribution).
   const analysisDoc = (a: AnalyzeResponse): BrandedDoc => ({

@@ -169,6 +169,10 @@ export function RoomGroupChat({
       error={error}
       extraAction={askRayaAction}
       disabled={expired}
+      // Two tiers, at every width. This is the one composer carrying a labelled
+      // button as well as the four round ones, and on a single row that left the
+      // text box a narrow slot between them.
+      stacked
     />
     </>
   );

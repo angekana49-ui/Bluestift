@@ -66,17 +66,33 @@ export function Scrim({ open, onClick }: { open: boolean; onClick: () => void })
  * Header shown only in the smallest tier: a drawer toggle on each side with
  * the current screen's title between them. Hidden above 900px, where both
  * panels are visible inline and these controls would be redundant.
+ *
+ * Both buttons TOGGLE. `onOpenLeft` used to be wired to `setNavOpen(true)` in
+ * both shells, which meant the burger could open the drawer and never close it:
+ * the only way out was the scrim, i.e. tapping some other part of the screen and
+ * hoping. A control that performs half of its own gesture reads as broken, and
+ * on a phone the in-rail collapse chevron is hidden (see `.app-collapse-toggle`
+ * in globals.css), so this button is the ONLY sidebar control there.
+ *
+ * `leftOpen` / `rightOpen` exist so the labels can say which way the button
+ * goes. They are optional: a caller that does not know its own state still gets
+ * the old "Open …" wording rather than a wrong one.
  */
 export function MobileHeader({
   theme: t,
   title,
   onOpenLeft,
   onOpenRight,
+  leftOpen = false,
+  rightOpen = false,
 }: {
   theme: AppTheme;
   title: string;
   onOpenLeft: () => void;
   onOpenRight?: () => void;
+  /** Drawer state, for the button's accessible name. */
+  leftOpen?: boolean;
+  rightOpen?: boolean;
 }) {
   const tr = useTranslate();
   return (
@@ -84,7 +100,13 @@ export function MobileHeader({
       className="app-mobile-header"
       style={{ borderBottom: `1px solid ${t.cardBorder}`, background: t.cardBg }}
     >
-      <IconButton theme={t} onClick={onOpenLeft} title={tr("shell.openMenu")} size={34} radius={10}>
+      <IconButton
+        theme={t}
+        onClick={onOpenLeft}
+        title={tr(leftOpen ? "shell.closeMenu" : "shell.openMenu")}
+        size={34}
+        radius={10}
+      >
         <IconBurger />
       </IconButton>
       <span
@@ -103,7 +125,13 @@ export function MobileHeader({
         <RayaText>{title}</RayaText>
       </span>
       {onOpenRight ? (
-        <IconButton theme={t} onClick={onOpenRight} title={tr("shell.openPanel")} size={34} radius={10}>
+        <IconButton
+          theme={t}
+          onClick={onOpenRight}
+          title={tr(rightOpen ? "shell.closePanel" : "shell.openPanel")}
+          size={34}
+          radius={10}
+        >
           <IconPanelRight />
         </IconButton>
       ) : (

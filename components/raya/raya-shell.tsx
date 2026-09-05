@@ -316,8 +316,10 @@ export function RayaShell({
             const item = NAV.find((n) => n.key === active);
             return item ? tr(item.labelKey) : "Raya";
           })()}
-          onOpenLeft={() => setNavOpen(true)}
+          onOpenLeft={() => setNavOpen((o) => !o)}
+          leftOpen={navOpen}
           onOpenRight={onToggleRight}
+          rightOpen={rightPanel != null}
         />
         <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
           {children}

@@ -33,6 +33,7 @@ export const es: Partial<Messages> = {
   "shell.openMenu": "Abrir menú",
   "shell.closeMenu": "Cerrar menú",
   "shell.openPanel": "Abrir panel",
+  "shell.closePanel": "Cerrar panel",
   "shell.expandSidebar": "Expandir barra lateral",
   "shell.collapseSidebar": "Contraer barra lateral",
   "shell.expand": "Expandir",

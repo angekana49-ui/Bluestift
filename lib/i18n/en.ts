@@ -47,6 +47,7 @@ export const en = {
   "shell.openMenu": "Open menu",
   "shell.closeMenu": "Close menu",
   "shell.openPanel": "Open panel",
+  "shell.closePanel": "Close panel",
   "shell.expandSidebar": "Expand sidebar",
   "shell.collapseSidebar": "Collapse sidebar",
   "shell.expand": "Expand",

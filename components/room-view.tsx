@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { netFetch } from "@/lib/net/client-fetch";
 import { joinRoom, postRoomMessage, setRoomVisibility } from "@/app/rooms/actions";
 import { dispatchUpgrade } from "@/lib/upgrade";
+import { useRightPanel } from "@/components/ui/use-right-panel";
 import { useVoiceRecorder } from "@/lib/use-voice-recorder";
 import { RoomChallenges } from "@/components/room-challenges";
 import { RoomFiles } from "@/components/room-files";
@@ -181,8 +182,12 @@ function RoomViewBody({
   const [supabase] = useState(() => createClient());
   const [joined, setJoined] = useState(isMember);
   const [copied, setCopied] = useState(false);
-  const [rightOpen, setRightOpen] = useState(true);
+  const [rightOpen, setRightOpen] = useRightPanel();
   const [docsOpen, setDocsOpen] = useState(false);
+  /** The room header folds to a single line. Open by default, at every width —
+   *  a room you have just walked into should say whose it is and how long is
+   *  left before it starts saving you space. */
+  const [chromeOpen, setChromeOpen] = useState(true);
   const greetingName = studentName.trim().split(/\s+/)[0] || "";
   const myInitials = avatarInitials(studentName);
 
@@ -584,24 +589,15 @@ function RoomViewBody({
   // The room's shared documents, for the header docs popover + the panel list.
   const sharedDocs = Object.values(roomFiles);
 
-  // The room chrome (title, timer, members, tabs) — a solid strip pinned above
-  // the chat, exactly where /chat keeps its session header.
-  const chrome = (
-    <div
-      style={{
-        flex: "none",
-        background: t.cardBg,
-        borderBottom: `1px solid ${t.cardBorder}`,
-        padding: "16px 24px 12px",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
-        <h1 style={{ fontSize: 23, fontWeight: 800, margin: 0, color: t.text, fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif" }}>{roomName}</h1>
-        <span style={{ color: t.muted, fontSize: 15 }}>
-          {subject ?? "—"} · {memberCount} member{memberCount === 1 ? "" : "s"}
-        </span>
-        {remainingMs != null && (
-          <span
+  /*
+   * The session countdown, lifted out of the header row because BOTH states of
+   * the header need it. Collapsing a timed room must not take the clock with it:
+   * the room turns read-only when it runs out, and "how long have I got" is the
+   * one fact on this strip that changes on its own.
+   */
+  const timerBadge =
+    remainingMs != null ? (
+      <span
             style={{
               alignSelf: "center",
               display: "inline-flex",
@@ -620,11 +616,55 @@ function RoomViewBody({
                   : t.cardBg2,
               border: `1px solid ${expired ? "rgba(239,68,68,0.4)" : remainingMs <= 120_000 ? "rgba(245,158,11,0.45)" : t.cardBorder}`,
             }}
-            title={expired ? "The session has ended" : "Time left in this session"}
-          >
-            ⏱ {expired ? "Ended" : `${fmtRemaining(remainingMs)} left`}
-          </span>
-        )}
+        title={expired ? "The session has ended" : "Time left in this session"}
+      >
+        ⏱ {expired ? "Ended" : `${fmtRemaining(remainingMs)} left`}
+      </span>
+    ) : null;
+
+  /** Fold the metadata row away. Available at every width, not just phones. */
+  const chromeToggle = (
+    <IconButton
+      theme={t}
+      onClick={() => setChromeOpen((o) => !o)}
+      title={chromeOpen ? "Collapse room header" : "Expand room header"}
+      bg={t.cardBg2}
+    >
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden
+        style={{ transform: chromeOpen ? "none" : "rotate(180deg)", transition: "transform .18s ease" }}
+      >
+        <path d="M6 15l6-6 6 6" />
+      </svg>
+    </IconButton>
+  );
+
+  // The room chrome (title, timer, members, tabs) — a solid strip pinned above
+  // the chat, exactly where /chat keeps its session header.
+  const chrome = (
+    <div
+      style={{
+        flex: "none",
+        background: t.cardBg,
+        borderBottom: `1px solid ${t.cardBorder}`,
+        padding: chromeOpen ? "16px 24px 12px" : "9px 24px 10px",
+      }}
+    >
+      {chromeOpen ? (
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+        <h1 style={{ fontSize: 23, fontWeight: 800, margin: 0, color: t.text, fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif" }}>{roomName}</h1>
+        <span style={{ color: t.muted, fontSize: 15 }}>
+          {subject ?? "—"} · {memberCount} member{memberCount === 1 ? "" : "s"}
+        </span>
+        {timerBadge}
         <RoomVisibility
           theme={t}
           roomId={roomId}
@@ -634,8 +674,9 @@ function RoomViewBody({
           locked={visibilityLocked}
           canChoose={canChooseVisibility}
         />
-        {joined && (
-          <span style={{ marginLeft: "auto", alignSelf: "center", position: "relative", display: "flex", alignItems: "center", gap: 6 }}>
+        <span style={{ marginLeft: "auto", alignSelf: "center", position: "relative", display: "flex", alignItems: "center", gap: 6 }}>
+          {joined && (
+            <>
             {/* Documents — a quick popover right in the header, like the chat
                 header's files button. Keeps doc access out of the nav. */}
             <IconButton
@@ -695,9 +736,37 @@ function RoomViewBody({
                 )}
               </div>
             )}
-          </span>
-        )}
+            </>
+          )}
+          {chromeToggle}
+        </span>
       </div>
+      ) : (
+        /* Collapsed: the name, the clock, and the way back. Everything else on
+           the open row is reference material you can unfold when you want it —
+           the tabs below stay put either way, so folding the header never costs
+           you the ability to move between channels. */
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+          <h1
+            style={{
+              fontSize: 16,
+              fontWeight: 800,
+              margin: 0,
+              color: t.text,
+              fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              minWidth: 0,
+            }}
+            title={roomName}
+          >
+            {roomName}
+          </h1>
+          {timerBadge}
+          <span style={{ marginLeft: "auto", flex: "none" }}>{chromeToggle}</span>
+        </div>
+      )}
 
       {joined && (
         <>
@@ -724,9 +793,18 @@ function RoomViewBody({
             </div>
           )}
 
-          <div style={{ display: "flex", gap: 6, marginTop: 14, flexWrap: "wrap" }}>
+          {/* Five channels. On a wide screen they wrap if they must; below 900px
+              they become one scrolling row instead (`.room-tabs` in globals.css)
+              — wrapping there cost two or three lines of the chrome, which is
+              vertical space taken from the conversation on the screen that has
+              the least of it. */}
+          <div className="room-tabs" style={{ display: "flex", gap: 6, marginTop: 14, flexWrap: "wrap" }}>
             {(["group", "private", "challenge", "files", "report"] as const).map((c) => (
-              <button key={c} onClick={() => setChannel(c)} style={tabBtn(channel === c)}>
+              <button
+                key={c}
+                onClick={() => setChannel(c)}
+                style={{ ...tabBtn(channel === c), flex: "none", whiteSpace: "nowrap" }}
+              >
                 {c === "group"
                   ? "Group chat"
                   : c === "private"

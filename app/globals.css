@@ -2046,6 +2046,51 @@ a {
   }
 }
 
+/* ---- The two-tier composer (the room's group chat) ----
+   The text box inside this is transparent and borderless: the box IS the field,
+   visually, so the focus ring has to live on the container or the composer would
+   be the one input on the platform that gives no sign of having focus.
+
+   `--app-focus` is set by AppShell (components/ui/shell.tsx) and already carries
+   a light and a dark value, so this needs no theme branch of its own. The
+   fallback is the light one, for the case where a composer is ever rendered
+   outside the shell. */
+.chat-composer-box {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.chat-composer-box:focus-within {
+  border-color: var(--app-focus, #1b5fc1);
+  box-shadow: 0 0 0 3px rgba(43, 116, 217, 0.16);
+}
+
+/* ---- A room's channel tabs, on a small screen ----
+   Group chat / Raya (private) / Challenges / Files / Report. Five labels do not
+   fit one phone line, and `flex-wrap: wrap` turned them into two or three rows
+   of chrome above a conversation that already had the least room on this screen.
+
+   One scrolling row instead. The buttons are `flex: none` + nowrap inline so a
+   label can neither shrink nor break mid-word, and the scrollbar is hidden
+   because a horizontal bar under a tab strip reads as a broken layout rather
+   than an affordance — the partly-visible fifth tab is the affordance.
+
+   `overscroll-behavior-x: contain` stops a swipe that runs out of tabs from
+   continuing into the browser's back gesture. */
+@media (max-width: 899px) {
+  .room-tabs {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    /* Room for the focus ring of the first and last tab, which a plain
+       overflow container would clip. */
+    padding-bottom: 2px;
+  }
+  .room-tabs::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* ---- The 320px class ----
    Swapping the theme pill for the icon clears the bar at 360px and up. At 320
    (iPhone SE 1st gen, a fold's cover screen) it is still 32px over: 262px of

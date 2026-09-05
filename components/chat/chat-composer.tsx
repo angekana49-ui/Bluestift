@@ -70,6 +70,7 @@ export function ChatComposer({
   extraAction,
   disabled = false,
   showAiMode = false,
+  stacked = false,
 }: {
   theme: AppTheme;
   centered: boolean;
@@ -89,6 +90,17 @@ export function ChatComposer({
   disabled?: boolean;
   /** `config.aiModeSwitcher` from the surface — off for Raya-for-Schools. */
   showAiMode?: boolean;
+  /**
+   * Two tiers instead of one: the text box gets a full-width row of its own and
+   * every control drops to a second row beneath it.
+   *
+   * The room's group chat asks for this because it carries one control the other
+   * surfaces do not — "Ask Raya" — and a labelled button next to voice, attach,
+   * the mode pill and send left the text box a narrow slot in the middle of its
+   * own composer. Opt-in rather than the default: the solo and Schools chats
+   * have no such button and their single row is not under pressure.
+   */
+  stacked?: boolean;
 }) {
   // The day's plan allowance. `quota` is only ever set when a limit exists AND
   // is enforced, so everything below is dead code until that is switched on.
@@ -111,12 +123,30 @@ export function ChatComposer({
     el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
   }, [input]);
 
+  /*
+   * Pinned to the bottom, but reading as an object that floats over the thread
+   * rather than a bar bolted to its edge.
+   *
+   * The default composer is a full-bleed strip: a top border and a solid fill
+   * across the whole width. That is right when the field is one line. Stacked it
+   * is two, and the same strip treatment turned the bottom of a room into a
+   * heavy block of chrome. So the strip goes: no border, no fill of its own, and
+   * the rounded box inside carries a shadow so it lifts off the conversation.
+   *
+   * It stays a flex sibling of the thread rather than an absolute overlay — the
+   * thread must never scroll its last message underneath a floating panel it
+   * cannot push past.
+   */
+  const floating = stacked && !centered;
+
   return (
     <div
       style={
         centered
           ? { width: "100%" }
-          : { borderTop: `1px solid ${t.cardBorder}`, background: t.cardBg }
+          : floating
+            ? { background: "transparent" }
+            : { borderTop: `1px solid ${t.cardBorder}`, background: t.cardBg }
       }
       data-centered={centered || undefined}
     >
@@ -124,7 +154,7 @@ export function ChatComposer({
           gutter is INSIDE its max-width, which is the whole point: the field
           and the message bubbles above it now resolve to the same left edge
           instead of sitting 24px apart. */}
-      <div className="chat-col" style={{ paddingTop: centered ? 0 : 12 }}>
+      <div className="chat-col" style={{ paddingTop: centered ? 0 : floating ? 4 : 12 }}>
         {/* pending attachments */}
         {(pending.length > 0 || uploading) && (
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.4rem", padding: "0 0 8px" }}>
@@ -188,8 +218,8 @@ export function ChatComposer({
         )}
 
         {/* composer */}
-        <div style={{ padding: "16px 0", display: "flex", gap: 8, alignItems: "flex-end" }}>
-          {voice && (
+        {(() => {
+          const voiceBtn = voice && (
             <IconButton
               theme={t}
               size={38}
@@ -201,8 +231,9 @@ export function ChatComposer({
             >
               {voice.recording ? <span style={{ fontSize: 14 }}>■</span> : <IconMic size={16} />}
             </IconButton>
-          )}
-          <textarea
+          );
+          const textBox = (
+            <textarea
             ref={taRef}
             value={input}
             onChange={(e) => onInput(e.target.value)}
@@ -221,23 +252,38 @@ export function ChatComposer({
             // scroll it. See globals.css.
             className="no-scrollbar-arrows"
             style={{
-              flex: 1,
               minWidth: 100,
               resize: "none",
               maxHeight: 140,
               overflowY: "auto",
-              background: t.inputBg,
-              border: `1px solid ${t.inputBorder}`,
-              borderRadius: 20,
-              padding: "10px 18px",
               fontSize: text.base,
               lineHeight: 1.5,
               fontFamily: "inherit",
               color: t.text,
               outline: "none",
+              // Stacked, the field is the top half of ONE bounded surface, so it
+              // drops its own border, radius and fill — the shell below carries
+              // them. Left alone it would read as a pill sitting on a card.
+              ...(stacked
+                ? {
+                    width: "100%",
+                    boxSizing: "border-box" as const,
+                    background: "transparent",
+                    border: "none",
+                    borderRadius: 0,
+                    padding: "2px 6px 2px 4px",
+                  }
+                : {
+                    flex: 1,
+                    background: t.inputBg,
+                    border: `1px solid ${t.inputBorder}`,
+                    borderRadius: 20,
+                    padding: "10px 18px",
+                  }),
             }}
           />
-          {onUpload && (
+          );
+          const uploadBtn = onUpload && (
             <FilePicker
               accept={COMPOSER_ACCEPT}
               onPick={(files) => onUpload(files?.[0] ?? null)}
@@ -261,30 +307,86 @@ export function ChatComposer({
                 padding: 0,
               }}
             />
-          )}
-          {showAiMode && <AiModePicker theme={t} state={aiMode} />}
-          {extraAction}
-          <span
-            role="button"
-            onClick={() => onSend()}
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: "50%",
-              background: t.ctaBg,
-              color: t.ctaText,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 16,
-              flex: "none",
-              cursor: sendIdle ? "default" : "pointer",
-              opacity: sendIdle ? 0.5 : 1,
-            }}
-          >
-            ↑
-          </span>
-        </div>
+          );
+          const sendBtn = (
+            <span
+              role="button"
+              onClick={() => onSend()}
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: "50%",
+                background: t.ctaBg,
+                color: t.ctaText,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 16,
+                flex: "none",
+                cursor: sendIdle ? "default" : "pointer",
+                opacity: sendIdle ? 0.5 : 1,
+              }}
+            >
+              ↑
+            </span>
+          );
+          const modeBtn = showAiMode ? <AiModePicker theme={t} state={aiMode} /> : null;
+
+          if (stacked) {
+            return (
+              <div style={{ padding: floating ? "2px 0 10px" : "16px 0" }}>
+                {/* ONE surface, two tiers — not a field with buttons loose under
+                    it. The border, fill and radius live here so the whole thing
+                    reads as a single object, and `.chat-composer-box` in
+                    globals.css lights the same border on focus-within, which is
+                    the affordance the textarea gave up when it went transparent.
+
+                    The fill is opaque (`cardBg`, not the field's own tint) so the
+                    thread cannot show through the thing floating over it. */}
+                <div
+                  className="chat-composer-box"
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 6,
+                    background: floating ? t.cardBg : t.inputBg,
+                    border: `1px solid ${t.inputBorder}`,
+                    borderRadius: 22,
+                    padding: "9px 10px 8px 14px",
+                    boxShadow: floating
+                      ? t.dark
+                        ? "0 6px 22px rgba(0,0,0,0.42)"
+                        : "0 6px 22px rgba(15,23,42,0.13)"
+                      : undefined,
+                  }}
+                >
+                  {textBox}
+                  {/* Send stays hard right — the same corner it occupies in a
+                      single row, so the muscle memory survives the new shape. */}
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    {voiceBtn}
+                    {uploadBtn}
+                    {modeBtn}
+                    {extraAction}
+                    <span style={{ flex: 1 }} />
+                    {sendBtn}
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <div style={{ padding: "16px 0", display: "flex", gap: 8, alignItems: "flex-end" }}>
+              {voiceBtn}
+              {textBox}
+              {uploadBtn}
+              {modeBtn}
+              {extraAction}
+              {sendBtn}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

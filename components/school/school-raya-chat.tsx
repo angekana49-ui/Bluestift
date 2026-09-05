@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAppTheme } from "@/components/ui/theme";
 import { RightPanel, Scrim, IconButton } from "@/components/ui/shell";
+import { useRightPanel } from "@/components/ui/use-right-panel";
 import { textInput, ctaButton } from "@/components/ui/forms";
 import { useChatEngine } from "@/components/chat/use-chat-engine";
 import { ChatSurface } from "@/components/chat/chat-surface";
@@ -47,7 +48,7 @@ export function SchoolRayaChat({ role, staffName }: { role: Role; staffName?: st
     initialConversations: [],
   });
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [panelOpen, setPanelOpen] = useState(true);
+  const [panelOpen, setPanelOpen] = useRightPanel();
 
   const { setConversations } = engine;
   // Load persisted history on mount (no SSR here — this is a client tab).

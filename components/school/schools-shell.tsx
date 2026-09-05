@@ -16,6 +16,7 @@ import {
   Scrim,
 } from "@/components/ui/shell";
 import { IconPanel } from "@/components/ui/icons";
+import { useRightPanel } from "@/components/ui/use-right-panel";
 import { display, type AppTheme } from "@/components/ui/tokens";
 import { RayaText, SchoolsName } from "@/components/ui/brand";
 import { DegradedBanner } from "@/components/ui/degraded-banner";
@@ -84,7 +85,7 @@ export function SchoolsShell({
   children: ReactNode;
 }) {
   const [collapsed, setCollapsed] = useState(false);
-  const [rightOpen, setRightOpen] = useState(true);
+  const [rightOpen, setRightOpen] = useRightPanel();
   /** Small-screen only: the sidebar is an overlay drawer. */
   const [navOpen, setNavOpen] = useState(false);
 
@@ -155,8 +156,10 @@ export function SchoolsShell({
         <MobileHeader
           theme={t}
           title={headerTitle ?? brandName}
-          onOpenLeft={() => setNavOpen(true)}
+          onOpenLeft={() => setNavOpen((o) => !o)}
+          leftOpen={navOpen}
           onOpenRight={rightPanel != null ? () => setRightOpen((o) => !o) : undefined}
+          rightOpen={rightOpen}
         />
 
         {/* When the content is flush (a full-height chat owns the card), the
