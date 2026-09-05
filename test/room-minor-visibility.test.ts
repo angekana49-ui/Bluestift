@@ -79,3 +79,41 @@ describe("room visibility lock migration", () => {
     expect(sql).toMatch(/revoke execute on function learning\.room_has_minor\(uuid\)/);
   });
 });
+
+describe("setRoomVisibility", () => {
+  const src = readFileSync(join(process.cwd(), "app/rooms/actions.ts"), "utf8");
+  const body = src.slice(src.indexOf("export async function setRoomVisibility"));
+
+  it("asks the age rule before opening a room, not after", () => {
+    // The DB triggers would refuse it either way; this is about the room's
+    // owner getting the reason rather than a raw database error.
+    const guard = body.indexOf("roomHoldsMinor");
+    const update = body.indexOf(".update({ visibility })");
+    expect(guard).toBeGreaterThan(-1);
+    expect(guard).toBeLessThan(update);
+  });
+
+  it("puts the age rule ABOVE the plan, so no tier can buy past it", () => {
+    expect(body.indexOf("roomHoldsMinor")).toBeLessThan(body.indexOf("roomVisibilityChoice"));
+  });
+
+  it("never gates the private direction", () => {
+    // Closing a room is always allowed: a safety default you can be talked out
+    // of is not a default. Both gates live inside the going-public branch.
+    const branch = body.slice(body.indexOf('if (visibility === "public")'));
+    const rest = body.slice(0, body.indexOf('if (visibility === "public")'));
+    expect(rest).not.toContain("roomHoldsMinor");
+    expect(rest).not.toContain("roomVisibilityChoice");
+    expect(branch).toContain("roomHoldsMinor");
+  });
+
+  it("refuses a member who is not the room's creator", () => {
+    expect(body).toMatch(/created_by !== user\.id/);
+  });
+
+  it("maps a trigger rejection back to the age rule rather than leaking SQL", () => {
+    // The triggers refuse this update for exactly one reason, so an error from
+    // them is that reason — and the member never sees a database message.
+    expect(body).toMatch(/if \(error\)[\s\S]{0,160}minor_public_room/);
+  });
+});

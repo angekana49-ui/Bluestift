@@ -2,9 +2,11 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { assertRoomOpen, isMinorBirthYear, ROOM_TIMER_MIN, ROOM_TIMER_MAX } from "@/lib/rooms";
+import { assertRoomOpen, isMinorBirthYear, roomHoldsMinor, ROOM_TIMER_MIN, ROOM_TIMER_MAX } from "@/lib/rooms";
+import { revalidatePath } from "next/cache";
 import {
   resolveRayaEntitlements,
+  assertFeature,
   assertQuota,
   startOfMonthIso,
   ENTITLEMENTS_ENFORCE,
@@ -147,6 +149,82 @@ export async function createRoom(input: {
 
   void captureServer(user.id, "room_created", { visibility, timed: timer != null, tier });
   return { roomId: room.id };
+}
+
+/**
+ * Open a room to everyone, or close it again.
+ *
+ * Three things have to agree before a room can go public, and they are checked
+ * in order of how absolute they are:
+ *
+ *  1. the age rule — no room holding a minor is ever public, at any tier, and
+ *     the DB triggers refuse it independently of this function;
+ *  2. the plan — `roomVisibilityChoice` is what a paid tier buys, and like
+ *     every other monetisation gate it only blocks while ENTITLEMENTS_ENFORCE;
+ *  3. ownership — a member cannot re-open a room they did not create.
+ *
+ * Going back to private needs none of that: closing a room is always allowed,
+ * because a safety default you can be talked out of is not one.
+ */
+export async function setRoomVisibility(
+  roomId: string,
+  visibility: "public" | "private",
+): Promise<void | RoomGateError> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in.");
+
+  const admin = createAdminClient();
+  const { data: room } = await admin
+    .schema("learning")
+    .from("rooms")
+    .select("id, created_by, visibility")
+    .eq("id", roomId)
+    .maybeSingle();
+  if (!room) throw new Error("Room not found.");
+  if (room.created_by !== user.id) throw new Error("Only the room's creator can change this.");
+  if (room.visibility === visibility) return;
+
+  if (visibility === "public") {
+    if (await roomHoldsMinor(roomId)) {
+      return {
+        error: "This room stays private: it has a member under 18.",
+        code: "minor_public_room",
+      };
+    }
+    const { ent, tier } = await resolveRayaEntitlements(user.id);
+    try {
+      assertFeature(ent.roomVisibilityChoice, {
+        feature: "room_visibility",
+        upgradeTo: "Plus",
+        scope: "rooms",
+        userId: user.id,
+        tier,
+      });
+    } catch (e) {
+      if (e instanceof EntitlementError) return { error: e.message, code: e.code };
+      throw e;
+    }
+  }
+
+  const { error } = await admin
+    .schema("learning")
+    .from("rooms")
+    .update({ visibility })
+    .eq("id", roomId);
+  // The triggers are the real guard and they answer in SQL. Anything they
+  // refuse comes back as the age rule rather than as a raw database error,
+  // because that is the only thing they refuse this for.
+  if (error) {
+    return {
+      error: "This room stays private: it has a member under 18.",
+      code: "minor_public_room",
+    };
+  }
+  void captureServer(user.id, "room_visibility_changed", { visibility });
+  revalidatePath(`/rooms/${roomId}`);
 }
 
 /**

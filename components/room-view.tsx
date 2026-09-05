@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { netFetch } from "@/lib/net/client-fetch";
-import { joinRoom, postRoomMessage } from "@/app/rooms/actions";
+import { joinRoom, postRoomMessage, setRoomVisibility } from "@/app/rooms/actions";
 import { dispatchUpgrade } from "@/lib/upgrade";
 import { useVoiceRecorder } from "@/lib/use-voice-recorder";
 import { RoomChallenges } from "@/components/room-challenges";
@@ -126,6 +126,9 @@ export function RoomView(props: React.ComponentProps<typeof RoomViewBody>) {
 
 function RoomViewBody({
   roomId,
+  isOwner,
+  visibilityLocked,
+  canChooseVisibility,
   roomName,
   subject,
   visibility,
@@ -145,6 +148,13 @@ function RoomViewBody({
   initialReport,
 }: {
   roomId: string;
+  /** The room's creator — the only member who may change its visibility. */
+  isOwner: boolean;
+  /** The age rule: a room holding anyone under 18 can never be opened. Sent as
+   *  a bare boolean, never the ages or whose they are. */
+  visibilityLocked: boolean;
+  /** `roomVisibilityChoice` for the owner's plan. */
+  canChooseVisibility: boolean;
   roomName: string;
   subject: string | null;
   visibility: string;
@@ -215,6 +225,9 @@ function RoomViewBody({
     "group" | "private" | "challenge" | "report" | "files"
   >("group");
   const [report, setReport] = useState<RoomReport>(initialReport);
+  // Held locally so the pill flips the moment the server action resolves,
+  // rather than waiting for the revalidated page to come back.
+  const [vis, setVis] = useState<string>(visibility);
   const [repBusy, setRepBusy] = useState(false);
 
   async function generateReport() {
@@ -612,6 +625,15 @@ function RoomViewBody({
             ⏱ {expired ? "Ended" : `${fmtRemaining(remainingMs)} left`}
           </span>
         )}
+        <RoomVisibility
+          theme={t}
+          roomId={roomId}
+          visibility={vis}
+          onChange={setVis}
+          isOwner={isOwner}
+          locked={visibilityLocked}
+          canChoose={canChooseVisibility}
+        />
         {joined && (
           <span style={{ marginLeft: "auto", alignSelf: "center", position: "relative", display: "flex", alignItems: "center", gap: 6 }}>
             {/* Documents — a quick popover right in the header, like the chat
@@ -994,5 +1016,117 @@ function RoomViewBody({
       </div>
       {preview && <FilePreview file={preview} scope="room" onClose={() => setPreview(null)} />}
     </RayaShell>
+  );
+}
+
+/**
+ * Who can see this room, in the header beside the timer.
+ *
+ * Everyone sees the state, because "can a stranger walk in" is not the owner's
+ * private business — it is the first thing a member should be able to check.
+ * Only the owner gets the switch, and only when both gates above it are open:
+ *
+ *  - the age rule (`locked`) — a room holding a member under 18 is private and
+ *    stays private, at any tier. Stated without naming who: the owner is told
+ *    the room cannot be opened, not who is keeping it shut.
+ *  - the plan (`canChoose`) — `roomVisibilityChoice`. A locked room does not
+ *    also advertise an upgrade: it would be selling something that would not
+ *    change the answer.
+ *
+ * Private is the default everywhere (see createRoom), so the only irreversible-
+ * feeling direction is opening one — which is why that is the click that
+ * confirms, and closing it again never does.
+ */
+function RoomVisibility({
+  theme: t,
+  roomId,
+  visibility,
+  onChange,
+  isOwner,
+  locked,
+  canChoose,
+}: {
+  theme: AppTheme;
+  roomId: string;
+  visibility: string;
+  onChange: (v: string) => void;
+  isOwner: boolean;
+  locked: boolean;
+  canChoose: boolean;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  const isPublic = visibility === "public";
+  const canSwitch = isOwner && canChoose && (!locked || isPublic);
+
+  async function flip() {
+    const next = isPublic ? "private" : "public";
+    if (busy) return;
+    if (next === "public" && !window.confirm("Open this room to everyone? Anyone on Bluestift will be able to find it and join.")) return;
+    setBusy(true);
+    setNote(null);
+    try {
+      const res = await setRoomVisibility(roomId, next);
+      if (res && "error" in res) {
+        // The age rule is not something a plan fixes, so it says so plainly
+        // rather than opening the upgrade modal (same split as joinRoom).
+        if (res.code === "minor_public_room") setNote(res.error);
+        else dispatchUpgrade({ code: res.code, message: res.error });
+        return;
+      }
+      onChange(next);
+    } catch {
+      setNote("Could not change this. Try again in a moment.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const pill: React.CSSProperties = {
+    alignSelf: "center",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 5,
+    fontSize: 14,
+    fontWeight: 600,
+    borderRadius: 99,
+    padding: "3px 10px",
+    color: t.mutedLight,
+    background: t.cardBg2,
+    border: `1px solid ${t.cardBorder}`,
+  };
+
+  return (
+    <>
+      {canSwitch ? (
+        <button
+          type="button"
+          onClick={flip}
+          disabled={busy}
+          title={isPublic ? "Anyone can find and join this room" : "Only people with the invite link can join"}
+          style={{ ...pill, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1, font: "inherit", fontSize: 14, fontWeight: 600 }}
+        >
+          {isPublic ? "🌐 Public" : "🔒 Private"}
+          <span style={{ color: t.muted, fontWeight: 400 }}>· {busy ? "saving…" : "change"}</span>
+        </button>
+      ) : (
+        <span
+          style={pill}
+          title={
+            isOwner && locked
+              ? "This room has a member under 18, so it stays private."
+              : isPublic
+                ? "Anyone can find and join this room"
+                : "Only people with the invite link can join"
+          }
+        >
+          {isPublic ? "🌐 Public" : "🔒 Private"}
+          {isOwner && locked && <span style={{ color: t.muted, fontWeight: 400 }}>· locked</span>}
+        </span>
+      )}
+      {note && (
+        <span style={{ alignSelf: "center", fontSize: 13, color: t.muted }}>{note}</span>
+      )}
+    </>
   );
 }

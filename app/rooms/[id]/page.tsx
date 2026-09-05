@@ -10,6 +10,8 @@ import {
 import { initialsOf } from "@/lib/name";
 import { getPlanLabel } from "@/lib/billing";
 import { softValue } from "@/lib/page-data";
+import { roomHoldsMinor } from "@/lib/rooms";
+import { resolveRayaEntitlements as getRayaEntitlements } from "@/lib/entitlements";
 
 export default async function RoomPage({
   params,
@@ -23,7 +25,7 @@ export default async function RoomPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const roomCols = "id, name, subject, ai_mode, visibility, timer_ends_at";
+  const roomCols = "id, name, subject, ai_mode, visibility, timer_ends_at, created_by";
 
   // Wave 1: the profile gate, the chrome plan label, the room shell and this
   // user's membership — four round trips that used to run one after another.
@@ -65,6 +67,23 @@ export default async function RoomPage({
   if (!room) redirect("/rooms");
 
   const isMember = !!membership;
+
+  /*
+   * The visibility control's three inputs, resolved only for the room's owner —
+   * nobody else can change it, so nobody else's page pays for the lookups.
+   *
+   * `visibilityLocked` is the age rule, and it is deliberately computed even
+   * when the room is already private: the control has to be able to say WHY it
+   * is not offering the choice, and "there is a minor in here" is a different
+   * answer from "your plan does not include it".
+   */
+  const isOwner = room.created_by === user.id;
+  const [visibilityLocked, canChooseVisibility] = isOwner
+    ? await Promise.all([
+        roomHoldsMinor(room.id),
+        getRayaEntitlements(user.id).then((e) => e.ent.roomVisibilityChoice),
+      ])
+    : [true, false];
 
   let messages: {
     id: string;
@@ -158,6 +177,9 @@ export default async function RoomPage({
       roomName={room.name}
       subject={room.subject}
       visibility={room.visibility}
+      isOwner={isOwner}
+      visibilityLocked={visibilityLocked}
+      canChooseVisibility={canChooseVisibility}
       timerEndsAt={room.timer_ends_at ?? null}
       isMember={isMember}
       memberCount={memberCount}

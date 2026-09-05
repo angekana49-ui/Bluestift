@@ -1,6 +1,7 @@
 import "server-only";
 import type { createClient } from "@/lib/supabase/server";
 import { ageBand, isMinor } from "@/lib/compliance/age";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 type ServerClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -55,4 +56,33 @@ export async function assertRoomOpen(
   if (!data) return { open: false, timerEndsAt: null };
   const endsAt = (data as { timer_ends_at?: string | null }).timer_ends_at ?? null;
   return { open: !roomExpired(endsAt), timerEndsAt: endsAt };
+}
+
+/**
+ * Whether this room holds anyone under 18 — including the asker.
+ *
+ * Read with the service role because the point is other people's ages, which
+ * RLS rightly will not show the caller. What comes back out of here is one
+ * boolean, never a birth year and never whose it is: the owner is told the room
+ * cannot be opened, not who is keeping it shut.
+ *
+ * `learning.room_has_minor()` says the same thing inside the database, but its
+ * execute grant is revoked (it sits in a PostgREST-exposed schema), so the two
+ * copies are deliberate — see the note at the top of
+ * 20260901140000_room_minor_visibility_lock.sql.
+ */
+export async function roomHoldsMinor(roomId: string): Promise<boolean> {
+  const admin = createAdminClient();
+  const { data: members } = await admin
+    .schema("learning")
+    .from("room_members")
+    .select("user_id")
+    .eq("room_id", roomId);
+  const ids = (members ?? []).map((m) => m.user_id).filter(Boolean);
+  // No members read at all is not evidence of no minors — fail closed, the same
+  // direction isMinorBirthYear fails on an undeclared year.
+  if (ids.length === 0) return true;
+  const { data: rows } = await admin.from("users").select("birth_year").in("id", ids);
+  if (!rows) return true;
+  return rows.some((r) => isMinorBirthYear(r.birth_year));
 }
