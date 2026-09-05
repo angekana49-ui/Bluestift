@@ -317,6 +317,11 @@ export async function POST(request: Request) {
   // The tier is decided from the SAME profile/alerts the prompt is built from,
   // so the model that answers is always matched to the state that shaped the
   // question — no second Kernel read, no extra latency.
+  //
+  // It is also passed INTO the prompt. It used to only pick the endpoint, so a
+  // small fast model and a frontier one were handed an identical three-thousand
+  // word rulebook — and a small model handed a rulebook follows it literally,
+  // which is most of what made the tutor read as mechanical.
   const routing = routeTier(profile, alerts);
   let model: string;
   let deltas: AsyncGenerator<string>;
@@ -336,6 +341,7 @@ export async function POST(request: Request) {
         analysis,
         anchored,
         mode,
+        routing.tier,
       ),
       routing.tier,
     );
