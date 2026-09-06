@@ -2,6 +2,7 @@
 
 import type { PostHog } from "posthog-js";
 import { getConsent } from "./consent";
+import { scrubPath, scrubQuery } from "./scrub-url";
 
 /**
  * PostHog, loaded ON DEMAND.
@@ -57,8 +58,54 @@ export function loadPostHog(): Promise<PostHog | null> {
         // page loads), so disable the automatic one to avoid duplicates.
         capture_pageview: false,
         capture_pageleave: true,
-        autocapture: true,
+        /**
+         * Autocapture is OFF, and this is a product decision as much as a
+         * privacy one.
+         *
+         * It records the TEXT of whatever was clicked. On a marketing page that
+         * is a button label; inside Raya it is a child's message to their tutor,
+         * a document title, a classmate's name on a roster. None of that is
+         * something a visitor agreed to send anywhere by tapping, and no
+         * consent banner makes it proportionate to collect.
+         *
+         * Nothing is lost that we were relying on: every funnel here runs on
+         * named events (`captureServer`, `posthog.capture`) which say what
+         * happened without quoting anyone.
+         */
+        autocapture: false,
         disable_session_recording: true,
+        /**
+         * Every event the SDK sends carries the page it happened on, read
+         * straight from `window.location` — so scrubbing our own $pageview call
+         * would still leave the raw URL on all the others. This rewrites the
+         * location properties at the source, once, for every event.
+         */
+        sanitize_properties: (properties: Record<string, unknown>) => {
+          const scrub = (value: unknown): unknown => {
+            if (typeof value !== "string" || !value) return value;
+            try {
+              const u = new URL(value);
+              return `${u.origin}${scrubPath(u.pathname)}${scrubQuery(u.search)}`;
+            } catch {
+              // A bare path (`$pathname`) rather than an absolute URL.
+              return value.startsWith("/") ? scrubPath(value) : value;
+            }
+          };
+          for (const key of [
+            "$current_url",
+            "$pathname",
+            "$referrer",
+            "$initial_current_url",
+            "$initial_pathname",
+            "$initial_referrer",
+            "$session_entry_url",
+            "$session_entry_pathname",
+            "$session_entry_referrer",
+          ]) {
+            if (key in properties) properties[key] = scrub(properties[key]);
+          }
+          return properties;
+        },
         // Still opt-out by default: the SDK only loads after consent, but this
         // keeps "loaded" and "allowed to capture" as two separate facts.
         opt_out_capturing_by_default: true,

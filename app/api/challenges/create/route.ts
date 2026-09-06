@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateJson } from "@/lib/raya/llm";
@@ -157,7 +158,7 @@ export async function POST(request: Request) {
     if (questions.length === 0) throw new Error("no questions generated");
   } catch (e) {
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "generation failed" },
+      { error: clientError(e, "generation failed") },
       { status: 502 },
     );
   }
@@ -179,7 +180,7 @@ export async function POST(request: Request) {
     })
     .select("id")
     .single();
-  if (cErr) return NextResponse.json({ error: cErr.message }, { status: 500 });
+  if (cErr) return NextResponse.json({ error: clientError(cErr) }, { status: 500 });
 
   const rows = questions.map((q, i) => ({
     challenge_id: challenge.id,
@@ -193,7 +194,7 @@ export async function POST(request: Request) {
     .schema("learning")
     .from("challenge_questions")
     .insert(rows);
-  if (qErr) return NextResponse.json({ error: qErr.message }, { status: 500 });
+  if (qErr) return NextResponse.json({ error: clientError(qErr) }, { status: 500 });
 
   return NextResponse.json({ id: challenge.id, questionCount: questions.length });
 }

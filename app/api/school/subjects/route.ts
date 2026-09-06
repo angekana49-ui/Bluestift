@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { getAdminMembership, getSchoolSubjects } from "@/lib/school-admin";
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
     .insert({ name, code, is_global: false, school_id: membership.schoolId })
     .select("id, name, code")
     .single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
 
   const row = data as { id: string; name: string; code: string | null };
   return NextResponse.json({ id: row.id, name: row.name, code: row.code });

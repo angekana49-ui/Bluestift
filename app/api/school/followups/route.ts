@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { assertClassAccess, getAdminMembership, getStudentFollowups } from "@/lib/school-admin";
@@ -68,7 +69,7 @@ export async function POST(request: Request) {
     })
     .select("id, created_at, updated_at")
     .single();
-  if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 });
+  if (insErr) return NextResponse.json({ error: clientError(insErr) }, { status: 500 });
 
   const row = data as { id: string; created_at: string; updated_at: string };
   return NextResponse.json({ id: row.id, content, createdAt: row.created_at, updatedAt: row.updated_at });
@@ -99,7 +100,7 @@ export async function PATCH(request: Request) {
     .from("student_followups")
     .update({ content, updated_at: new Date().toISOString() })
     .eq("id", id);
-  if (updErr) return NextResponse.json({ error: updErr.message }, { status: 500 });
+  if (updErr) return NextResponse.json({ error: clientError(updErr) }, { status: 500 });
   return NextResponse.json({ ok: true, id });
 }
 
@@ -118,7 +119,7 @@ export async function DELETE(request: Request) {
 
   const schools = createSchoolsAdminClient();
   const { error: delErr } = await schools.from("student_followups").delete().eq("id", id);
-  if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 });
+  if (delErr) return NextResponse.json({ error: clientError(delErr) }, { status: 500 });
   return NextResponse.json({ ok: true, id });
 }
 

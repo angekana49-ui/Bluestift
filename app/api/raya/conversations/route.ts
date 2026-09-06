@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { rayaComplete } from "@/lib/raya/llm";
 import { kernel, clampHistory } from "@/lib/kernel/client";
@@ -48,7 +49,7 @@ export async function GET(request: Request) {
       .eq("conversation_id", id)
       .order("created_at", { ascending: true }),
   ]);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
 
   return NextResponse.json({ messages: data ?? [], files: files ?? [] });
 }
@@ -120,7 +121,7 @@ export async function POST(request: Request) {
     .update({ title })
     .eq("id", id)
     .eq("user_id", user.id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
 
   return NextResponse.json({ title });
 }
@@ -194,7 +195,7 @@ export async function PATCH(request: Request) {
       .update({ archived_at })
       .eq("id", id)
       .eq("user_id", user.id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
     return NextResponse.json({ ok: true, archived_at });
   }
 
@@ -208,7 +209,7 @@ export async function PATCH(request: Request) {
       .update({ memorized_at: null })
       .eq("id", id)
       .eq("user_id", user.id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
     return NextResponse.json({ ok: true, memorized_at: null });
   }
 
@@ -302,7 +303,7 @@ export async function DELETE(request: Request) {
     .delete()
     .eq("id", id)
     .eq("user_id", user.id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
 
   return NextResponse.json({ ok: true });
 }

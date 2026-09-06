@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAdminMembership } from "@/lib/school-admin";
@@ -66,7 +67,7 @@ export async function POST(request: Request) {
       })
       .select("id")
       .single();
-    if (convErr) return NextResponse.json({ error: convErr.message }, { status: 500 });
+    if (convErr) return NextResponse.json({ error: clientError(convErr) }, { status: 500 });
     conversationId = conv.id;
   }
 
@@ -83,7 +84,7 @@ export async function POST(request: Request) {
 
   const path = `${user.id}/school-chat/${conversationId}/${Date.now()}-${storageSafeName(file.name)}`;
   const up = await supabase.storage.from("user-media").upload(path, file);
-  if (up.error) return NextResponse.json({ error: up.error.message }, { status: 500 });
+  if (up.error) return NextResponse.json({ error: clientError(up.error) }, { status: 500 });
 
   const { data: row, error } = await supabase
     .schema("learning")
@@ -100,7 +101,7 @@ export async function POST(request: Request) {
     })
     .select("id, file_name, file_type, mime_type, file_size, created_at")
     .single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
 
   return NextResponse.json({ file: row, conversationId, hasText: text.length > 0 });
 }
@@ -127,7 +128,7 @@ export async function DELETE(request: Request) {
     .is("message_id", null)
     .select("file_path")
     .maybeSingle();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
   if (!row) return NextResponse.json({ error: "not found" }, { status: 404 });
 
   if (row.file_path) {

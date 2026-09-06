@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
+import { ageGateResponse } from "@/lib/compliance/api-gate";
 import { rayaComplete, type ChatMsg } from "@/lib/raya/llm";
 import { assertRoomOpen } from "@/lib/rooms";
 import { FORMATTING_RULES, safetyLayer } from "@/lib/raya/prompt";
@@ -32,6 +34,9 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // Pages send an ungated account back to the age question; this route has to as well.
+  const gated = await ageGateResponse(user.id);
+  if (gated) return gated;
   if (!(await checkStrictUserRateLimit("room_raya", user.id, 12, "1 minute"))) {
     return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }
@@ -94,7 +99,7 @@ export async function POST(request: Request) {
     reply = (await rayaComplete(messages)).text;
   } catch (e) {
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "llm error" },
+      { error: clientError(e, "llm error") },
       { status: 502 },
     );
   }
@@ -105,7 +110,7 @@ export async function POST(request: Request) {
     .insert({ room_id: roomId, user_id: null, role: "assistant", content: reply })
     .select("id, user_id, role, content, has_media, created_at")
     .single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
 
   // Return the stored row, don't just rely on Realtime fanning it out: on a
   // flaky network the WebSocket is the FIRST thing to die, and the student who

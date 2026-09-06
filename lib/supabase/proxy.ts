@@ -15,12 +15,23 @@ const AUTH_REFRESH_TIMEOUT_MS = 800;
 type CookieToSet = { name: string; value: string; options?: CookieOptions };
 
 /**
- * Refreshes the Supabase auth session on each request and forwards updated
- * cookies. Called from the root proxy.ts (Next.js 16 file convention).
- * Keep this logic minimal per Supabase SSR guidance.
+ * Refreshes the Supabase auth session on each request and forwards the updated
+ * cookies. Called from the root proxy.ts (Next.js 16 file convention). Keep
+ * this logic minimal per Supabase SSR guidance.
+ *
+ * `requestHeaders` is a FACTORY, not a value, and that is load-bearing. The
+ * caller uses it to add the per-request CSP nonce to the headers Next sees when
+ * it renders — but a snapshot taken once would be stale by the time the cookie
+ * handler below runs, because refreshing a session mutates `request.cookies`,
+ * which is backed by the request's own `cookie` header. Calling it again after
+ * that mutation is what keeps both the nonce AND the fresh session on the same
+ * outgoing request.
  */
-export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+export async function updateSession(
+  request: NextRequest,
+  requestHeaders: () => Headers,
+) {
+  let supabaseResponse = NextResponse.next({ request: { headers: requestHeaders() } });
 
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -34,7 +45,7 @@ export async function updateSession(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value),
           );
-          supabaseResponse = NextResponse.next({ request });
+          supabaseResponse = NextResponse.next({ request: { headers: requestHeaders() } });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options),
           );

@@ -86,6 +86,35 @@ describe("trainingAllowed", () => {
     expect(await mod.trainingAllowed("u2")).toBe(false);
   });
 
+  it("on a school-linked account, requires the holder's own explicit choice (DPA §7)", async () => {
+    const mod = await freshModule();
+    // A solo adult's default-on carries no timestamp: not a choice they made.
+    state.row = { birth_year: ADULT, training_consent: true, training_consent_at: null, school_id: "s1" };
+    expect(await mod.trainingAllowed("u1")).toBe(false);
+  });
+
+  it("on a school-linked account, honours an opt-in the holder made themselves", async () => {
+    const mod = await freshModule();
+    state.row = {
+      birth_year: ADULT,
+      training_consent: true,
+      training_consent_at: "2026-09-01T00:00:00Z",
+      school_id: "s1",
+    };
+    expect(await mod.trainingAllowed("u1")).toBe(true);
+  });
+
+  it("still refuses a school-linked minor whatever the row says", async () => {
+    const mod = await freshModule();
+    state.row = {
+      birth_year: TEEN,
+      training_consent: true,
+      training_consent_at: "2026-09-01T00:00:00Z",
+      school_id: "s1",
+    };
+    expect(await mod.trainingAllowed("u1")).toBe(false);
+  });
+
   it("does not leak the analytics decision into the training decision", async () => {
     const mod = await freshModule();
     // Adult with training off: analytics is still permitted for them.

@@ -26,12 +26,21 @@ import {
  * is far more useful to the person asking than a 500.
  */
 
+/**
+ * The same list erasure.ts deletes from. The last three are the Kernel's
+ * working record — what was sent to it, what it answered, and the alerts it
+ * raised about the learner — which is held about the person as much as the
+ * profile is, and was missing from the bundle until the audit of 2026-09-06.
+ */
 const KERNEL_TABLES = [
   "student_concept_state",
   "student_mindset_state",
   "student_risk_assessments",
   "learning_trajectories",
   "individual_insights",
+  "kernel_monitoring",
+  "kernel_outputs",
+  "kernel_requests",
 ] as const;
 
 export type DataExport = Record<string, unknown>;
@@ -50,6 +59,31 @@ export async function buildDataExport(userId: string, email: string | null): Pro
       return null;
     }
   };
+
+  /**
+   * `learning.kernel_profile_snapshots` is a real table (migration
+   * 20260728004630) that is missing from `types/database.types.ts`, because the
+   * generated types have not been rebuilt since it landed. The cast is confined
+   * to this one call site rather than widening the client for the whole file,
+   * and the query is `select("*")`, so nothing here depends on the column list.
+   *
+   * Delete it the next time `gen:types` runs against the project — at which
+   * point the typed client will accept the table and this stops compiling,
+   * which is the reminder.
+   */
+  const untypedLearning = (table: string, column: string) =>
+    (
+      admin.schema("learning") as unknown as {
+        from: (t: string) => {
+          select: (c: string) => {
+            eq: (k: string, v: string) => PromiseLike<{ data: unknown; error: unknown }>;
+          };
+        };
+      }
+    )
+      .from(table)
+      .select("*")
+      .eq(column, userId);
 
   const rows = async (label: string, q: PromiseLike<{ data: unknown; error: unknown }>) =>
     section(label, async () => {
@@ -82,6 +116,9 @@ export async function buildDataExport(userId: string, email: string | null): Pro
     simulations,
     media,
     schoolIdentity,
+    enrollments,
+    staffNotes,
+    profileSnapshot,
     promo,
     requests,
   ] = await Promise.all([
@@ -158,6 +195,17 @@ export async function buildDataExport(userId: string, email: string | null): Pro
     ),
     rows("user_media", admin.schema("rag").from("user_media").select("*").eq("user_id", userId)),
     rows("school_identity", schools.from("student_identities").select("*").eq("user_id", userId)),
+    rows("class_enrollments", admin.from("class_enrollments").select("*").eq("user_id", userId)),
+    // Notes staff wrote ABOUT the student. They are in the school's own record
+    // of the student, and art. 15 covers what is held about a person, not only
+    // what they typed — so they belong in the student's bundle too.
+    rows(
+      "staff_followups",
+      schools.from("student_followups").select("*").eq("student_user_id", userId),
+    ),
+    // The app's durable copy of the Kernel's read of the learner, including the
+    // analysis the learner asked to keep ("Memorize") and the Kernel's summary.
+    rows("kernel_profile_snapshot", untypedLearning("kernel_profile_snapshots", "user_id")),
     rows(
       "promo_redemptions",
       admin.from("user_promo_code_redemptions").select("*").eq("user_id", userId),
@@ -208,9 +256,12 @@ export async function buildDataExport(userId: string, email: string | null): Pro
     student_simulations: simulations,
     uploads: media,
     school_identity: schoolIdentity,
+    class_enrollments: enrollments,
+    staff_followups: staffNotes,
     promo_redemptions: promo,
     data_requests: requests,
     cognitive_profile: cognitive,
+    kernel_profile_snapshot: profileSnapshot,
     _errors: errors,
   };
 }

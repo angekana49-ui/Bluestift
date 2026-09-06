@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import { hasRealEmail, ensureRecoveryKeyIssued } from "@/lib/auth";
 import { resolveHome } from "@/lib/routing";
 import { needsAgeGate } from "@/lib/compliance/guard";
-import { evaluateAccess } from "@/lib/compliance/age";
 import { OnboardingForm } from "@/components/onboarding-form";
 
 export default async function OnboardingPage() {
@@ -32,14 +31,6 @@ export default async function OnboardingPage() {
   // one question that's missing.
   const ageOnly = onboarded && gated;
 
-  // Under-13 with nobody authorised to act for them: the form opens straight on
-  // the blocked screen rather than re-asking a question already answered.
-  const decision = evaluateAccess({
-    birthYear: profile?.birth_year ?? null,
-    schoolId: profile?.school_id ?? null,
-    minorConsentSource: profile?.minor_consent_source ?? null,
-  });
-  const blocked = !decision.allowed && decision.reason === "needs_school_or_parent";
 
   // The trigger seeds a default username like "user_xxxxxxxx"; don't prefill it.
   const seededDefault = (profile?.username ?? "").startsWith("user_");
@@ -67,7 +58,6 @@ export default async function OnboardingPage() {
         initialUsername={seededDefault ? "" : (profile?.username ?? "")}
         initialDisplayName={profile?.display_name ?? ""}
         ageOnly={ageOnly}
-        startBlocked={blocked}
       />
     </main>
   );

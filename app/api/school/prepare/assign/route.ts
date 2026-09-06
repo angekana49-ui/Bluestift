@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { assertClassAccess, getAdminMembership } from "@/lib/school-admin";
@@ -131,7 +132,7 @@ export async function POST(request: Request) {
     order: i,
   }));
   const { error: qErr } = await admin.schema("learning").from("challenge_questions").insert(qRows);
-  if (qErr) return NextResponse.json({ error: qErr.message }, { status: 500 });
+  if (qErr) return NextResponse.json({ error: clientError(qErr) }, { status: 500 });
 
   const { data: asg, error: aErr } = await schools
     .from("resource_assignments")
@@ -148,7 +149,7 @@ export async function POST(request: Request) {
     })
     .select("id")
     .single();
-  if (aErr) return NextResponse.json({ error: aErr.message }, { status: 500 });
+  if (aErr) return NextResponse.json({ error: clientError(aErr) }, { status: 500 });
 
   void captureServer(membership.adminId, "assignment_created", {
     format,

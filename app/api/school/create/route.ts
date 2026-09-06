@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { SCHOOL_TYPES } from "@/lib/school-admin";
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
     .insert({ name, country_code: countryCode, school_type: schoolType, city })
     .select("id")
     .single();
-  if (sErr) return NextResponse.json({ error: sErr.message }, { status: 500 });
+  if (sErr) return NextResponse.json({ error: clientError(sErr) }, { status: 500 });
   const schoolId = (schoolIns as { id: string }).id;
 
   const year = currentAcademicYear();
@@ -61,7 +62,7 @@ export async function POST(request: Request) {
     .insert({ school_id: schoolId, ...year, is_active: true })
     .select("id")
     .single();
-  if (yErr) return NextResponse.json({ error: yErr.message }, { status: 500 });
+  if (yErr) return NextResponse.json({ error: clientError(yErr) }, { status: 500 });
   const yearId = (yearIns as { id: string }).id;
 
   // The school creator is the admin_master (director/IT). Profs are added later
@@ -69,7 +70,7 @@ export async function POST(request: Request) {
   const { error: aErr } = await schools
     .from("school_admins")
     .insert({ user_id: user.id, school_id: schoolId, role: "admin_master" });
-  if (aErr) return NextResponse.json({ error: aErr.message }, { status: 500 });
+  if (aErr) return NextResponse.json({ error: clientError(aErr) }, { status: 500 });
 
   await schools.from("schools").update({ current_school_year_id: yearId }).eq("id", schoolId);
 

@@ -62,6 +62,8 @@ export function ConsentBanner() {
     // paid nothing for analytics.
     const posthog = await enableAnalytics();
     if (!posthog) return;
+    // The URL rides on the event either way; `sanitize_properties` (see
+    // lib/analytics/posthog-lazy.ts) reduces it to its shape first.
     posthog.capture("$pageview");
     try {
       const { data } = await createClient().auth.getUser();

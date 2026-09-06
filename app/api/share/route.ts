@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { randomBytes } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { resolveRayaEntitlements, gateQuota, sinceDaysIso } from "@/lib/entitlements";
@@ -57,7 +58,7 @@ export async function POST(request: Request) {
     .schema("learning")
     .from("shares")
     .insert({ token, user_id: user.id, kind: "doc", title: title || null, body: content, brand });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
 
   void captureServer(user.id, "doc_shared", { brand, tier });
   // Never reflect Host/X-Forwarded-Host into a link: those headers are request
@@ -86,7 +87,7 @@ export async function GET() {
     .is("revoked_at", null)
     .order("created_at", { ascending: false })
     .limit(100);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
 
   return NextResponse.json({
     shares: (data ?? []).map((s) => ({
@@ -120,7 +121,7 @@ export async function DELETE(request: Request) {
     .eq("user_id", user.id)
     .is("revoked_at", null)
     .select("token");
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
   // Deliberately the same answer for "not yours" and "already revoked": the
   // caller must not be able to probe which tokens exist. Either way the link is
   // not live on their behalf.

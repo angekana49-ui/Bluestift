@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { randomInt } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
@@ -56,7 +57,7 @@ export async function POST(request: Request) {
       });
     }
     if (!/duplicate|unique|23505/i.test(error.message)) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: clientError(error) }, { status: 500 });
     }
   }
   return NextResponse.json({ error: "Could not allocate a unique code, try again." }, { status: 500 });
@@ -95,7 +96,7 @@ export async function PATCH(request: Request) {
     .eq("school_id", membership.schoolId)
     .select("id")
     .maybeSingle();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
   if (!data) return NextResponse.json({ error: "Code not found." }, { status: 404 });
   return NextResponse.json({ id: codeId, isActive });
 }

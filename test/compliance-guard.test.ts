@@ -20,12 +20,8 @@ describe("needsAgeGate", () => {
     expect(needsAgeGate(undefined)).toBe(true);
   });
 
-  it("gates an under-13 with no school", () => {
-    expect(needsAgeGate({ birth_year: childYear })).toBe(true);
-  });
-
-  it("lets an under-13 through once a school vouches", () => {
+  it("lets an under-13 through on their own — the gate is about answering, not about age", () => {
+    expect(needsAgeGate({ birth_year: childYear })).toBe(false);
     expect(needsAgeGate({ birth_year: childYear, school_id: "s1" })).toBe(false);
-    expect(needsAgeGate({ birth_year: childYear, minor_consent_source: "school" })).toBe(false);
   });
 });

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ageBand, allowsOptionalProcessing } from "@/lib/compliance/age";
@@ -61,7 +62,7 @@ export async function POST(request: Request) {
       training_consent_at: new Date().toISOString(),
     })
     .eq("id", user.id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
 
   // The decision is memoised for five minutes on the read path; without this
   // the switch appears to do nothing for the rest of that window.

@@ -80,8 +80,17 @@ export async function POST(request: Request) {
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
   if (!email) return NextResponse.json({ error: "A user email is required." }, { status: 400 });
 
+  // "no wildcards" was an assumption about what the operator types, not a
+  // property of the input. `%` and `_` ARE wildcards to ilike, so `%@%` matches
+  // an arbitrary account — and this endpoint grants that account a paid plan.
+  // Neither character belongs in an unquoted address, so the fix is to refuse
+  // them rather than to escape them into a filter grammar.
+  if (/[%_]/.test(email)) {
+    return NextResponse.json({ error: "No account with that email." }, { status: 404 });
+  }
+
   const admin = createAdminClient();
-  // ilike (no wildcards) = case-insensitive exact match — public.users.email
+  // ilike on a literal = case-insensitive exact match — public.users.email
   // isn't guaranteed to be stored lowercase, and typing it wrong shouldn't
   // just silently 404.
   const { data: found } = await admin.from("users").select("id, email").ilike("email", email).maybeSingle();

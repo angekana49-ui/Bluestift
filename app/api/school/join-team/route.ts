@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
@@ -145,7 +146,7 @@ export async function POST(request: Request) {
       .insert({ user_id: user.id, school_id: codeRow.school_id, role: "prof" })
       .select("id")
       .single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
     await confirmMembershipForYear((created as { id: string }).id, currentYearId);
     // Land the teacher in the school they just joined.
     await setActiveSchoolCookie(codeRow.school_id);
@@ -175,7 +176,7 @@ export async function POST(request: Request) {
     if (/duplicate|unique|23505/i.test(error.message)) {
       return NextResponse.json({ status: "requested", schoolName });
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: clientError(error) }, { status: 500 });
   }
 
   // Fresh request — let the admins know, after the response is sent.

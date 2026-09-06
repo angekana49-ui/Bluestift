@@ -283,7 +283,7 @@ export function RoomChallenges({
         analyzing={analyzing}
         resultActions={
           <>
-            <DocumentActions doc={resultDoc()} compact shareable={false} />
+            <DocumentActions doc={resultDoc()} compact shareable={false} personal />
             <ShareLinkButton theme={t} doc={resultDoc()} />
             <button style={ghost} onClick={() => setView("standings")} title="Squad standings">🏆 Standings</button>
           </>
@@ -302,7 +302,7 @@ export function RoomChallenges({
         onExit={() => setView("list")}
         actions={
           <>
-            <DocumentActions doc={analysisDoc()} compact shareable={false} />
+            <DocumentActions doc={analysisDoc()} compact shareable={false} personal />
             <ShareLinkButton theme={t} doc={analysisDoc()} />
           </>
         }

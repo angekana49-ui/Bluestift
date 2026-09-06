@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { reportError } from "@/lib/observability/report";
+import { ageGateResponse } from "@/lib/compliance/api-gate";
 import { kernel, KernelError, clampHistory } from "@/lib/kernel/client";
 import type { KernelMessage } from "@/lib/kernel/types";
 
@@ -17,6 +19,9 @@ export async function POST(request: Request) {
   if (!user) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+  // Pages send an ungated account back to the age question; this route has to as well.
+  const gated = await ageGateResponse(user.id);
+  if (gated) return gated;
 
   let body: {
     conversation_history?: KernelMessage[];
@@ -63,22 +68,16 @@ export async function POST(request: Request) {
       // later", not a failure — passing it through as 502 would invite the
       // caller to retry immediately, which is exactly what tripped the limit.
       if (err.status === 429) {
-        return NextResponse.json(
-          { error: "rate_limited", detail: err.body },
-          { status: 429 },
-        );
+        return NextResponse.json({ error: "rate_limited" }, { status: 429 });
       }
-      return NextResponse.json(
-        { error: "kernel_error", detail: err.body },
-        { status: 502 },
-      );
+      // The Kernel's own body stays server-side. It is another service on
+      // another host, so its failures describe OUR infrastructure — a hostname,
+      // a traceback, a dependency — to whoever prodded this endpoint. The
+      // record in the logs carries all of it.
+      await reportError("kernel.analyze", err, { tags: { status: err.status } });
+      return NextResponse.json({ error: "kernel_error" }, { status: 502 });
     }
-    return NextResponse.json(
-      {
-        error: "internal_error",
-        detail: err instanceof Error ? err.message : String(err),
-      },
-      { status: 500 },
-    );
+    await reportError("kernel.analyze", err);
+    return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }
 }

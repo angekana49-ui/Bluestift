@@ -5,7 +5,7 @@ import { BluestiftText, RayaName } from "@/components/ui/brand";
 import { LegalShell, Table, h2, li, link, note, p, ul } from "./legal-chrome";
 import { useTranslate } from "@/components/ui/locale";
 
-const UPDATED = "13 August 2026";
+const UPDATED = "6 September 2026";
 
 /**
  * The sub-processor list. GDPR art. 28(2) lets a school object to a new
@@ -52,6 +52,17 @@ export function SubprocessorsView({ signedIn }: { signedIn: boolean }) {
                 tr("subprocessors.row.vercel.purpose"),
                 tr("subprocessors.row.vercel.data"),
                 tr("subprocessors.loc.euUs"),
+              ],
+              /* The Kernel is our own code, but it runs on someone else's
+                 machines and receives tutoring turns to analyse — so its host
+                 is a sub-processor exactly as Vercel is for the app. Region:
+                 Railway's default (US West); if the service is ever moved to
+                 Railway's EU region, change the cell, not the row. */
+              [
+                "Railway",
+                tr("subprocessors.row.railway.purpose"),
+                tr("subprocessors.row.railway.data"),
+                tr("subprocessors.loc.us"),
               ],
               [
                 "Google (Gemini)",

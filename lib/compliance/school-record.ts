@@ -37,11 +37,33 @@ const KERNEL_TABLES = [
 export async function buildStudentRecord(input: {
   studentUserId: string;
   classId: string;
-}): Promise<StudentRecord> {
+}): Promise<StudentRecord | null> {
   const admin = createAdminClient();
   const schools = createSchoolsAdminClient();
   const kernel = createKernelAdminClient();
   const { studentUserId, classId } = input;
+
+  /**
+   * The enrolment check, repeated here on purpose.
+   *
+   * Every other read below is keyed on `studentUserId` ALONE — the account row,
+   * the follow-up notes, the assessment history, the whole cognitive profile —
+   * because that is how those tables are shaped. So the pairing of a student
+   * with a class is not something the queries can enforce; it has to be
+   * established before any of them runs. The caller checks it too, and this is
+   * the copy that survives the next caller forgetting to.
+   *
+   * Null, not an empty record: "no such student in this class" and "a student
+   * with nothing recorded yet" are different answers, and only one of them is a
+   * disclosure the school is entitled to.
+   */
+  const { data: enrolment } = await schools
+    .from("student_identities")
+    .select("user_id")
+    .eq("class_id", classId)
+    .eq("user_id", studentUserId)
+    .maybeSingle();
+  if (!enrolment) return null;
 
   const errors: string[] = [];
   const soft = async <T>(label: string, run: () => Promise<T>): Promise<T | null> => {
@@ -77,10 +99,14 @@ export async function buildStudentRecord(input: {
       return data ?? null;
     }),
     soft("followups", async () => {
+      // Scoped to THIS class. `student_followups` is written per class, and a
+      // student can be in classes across schools over time — an unscoped read
+      // hands one school the notes another school's staff wrote in private.
       const { data } = await schools
         .from("student_followups")
         .select("*")
-        .eq("student_user_id", studentUserId);
+        .eq("student_user_id", studentUserId)
+        .eq("class_id", classId);
       return data ?? [];
     }),
     soft("challenge_attempts", async () => {

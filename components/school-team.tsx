@@ -331,7 +331,7 @@ export function SchoolTeam({ classes }: { classes: ClassOpt[] }) {
         ))}
         <ListNoMatch search={profSearch} />
         <form onSubmit={addProf} style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem", flexWrap: "wrap" }}>
-          <input style={{ ...input, flex: 1, minWidth: 200 }} placeholder="Teacher email or username" value={profId} onChange={(e) => setProfId(e.target.value)} />
+          <input style={{ ...input, flex: 1, minWidth: 200 }} placeholder="Teacher email" value={profId} onChange={(e) => setProfId(e.target.value)} />
           <button type="submit" style={btn}>Add teacher</button>
         </form>
       </div>

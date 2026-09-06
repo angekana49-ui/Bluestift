@@ -499,22 +499,6 @@ export const fr: Partial<Messages> = {
     "Votre clé n'a été affichée qu'une fois — nous n'en gardons qu'une empreinte, elle ne peut donc pas être réaffichée. Si vous ne l'avez pas enregistrée, ajoutez un e-mail ci-dessus, puis générez-en une nouvelle dans",
   "onb.email.noKey.strong": "Réglages",
 
-  "onb.blocked.heading.a": "Il vous faut l'autorisation de votre établissement pour utiliser",
-  "onb.blocked.sub":
-    "Avant 13 ans, nous ne pouvons ouvrir un compte que si un établissement le met en place. Si votre enseignant vous a donné un code de classe, saisissez-le ici et c'est parti.",
-  "onb.blocked.codeLabel": "Code de classe",
-  "onb.blocked.codePlaceholder": "Donné par votre enseignant",
-  "onb.blocked.nameLabel": "Votre nom (partagé uniquement avec votre établissement)",
-  "onb.blocked.firstNamePlaceholder": "Prénom",
-  "onb.blocked.lastNamePlaceholder": "Nom",
-  "onb.blocked.linking": "Liaison…",
-  "onb.blocked.submit": "Utiliser mon code de classe →",
-  "onb.blocked.err.linkFailed": "Impossible de lier ce code",
-  "onb.blocked.note.strong": "Pas de code de classe ?",
-  "onb.blocked.note.a": "Demandez-en un à votre enseignant. Un parent ou tuteur peut aussi écrire à",
-  "onb.blocked.note.b": "et nous réglerons cela avec lui.",
-  "onb.blocked.closed":
-    "D'ici là, ce compte reste fermé. Nous n'avons conservé que l'année que vous nous avez donnée, et elle sera supprimée avec le compte s'il reste inutilisé.",
 
   // ── Panneau d'authentification (/login ET /account) ────────────────
   "auth.err.captcha": "Validez d'abord le CAPTCHA.",
@@ -608,6 +592,8 @@ export const fr: Partial<Messages> = {
   "checkout.method.card.sub": "Visa · Mastercard",
   "checkout.method.mobileMoney.sub": "MTN · Orange · Moov · Wave",
   "checkout.method.paypal.sub": "Payez avec votre solde PayPal",
+  "checkout.guardian.title": "Je suis le parent ou tuteur, et c'est moi qui paie.",
+  "checkout.guardian.body": "Ce compte appartient à une personne de moins de 18 ans. Seul un adulte peut payer pour lui ; votre confirmation est conservée avec le paiement.",
   "checkout.redirecting": "Redirection…",
   "checkout.payArrow": "Payer →",
   "checkout.err.startFailed": "Impossible de démarrer le paiement.",
@@ -698,6 +684,8 @@ export const fr: Partial<Messages> = {
   "subprocessors.row.supabase.purpose": "Base de données, authentification et stockage de fichiers — le système de référence",
   "subprocessors.row.supabase.data": "Tout ce qui est stocké : comptes, conversations, fichiers envoyés, signaux d'apprentissage",
   "subprocessors.row.vercel.purpose": "Hébergement de l'application et tâches planifiées",
+  "subprocessors.row.railway.purpose": "Héberge le Kernel — le moteur cognitif qui lit chaque échange de tutorat et maintient le modèle de ce qu'un apprenant comprend",
+  "subprocessors.row.railway.data": "Le texte des tours de tutorat envoyés pour analyse, les signaux d'apprentissage, un identifiant de compte",
   "subprocessors.row.vercel.data": "Requêtes en transit, journaux serveur",
   "subprocessors.row.gemini.purpose": "Génère les réponses de Raya",
   "subprocessors.row.gemini.data": "Le texte d'un tour de tutorat et le contexte envoyé avec",
@@ -707,7 +695,7 @@ export const fr: Partial<Messages> = {
   "subprocessors.row.posthog.data": "Pages vues, quelques événements produit, un identifiant de compte",
   "subprocessors.row.cloudflare.purpose": "Protection anti-robot Turnstile sur les formulaires publics et l'inscription",
   "subprocessors.row.cloudflare.data": "Un jeton de défi et des métadonnées réseau",
-  "subprocessors.row.resend.purpose": "E-mails transactionnels — invitations, décisions, reçus",
+  "subprocessors.row.resend.purpose": "E-mails transactionnels — demandes d'adhésion et leurs décisions, activation d'un forfait, reçus de paiement",
   "subprocessors.row.resend.data": "Adresse e-mail et contenu du message",
   "subprocessors.row.cinetpay.purpose": "Paiements par carte et mobile money",
   "subprocessors.row.cinetpay.data": "Détails de paiement et montant. Nous ne stockons jamais les numéros de carte complets",
@@ -886,9 +874,9 @@ export const fr: Partial<Messages> = {
   "terms.s1.li1.body": "— vous pouvez ouvrir un compte vous-même. Si vous avez moins de 18 ans, vous devriez avoir l'autorisation d'un parent ou tuteur.",
   "terms.s1.li2.strong": "Moins de 13 ans",
   "terms.s1.li2.a":
-    "— uniquement via un établissement qui vous a inscrit(e). Nous n'ouvrons pas de compte pour les moins de 13 ans qui s'inscrivent seuls ; voir la",
+    "— vous pouvez aussi utiliser Raya seul(e). Votre compte est réduit au strict minimum, rien ne peut y être acheté sans qu'un parent ou tuteur confirme que c'est lui qui paie, et un établissement qui vous inscrit consent au nom de vos parents ; voir la",
   "terms.s1.li2.link": "politique de confidentialité",
-  "terms.s1.li2.b": "pour savoir pourquoi.",
+  "terms.s1.li2.b": "pour ce que cela implique.",
   "terms.s1.li3": "Nous demandons à tout le monde son année de naissance et agissons en conséquence. En donner une fausse pour contourner cela constitue une violation des présentes conditions.",
   "terms.s2.h2": "2. Votre compte",
   "terms.s2.a": "Vous êtes responsable de ce qui se passe sur votre compte. Si vous utilisez un compte anonyme, la",
@@ -915,16 +903,16 @@ export const fr: Partial<Messages> = {
     "Ce que vous écrivez et publiez reste à vous. Vous nous donnez la permission nécessaire pour le stocker, le traiter et vous le montrer — et pour l'envoyer à un fournisseur de modèle afin que",
   "terms.s5.p1.b": "puisse répondre. Rien de plus.",
   "terms.s5.p2":
-    "Nous n'utilisons pas votre contenu pour améliorer nos modèles sauf si vous l'activez dans vos réglages, et cette option n'est pas proposée sur les comptes appartenant à des mineurs de moins de 18 ans.",
+    "Sur un compte adulte, nous utilisons votre contenu pour améliorer nos modèles sauf si vous le désactivez dans vos réglages ; sur un compte lié à un établissement, cela reste désactivé tant que vous ne l'activez pas ; et cette option n'est pas proposée sur les comptes appartenant à des mineurs de moins de 18 ans.",
   "terms.s6.h2": "6. Comptes établissement",
-  "terms.s6.a": "Si vous rejoignez via un code de classe, votre établissement voit votre nom, votre classe et vos résultats. Il ne voit pas vos conversations avec",
+  "terms.s6.a": "Si vous rejoignez via un code de classe, votre établissement voit votre nom, votre classe, vos résultats et votre progression — ce que vous maîtrisez et où vous bloquez — ainsi que les notes de suivi que vos enseignants rédigent à votre sujet. Il ne voit pas vos conversations avec",
   "terms.s6.b": ". Votre établissement administre votre accès et peut le retirer. Les conditions selon lesquelles nous opérons figurent dans l'",
   "terms.s6.link": "avenant de traitement des données",
   "terms.s7.h2": "7. Offres payantes",
   "terms.s7.p1.a": "Les tarifs et le contenu de chaque offre figurent sur la",
   "terms.s7.p1.link": "page tarifs",
   "terms.s7.p1.b":
-    ". Les abonnements se renouvellent pour la durée choisie jusqu'à résiliation, et résilier arrête le renouvellement suivant plutôt que de rembourser la période en cours. Là où le droit de la consommation vous accorde un droit de rétractation, ce droit s'applique et prime sur ce paragraphe. Les offres établissement sont facturées par élève selon l'accord propre à l'établissement.",
+    ". Les abonnements se renouvellent pour la durée choisie jusqu'à résiliation, et résilier arrête le renouvellement suivant plutôt que de rembourser la période en cours. Là où le droit de la consommation vous accorde un droit de rétractation, ce droit s'applique et prime sur ce paragraphe. Les offres établissement sont facturées par élève selon l'accord propre à l'établissement. Seul un adulte peut payer : sur un compte appartenant à un mineur de moins de 18 ans, le paiement demande au payeur de confirmer qu'il est le parent ou tuteur, et cette confirmation est conservée avec le paiement.",
   "terms.s7.p2": "Nous pouvons modifier les tarifs. Les abonnés existants conservent leur tarif jusqu'à la fin de la période déjà payée.",
   "terms.s8.h2": "8. Disponibilité",
   "terms.s8.body":
@@ -963,10 +951,10 @@ export const fr: Partial<Messages> = {
   "privacy.short.li3.a": "Sur un compte adulte, votre travail",
   "privacy.short.li3.strong": "est",
   "privacy.short.li3.b":
-    "utilisé pour améliorer nos modèles sauf si vous le désactivez — un seul réglage, effectif immédiatement. Pour les moins de 18 ans, il n'est jamais utilisé, et l'option n'est même pas proposée.",
+    "utilisé pour améliorer nos modèles sauf si vous le désactivez — un seul réglage, effectif immédiatement. Sur un compte lié à un établissement, il reste désactivé tant que vous ne l'activez pas. Pour les moins de 18 ans, il n'est jamais utilisé, et l'option n'est même pas proposée.",
   "privacy.short.li4.a": "Si votre compte est",
   "privacy.short.li4.strong": "lié à un établissement",
-  "privacy.short.li4.b": ", votre progression est visible par vos enseignants. S'il n'est lié à personne, rien de votre apprentissage ne sort de votre compte.",
+  "privacy.short.li4.b": ", votre progression est visible par vos enseignants. S'il n'est lié à personne, rien de votre apprentissage ne sort de votre compte, sauf ce que vous choisissez vous-même de partager — dans une salle d'étude ou via un lien de partage.",
   "privacy.short.li5": "Pas de publicité. Pas de vente de données. Pas de pistage inter-sites.",
   "privacy.short.li6.a": "Vous pouvez télécharger tout ce que nous détenons, ou supprimer votre compte entièrement, depuis",
   "privacy.short.li6.link": "vos réglages",
@@ -977,7 +965,7 @@ export const fr: Partial<Messages> = {
     "Nous demandons à tout le monde son année de naissance. Nous conservons l'année, jamais une date de naissance complète, et nous la demandons de façon neutre plutôt que « avez-vous plus de 13 ans ? » — une question ainsi formulée indique simplement à un enfant quelle réponse ouvre la porte.",
   "privacy.age.under13.strong": "Moins de 13 ans.",
   "privacy.age.under13.body":
-    "Nous n'ouvrons pas sciemment de compte pour des enfants de moins de 13 ans agissant seuls. Nous n'exploitons aucun mécanisme de vérification du consentement parental qui nous soit propre, donc la seule voie d'accès est un établissement : un établissement qui adopte Bluestift consent au nom du parent pour un usage scolaire, ce qui correspond à l'exception que le COPPA prévoit au 16 CFR § 312.5(c)(6). Un enfant qui s'inscrit seul est arrêté à la question de l'âge, et nous ne conservons rien d'autre que l'année qu'il nous a donnée jusqu'à la suppression du compte.",
+    "Nous n'exploitons aucun mécanisme de vérification du consentement parental qui nous soit propre. Lorsqu'un établissement adopte Bluestift, il consent au nom du parent pour un usage scolaire, ce qui correspond à l'exception que le COPPA prévoit au 16 CFR § 312.5(c)(6). Un enfant qui s'inscrit seul peut utiliser Raya, sur un compte que nous réduisons au strict minimum : aucun e-mail n'est requis, aucune analytique ne tourne, son travail n'est jamais utilisé pour améliorer des modèles, il ne peut pas rejoindre de salle d'étude publique, et rien ne peut être acheté depuis le compte sans qu'un adulte confirme être le parent ou tuteur qui paie. Nous ne revendiquons pas un consentement que nous n'avons pas obtenu — un parent peut voir, corriger ou supprimer les données de l'enfant à tout moment, ci-dessous.",
   "privacy.age.under18.strong": "Moins de 18 ans.",
   "privacy.age.under18.body":
     "Le traitement optionnel est désactivé et ne peut pas être activé : pas d'analytique produit, et pas d'utilisation de leur contenu pour améliorer les modèles. C'est plus strict que ce que la loi exige strictement dans certains pays — l'art. 8 du RGPD fixe l'âge du consentement numérique entre 13 et 16 ans selon l'État membre — et nous préférons être trop prudents avec quelqu'un de 17 ans que pas assez avec quelqu'un de 13 ans.",
@@ -995,7 +983,7 @@ export const fr: Partial<Messages> = {
   "privacy.collect.table.what": "Quoi",
   "privacy.collect.table.why": "Pourquoi",
   "privacy.collect.table.basis": "Base légale",
-  "privacy.collect.r1.what": "Compte — un identifiant aléatoire, un nom d'utilisateur, un nom affiché, et un e-mail si vous en ajoutez un",
+  "privacy.collect.r1.what": "Compte — un identifiant aléatoire, un nom d'utilisateur, un nom affiché, et une adresse e-mail ou une photo de profil si vous en ajoutez",
   "privacy.collect.r1.why": "Pour avoir un compte tout court, et pour pouvoir y revenir",
   "privacy.collect.r1.basis": "Contrat",
   "privacy.collect.r2.what": "Année de naissance",
@@ -1015,7 +1003,7 @@ export const fr: Partial<Messages> = {
   "privacy.collect.r6.basis": "Consentement — désactivé jusqu'à acceptation, jamais pour les moins de 18 ans",
   "privacy.collect.r7.what": "Utilisation de votre contenu pour améliorer nos modèles",
   "privacy.collect.r7.why": "Pour rendre le tuteur meilleur",
-  "privacy.collect.r7.basis": "Consentement — activé par défaut sur les comptes adultes, désactivable à tout moment ; jamais pour les moins de 18 ans",
+  "privacy.collect.r7.basis": "Consentement — activé par défaut sur les comptes adultes, désactivable à tout moment ; désactivé tant que vous ne l'activez pas si votre compte est lié à un établissement ; jamais pour les moins de 18 ans",
   "privacy.collect.r8.what": "Envoi de votre progression à votre établissement",
   "privacy.collect.r8.why": "Pour que vos enseignants voient qui est bloqué et sur quoi",
   "privacy.collect.r8.basis": "Contrat (avec votre établissement) — seulement tant que votre compte y est lié",
@@ -1041,7 +1029,7 @@ export const fr: Partial<Messages> = {
   "privacy.analytics.p2.link": "vos réglages",
   "privacy.analytics.p2.b": ", en un seul geste. C'est aussi simple à retirer qu'à donner, ce que demande l'art. 7(3).",
   "privacy.analytics.p3":
-    "Les cookies sont minimaux : un pour vous garder connecté(e), un pour retenir votre choix d'analytique afin qu'on arrête de vous le demander, et un pour retenir quel établissement vous consultez si vous en avez plusieurs. Il n'y a aucun cookie publicitaire ni de pistage inter-sites.",
+    "Les cookies sont minimaux : un pour vous garder connecté(e), un pour retenir votre choix d'analytique afin qu'on arrête de vous le demander, un pour votre langue et un pour votre thème, un pour retenir quel établissement vous consultez si vous en avez plusieurs, et un cookie de courte durée pendant qu'un établissement connecte Google Classroom. Il n'y a aucun cookie publicitaire ni de pistage inter-sites.",
 
   "privacy.who.h2": "Qui traite les données pour nous",
   "privacy.who.p1.a": "Une liste courte, chacun uniquement pour ce pour quoi il est nommé. Les sous-traitants actuels, avec ce qu'ils détiennent et où, figurent sur la",
@@ -1059,7 +1047,7 @@ export const fr: Partial<Messages> = {
   "privacy.retention.table.howLong": "Combien de temps",
   "privacy.retention.r1.what": "Votre compte et son contenu",
   "privacy.retention.r1.how": "Tant que le compte est actif",
-  "privacy.retention.r2.what": "Comptes anonymes jamais utilisés",
+  "privacy.retention.r2.what": "Comptes anonymes laissés inutilisés (sans e-mail ajouté, sans établissement)",
   "privacy.retention.r2.how": "Désactivés après 60 jours d'inactivité, supprimés après 180",
   "privacy.retention.r3.what": "Dossiers scolaires",
   "privacy.retention.r3.how": "Pour la durée contractuelle de l'établissement, puis restitués ou détruits sur ses instructions",
@@ -1153,8 +1141,8 @@ export const fr: Partial<Messages> = {
 
   "dpa.s4.h2": "4. COPPA — consentement pour les moins de 13 ans",
   "dpa.s4.p1.a":
-    "Nous n'ouvrons pas de compte pour des enfants de moins de 13 ans arrivant seuls ; ils sont arrêtés à la question de l'âge. Les moins de 13 ans accèdent à",
-  "dpa.s4.p1.b": "uniquement via un établissement.",
+    "En dehors de tout établissement, un enfant de moins de 13 ans peut utiliser",
+  "dpa.s4.p1.b": "seul, selon notre politique de confidentialité — sans analytique, sans entraînement de modèles, sans salle publique, sans achat sans adulte déclaré. Dès qu'un établissement l'inscrit, c'est le présent avenant et le consentement de l'établissement qui s'appliquent.",
   "dpa.s4.p2.a": "En inscrivant des élèves de moins de 13 ans,",
   "dpa.s4.p2.strong": "l'établissement confirme qu'il consent au nom de leurs parents",
   "dpa.s4.p2.b":
@@ -1182,7 +1170,7 @@ export const fr: Partial<Messages> = {
   "dpa.s7.li1": "Nous ne vendons pas les données des élèves. Il n'existe aucune circonstance où nous le ferions.",
   "dpa.s7.li2": "Nous ne diffusons pas de publicité, et nous ne construisons pas de profils publicitaires.",
   "dpa.s7.li3":
-    "Nous n'utilisons pas le contenu des élèves pour entraîner des modèles sauf si le titulaire du compte y a explicitement consenti — et cette option n'est pas disponible pour les moins de 18 ans, ce qui correspond à tout élève dans un cadre scolaire avant la fin du lycée.",
+    "Nous n'utilisons pas le contenu des élèves ni du personnel pour entraîner des modèles sauf si le titulaire du compte y a explicitement consenti — ce n'est jamais activé par défaut sur un compte lié à un établissement — et cette option n'est pas disponible pour les moins de 18 ans, ce qui correspond à tout élève dans un cadre scolaire avant la fin du lycée.",
   "dpa.s7.li4":
     "Nous ne donnons pas au personnel les conversations privées d'accompagnement d'un élève. Un élève qui croit que son tuteur est lu arrête de poser les vraies questions qui font fonctionner l'accompagnement, donc le dossier du personnel couvre ce que l'élève a produit et ce que le système a déduit, pas la transcription. L'élève, ou un parent via l'élève, peut exporter la transcription en entier.",
 

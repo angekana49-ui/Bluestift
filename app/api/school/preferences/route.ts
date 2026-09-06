@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { getAdminMembership, getStaffPreferences, type StaffPreferences } from "@/lib/school-admin";
@@ -48,7 +49,7 @@ export async function PATCH(request: Request) {
   const { error: upErr } = await schools
     .from("staff_preferences")
     .upsert({ admin_id: membership.adminId, prefs: next, updated_at: new Date().toISOString() });
-  if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
+  if (upErr) return NextResponse.json({ error: clientError(upErr) }, { status: 500 });
 
   return NextResponse.json({ prefs: next });
 }

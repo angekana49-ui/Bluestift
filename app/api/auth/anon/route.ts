@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, adminRpc } from "@/lib/supabase/admin";
 import { ensureRecoverable } from "@/lib/auth";
@@ -85,7 +86,7 @@ export async function POST(request: Request) {
       if (otpErr) throw otpErr;
     } catch (e) {
       return NextResponse.json(
-        { error: e instanceof Error ? e.message : "Could not finalize the session." },
+        { error: clientError(e, "Could not finalize the session.") },
         { status: 500 },
       );
     }

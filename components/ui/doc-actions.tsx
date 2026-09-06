@@ -34,12 +34,19 @@ export function DocumentActions({
   doc,
   compact = false,
   shareable = true,
+  personal = false,
 }: {
   /** Built by the caller, exactly as before — this component owns only the language. */
   doc: BrandedDoc;
   /** Denser buttons, for a row inside a card rather than under a heading. */
   compact?: boolean;
   shareable?: boolean;
+  /**
+   * The document is about identifiable people (a class report, one learner's
+   * results). Translations of it are never stored in the shared cache — see
+   * lib/documents/translate.ts. Lesson material (summaries, quizzes) is not.
+   */
+  personal?: boolean;
 }) {
   const { theme: t } = useAppTheme();
   const { locale: uiLocale } = useAppLocale();
@@ -102,7 +109,7 @@ export function DocumentActions({
       const res = await fetch("/api/documents/translate", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ title: doc.title, meta: doc.meta ?? null, body: doc.body, locale: lang }),
+        body: JSON.stringify({ title: doc.title, meta: doc.meta ?? null, body: doc.body, locale: lang, personal }),
       });
       const data = (await res.json().catch(() => null)) as
         | { title?: string; meta?: string | null; body?: string; translated?: boolean; error?: string }

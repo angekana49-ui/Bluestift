@@ -88,7 +88,6 @@ export function OnboardingForm({
   initialUsername,
   initialDisplayName,
   ageOnly = false,
-  startBlocked = false,
 }: {
   userId: string;
   emailVerified: boolean;
@@ -98,8 +97,6 @@ export function OnboardingForm({
   initialDisplayName: string;
   /** Account already set up, but with no age on file — ask only that. */
   ageOnly?: boolean;
-  /** Already known to be an unauthorised under-13; open on the blocked screen. */
-  startBlocked?: boolean;
 }) {
   const supabase = createClient();
   const router = useRouter();
@@ -107,9 +104,7 @@ export function OnboardingForm({
 
   const [track, setTrack] = useState<Track | null>(ageOnly ? "raya" : null);
   const [stepIndex, setStepIndex] = useState(ageOnly ? 1 : 0);
-  const [phase, setPhase] = useState<"steps" | "email" | "welcome" | "blocked">(
-    startBlocked ? "blocked" : "steps",
-  );
+  const [phase, setPhase] = useState<"steps" | "email" | "welcome">("steps");
   const [birthYear, setBirthYear] = useState("");
 
   const [username, setUsername] = useState(initialUsername);
@@ -180,8 +175,9 @@ export function OnboardingForm({
   /**
    * Send the declared year to the server, which decides the band and stores it.
    * The client is deliberately not trusted with that call: `birth_year` isn't
-   * client-writable, so a blocked child can't post their way past this.
-   * Returns false when the answer blocks them.
+   * client-writable. No age is refused — a child under 13 is admitted on their
+   * own and held to the minimum by the band — so the only "no" here is a
+   * server error, which is shown rather than silently retried.
    */
   async function submitAge(): Promise<boolean> {
     setBusy(true);
@@ -197,7 +193,7 @@ export function OnboardingForm({
         return false;
       }
       if (!data.allowed) {
-        setPhase("blocked");
+        setError(data.error ?? tr("onb.err.saveFailed"));
         return false;
       }
       return true;
@@ -308,27 +304,6 @@ export function OnboardingForm({
   function enterApp() {
     router.push(dest);
     router.refresh();
-  }
-
-  // ---------------------------------------------------------------- Blocked ---
-  // Under 13 with no school and no recorded parental authorisation. We run no
-  // verifiable-parental-consent mechanism of our own, so the only way in is a
-  // school vouching for them — anything else would be pretending.
-  if (phase === "blocked") {
-    return (
-      <AuthSplit>
-        <BlockedScreen
-          onLinked={() => {
-            // The school join records the authorisation server-side; reloading
-            // re-runs the gate, which now lets them through.
-            router.replace("/onboarding");
-            router.refresh();
-          }}
-          onLeave={leaveOnboarding}
-          busy={busy}
-        />
-      </AuthSplit>
-    );
   }
 
   // ---------------------------------------------------------------- Welcome ---
@@ -819,120 +794,6 @@ function EmailStep({
   );
 }
 
-// ----------------------------------------------------------- Blocked screen ---
-/**
- * The under-13 dead end, and the one door out of it.
- *
- * COPPA lets a school consent on a parent's behalf for school use, and that is
- * the only consent mechanism we operate — we do not verify parents ourselves.
- * So the class code is not a convenience here, it is the entire legal basis.
- * Everything else on this screen points at a human.
- */
-function BlockedScreen({
-  onLinked,
-  onLeave,
-  busy,
-}: {
-  onLinked: () => void;
-  onLeave: () => void;
-  busy: boolean;
-}) {
-  const tr = useTranslate();
-  const [code, setCode] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [linking, setLinking] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const ready = code.trim() && firstName.trim() && lastName.trim();
-
-  async function link() {
-    if (linking || !ready) return;
-    setLinking(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/school/join", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ code: code.trim(), firstName, lastName }),
-      });
-      const data = (await res.json()) as { error?: string };
-      if (!res.ok) {
-        setError(data.error ?? `${tr("onb.blocked.err.linkFailed")} (${res.status}).`);
-        return;
-      }
-      onLinked();
-    } catch {
-      setError(tr("onb.err.network"));
-    } finally {
-      setLinking(false);
-    }
-  }
-
-  return (
-    <>
-      <h1 style={heading}>
-        {tr("onb.blocked.heading.a")} <RayaName />.
-      </h1>
-      <p style={sub}>{tr("onb.blocked.sub")}</p>
-
-      <label style={fieldLabel}>{tr("onb.blocked.codeLabel")}</label>
-      <input
-        style={fieldInput}
-        placeholder={tr("onb.blocked.codePlaceholder")}
-        value={code}
-        onChange={(e) => setCode(e.target.value)}
-        autoCapitalize="characters"
-        disabled={linking}
-      />
-      <label style={fieldLabel}>{tr("onb.blocked.nameLabel")}</label>
-      <div style={{ display: "flex", gap: 10 }}>
-        <input
-          style={fieldInput}
-          placeholder={tr("onb.blocked.firstNamePlaceholder")}
-          value={firstName}
-          onChange={(e) => setFirstName(e.target.value)}
-          disabled={linking}
-        />
-        <input
-          style={fieldInput}
-          placeholder={tr("onb.blocked.lastNamePlaceholder")}
-          value={lastName}
-          onChange={(e) => setLastName(e.target.value)}
-          disabled={linking}
-        />
-      </div>
-      <button
-        onClick={link}
-        disabled={linking || !ready}
-        style={{ ...primaryBtn, opacity: linking || !ready ? 0.6 : 1 }}
-      >
-        {linking ? tr("onb.blocked.linking") : tr("onb.blocked.submit")}
-      </button>
-
-      <div style={noteBox}>
-        <strong style={{ color: "#0b1220" }}>{tr("onb.blocked.note.strong")}</strong> {tr("onb.blocked.note.a")}{" "}
-        <a href="mailto:hello@thebluestift.com" style={{ color: WORDMARK_B, fontWeight: 600 }}>
-          hello@thebluestift.com
-        </a>{" "}
-        {tr("onb.blocked.note.b")}
-      </div>
-      <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.6, margin: "12px 0 0" }}>
-        {tr("onb.blocked.closed")}
-      </p>
-
-      <button
-        onClick={onLeave}
-        disabled={busy}
-        style={{ ...secondaryBtn, marginTop: 16, width: "100%" }}
-      >
-        {tr("menu.signOut")}
-      </button>
-
-      {error && <p style={{ color: "#dc2626", textAlign: "center", marginTop: 14, fontSize: 14 }}>{error}</p>}
-    </>
-  );
-}
 
 // -------------------------------------------------------------- Fragments ---
 // Line icons (currentColor) — accent blue when idle, white when a card is

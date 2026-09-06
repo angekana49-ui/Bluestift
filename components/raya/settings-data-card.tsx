@@ -17,8 +17,9 @@ import { disableAnalytics, enableAnalytics } from "@/lib/analytics/posthog-lazy"
  *  - Withdraw analytics consent. The privacy policy used to say "clear your
  *    site data", which is not a withdrawal mechanism — art. 7(3) wants it to be
  *    as easy to withdraw as it was to give.
- *  - Choose whether your content helps improve Raya. ON by default for adults,
- *    switchable off, and not offered at all to a minor.
+ *  - Choose whether your content helps improve Raya. ON by default for solo
+ *    adults, OFF until chosen on a school-linked account (the DPA's promise),
+ *    switchable either way, and not offered at all to a minor.
  *  - See what a linked school can and cannot read — the B2B2C boundary, stated
  *    where the student is rather than only in the policy.
  *  - Delete the account (art. 17), typed confirmation, no undo.
@@ -192,9 +193,20 @@ export function SettingsDataCard({
             <div>
               <div style={{ ...label, fontSize: 15 }}>Help improve Raya</div>
               <div style={desc}>
-                Your conversations help train the tutor other students get. This is on by
-                default — switch it off and your work stops being used, with nothing else
-                about the product changing.
+                {schoolLinked ? (
+                  <>
+                    Your conversations can help train the tutor other students get. Because
+                    your account is linked to a school, this stays off unless you switch it on
+                    yourself — and you can switch it back off at any time, with nothing else
+                    about the product changing.
+                  </>
+                ) : (
+                  <>
+                    Your conversations help train the tutor other students get. This is on by
+                    default — switch it off and your work stops being used, with nothing else
+                    about the product changing.
+                  </>
+                )}
               </div>
             </div>
             <Switch on={training} onChange={toggleTraining} theme={t} />

@@ -51,12 +51,20 @@ export async function optionalProcessingAllowed(userId: string): Promise<boolean
  * the settings switch and then read by nothing, so the control was decorative.
  * Anything that ships content to a training pipeline must call this.
  *
- * Two conditions, in this order:
- *  - the age band allows optional processing at all (adults only), and
- *  - the user has not switched it off.
+ * Three conditions, in this order:
+ *  - the age band allows optional processing at all (adults only),
+ *  - the user has not switched it off, and
+ *  - on a school-linked account, the user switched it ON themselves.
  *
  * The band is checked first for the same reason it is everywhere else: a minor
  * cannot grant this, so their stored column value is irrelevant.
+ *
+ * The third is the DPA (§7): for a school's students and staff we are the
+ * processor, and using their content for our own models is not the school's
+ * instruction — so it needs the account holder's explicit choice, which
+ * `training_consent_at` records. "On by default" is a solo-adult rule only; an
+ * adult who was defaulted on and then joined a school stops here until they
+ * choose for themselves. See docs/compliance.md §1.
  */
 const trainingMemo = new Map<string, { allowed: boolean; at: number }>();
 
@@ -69,12 +77,13 @@ export async function trainingAllowed(userId: string): Promise<boolean> {
   try {
     const { data } = await createAdminClient()
       .from("users")
-      .select("birth_year, training_consent")
+      .select("birth_year, training_consent, training_consent_at, school_id")
       .eq("id", userId)
       .maybeSingle();
     allowed =
       allowsOptionalProcessing(ageBand(data?.birth_year ?? null)) &&
-      data?.training_consent === true;
+      data?.training_consent === true &&
+      (!data?.school_id || data?.training_consent_at != null);
   } catch {
     // A read failure must not enrol someone by accident.
     allowed = false;

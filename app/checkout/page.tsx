@@ -10,6 +10,7 @@ import { getPaymentProvider, sandboxBlockedInProd, type PaymentChannel } from "@
 import { isAnnualTerm, termTotal } from "@/lib/billing/terms";
 import { CheckoutPanel } from "@/components/checkout/CheckoutPanel";
 import { getServerTranslate } from "@/lib/i18n/server";
+import { ageBand, requiresGuardianToPay } from "@/lib/compliance/age";
 
 export const metadata = { title: "BlueStift · Checkout" };
 
@@ -113,6 +114,16 @@ export default async function CheckoutPage({
    */
   const paymentsOff = provider.id === "sandbox" && sandboxBlockedInProd();
 
+  // Only an adult pays. On a minor's account the panel asks the payer to
+  // confirm they are the parent or guardian before any method is offered;
+  // /api/billing/checkout refuses without it, so this is the honest place to
+  // ask rather than the last.
+  let guardianRequired = false;
+  if (user) {
+    const { data: ageRow } = await supabase.from("users").select("birth_year").eq("id", user.id).maybeSingle();
+    guardianRequired = requiresGuardianToPay(ageBand(ageRow?.birth_year ?? null));
+  }
+
   return (
     <main style={shell}>
       <div style={card}>
@@ -214,7 +225,14 @@ export default async function CheckoutPage({
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.08em", color: "#94a3b8", textTransform: "uppercase", marginBottom: 10 }}>
               {tr("checkout.choosePayment")}
             </div>
-            <CheckoutPanel planId={plan!.id} audience={audience} channels={channels} months={months} seats={seats} />
+            <CheckoutPanel
+              planId={plan!.id}
+              audience={audience}
+              channels={channels}
+              months={months}
+              seats={seats}
+              guardianRequired={guardianRequired}
+            />
           </>
         )}
 

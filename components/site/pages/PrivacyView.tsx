@@ -5,7 +5,7 @@ import { BluestiftText, RayaName } from "@/components/ui/brand";
 import { LegalShell, Table, h2, h3, li, link, note, p, ul } from "./legal-chrome";
 import { useTranslate } from "@/components/ui/locale";
 
-const UPDATED = "13 August 2026";
+const UPDATED = "6 September 2026";
 
 /**
  * The privacy notice. Written to satisfy GDPR art. 13/14 (which asks for the

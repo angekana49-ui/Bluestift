@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
+import { ageGateResponse } from "@/lib/compliance/api-gate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { extractFileText, storageSafeName } from "@/lib/extract";
 import { contentLengthExceeds, tooLarge, MAX_DOC_BYTES } from "@/lib/upload-limits";
@@ -25,6 +27,9 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // Pages send an ungated account back to the age question; this route has to as well.
+  const gated = await ageGateResponse(user.id);
+  if (gated) return gated;
 
   const oversized = contentLengthExceeds(request, MAX_DOC_BYTES);
   if (oversized) return oversized;
@@ -84,7 +89,7 @@ export async function POST(request: Request) {
       })
       .select("id")
       .single();
-    if (convErr) return NextResponse.json({ error: convErr.message }, { status: 500 });
+    if (convErr) return NextResponse.json({ error: clientError(convErr) }, { status: 500 });
     conversationId = conv.id;
   }
 
@@ -101,7 +106,7 @@ export async function POST(request: Request) {
 
   const path = `${user.id}/chat/${conversationId}/${Date.now()}-${storageSafeName(file.name)}`;
   const up = await supabase.storage.from("user-media").upload(path, file);
-  if (up.error) return NextResponse.json({ error: up.error.message }, { status: 500 });
+  if (up.error) return NextResponse.json({ error: clientError(up.error) }, { status: 500 });
 
   const { data: row, error } = await supabase
     .schema("learning")
@@ -118,7 +123,7 @@ export async function POST(request: Request) {
     })
     .select("id, file_name, file_type, mime_type, file_size, created_at")
     .single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
 
   return NextResponse.json({
     file: row,
@@ -150,7 +155,7 @@ export async function DELETE(request: Request) {
     .is("message_id", null)
     .select("file_path")
     .maybeSingle();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
   if (!row) return NextResponse.json({ error: "not found" }, { status: 404 });
 
   // Reclaim the storage object. Best-effort: the row is already gone, and an

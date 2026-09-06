@@ -33,7 +33,7 @@ that matters.
 
 | Band | Minimum age | Effect |
 |---|---|---|
-| `child` | < 13 | No self-serve account. School authorisation only. |
+| `child` | < 13 | Full product on their own, held to the minimum: no analytics, no model training, no public rooms, no purchase without a guardian's attestation. |
 | `teen` | 13–17 | Full product. No analytics, no model training, neither offerable. |
 | `adult` | ≥ 18 | Full product. Analytics opt-**in**; model training opt-**out**. |
 | `null` | undeclared | Treated as a minor and gated back to `/onboarding`. |
@@ -53,6 +53,18 @@ It used to be nulled on withdrawal, which was harmless under opt-in and is a tra
 under opt-out: an untimestamped "no" is indistinguishable from "never asked", and
 the next backfill would switch them back on.
 
+**"On by default" is a solo-adult rule only.** `/dpa` §7 promises schools that
+their students' and staff's content trains nothing unless the account holder
+*explicitly* opted in — as processor we act on the school's instructions, and
+our own model training is not one of them. So a school-linked account
+(`school_id` set) is never defaulted on: the age route skips the default grant,
+`/api/school/join` switches a solo adult's untimestamped default off at the
+moment they join, and `trainingAllowed()` additionally requires
+`training_consent_at` (a choice the holder made) whenever `school_id` is set.
+The settings copy says "off unless you switch it on" for those accounts. Found
+and fixed in the 2026-09-06 audit; before it, the terms and the DPA described
+opt-in while the code defaulted every adult on.
+
 `trainingAllowed()` in [`lib/compliance/optional-processing.ts`](../lib/compliance/optional-processing.ts)
 is the gate. Anything shipping content to a training pipeline calls it. Before
 2026-08-13 the column was written by the settings switch and read by nothing —
@@ -66,19 +78,58 @@ whitelist. `birth_year` and the consent columns are not on it, so a client
 which computes the band itself. `training_consent` was **revoked** from that
 whitelist in the same migration for the same reason.
 
+**The gate is on the API too, not only the pages.** `needsAgeGate()` on a page
+stops a browser; a client that skipped the page could still post to the routes
+behind it. [`lib/compliance/api-gate.ts`](../lib/compliance/api-gate.ts) runs
+the same decision on every route that carries user content outward — solo and
+room chat, voice transcription, uploads, the study tools, simulations, document
+translation, `/api/kernel/analyze` — and on the room-message server action. It
+answers 403 with `redirect: "/onboarding"`. Account routes (export, delete, the
+age question itself) are deliberately left open: an ungated account must still
+be able to answer, leave, or take its data with it. **A new content-bearing
+route must call `ageGateResponse()`** after its auth check.
+
 Existing accounts have no birth year, so they are gated too and sent through a
 one-question `/onboarding`. That's the point: an age screen that only applies to
 new sign-ups leaves the children already in the product uncounted.
 
 ### Under-13
 
-We run **no verifiable parental consent mechanism** — no card check, no ID. The
-only route in is the COPPA school-consent exception (16 CFR § 312.5(c)(6)): the
-blocked screen takes a class code, and `/api/school/join` records
-`minor_consent_source='school'` at the moment the school vouches.
+**A child under 13 is admitted on their own** (product decision, 2026-09-06).
+`evaluateAccess` closes the door on one thing only: not having answered the age
+question. What the band then does is hold the account to the minimum —
+`allowsOptionalProcessing` is false (no analytics, no training), the room
+triggers keep them out of public rooms, and `requiresGuardianToPay` puts a
+guardian attestation in front of any purchase.
 
-If you ever want under-13 self-signup, that needs a real VPC provider. Do not
-loosen `evaluateAccess` instead.
+We still run **no verifiable parental consent mechanism** — no card check, no
+ID. Where a school enrols a child, `/api/school/join` records
+`minor_consent_source='school'`, which is the COPPA school-consent exception
+(16 CFR § 312.5(c)(6)) and what the DPA relies on. For a child alone there is
+no such record, and the pages say so plainly rather than claiming an exception
+we do not have: the position is data minimisation, a parent's standing right to
+see and delete, and nothing sold without a stated adult. **This is the weakest
+point of the whole posture and the first thing counsel should look at** — a
+real VPC provider is what would close it. The onboarding's old blocked screen
+(class code as the only way in) is gone; a class code is entered from the
+school link in the app, by anyone, as it always could be.
+
+### Nothing here may stop someone learning
+
+The free tier is the point: every rule above shapes *what is done with* an
+account, never whether it can use Raya. The only gate that stops a person is
+the age question, and it is one field. Analytics, training, public rooms and
+payment are the four things a band switches; none of them is tutoring.
+
+### Only an adult pays
+
+`requiresGuardianToPay(band)` is true for every minor and for an undeclared
+age. `/checkout` then shows an attestation ("I am the parent or guardian, and I
+am the one paying") before any method is enabled, and `/api/billing/checkout`
+refuses with `guardian_required` unless `guardian: true` is in the body. The
+attestation is stored on the payment (`metadata.payer.guardian_attested`,
+`attested_at`), which is what lets a disputed charge be traced to a stated
+adult. School plans go through the admin's own account and the same check.
 
 ---
 
@@ -91,8 +142,22 @@ loosen `evaluateAccess` instead.
 | Withdraw consent (art. 7(3)) | client + `POST /api/account/training-consent` | Settings → Your data |
 | FERPA inspect & review | `GET /api/school/student/record` | Class → student → Download record |
 
-Every one writes to `public.data_requests`. That table has **no foreign key to
-users on purpose** — an erasure record must outlive the erasure it documents.
+Export, erasure and the staff download each write to `public.data_requests`
+(consent withdrawal does not — it is a settings change, recorded on the user
+row by `training_consent_at`). That table has **no foreign key to users on
+purpose** — an erasure record must outlive the erasure it documents.
+
+The export bundle is "everything held about the person", which is wider than
+what they typed: it also carries the Kernel's working record (`kernel_requests`,
+`kernel_outputs`, `kernel_monitoring`), the app's durable profile snapshot
+(`learning.kernel_profile_snapshots`, including the "Memorize" anchor), the
+follow-up notes staff wrote *about* them (`schools.student_followups`) and their
+`class_enrollments`. All four were missing until 2026-09-06.
+
+Not exported, and why: `rag.conversation_embeddings` (vectors derived from
+messages that are already in the bundle; erased with the account), and
+`learning.document_translations` (content-addressed, shared across users, and
+never holding a document about a person — see §8).
 
 ### Erasure is not a cascade
 
@@ -235,6 +300,36 @@ is the deliberate trade — checkable now, finished later.
 5. **Records of processing (art. 30)** and a breach-response runbook: `/dpa` §6
    promises notification within 72 hours, so there should be a plan behind it.
 6. **Counsel review.** None of this has been reviewed by a lawyer.
+7. **Railway's region.** The Kernel runs on Railway
+   (`bluestift-kernel-production.up.railway.app`, per `docs/kernel-handoff.md`)
+   and Railway is now a row on `/subprocessors`, listed as US — Railway's
+   default region. If the service was created in, or is moved to, Railway's EU
+   region, change that cell. The Kernel's DPA is Railway's, accepted in its
+   dashboard like Vercel's.
+
+## 8. Closed in the 2026-09-06 audit
+
+Kept here because each one is a rule to keep, not just a fix that happened.
+
+- **The error webhook carries no identifiers.** `ERROR_WEBHOOK_URL` receives a
+  reduced copy of each failure record (`webhookCopy` in
+  `lib/observability/report.ts`): no `tags`, every UUID replaced by `<id>`. The
+  full record stays in the log line, which Vercel holds. That is what keeps a
+  Slack or Discord sink off the sub-processor list — do not add fields to the
+  webhook copy without asking whether they identify someone.
+- **Translated exports about people are never cached.** The translation cache
+  (`learning.document_translations`) is content-addressed and shared across
+  users, so erasure cannot reach it. Documents about identifiable people —
+  class reports, room reports, one learner's results or progression, staff
+  insights — pass `personal` through `DocumentActions`, and
+  `translateDocument()` skips the cache for them. Lesson material (summaries,
+  quizzes from `tools`) is what the cache is for. Rows nobody has read in 90
+  days are pruned by the daily cron. **A new export that names anyone must set
+  `personal`.**
+- **Refused under-13 accounts** were briefly erased after 30 days by the cron.
+  Superseded the same day: there are no refused accounts any more (§1), so the
+  reaper was removed and the anonymous-account rules apply to a child like to
+  anyone else.
 
 ## 7. What the prompt carries
 

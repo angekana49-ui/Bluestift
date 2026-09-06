@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { confirmMembershipForYear, getAdminMembership } from "@/lib/school-admin";
@@ -92,7 +93,7 @@ export async function POST(request: Request) {
         .insert({ user_id: reqRow.user_id, school_id: reqRow.school_id, role: "prof" })
         .select("id")
         .single();
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
       adminId = (created as { id: string }).id;
     }
 
@@ -111,7 +112,7 @@ export async function POST(request: Request) {
       decided_at: new Date().toISOString(),
     })
     .eq("id", requestId);
-  if (updErr) return NextResponse.json({ error: updErr.message }, { status: 500 });
+  if (updErr) return NextResponse.json({ error: clientError(updErr) }, { status: 500 });
 
   // Let the teacher know the outcome. Awaited (not fire-and-forget) so it isn't
   // dropped when the serverless function ends; sendEmail never throws.

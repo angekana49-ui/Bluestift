@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { assertClassAccess } from "@/lib/school-admin";
+import { assertClassAccess, assertStudentInClass } from "@/lib/school-admin";
 import { buildStudentRecord } from "@/lib/compliance/school-record";
 import { recordDataRequest } from "@/lib/compliance/erasure";
 
@@ -30,11 +30,30 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "classId and userId are required." }, { status: 400 });
   }
 
-  if (!(await assertClassAccess(user.id, classId))) {
+  // TWO questions, and the second one used to be missing.
+  //
+  // Class access says the caller may open this class. It says nothing about the
+  // student id sitting next to the class id in the same request — so a staff
+  // member holding one legitimate class could name ANY account on the platform
+  // as its student and be handed that person's account row, every follow-up note
+  // written about them in any school, their assessment history and their whole
+  // cognitive profile. Schools are self-serve, so "a staff member" was one signup
+  // away from being anyone.
+  //
+  // Both checks run before anything is read, and the refusal is identical either
+  // way: a caller must not learn from the answer whether an id exists.
+  const [classOk, enrolled] = await Promise.all([
+    assertClassAccess(user.id, classId),
+    assertStudentInClass({ studentUserId: studentId, classId }),
+  ]);
+  if (!classOk || !enrolled) {
     return NextResponse.json({ error: "Not found or not yours." }, { status: 404 });
   }
 
   const record = await buildStudentRecord({ studentUserId: studentId, classId });
+  if (!record) {
+    return NextResponse.json({ error: "Not found or not yours." }, { status: 404 });
+  }
   const partial = Array.isArray(record._errors) && record._errors.length > 0;
 
   await recordDataRequest({

@@ -13,10 +13,11 @@
  *     still works when everything else is down — including the database and
  *     the webhook below.
  *
- *  2. OPTIONALLY a POST of the same record to `ERROR_WEBHOOK_URL` (a Slack /
- *     Discord / Sentry-tunnel / whatever endpoint). Unset = no POST, and the
- *     module is otherwise unchanged: reporting must never depend on setup that
- *     hasn't happened yet.
+ *  2. OPTIONALLY a POST of a REDUCED copy of the record to `ERROR_WEBHOOK_URL`
+ *     (a Slack / Discord / Sentry-tunnel / whatever endpoint) — see
+ *     `webhookCopy`: no tags, no ids. Unset = no POST, and the module is
+ *     otherwise unchanged: reporting must never depend on setup that hasn't
+ *     happened yet.
  *
  * Two hard rules for everything in this file:
  *  - it never throws (a reporter that breaks the request it reports on is
@@ -208,6 +209,25 @@ function buildRecord(input: IssueInput, now: number): IssueRecord {
   };
 }
 
+/**
+ * The copy that leaves for a third party. The log line keeps the full record
+ * (ids, tags) because the log drain is our own hosting provider, already on
+ * /subprocessors. The webhook is whatever someone pointed it at — Slack,
+ * Discord, a Sentry tunnel — and the way to keep that endpoint from becoming a
+ * sub-processor of personal data is for no identifier to reach it at all:
+ * UUIDs (user ids, payment ids) become `<id>`, and `tags` are dropped. The
+ * fingerprint and timestamp are enough to find the full record in the logs.
+ */
+export function webhookCopy(record: IssueRecord): Omit<IssueRecord, "tags"> {
+  const { tags: _tags, ...rest } = record;
+  void _tags;
+  return {
+    ...rest,
+    message: rest.message.replace(UUID_G, "<id>"),
+    stack: rest.stack?.replace(UUID_G, "<id>"),
+  };
+}
+
 async function deliver(record: IssueRecord): Promise<void> {
   const url = process.env.ERROR_WEBHOOK_URL;
   if (!url) return;
@@ -215,7 +235,7 @@ async function deliver(record: IssueRecord): Promise<void> {
     await fetch(url, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(record),
+      body: JSON.stringify(webhookCopy(record)),
       signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
       cache: "no-store",
     });

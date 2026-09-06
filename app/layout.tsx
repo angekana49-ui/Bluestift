@@ -8,6 +8,22 @@ import { UpgradeModal } from "@/components/upgrade/UpgradeModal";
 import { ServiceWorkerRegistrar } from "@/components/service-worker";
 import { LocaleRootProvider } from "@/components/ui/LocaleRootProvider";
 
+/**
+ * Every page is server-rendered on request, and that is now a rule rather than
+ * an accident.
+ *
+ * The CSP carries a per-request nonce (see proxy.ts), and Next can only put a
+ * nonce on a page it renders while a request exists. A statically prerendered
+ * page has no nonce in its HTML, so the browser refuses ITS OWN scripts and the
+ * page arrives dead — visible, but with nothing working and no error anyone
+ * would connect to a build-time decision.
+ *
+ * The build already rendered all but two of 116 entries on demand, so this
+ * costs essentially nothing today. What it buys is that the next page someone
+ * adds cannot quietly become the exception.
+ */
+export const dynamic = "force-dynamic";
+
 // One source of truth for the product typeface (see components/ui/tokens.ts).
 // Inter = body/UI, IBM Plex Sans = headings/nav (the display face, à la PostHog),
 // Caveat = handwritten greeting. Plex tops out at 700, so headings that ask for

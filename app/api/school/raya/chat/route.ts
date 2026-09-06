@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { buildProfContext, buildSchoolContext, getAdminMembership } from "@/lib/school-admin";
@@ -147,7 +148,7 @@ export async function POST(request: Request) {
       })
       .select("id")
       .single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
     convId = data.id;
   }
 
@@ -199,7 +200,7 @@ export async function POST(request: Request) {
     usage = out.usage;
   } catch (e) {
     await linkPromise;
-    return NextResponse.json({ error: e instanceof Error ? e.message : "llm error" }, { status: 502 });
+    return NextResponse.json({ error: clientError(e, "llm error") }, { status: 502 });
   }
   await linkPromise;
 

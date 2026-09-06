@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { getAdminMembership, getSchoolYears, rotateStaffCodeForYear } from "@/lib/school-admin";
@@ -72,7 +73,7 @@ export async function POST() {
     p_start: year.start_date,
     p_end: year.end_date,
   });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
   const row = ((data as { out_id: string; out_label: string }[] | null) ?? [])[0];
   if (!row) return NextResponse.json({ error: "Could not start the year." }, { status: 500 });
 

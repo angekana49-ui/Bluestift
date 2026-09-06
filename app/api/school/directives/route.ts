@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { getAdminMembership } from "@/lib/school-admin";
@@ -66,7 +67,7 @@ export async function POST(request: Request) {
     })
     .select("id, content, audience, is_active")
     .single();
-  if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 });
+  if (insErr) return NextResponse.json({ error: clientError(insErr) }, { status: 500 });
   const row = data as DirectiveRow;
   return NextResponse.json({ id: row.id, content: row.content, audience: row.audience, isActive: row.is_active });
 }
@@ -100,7 +101,7 @@ export async function PATCH(request: Request) {
     .eq("school_id", membership.schoolId)
     .select("id")
     .maybeSingle();
-  if (updErr) return NextResponse.json({ error: updErr.message }, { status: 500 });
+  if (updErr) return NextResponse.json({ error: clientError(updErr) }, { status: 500 });
   if (!data) return NextResponse.json({ error: "Directive not found." }, { status: 404 });
   return NextResponse.json({ ok: true, id });
 }
@@ -121,7 +122,7 @@ export async function DELETE(request: Request) {
     .eq("school_id", membership.schoolId)
     .select("id")
     .maybeSingle();
-  if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 });
+  if (delErr) return NextResponse.json({ error: clientError(delErr) }, { status: 500 });
   if (!data) return NextResponse.json({ error: "Directive not found." }, { status: 404 });
   return NextResponse.json({ ok: true, id });
 }

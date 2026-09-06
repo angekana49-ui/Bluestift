@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminMembership } from "@/lib/school-admin";
 
@@ -38,7 +39,7 @@ export async function GET(request: Request) {
       .eq("context_type", "school_analytics")
       .eq("school_id", membership.schoolId)
       .order("updated_at", { ascending: false });
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
     return NextResponse.json({ conversations: data ?? [] });
   }
 
@@ -87,7 +88,7 @@ export async function GET(request: Request) {
       .eq("conversation_id", id)
       .order("created_at", { ascending: true }),
   ]);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
 
   return NextResponse.json({ messages: data ?? [], files: files ?? [] });
 }
@@ -136,7 +137,7 @@ export async function DELETE(request: Request) {
     .eq("id", id)
     .eq("user_id", user.id)
     .eq("context_type", "school_analytics");
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
 
   return NextResponse.json({ ok: true });
 }

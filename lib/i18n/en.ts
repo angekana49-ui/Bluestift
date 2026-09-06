@@ -655,22 +655,6 @@ export const en = {
     "Your key was already shown once — we keep only a fingerprint of it, so it can't be shown again. If you didn't save it, add an email above, then generate a replacement in",
   "onb.email.noKey.strong": "Settings",
 
-  "onb.blocked.heading.a": "You need your school's permission to use",
-  "onb.blocked.sub":
-    "Under 13, we can only open an account when a school sets it up. If your teacher gave you a class code, enter it here and you're in.",
-  "onb.blocked.codeLabel": "Class code",
-  "onb.blocked.codePlaceholder": "From your teacher",
-  "onb.blocked.nameLabel": "Your name (shared only with your school)",
-  "onb.blocked.firstNamePlaceholder": "First name",
-  "onb.blocked.lastNamePlaceholder": "Last name",
-  "onb.blocked.linking": "Linking…",
-  "onb.blocked.submit": "Use my class code →",
-  "onb.blocked.err.linkFailed": "Couldn't link that code",
-  "onb.blocked.note.strong": "No class code?",
-  "onb.blocked.note.a": "Ask your teacher for one. A parent or guardian can also write to",
-  "onb.blocked.note.b": "and we'll sort it out with them.",
-  "onb.blocked.closed":
-    "Until then this account stays closed. We've kept nothing but the year you gave us, and it will be deleted along with the account if it goes unused.",
 
   // ── Auth panel (components/auth-panel.tsx — /login AND /account) ──
   "auth.err.captcha": "Complete the CAPTCHA first.",
@@ -771,6 +755,8 @@ export const en = {
   "checkout.method.mobileMoney.sub": "MTN · Orange · Moov · Wave",
   "checkout.method.paypal.sub": "Pay with your PayPal balance",
   "checkout.redirecting": "Redirecting…",
+  "checkout.guardian.title": "I am the parent or guardian, and I am the one paying.",
+  "checkout.guardian.body": "This account belongs to someone under 18. Only an adult can pay for it; your confirmation is kept with the payment.",
   "checkout.payArrow": "Pay →",
   "checkout.err.startFailed": "Could not start checkout.",
   "checkout.err.network": "Network error — please try again.",
@@ -865,6 +851,8 @@ export const en = {
   "subprocessors.row.supabase.data": "Everything stored: accounts, conversations, uploads, learning signals",
   "subprocessors.row.vercel.purpose": "Application hosting and scheduled jobs",
   "subprocessors.row.vercel.data": "Requests in transit, server logs",
+  "subprocessors.row.railway.purpose": "Hosts the Kernel — the cognitive engine that reads each tutoring exchange and maintains the model of what a learner understands",
+  "subprocessors.row.railway.data": "The text of tutoring turns sent for analysis, learning signals, an account identifier",
   "subprocessors.row.gemini.purpose": "Generates Raya's replies",
   "subprocessors.row.gemini.data": "The text of a tutoring turn and the context sent with it",
   "subprocessors.row.groq.purpose": "Fallback model for replies, and speech-to-text for voice",
@@ -873,7 +861,7 @@ export const en = {
   "subprocessors.row.posthog.data": "Page views, a few product events, an account identifier",
   "subprocessors.row.cloudflare.purpose": "Turnstile bot protection on public forms and sign-up",
   "subprocessors.row.cloudflare.data": "A challenge token and network metadata",
-  "subprocessors.row.resend.purpose": "Transactional email — invitations, decisions, receipts",
+  "subprocessors.row.resend.purpose": "Transactional email — join requests and their decisions, plan activation, payment receipts",
   "subprocessors.row.resend.data": "Email address and the message content",
   "subprocessors.row.cinetpay.purpose": "Card and mobile-money payments",
   "subprocessors.row.cinetpay.data": "Payment details and the amount. We never store full card numbers",
@@ -1065,9 +1053,9 @@ export const en = {
   "terms.s1.li1.body": "— you can open an account yourself. If you are under 18 you should have your parent or guardian's permission.",
   "terms.s1.li2.strong": "Under 13",
   "terms.s1.li2.a":
-    "— only through a school that has enrolled you. We do not open accounts for under-13s who sign up on their own; see the",
+    "— you can use Raya on your own too. Your account is kept to the strict minimum, nothing on it can be bought without a parent or guardian confirming they are the one paying, and a school that enrols you consents on your parents' behalf; see the",
   "terms.s1.li2.link": "privacy policy",
-  "terms.s1.li2.b": "for why.",
+  "terms.s1.li2.b": "for what that means.",
   "terms.s1.li3": "We ask everyone their year of birth and act on the answer. Giving a false one to get past that is a breach of these terms.",
   "terms.s2.h2": "2. Your account",
   "terms.s2.a": "You are responsible for what happens under your account. If you use an anonymous account, the",
@@ -1094,16 +1082,16 @@ export const en = {
     "What you write and upload stays yours. You give us the permission we need to store it, process it and show it back to you — and to send it to a model provider so that",
   "terms.s5.p1.b": "can reply. Nothing more.",
   "terms.s5.p2":
-    "We do not use your content to improve our models unless you switch that on in your settings, and the option is not offered on accounts belonging to under-18s.",
+    "On an adult account we use your content to improve our models unless you switch that off in your settings; on an account linked to a school it stays off unless you switch it on; and the option is not offered at all on accounts belonging to under-18s.",
   "terms.s6.h2": "6. School accounts",
-  "terms.s6.a": "If you join through a class code, your school sees your name, your class and your results. It does not see your conversations with",
+  "terms.s6.a": "If you join through a class code, your school sees your name, your class, your results and your progress — what you have mastered and where you are stuck — and the notes your teachers write about you. It does not see your conversations with",
   "terms.s6.b": ". Your school administers your access and can remove it. The terms we operate under are in the",
   "terms.s6.link": "data processing addendum",
   "terms.s7.h2": "7. Paid plans",
   "terms.s7.p1.a": "Prices and what each plan includes are on the",
   "terms.s7.p1.link": "pricing page",
   "terms.s7.p1.b":
-    ". Subscriptions renew for the term you chose until cancelled, and cancelling stops the next renewal rather than refunding the current one. Where consumer law gives you a right of withdrawal, that right applies and overrides this paragraph. School plans are billed per seat under the school's own agreement.",
+    ". Subscriptions renew for the term you chose until cancelled, and cancelling stops the next renewal rather than refunding the current one. Where consumer law gives you a right of withdrawal, that right applies and overrides this paragraph. School plans are billed per seat under the school's own agreement. Only an adult can pay: on an account belonging to someone under 18, checkout asks the payer to confirm they are the parent or guardian, and that confirmation is stored with the payment.",
   "terms.s7.p2": "We may change prices. Existing subscribers keep their price until the end of the term they have paid for.",
   "terms.s8.h2": "8. Availability",
   "terms.s8.body":
@@ -1142,10 +1130,10 @@ export const en = {
   "privacy.short.li3.a": "On an adult account, your work",
   "privacy.short.li3.strong": "is",
   "privacy.short.li3.b":
-    "used to improve our models unless you switch that off — one toggle in your settings, effective immediately. For under-18s it is never used, and the option isn't offered at all.",
+    "used to improve our models unless you switch that off — one toggle in your settings, effective immediately. On an account linked to a school it stays off unless you switch it on. For under-18s it is never used, and the option isn't offered at all.",
   "privacy.short.li4.a": "If your account is",
   "privacy.short.li4.strong": "linked to a school",
-  "privacy.short.li4.b": ", your progress is visible to your teachers. If it is linked to nobody, nothing about your learning leaves your account.",
+  "privacy.short.li4.b": ", your progress is visible to your teachers. If it is linked to nobody, nothing about your learning leaves your account except what you choose to share yourself — in a study room, or with a share link.",
   "privacy.short.li5": "No ads. No selling data. No cross-site tracking.",
   "privacy.short.li6.a": "You can download everything we hold, or delete your account outright, from",
   "privacy.short.li6.link": "your settings",
@@ -1156,7 +1144,7 @@ export const en = {
     "We ask everyone the year they were born. We store the year, never a full date of birth, and we ask it neutrally rather than as “are you over 13?” — a question phrased that way just tells a child which answer opens the door.",
   "privacy.age.under13.strong": "Under 13.",
   "privacy.age.under13.body":
-    "We do not knowingly open accounts for children under 13 on their own. We operate no verifiable parental consent mechanism of our own, so the only route in is a school: a school that adopts Bluestift consents on the parent's behalf for school use, which is the exception COPPA provides at 16 CFR § 312.5(c)(6). A child who signs up alone is stopped at the age question, and we hold nothing but the year they gave us until the account is deleted.",
+    "We operate no verifiable parental consent mechanism of our own. Where a school adopts Bluestift, it consents on the parent's behalf for school use, which is the exception COPPA provides at 16 CFR § 312.5(c)(6). A child who signs up alone can use Raya, on an account we hold to the strict minimum: no email is required, no analytics ever runs, their work is never used to improve models, they cannot join public study rooms, and nothing can be bought from the account without an adult confirming they are the parent or guardian paying. We do not claim a consent we have not obtained — a parent can see, correct or delete the child's data at any time, below.",
   "privacy.age.under18.strong": "Under 18.",
   "privacy.age.under18.body":
     "Optional processing is off and cannot be switched on: no product analytics, and no use of their content to improve models. That is stricter than the law strictly requires in some countries — GDPR art. 8 sets the age of digital consent between 13 and 16 depending on the member state — and we would rather be too careful with a 17-year-old than not careful enough with a 13-year-old.",
@@ -1174,7 +1162,7 @@ export const en = {
   "privacy.collect.table.what": "What",
   "privacy.collect.table.why": "Why",
   "privacy.collect.table.basis": "Legal basis",
-  "privacy.collect.r1.what": "Account — a random identifier, a username, a display name, and an email if you add one",
+  "privacy.collect.r1.what": "Account — a random identifier, a username, a display name, and an email address or profile picture if you add one",
   "privacy.collect.r1.why": "To have an account at all, and to get you back into it",
   "privacy.collect.r1.basis": "Contract",
   "privacy.collect.r2.what": "Year of birth",
@@ -1194,7 +1182,7 @@ export const en = {
   "privacy.collect.r6.basis": "Consent — off until you accept, never for under-18s",
   "privacy.collect.r7.what": "Using your content to improve our models",
   "privacy.collect.r7.why": "To make the tutor better",
-  "privacy.collect.r7.basis": "Consent — on by default on adult accounts, switchable off at any time; never for under-18s",
+  "privacy.collect.r7.basis": "Consent — on by default on adult accounts, switchable off at any time; off until you switch it on if your account is linked to a school; never for under-18s",
   "privacy.collect.r8.what": "Sending your progress to your school",
   "privacy.collect.r8.why": "So your teachers can see who is stuck and on what",
   "privacy.collect.r8.basis": "Contract (with your school) — only while your account is linked to one",
@@ -1220,7 +1208,7 @@ export const en = {
   "privacy.analytics.p2.link": "your settings",
   "privacy.analytics.p2.b": ", with one switch. It is as easy to withdraw as it was to give, which is what art. 7(3) asks for.",
   "privacy.analytics.p3":
-    "Cookies are minimal: one to keep you signed in, one to remember your analytics choice so we stop asking, and one to remember which school you are looking at if you belong to several. There are no advertising or cross-site tracking cookies.",
+    "Cookies are minimal: one to keep you signed in, one to remember your analytics choice so we stop asking, one each for your language and theme, one to remember which school you are looking at if you belong to several, and a short-lived one while a school connects Google Classroom. There are no advertising or cross-site tracking cookies.",
 
   "privacy.who.h2": "Who processes data for us",
   "privacy.who.p1.a": "A short list, each one only for what it is named for. The current sub-processors, with what they hold and where, are on the",
@@ -1238,7 +1226,7 @@ export const en = {
   "privacy.retention.table.howLong": "How long",
   "privacy.retention.r1.what": "Your account and its content",
   "privacy.retention.r1.how": "While the account is active",
-  "privacy.retention.r2.what": "Anonymous accounts that are never used",
+  "privacy.retention.r2.what": "Anonymous accounts that go unused (no email added, no school)",
   "privacy.retention.r2.how": "Deactivated after 60 days of inactivity, deleted after 180",
   "privacy.retention.r3.what": "School records",
   "privacy.retention.r3.how": "For the school's contracted term, then returned or destroyed at its instruction",
@@ -1332,8 +1320,8 @@ export const en = {
 
   "dpa.s4.h2": "4. COPPA — consent for under-13s",
   "dpa.s4.p1.a":
-    "We do not open accounts for children under 13 who arrive on their own; they are stopped at the age question. Under-13s reach",
-  "dpa.s4.p1.b": "only through a school.",
+    "Outside any school, a child under 13 can use",
+  "dpa.s4.p1.b": "on their own under our privacy policy — no analytics, no model training, no public rooms, no purchase without a stated adult. The moment a school enrols them, this addendum and the school's consent govern instead.",
   "dpa.s4.p2.a": "By enrolling students under 13,",
   "dpa.s4.p2.strong": "the school confirms that it consents on behalf of their parents",
   "dpa.s4.p2.b":
@@ -1361,7 +1349,7 @@ export const en = {
   "dpa.s7.li1": "We do not sell student data. There is no circumstance in which we would.",
   "dpa.s7.li2": "We do not serve advertising, and we do not build advertising profiles.",
   "dpa.s7.li3":
-    "We do not use student content to train models unless the account holder explicitly opted in — and that option is not available to under-18s, which is every student in a school setting below sixth form.",
+    "We do not use student or staff content to train models unless the account holder explicitly opted in — it is never switched on by default on a school-linked account — and that option is not available to under-18s, which is every student in a school setting below sixth form.",
   "dpa.s7.li4":
     "We do not give staff a student's private tutoring conversations. A student who believes their tutor is being read stops asking the questions that make tutoring work, so the staff record covers what the student produced and what the system inferred, not the transcript. The student, or a parent through the student, can export the transcript in full.",
 

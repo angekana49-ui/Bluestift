@@ -898,7 +898,7 @@ function RoomViewBody({
               <h3 style={{ margin: 0, flex: 1, fontSize: 16, fontWeight: 700, color: t.text }}>Session report</h3>
               {report && (
                 <>
-                  <DocumentActions doc={reportDoc(roomName, report)} compact />
+                  <DocumentActions doc={reportDoc(roomName, report)} compact personal />
                   <button style={{ ...ghost, padding: "5px 12px", fontSize: 13 }} title="Close" onClick={() => setReport(null)}>
                     ✕
                   </button>

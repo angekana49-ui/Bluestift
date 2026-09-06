@@ -15,10 +15,17 @@ configuration et aucune dépendance** : c'est celle qui fonctionne encore quand
 la base de données est tombée — ou quand c'est le webhook lui-même qui est
 tombé.
 
-**2. Optionnelle** — un `POST` du même enregistrement vers `ERROR_WEBHOOK_URL`
-(Slack, Discord, un tunnel Sentry, ce que tu veux). Variable non définie = pas
-d'appel sortant, et rien d'autre ne change. La surveillance ne doit pas
-dépendre d'une installation qui n'a pas encore eu lieu.
+**2. Optionnelle** — un `POST` d'une **copie allégée** de l'enregistrement vers
+`ERROR_WEBHOOK_URL` (Slack, Discord, un tunnel Sentry, ce que tu veux).
+Variable non définie = pas d'appel sortant, et rien d'autre ne change. La
+surveillance ne doit pas dépendre d'une installation qui n'a pas encore eu lieu.
+
+Allégée, parce que ce point de terminaison est un tiers : les `tags` sont
+retirés et tout UUID (id utilisateur, id de paiement) devient `<id>` dans le
+message et la pile (`webhookCopy`). Aucun identifiant ne sort, donc le
+destinataire ne traite pas de donnée personnelle et n'a pas à figurer sur
+`/subprocessors`. La ligne de log, elle, garde tout — Vercel y est déjà.
+Pour retrouver l'enregistrement complet depuis une alerte : `fingerprint` + `ts`.
 
 ## L'enregistrement
 
@@ -83,7 +90,8 @@ faire, et elle est en dehors du dépôt :
    requête sauvegardée sur `[bluestift.error]`, et une alerte sur les
    `severity:"error"` de scope `billing.*`.
 2. **Mieux** — définir `ERROR_WEBHOOK_URL` sur un webhook entrant Slack ou
-   Discord. Chaque enregistrement arrive tel quel, en JSON.
+   Discord. Chaque enregistrement arrive en JSON, sans tags ni ids (voir plus
+   haut) ; le détail est dans les logs Vercel, à la même empreinte.
 3. **Si un jour ça grossit** — le même `ERROR_WEBHOOK_URL` peut pointer sur un
    tunnel Sentry. La couture est déjà là : rien d'autre dans le code ne bouge.
 

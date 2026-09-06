@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { getAdminMembership, getLmsConnections, LMS_PROVIDERS } from "@/lib/school-admin";
@@ -56,7 +57,7 @@ export async function POST(request: Request) {
     })
     .select("id")
     .single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
 
   return NextResponse.json({
     id: (data as { id: string }).id,
@@ -96,6 +97,6 @@ export async function DELETE(request: Request) {
 
   await schools.from("lms_class_mappings").delete().eq("lms_connection_id", id);
   const { error } = await schools.from("lms_connections").delete().eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

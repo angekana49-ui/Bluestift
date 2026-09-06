@@ -93,11 +93,23 @@ function parseResponse(text: string, fallback: TranslatableDoc): TranslatableDoc
 export async function translateDocument(
   doc: TranslatableDoc,
   locale: Locale,
+  opts: {
+    /**
+     * The document is about identifiable people — a class report, a student's
+     * record, a simulation of one learner. It is translated but NEVER cached:
+     * the cache is content-addressed and shared, so nothing ties a row to a
+     * person and account erasure cannot reach it. Lesson-derived material
+     * (summaries, quizzes) carries no one's name and is what the cache is for.
+     */
+    personal?: boolean;
+  } = {},
 ): Promise<{ doc: TranslatableDoc; translated: boolean; cached: boolean }> {
   const hash = documentHash(doc);
   const admin = createAdminClient().schema("learning");
+  const cacheable = !opts.personal;
 
   try {
+    if (!cacheable) throw new Error("uncacheable");
     const { data } = await admin
       .from("document_translations")
       .select("title, meta, body")
@@ -146,6 +158,7 @@ export async function translateDocument(
   }
 
   if (out === doc) return { doc, translated: false, cached: false };
+  if (!cacheable) return { doc: out, translated: true, cached: false };
 
   try {
     await admin.from("document_translations").upsert(

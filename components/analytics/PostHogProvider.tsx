@@ -13,6 +13,7 @@ import {
   restoreAnalyticsConsent,
 } from "@/lib/analytics/posthog-lazy";
 import { setConsent } from "@/lib/analytics/consent";
+import { scrubUrl } from "@/lib/analytics/scrub-url";
 import { ConsentBanner } from "./ConsentBanner";
 
 /**
@@ -37,9 +38,11 @@ function PageviewTracker() {
 
   useEffect(() => {
     if (!ph || !pathname || !capturing()) return;
-    let url = window.location.origin + pathname;
-    const q = searchParams?.toString();
-    if (q) url += `?${q}`;
+    // The SHAPE of the page, never the concrete one. Several paths here are
+    // credentials rather than locations — a share token, a private room id —
+    // and a page view is not a reason to hand those to a third party. See
+    // lib/analytics/scrub-url.ts.
+    const url = scrubUrl(window.location.origin, pathname, searchParams?.toString() ?? "");
     ph.capture("$pageview", { $current_url: url });
   }, [pathname, searchParams, ph]);
 

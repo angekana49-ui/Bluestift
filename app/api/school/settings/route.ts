@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { getAdminMembership, SCHOOL_TYPES } from "@/lib/school-admin";
@@ -65,7 +66,7 @@ export async function PATCH(request: Request) {
     .eq("id", membership.schoolId)
     .select("name, city, country_code, school_type, email, phone, logo_url")
     .single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
 
   const row = data as {
     name: string;

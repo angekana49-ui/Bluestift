@@ -83,38 +83,44 @@ export function allowsOptionalProcessing(band: AgeBand | null): boolean {
 
 export type AccessDecision =
   | { allowed: true; band: AgeBand }
-  /** Under 13 with nobody authorised to act for them — the COPPA block. */
-  | { allowed: false; band: "child"; reason: "needs_school_or_parent" }
   /** No age on file yet; the caller should send them to the age step. */
   | { allowed: false; band: null; reason: "age_undeclared" };
 
 /**
  * Whether an account may use the product on its own.
  *
- * Under 13 we do not attempt verifiable parental consent ourselves — no card
- * check, no ID upload, none of the mechanisms COPPA accepts. We rely solely on
- * the school-consent exception (16 CFR 312.5(c)(6)): a child reaches Raya
- * because their school authorised it, and the school is also the FERPA "school
- * official" relationship we operate under. A child with no school and no
- * recorded parental authorisation is refused, not quietly downgraded.
+ * The only thing that closes the door is not having answered the age question.
+ * A child under 13 is admitted on their own — a product decision taken on
+ * 2026-09-06 — and the band is what the rest of the product uses to hold that
+ * account to the minimum: no analytics, no model training, no public rooms,
+ * and no purchase without an adult's attestation (`requiresGuardianToPay`).
+ *
+ * We still run no verifiable parental consent mechanism of our own — no card
+ * check, no ID upload. Where a school enrols a child, `/api/school/join`
+ * records the school-consent exception (16 CFR 312.5(c)(6)) in
+ * `minor_consent_source`, and that record is what the DPA relies on. `schoolId`
+ * and `minorConsentSource` are accepted here so call sites keep one shape;
+ * they no longer decide access.
  */
 export function evaluateAccess(input: {
   birthYear: number | null | undefined;
-  /** The school that vouches for this student, if any. */
+  /** The school that vouches for this student, if any. Informational. */
   schoolId?: string | null;
-  /** A recorded authorisation, if one was captured out of band. */
+  /** A recorded authorisation, if one was captured out of band. Informational. */
   minorConsentSource?: string | null;
   now?: Date;
 }): AccessDecision {
   const band = ageBand(input.birthYear, input.now ?? new Date());
   if (band == null) return { allowed: false, band: null, reason: "age_undeclared" };
-  if (band !== "child") return { allowed: true, band };
+  return { allowed: true, band };
+}
 
-  const vouched =
-    Boolean(input.schoolId) ||
-    input.minorConsentSource === "school" ||
-    input.minorConsentSource === "parent";
-  return vouched
-    ? { allowed: true, band: "child" }
-    : { allowed: false, band: "child", reason: "needs_school_or_parent" };
+/**
+ * Only an adult pays. On a minor's account the checkout does not disappear —
+ * a parent may well be the one holding the card — but the payer has to state
+ * that they are the parent or guardian, and that statement is stored with the
+ * payment. An undeclared age counts as a minor, as everywhere else.
+ */
+export function requiresGuardianToPay(band: AgeBand | null): boolean {
+  return isMinor(band);
 }

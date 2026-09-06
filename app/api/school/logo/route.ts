@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { getAdminMembership } from "@/lib/school-admin";
@@ -65,7 +66,7 @@ export async function POST(request: Request) {
   const up = await admin.storage
     .from("avatars")
     .upload(path, file, { upsert: true, contentType: file.type });
-  if (up.error) return NextResponse.json({ error: up.error.message }, { status: 500 });
+  if (up.error) return NextResponse.json({ error: clientError(up.error) }, { status: 500 });
 
   const {
     data: { publicUrl },
@@ -77,7 +78,7 @@ export async function POST(request: Request) {
     .from("schools")
     .update({ logo_url: logoUrl, updated_at: new Date().toISOString() })
     .eq("id", membership.schoolId);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
 
   return NextResponse.json({ logoUrl });
 }

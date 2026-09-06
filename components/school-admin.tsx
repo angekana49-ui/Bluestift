@@ -1465,7 +1465,7 @@ function ProfInsightsView({ onStudent, schoolName }: { onStudent: (classId: stri
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           <h3 style={{ margin: 0, flex: 1 }}>{withCount("At-risk students", data.alerts.length)}</h3>
           {(data.alerts.length > 0 || data.insights.length > 0) && (
-            <DocumentActions doc={profInsightsToDoc(data, schoolName)} compact shareable={false} />
+            <DocumentActions doc={profInsightsToDoc(data, schoolName)} compact shareable={false} personal />
           )}
         </div>
         {data.alertsUnavailable ? (

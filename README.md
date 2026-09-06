@@ -26,7 +26,7 @@ alone — widen the gap between them. Bluestift is the one that closes it.
 | Analytics | PostHog, opt-in, EU-hosted |
 | Payments | Stripe (international card) and CinetPay (card + mobile money), behind one provider seam; sandbox provider for dev |
 | Email | Resend |
-| Hosting | Vercel |
+| Hosting | Vercel (app), Railway (Kernel) |
 
 Styling is inline-token-based rather than utility classes: `components/ui/tokens.ts`
 for the connected app, `components/site/theme.ts` for the public marketing site.
@@ -59,9 +59,16 @@ one and what happens when it's missing.
 
 ```bash
 npm test          # vitest
-npm run build     # next build
+npm run typecheck # tsc, after clearing the generated types that once hid a real error
+npm run build     # next build — the only check that sees everything
 npm run gen:types # regenerate types/database.types.ts (needs SUPABASE_ACCESS_TOKEN)
 ```
+
+`npm run typecheck` deletes `.next/dev/types` before running, and fails loudly
+if errors surface in generated files anyway. A stale copy of that directory once
+made `tsc --noEmit` report clean while the build failed, hiding an error that
+would have broken the data export at runtime. When the two disagree, the build
+is right.
 
 ---
 
@@ -69,7 +76,7 @@ npm run gen:types # regenerate types/database.types.ts (needs SUPABASE_ACCESS_TO
 
 ```
 app/                    routes — pages and API handlers
-  api/account/          data rights: age, export, delete, consent
+  api/account/          data rights: age, export, delete, consent, recovery key
   api/raya/             the tutor: chat (streamed), files, conversations
   api/school/           the staff side: classes, roster, insights, join
   api/cron/             scheduled jobs (Vercel Cron)
@@ -80,6 +87,7 @@ components/
   raya/                 the connected-app shell and settings cards
 lib/
   compliance/           age assurance, export, erasure — see docs/compliance.md
+  security/             the cross-site write guard — see docs/security.md
   kernel/               client + types for the FastAPI cognitive engine
   raya/                 prompt, LLM routing, chat context assembly
   billing/              plans, seats, payments
@@ -127,7 +135,10 @@ struggling student is always safe. It is inert until `*_MODEL_FAST` / `*_MODEL_D
 are set, which is also the rollback.
 
 **Age gates everything.** Every app page checks `needsAgeGate(profile)` alongside
-`account_state`. An account with no declared birth year cannot reach any surface.
+`account_state`, and every API route that carries user content outward (chat,
+voice, uploads, tools, the Kernel) runs the same decision through
+`lib/compliance/api-gate.ts`. An account with no declared birth year cannot reach
+any surface — **a new content-bearing route must call `ageGateResponse()`**.
 See [`docs/compliance.md`](docs/compliance.md).
 
 **Erasure is not a cascade.** Deleting the auth user misses the `kernel` schema
@@ -180,14 +191,33 @@ Written up properly in [`docs/compliance.md`](docs/compliance.md); the short for
 - Anonymous accounts by default — no email needed to try Raya.
 - We store a birth **year**, never a date of birth.
 - Analytics is opt-in, and off entirely for anyone under 18.
-- Under-13s can only reach Raya through a school (COPPA school-consent
-  exception); we run no parental-verification mechanism of our own.
+- Model training is on by default for a solo adult and switchable off; off until
+  chosen on a school-linked account (the DPA's promise); never for under-18s.
+- Under-13s can use Raya on their own, on an account held to the minimum: no
+  email required, no analytics, no model training, no public rooms. We run no
+  parental-verification mechanism of our own; where a school enrols a child, it
+  consents on the parent's behalf (COPPA school-consent exception).
+- Only an adult pays. Checkout on a minor's account requires the payer to state
+  they are the parent or guardian, and the statement is stored on the payment.
 - Students can download everything held about them, including the Kernel's
   private model of their learning, and delete their account outright — from
   settings, no request form.
 - Staff can export a student's education record for a parent (FERPA), but that
   record excludes the student's own conversations with Raya. A tutor you believe
   is being read is a tutor you stop asking real questions of.
+
+## Security posture
+
+[`docs/security.md`](docs/security.md) has the audit, the accepted risks and the
+reasoning. The two rules worth knowing before touching a route:
+
+- **A school role is not a trusted role.** Schools are self-serve, so anyone can
+  be staff in a minute. Every staff-side check has to assume the caller is an
+  attacker who signed up for the purpose.
+- **Where the service role reads, the route file is the boundary.** The
+  `schools`, `kernel` and `content` schemas bypass RLS by design, so a missing
+  check there has nothing underneath it to catch the mistake. An id in a request
+  is a claim; verify it against something the caller does not control.
 
 Public pages: `/privacy`, `/terms`, `/dpa`, `/subprocessors`. They describe how
 the code behaves, so **they change in the same commit the code does.**

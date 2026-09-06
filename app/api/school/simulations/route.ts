@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { assertClassAccess, buildInsightsBaseline, getAdminMembership, getSimulations } from "@/lib/school-admin";
@@ -89,7 +90,7 @@ export async function POST(request: Request) {
       raw.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim(),
     ) as Record<string, unknown>;
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "projection failed" }, { status: 502 });
+    return NextResponse.json({ error: clientError(e, "projection failed") }, { status: 502 });
   }
 
   const parameters = {

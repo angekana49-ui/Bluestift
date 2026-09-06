@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { classCapacity } from "@/lib/school-admin";
@@ -6,6 +7,7 @@ import { resolveSeatGate } from "@/lib/billing";
 import { checkStrictRateLimit } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/request-ip";
 import { ageBand, isMinor } from "@/lib/compliance/age";
+import { forgetOptionalProcessing } from "@/lib/compliance/optional-processing";
 
 // Local shapes for the untyped `schools` schema (not in generated types).
 type CodeRow = { class_id: string; school_year_id: string | null };
@@ -132,7 +134,7 @@ export async function POST(request: Request) {
     },
     { onConflict: "user_id" },
   );
-  if (idErr) return NextResponse.json({ error: idErr.message }, { status: 500 });
+  if (idErr) return NextResponse.json({ error: clientError(idErr) }, { status: 500 });
 
   // Wire the coordination columns on public.users. class_enrollment_id has an FK
   // to a billing enrollment row — only set it when one already exists.
@@ -145,7 +147,11 @@ export async function POST(request: Request) {
       .eq("is_active", true)
       .limit(1)
       .maybeSingle(),
-    admin.from("users").select("birth_year").eq("id", user.id).maybeSingle(),
+    admin
+      .from("users")
+      .select("birth_year, training_consent_at")
+      .eq("id", user.id)
+      .maybeSingle(),
   ]);
 
   // The school's authorisation is what lets an under-13 use Raya at all: we run
@@ -155,12 +161,20 @@ export async function POST(request: Request) {
   // it — otherwise a child who joins a class stays blocked forever.
   const minor = isMinor(ageBand(ageRow?.birth_year ?? null));
 
+  // Joining a school moves the account under the DPA, which promises the school
+  // that content trains nothing unless the holder explicitly opted in. A solo
+  // adult's "on by default" is not that choice — `training_consent_at` is null
+  // for them — so it is switched off here and stays off until they choose. A
+  // choice they DID make, either way, is left exactly as it is.
+  const dropDefaultTraining = !ageRow?.training_consent_at;
+
   const { error: uErr } = await admin
     .from("users")
     .update({
       school_id: schoolId,
       school_year_id: schoolYearId,
       ...(enrollment?.id ? { class_enrollment_id: enrollment.id } : {}),
+      ...(dropDefaultTraining ? { training_consent: false } : {}),
       ...(minor
         ? {
             minor_consent_source: "school",
@@ -170,7 +184,9 @@ export async function POST(request: Request) {
         : {}),
     })
     .eq("id", user.id);
-  if (uErr) return NextResponse.json({ error: uErr.message }, { status: 500 });
+  if (uErr) return NextResponse.json({ error: clientError(uErr) }, { status: 500 });
+  // The training decision is memoised for five minutes and just changed input.
+  forgetOptionalProcessing(user.id);
 
   // School name for the confirmation UI.
   const { data: schoolData } = await schools

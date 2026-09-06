@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
+import { ageGateResponse } from "@/lib/compliance/api-gate";
 import { generateJson, rayaComplete } from "@/lib/raya/llm";
 import type { Json } from "@/types/database.types";
 import {
@@ -25,6 +27,9 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // Pages send an ungated account back to the age question; this route has to as well.
+  const gated = await ageGateResponse(user.id);
+  if (gated) return gated;
 
   let body: {
     tool_type?: string;
@@ -113,7 +118,7 @@ export async function POST(request: Request) {
     })
     .select("id")
     .single();
-  if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 });
+  if (insErr) return NextResponse.json({ error: clientError(insErr) }, { status: 500 });
   const id = created.id;
 
   try {
@@ -191,13 +196,18 @@ export async function POST(request: Request) {
     void captureServer(user.id, "artefact_generated", { tool_type: toolType, tier });
     return NextResponse.json({ id, status: "done", tool_type: toolType, output_content: output });
   } catch (e) {
+    // The stored row keeps the real reason — it is ours, and it is what makes a
+    // failed generation diagnosable. The response gets the sentence.
     const message = e instanceof Error ? e.message : "generation failed";
     await supabase
       .schema("learning")
       .from("tool_outputs")
       .update({ status: "failed", error_message: message })
       .eq("id", id);
-    return NextResponse.json({ id, status: "failed", error: message }, { status: 502 });
+    return NextResponse.json(
+      { id, status: "failed", error: clientError(e, "generation failed") },
+      { status: 502 },
+    );
   }
 }
 

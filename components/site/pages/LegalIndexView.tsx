@@ -53,7 +53,7 @@ export function LegalIndexView({ signedIn }: { signedIn: boolean }) {
       signedIn={signedIn}
       title="Legal"
       accent="in full"
-      updated="3 September 2026"
+      updated="6 September 2026"
     >
       {(t: Theme) => (
         <>
@@ -133,8 +133,9 @@ export function LegalIndexView({ signedIn }: { signedIn: boolean }) {
             <Link href="/privacy" style={link(t)}>
               privacy policy
             </Link>{" "}
-            says how that is decided, and under 13 an account only exists at all because a school
-            authorised it.
+            says how that is decided. Nothing can be bought from an account belonging to an
+            under-18 unless the person paying confirms they are a parent or guardian, and under 13
+            the account is held to the strict minimum described there.
           </p>
         </>
       )}

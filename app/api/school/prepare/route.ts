@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import {
@@ -127,7 +128,7 @@ export async function POST(request: Request) {
     const raw = await generateJson(system, userMsg);
     parsed = JSON.parse(raw) as { title?: string; instructions?: string; questions?: unknown };
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "generation failed" }, { status: 502 });
+    return NextResponse.json({ error: clientError(e, "generation failed") }, { status: 502 });
   }
 
   const questions: GenQuestion[] = Array.isArray(parsed.questions)

@@ -5,6 +5,7 @@ import {
   evaluateAccess,
   isPlausibleBirthYear,
   minimumAge,
+  requiresGuardianToPay,
 } from "@/lib/compliance/age";
 
 /**
@@ -66,24 +67,18 @@ describe("evaluateAccess", () => {
     expect(evaluateAccess({ birthYear: 1990, now: NOW }).allowed).toBe(true);
   });
 
-  it("refuses an under-13 with nobody acting for them", () => {
+  it("admits an under-13 on their own, and says so with the band", () => {
+    // Product decision of 2026-09-06: a child alone is not refused. The band is
+    // what the rest of the product uses to hold that account to the minimum.
     const d = evaluateAccess({ birthYear: 2016, now: NOW });
-    expect(d).toEqual({ allowed: false, band: "child", reason: "needs_school_or_parent" });
+    expect(d).toEqual({ allowed: true, band: "child" });
   });
 
-  it("admits an under-13 whose school vouches — the COPPA school exception", () => {
+  it("admits an under-13 whose school vouches, unchanged", () => {
     expect(evaluateAccess({ birthYear: 2016, schoolId: "s1", now: NOW }).allowed).toBe(true);
     expect(
       evaluateAccess({ birthYear: 2016, minorConsentSource: "school", now: NOW }).allowed,
     ).toBe(true);
-    expect(
-      evaluateAccess({ birthYear: 2016, minorConsentSource: "parent", now: NOW }).allowed,
-    ).toBe(true);
-  });
-
-  it("does not treat an unrecognised consent source as authorisation", () => {
-    const d = evaluateAccess({ birthYear: 2016, minorConsentSource: "self", now: NOW });
-    expect(d.allowed).toBe(false);
   });
 
   it("asks for an age rather than assuming one", () => {
@@ -92,5 +87,15 @@ describe("evaluateAccess", () => {
       band: null,
       reason: "age_undeclared",
     });
+  });
+});
+
+describe("requiresGuardianToPay", () => {
+  it("lets an adult pay unattended and asks every minor for a guardian", () => {
+    expect(requiresGuardianToPay("adult")).toBe(false);
+    expect(requiresGuardianToPay("teen")).toBe(true);
+    expect(requiresGuardianToPay("child")).toBe(true);
+    // Undeclared counts as a minor, as everywhere else.
+    expect(requiresGuardianToPay(null)).toBe(true);
   });
 });

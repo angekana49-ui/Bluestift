@@ -32,12 +32,54 @@ export function kindOf(file: File): ExtractKind {
 }
 
 /**
+ * How long any one file may occupy the extractor.
+ *
+ * `.docx` and `.xlsx` are ZIP containers, and neither mammoth nor SheetJS
+ * exposes a bound on how far they will decompress. A 25 MB upload of
+ * pathologically compressible XML — a "zip bomb" — therefore expands without a
+ * ceiling, and the symptom is not an error but a function that sits there
+ * eating memory until the platform kills it.
+ *
+ * This does not stop the expansion; nothing available here does. It stops it
+ * being FREE: the request gives up after a minute and the caller is told the
+ * file could not be read. A real 25 MB spreadsheet parses in seconds, so the
+ * bound only ever bites the pathological case.
+ *
+ * The upload path is authenticated and rate-limited per user on top of this,
+ * so the cost of trying is bounded twice.
+ */
+const EXTRACT_TIMEOUT_MS = 60_000;
+
+/** Reject rather than hang. The work continues until the process ends; what we
+ *  reclaim is the request, not the CPU. */
+async function withDeadline<T>(work: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      work,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error("This file took too long to read. Try a smaller one.")),
+          ms,
+        );
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+/**
  * Extract readable text from an uploaded file. Text as-is, audio via Whisper,
  * PDF via Gemini multimodal, .docx via mammoth, .xlsx via SheetJS. Server-only.
  */
 export async function extractFileText(
   file: File,
 ): Promise<{ text: string; kind: ExtractKind }> {
+  return withDeadline(extractInner(file), EXTRACT_TIMEOUT_MS);
+}
+
+async function extractInner(file: File): Promise<{ text: string; kind: ExtractKind }> {
   const kind = kindOf(file);
   if (kind === "unsupported") {
     throw new Error("Unsupported file. Use text (.txt/.md/.csv), PDF, Word, Excel, or audio.");

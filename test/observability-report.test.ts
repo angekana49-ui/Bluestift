@@ -75,6 +75,32 @@ describe("reportIssue", () => {
     expect(JSON.parse(String(init.body))).toMatchObject({ scope: "billing.webhook" });
   });
 
+  it("sends the webhook a copy with no identifiers and no tags, so the sink processes no personal data", async () => {
+    const fetchMock = vi.fn(async () => new Response("ok"));
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubEnv("ERROR_WEBHOOK_URL", "https://hooks.example/report");
+
+    const { reportIssue, LOG_PREFIX } = await loadReport();
+    const id = "6f1d2c3b-4a5e-4f60-9b7c-8d9e0f1a2b3c";
+    await reportIssue({
+      scope: "billing.webhook",
+      message: `payment ${id} not found`,
+      tags: { paymentId: id, provider: "stripe" },
+    });
+
+    // The log line keeps everything: that is our own drain.
+    const [logged] = loggedRecords(errorSpy, LOG_PREFIX);
+    expect(logged.message).toContain(id);
+    expect((logged.tags as Record<string, string>).paymentId).toBe(id);
+
+    // The webhook gets the shape of the failure, not the row it happened to.
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    const sent = JSON.parse(String(init.body)) as Record<string, unknown>;
+    expect(sent.message).toBe("payment <id> not found");
+    expect(sent).not.toHaveProperty("tags");
+    expect(sent.fingerprint).toBe(logged.fingerprint);
+  });
+
   it("survives a webhook that is itself down", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("ECONNREFUSED"); }));
     vi.stubEnv("ERROR_WEBHOOK_URL", "https://hooks.example/report");

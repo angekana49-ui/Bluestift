@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
@@ -35,7 +36,7 @@ export async function GET(request: Request) {
   try {
     tokens = await exchangeCode(code, redirectUri);
   } catch (e) {
-    return done(`lmsError=${encodeURIComponent(e instanceof Error ? e.message.slice(0, 60) : "exchange_failed")}`);
+    return done(`lmsError=${encodeURIComponent(clientError(e, "exchange_failed").slice(0, 60))}`);
   }
   const info = await getUserInfo(tokens.access_token);
   const expiresAt = new Date(Date.now() + (tokens.expires_in ?? 3600) * 1000).toISOString();

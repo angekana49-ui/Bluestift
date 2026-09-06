@@ -31,6 +31,15 @@ const DELETE_DAYS = Number(process.env.ANON_DELETE_DAYS ?? "180");
 const DEACTIVATE_BATCH = 500;
 const DELETE_BATCH = 50;
 
+/**
+ * Translated exports are cached content-addressed (learning.document_translations),
+ * which means nothing ties a row to a person and erasure cannot reach it. A
+ * translated class report can still carry names. Documents about identifiable
+ * people are no longer cached at all (see lib/documents/translate.ts), and what
+ * is cached is pruned once nobody has asked for it in this long.
+ */
+const TRANSLATION_CACHE_DAYS = 90;
+
 export async function GET(request: Request) {
   if (!authorizedCron(request)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -74,11 +83,19 @@ export async function GET(request: Request) {
 
   const { data: pruned } = await adminRpc<number>(admin, "prune_signup_ip_events", { p_days: 2 });
 
+  const staleTranslations = new Date(Date.now() - TRANSLATION_CACHE_DAYS * 86_400_000).toISOString();
+  const { count: prunedTranslations } = await admin
+    .schema("learning")
+    .from("document_translations")
+    .delete({ count: "exact" })
+    .lt("last_used_at", staleTranslations);
+
   return NextResponse.json({
     ok: failures.length === 0,
     deleted,
     deleteFailures: failures,
     deactivated: deactivated ?? 0,
     prunedSignupEvents: pruned ?? 0,
+    prunedTranslations: prunedTranslations ?? 0,
   });
 }

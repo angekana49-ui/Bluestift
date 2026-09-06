@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { rayaComplete } from "@/lib/raya/llm";
 import { resolveRayaEntitlements, gateFeature } from "@/lib/entitlements";
@@ -103,7 +104,7 @@ export async function POST(request: Request) {
     analysis = out.text.trim();
     if (!analysis) throw new Error("empty analysis");
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "analysis failed" }, { status: 502 });
+    return NextResponse.json({ error: clientError(e, "analysis failed") }, { status: 502 });
   }
 
   return NextResponse.json({ title: `${challenge?.title ?? "Self-test"} — analysis`, analysis });

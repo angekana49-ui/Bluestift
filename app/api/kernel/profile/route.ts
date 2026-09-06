@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { reportError } from "@/lib/observability/report";
 import { kernel, KernelError } from "@/lib/kernel/client";
 
 /**
@@ -31,17 +32,13 @@ export async function GET() {
     return NextResponse.json(result);
   } catch (err) {
     if (err instanceof KernelError) {
-      return NextResponse.json(
-        { error: "kernel_error", detail: err.body },
-        { status: 502 },
-      );
+      // The Kernel's own body stays server-side: it is another service on
+      // another host, so its failures describe OUR infrastructure rather than
+      // anything the caller can act on. The logs keep the detail.
+      await reportError("kernel.profile", err, { tags: { status: err.status } });
+      return NextResponse.json({ error: "kernel_error" }, { status: 502 });
     }
-    return NextResponse.json(
-      {
-        error: "internal_error",
-        detail: err instanceof Error ? err.message : String(err),
-      },
-      { status: 500 },
-    );
+    await reportError("kernel.profile", err);
+    return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }
 }

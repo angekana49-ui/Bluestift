@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
+import { ageGateResponse } from "@/lib/compliance/api-gate";
 import { transcribeAudio } from "@/lib/raya/llm";
 import { contentLengthExceeds, tooLarge, MAX_AUDIO_BYTES } from "@/lib/upload-limits";
 import { resolveRayaEntitlements, gateFeature } from "@/lib/entitlements";
@@ -14,6 +16,9 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // Pages send an ungated account back to the age question; this route has to as well.
+  const gated = await ageGateResponse(user.id);
+  if (gated) return gated;
 
   // Voice input is a Plus+ feature.
   const { ent, tier } = await resolveRayaEntitlements(user.id);
@@ -42,7 +47,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ text });
   } catch (e) {
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "transcription error" },
+      { error: clientError(e, "transcription error") },
       { status: 502 },
     );
   }

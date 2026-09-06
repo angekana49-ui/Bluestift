@@ -998,6 +998,45 @@ export async function assertClassAccess(userId: string, classId: string): Promis
   return !!asg;
 }
 
+/**
+ * True when this student is enrolled in THIS class.
+ *
+ * The companion to `assertClassAccess`, and never a substitute for it. Class
+ * access answers "may the caller open this class"; it says nothing about the
+ * student id travelling next to the class id, and a request carries both. A
+ * staff member who legitimately holds one class can otherwise name any account
+ * on the platform as its student — every school is self-serve, so that is one
+ * signup away from being anyone.
+ *
+ * Enrolment lives on `student_identities`, the same row the roster is built
+ * from, so this is exactly the question the dashboard already answers visually.
+ *
+ * NAMED arguments, and not for style. Its neighbour is
+ * `assertClassAccess(userId, classId)`, whose first argument is the CALLER;
+ * this one's is the SUBJECT. Two adjacent guards taking two different people
+ * in the same position, both typed `string`, is a swap that compiles, passes
+ * every test, and quietly turns the check back off.
+ */
+export async function assertStudentInClass(args: {
+  studentUserId: string;
+  classId: string;
+}): Promise<boolean> {
+  const { studentUserId, classId } = args;
+  if (!studentUserId || !classId) return false;
+  try {
+    const schools = createSchoolsAdminClient();
+    const { data } = await schools
+      .from("student_identities")
+      .select("user_id")
+      .eq("class_id", classId)
+      .eq("user_id", studentUserId)
+      .maybeSingle();
+    return data != null;
+  } catch {
+    return false;
+  }
+}
+
 /** The classes a prof is assigned to (via assignments). */
 export async function getProfClasses(userId: string): Promise<AdminClass[]> {
   const m = await getAdminMembership(userId);

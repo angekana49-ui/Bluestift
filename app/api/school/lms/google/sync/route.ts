@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { getAdminMembership } from "@/lib/school-admin";
@@ -52,7 +53,7 @@ export async function POST() {
         })
         .eq("id", conn.id);
     } catch (e) {
-      return NextResponse.json({ error: e instanceof Error ? e.message.slice(0, 80) : "refresh failed" }, { status: 502 });
+      return NextResponse.json({ error: clientError(e, "refresh failed").slice(0, 80) }, { status: 502 });
     }
   }
 
@@ -61,7 +62,7 @@ export async function POST() {
     courses = await listCourses(accessToken);
   } catch (e) {
     await schools.from("lms_connections").update({ sync_status: "failed", sync_error: String(e).slice(0, 200) }).eq("id", conn.id);
-    return NextResponse.json({ error: e instanceof Error ? e.message.slice(0, 120) : "sync failed" }, { status: 502 });
+    return NextResponse.json({ error: clientError(e, "sync failed").slice(0, 120) }, { status: 502 });
   }
 
   // Reconcile: insert mappings for new courses, keep existing (and their class_id) as-is.

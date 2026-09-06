@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { generateJson } from "@/lib/raya/llm";
 import { reportGradedSubmission } from "@/lib/kernel/graded";
@@ -100,7 +101,7 @@ export async function POST(request: Request) {
     .from("challenge_questions")
     .select("id, content, type, correct_answer")
     .eq("challenge_id", challengeId);
-  if (qErr) return NextResponse.json({ error: qErr.message }, { status: 500 });
+  if (qErr) return NextResponse.json({ error: clientError(qErr) }, { status: 500 });
   if (!questions || questions.length === 0) {
     return NextResponse.json({ error: "challenge has no questions" }, { status: 400 });
   }
@@ -142,7 +143,7 @@ export async function POST(request: Request) {
     )
     .select("id")
     .single();
-  if (aErr) return NextResponse.json({ error: aErr.message }, { status: 500 });
+  if (aErr) return NextResponse.json({ error: clientError(aErr) }, { status: 500 });
 
   // Replace prior answers for this attempt.
   await supabase.schema("learning").from("challenge_answers").delete().eq("attempt_id", attempt.id);
@@ -157,7 +158,7 @@ export async function POST(request: Request) {
     };
   });
   const { error: ansErr } = await supabase.schema("learning").from("challenge_answers").insert(answerRows);
-  if (ansErr) return NextResponse.json({ error: ansErr.message }, { status: 500 });
+  if (ansErr) return NextResponse.json({ error: clientError(ansErr) }, { status: 500 });
 
   // Loop Kernel: a graded challenge is a strong signal, so it goes through the
   // precise route (real partial credit per KC) rather than only as a synthetic

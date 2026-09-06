@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { assertAgeCleared } from "@/lib/compliance/api-gate";
 import { assertRoomOpen, isMinorBirthYear, roomHoldsMinor, ROOM_TIMER_MIN, ROOM_TIMER_MAX } from "@/lib/rooms";
 import { revalidatePath } from "next/cache";
 import {
@@ -330,6 +331,8 @@ export async function postRoomMessage(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not signed in.");
+  // The room page is age-gated; the action behind it has to be too.
+  await assertAgeCleared(user.id);
 
   // Timed rooms turn read-only once the countdown ends.
   const { open } = await assertRoomOpen(supabase, roomId);

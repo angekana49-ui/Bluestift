@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { ageGateResponse } from "@/lib/compliance/api-gate";
 import { checkUserRateLimit } from "@/lib/rate-limit";
 import {
   MAX_DOC_CHARS,
@@ -29,8 +30,11 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // Pages send an ungated account back to the age question; this route has to as well.
+  const gated = await ageGateResponse(user.id);
+  if (gated) return gated;
 
-  let body: { title?: unknown; meta?: unknown; body?: unknown; locale?: unknown };
+  let body: { title?: unknown; meta?: unknown; body?: unknown; locale?: unknown; personal?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -63,7 +67,11 @@ export async function POST(request: Request) {
     );
   }
 
-  const result = await translateDocument({ title, meta, body: text }, locale);
+  // Client-declared, and safe to trust: the flag can only make us cache LESS.
+  // A caller lying towards "personal" costs a model call they are rate-limited
+  // on; a caller lying towards "shared" is caching their own document.
+  const personal = body.personal === true;
+  const result = await translateDocument({ title, meta, body: text }, locale, { personal });
 
   // `translated: false` is a 200, deliberately. It means "here is the document
   // you asked for, in its original language" — the caller can still download it,

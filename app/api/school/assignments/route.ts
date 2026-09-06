@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { randomInt } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
@@ -56,7 +57,7 @@ export async function POST(request: Request) {
     if (/duplicate|unique|23505/i.test(error.message)) {
       return NextResponse.json({ error: "That prof is already assigned to this class + subject." }, { status: 409 });
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: clientError(error) }, { status: 500 });
   }
   const assignmentId = (created as { id: string }).id;
 

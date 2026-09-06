@@ -298,7 +298,7 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
         analyzing={analyzing}
         resultActions={
           <>
-            <DocumentActions doc={resultDoc()} compact shareable={false} />
+            <DocumentActions doc={resultDoc()} compact shareable={false} personal />
             <ShareLinkButton theme={t} doc={resultDoc()} />
           </>
         }
@@ -316,7 +316,7 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
         onExit={() => setView("list")}
         actions={
           <>
-            <DocumentActions doc={analysisDoc()} compact shareable={false} />
+            <DocumentActions doc={analysisDoc()} compact shareable={false} personal />
             <ShareLinkButton theme={t} doc={analysisDoc()} />
           </>
         }
@@ -378,7 +378,7 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
           <div style={{ flex: 1, fontSize: 13, color: t.mutedLight, textTransform: "uppercase", letterSpacing: "0.06em" }}>Your progress</div>
           {items.length > 0 && (
             <>
-              <DocumentActions doc={progressionDoc()} compact />
+              <DocumentActions doc={progressionDoc()} compact personal />
             </>
           )}
         </div>

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
+import { ageGateResponse } from "@/lib/compliance/api-gate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { extractFileText, storageSafeName } from "@/lib/extract";
 import { assertRoomOpen } from "@/lib/rooms";
@@ -20,6 +22,9 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // Pages send an ungated account back to the age question; this route has to as well.
+  const gated = await ageGateResponse(user.id);
+  if (gated) return gated;
 
   const oversized = contentLengthExceeds(request, MAX_DOC_BYTES);
   if (oversized) return oversized;
@@ -69,7 +74,7 @@ export async function POST(request: Request) {
 
   const path = `${user.id}/rooms/${roomId}/${Date.now()}-${storageSafeName(file.name)}`;
   const up = await supabase.storage.from("user-media").upload(path, file);
-  if (up.error) return NextResponse.json({ error: up.error.message }, { status: 500 });
+  if (up.error) return NextResponse.json({ error: clientError(up.error) }, { status: 500 });
 
   const { data: row, error } = await supabase
     .schema("learning")
@@ -86,7 +91,7 @@ export async function POST(request: Request) {
     })
     .select("id, file_name, file_type, mime_type, file_size, created_at")
     .single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
 
   // Livestream the upload to the room's group channel so everyone sees the new
   // document in real time (Realtime fans this INSERT out). Flagged with

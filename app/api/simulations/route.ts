@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
+import { ageGateResponse } from "@/lib/compliance/api-gate";
 import { kernel } from "@/lib/kernel/client";
 import { generateJson } from "@/lib/raya/llm";
 import type { LoadProfileResponse } from "@/lib/kernel/types";
@@ -58,6 +60,9 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // Pages send an ungated account back to the age question; this route has to as well.
+  const gated = await ageGateResponse(user.id);
+  if (gated) return gated;
 
   let body: { focus?: string; addHours?: number };
   try {
@@ -111,7 +116,7 @@ export async function POST(request: Request) {
     ) as Record<string, unknown>;
   } catch (e) {
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "projection failed" },
+      { error: clientError(e, "projection failed") },
       { status: 502 },
     );
   }

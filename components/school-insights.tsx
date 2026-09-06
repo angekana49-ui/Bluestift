@@ -113,7 +113,7 @@ export function SchoolInsights({ schoolName }: { schoolName?: string }) {
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           <h3 style={{ margin: 0, flex: 1 }}>Kernel insights</h3>
           {(insights.length > 0 || sims.length > 0) && (
-            <DocumentActions doc={insightsToDoc(insights, sims, schoolName)} compact shareable={false} />
+            <DocumentActions doc={insightsToDoc(insights, sims, schoolName)} compact shareable={false} personal />
           )}
         </div>
         <p style={{ opacity: 0.55, fontSize: "0.8rem", margin: "0.5rem 0 0.75rem" }}>

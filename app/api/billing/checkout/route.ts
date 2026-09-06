@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createSchoolsAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient, createSchoolsAdminClient } from "@/lib/supabase/admin";
+import { ageBand, requiresGuardianToPay } from "@/lib/compliance/age";
 import { getAdminMembership } from "@/lib/school-admin";
 import { resolveSeatGate, resolvePlanPriceForRequest } from "@/lib/billing";
 import { ipCountryFromHeaders } from "@/lib/billing/regions";
@@ -26,7 +27,15 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  let body: { planId?: string; channel?: string; audience?: string; months?: number; seats?: number };
+  let body: {
+    planId?: string;
+    channel?: string;
+    audience?: string;
+    months?: number;
+    seats?: number;
+    /** The payer states they are the parent or guardian of a minor account holder. */
+    guardian?: unknown;
+  };
   try {
     body = await request.json();
   } catch {
@@ -38,6 +47,28 @@ export async function POST(request: Request) {
 
   const audience = body.audience === "b2b" ? "b2b" : "b2c";
   const channel = body.channel as PaymentChannel | undefined;
+
+  // Only an adult pays. The account may belong to a minor — a child can use
+  // Raya alone — but the money has to come from a parent or guardian, who says
+  // so here, and that statement travels with the payment record. It is an
+  // attestation, not a verification: we run no age check on the card holder,
+  // and the record is what lets a disputed charge be traced to a stated adult.
+  const { data: ageRow } = await createAdminClient()
+    .from("users")
+    .select("birth_year")
+    .eq("id", user.id)
+    .maybeSingle();
+  const payerBand = ageBand(ageRow?.birth_year ?? null);
+  const guardianAttested = body.guardian === true;
+  if (requiresGuardianToPay(payerBand) && !guardianAttested) {
+    return NextResponse.json(
+      {
+        error: "This account belongs to someone under 18. A parent or guardian has to confirm they are the one paying.",
+        code: "guardian_required",
+      },
+      { status: 403 },
+    );
+  }
 
   const provider = getPaymentProvider();
   if (provider.id === "sandbox" && sandboxBlockedInProd()) {
@@ -152,6 +183,16 @@ export async function POST(request: Request) {
     amount,
     currency,
     createdBy: user.id,
+    metadata: {
+      payer: {
+        band: payerBand,
+        // Present only when it was required and given — an adult's own
+        // payment carries no attestation, so its absence means "adult".
+        ...(requiresGuardianToPay(payerBand)
+          ? { guardian_attested: true, attested_at: new Date().toISOString() }
+          : {}),
+      },
+    },
   });
   if (!paymentId) return NextResponse.json({ error: "Could not start checkout." }, { status: 500 });
 

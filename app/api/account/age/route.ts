@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAgeStatus } from "@/lib/compliance/gate";
@@ -85,9 +86,13 @@ export async function POST(request: Request) {
    * Only for an account that has never expressed a choice. `training_consent_at`
    * is the record of that, in either direction, so a "no" made earlier survives
    * declaring an age.
+   *
+   * And never for an account a school vouches for: the DPA promises schools
+   * that their students' and staff's content trains nothing unless the account
+   * holder explicitly opts in, so a school-linked adult starts OFF and chooses.
    */
   const isAdult = allowsOptionalProcessing(ageBand(birthYear));
-  const grantDefault = isAdult && !existing?.training_consent_at;
+  const grantDefault = isAdult && !existing?.training_consent_at && !existing?.school_id;
 
   const { error } = await admin
     .from("users")
@@ -97,7 +102,7 @@ export async function POST(request: Request) {
       ...(grantDefault ? { training_consent: true } : {}),
     })
     .eq("id", user.id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
 
   // The band just changed, and the read path memoises it for five minutes.
   forgetOptionalProcessing(user.id);

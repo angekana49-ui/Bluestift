@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
+import { ageGateResponse } from "@/lib/compliance/api-gate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStudentRecommendations } from "@/lib/school-admin";
 import { buildRayaMessages } from "@/lib/raya/prompt";
@@ -82,6 +84,9 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // Pages send an ungated account back to the age question; this route has to as well.
+  const gated = await ageGateResponse(user.id);
+  if (gated) return gated;
 
   let body: {
     conversationId?: string | null;
@@ -284,7 +289,7 @@ export async function POST(request: Request) {
       })
       .select("id")
       .single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
     convId = data.id;
   }
 
@@ -351,7 +356,7 @@ export async function POST(request: Request) {
   } catch (e) {
     await linkPromise;
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "llm error" },
+      { error: clientError(e, "llm error") },
       { status: 502 },
     );
   }

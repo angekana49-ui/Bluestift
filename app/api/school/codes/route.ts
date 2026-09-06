@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { assertAdminMaster } from "@/lib/school-admin";
@@ -44,7 +45,7 @@ export async function POST(request: Request) {
     p_class_id: classRow.id,
     p_school_year_id: classRow.school_year_id,
   });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
   const row = ((data as { out_id: string; out_code: string; out_is_active: boolean }[] | null) ?? [])[0];
   if (!row) return NextResponse.json({ error: "Could not allocate a code." }, { status: 500 });
   return NextResponse.json({ id: row.out_id, code: row.out_code, isActive: row.out_is_active });
@@ -101,6 +102,6 @@ export async function PATCH(request: Request) {
     .from("class_access_codes")
     .update({ is_active: isActive })
     .eq("id", codeId);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
   return NextResponse.json({ id: codeId, isActive });
 }

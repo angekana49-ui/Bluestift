@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import {
@@ -146,7 +147,7 @@ export async function POST(request: Request) {
     content = out.text.trim();
     if (!content) throw new Error("empty report");
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "generation failed" }, { status: 502 });
+    return NextResponse.json({ error: clientError(e, "generation failed") }, { status: 502 });
   }
 
   // Best-effort persistence — reports.scope/format/status may have CHECKs; if the

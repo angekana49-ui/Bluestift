@@ -5,7 +5,7 @@ import { BluestiftText, RayaName } from "@/components/ui/brand";
 import { LegalShell, h2, li, link, note, p, ul } from "./legal-chrome";
 import { useTranslate } from "@/components/ui/locale";
 
-const UPDATED = "13 August 2026";
+const UPDATED = "6 September 2026";
 
 /**
  * The data processing addendum a school agrees to. It carries three regimes at

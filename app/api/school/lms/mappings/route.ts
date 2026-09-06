@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { getAdminMembership } from "@/lib/school-admin";
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
     })
     .select("id")
     .single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
 
   return NextResponse.json({
     id: (data as { id: string }).id,
@@ -97,7 +98,7 @@ export async function PATCH(request: Request) {
   if (!cls) return NextResponse.json({ error: "Unknown class." }, { status: 404 });
 
   const { error } = await schools.from("lms_class_mappings").update({ class_id: classId }).eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
   return NextResponse.json({ id, classId, className: (cls as { name: string }).name });
 }
 
@@ -133,6 +134,6 @@ export async function DELETE(request: Request) {
   if (!conn) return NextResponse.json({ error: "Not yours." }, { status: 403 });
 
   const { error } = await schools.from("lms_class_mappings").delete().eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

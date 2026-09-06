@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
+import { ageGateResponse } from "@/lib/compliance/api-gate";
 import { transcribeAudio, extractPdfText } from "@/lib/raya/llm";
 import { storageSafeName } from "@/lib/extract";
 import { contentLengthExceeds, tooLarge, MAX_DOC_BYTES } from "@/lib/upload-limits";
@@ -40,6 +42,9 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // Pages send an ungated account back to the age question; this route has to as well.
+  const gated = await ageGateResponse(user.id);
+  if (gated) return gated;
 
   // --- Entitlements: per-tier packet size + monthly upload quota -------------
   const { ent, tier } = await resolveRayaEntitlements(user.id);
@@ -135,7 +140,7 @@ export async function POST(request: Request) {
     text = text.trim();
   } catch (e) {
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "extraction failed" },
+      { error: clientError(e, "extraction failed") },
       { status: 502 },
     );
   }
