@@ -51,20 +51,32 @@ describe("normalising what a child typed", () => {
   });
 });
 
+/**
+ * scrypt is SLOW ON PURPOSE — that cost is the whole defence for a six-letter
+ * word — so these run for seconds rather than milliseconds, and on a busy
+ * machine they were tipping past vitest's 5s default and failing for no reason
+ * at all.
+ *
+ * A security suite that goes red at random is worse than a slow one: it teaches
+ * whoever sees it that red does not mean broken. The budget is generous enough
+ * that only a genuine hang can reach it.
+ */
+const SCRYPT_TIMEOUT_MS = 30_000;
+
 describe("storage", () => {
   it("round-trips the word it was given", async () => {
     const stored = await hashKeyword("banane");
     expect(await verifyKeyword("banane", stored)).toBe(true);
     expect(await verifyKeyword("BANANE", stored)).toBe(true);
     expect(await verifyKeyword("banané", stored)).toBe(true);
-  });
+  }, SCRYPT_TIMEOUT_MS);
 
   it("refuses a different word", async () => {
     const stored = await hashKeyword("banane");
     expect(await verifyKeyword("banana", stored)).toBe(false);
     expect(await verifyKeyword("banan", stored)).toBe(false);
     expect(await verifyKeyword("", stored)).toBe(false);
-  });
+  }, SCRYPT_TIMEOUT_MS);
 
   it("salts, so two accounts with the same word do not look the same", async () => {
     // Without this, one leaked table shows at a glance which accounts share a
@@ -74,7 +86,7 @@ describe("storage", () => {
     expect(a).not.toBe(b);
     expect(await verifyKeyword("banane", a)).toBe(true);
     expect(await verifyKeyword("banane", b)).toBe(true);
-  });
+  }, SCRYPT_TIMEOUT_MS);
 
   it("is scrypt, not the SHA-256 the recovery KEY uses", async () => {
     // hashRecoveryKey's own comment says a bare SHA-256 is right for an 80-bit
@@ -84,7 +96,7 @@ describe("storage", () => {
     const stored = await hashKeyword("banane");
     expect(stored.startsWith("scrypt$")).toBe(true);
     expect(stored.split("$")).toHaveLength(6);
-  });
+  }, SCRYPT_TIMEOUT_MS);
 
   it("fails closed on a missing or corrupted column", async () => {
     // A 500 here would leave the caller in an unknown state on a security path.
@@ -98,7 +110,7 @@ describe("storage", () => {
     ]) {
       expect(await verifyKeyword("banane", bad), String(bad)).toBe(false);
     }
-  });
+  }, SCRYPT_TIMEOUT_MS);
 
   it("will not let a hostile row ask for unbounded memory", async () => {
     // The cost parameters are read back OUT of the stored string so raising N
@@ -106,7 +118,7 @@ describe("storage", () => {
     // otherwise name an N that exhausts the server.
     const evil = `scrypt$${2 ** 30}$8$1$aabb$ccdd`;
     expect(await verifyKeyword("banane", evil)).toBe(false);
-  });
+  }, SCRYPT_TIMEOUT_MS);
 
   it("verifies old rows after the cost is raised", async () => {
     // Self-describing encoding: the point of putting N/r/p in the column.
@@ -119,7 +131,7 @@ describe("storage", () => {
     const hash = scryptSync("banane", salt, 32, { N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 });
     const legacy = `scrypt$16384$8$1$${salt.toString("hex")}$${hash.toString("hex")}`;
     expect(await verifyKeyword("banane", legacy)).toBe(true);
-  });
+  }, SCRYPT_TIMEOUT_MS);
 });
 
 describe("the route is where the security actually lives", () => {

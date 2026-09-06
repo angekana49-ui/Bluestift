@@ -354,6 +354,18 @@ is listed like any other code, so it can be copied or withdrawn.
 Leaving stayed a direct action. Consent is needed to join an organisation, not
 to be removed from one.
 
+Two properties of that design, checked rather than assumed. The route can only
+mail an address that already has a Bluestift account — it answers 404 otherwise
+— and it is capped at forty an hour per admin, so it is a poor instrument for
+sending mail to strangers. And the codes it mints do accumulate: nothing marks
+one as used, because no column distinguishes a one-person invitation from the
+school's shared code. They are bounded rather than unbounded — every active code
+is deactivated at the year rollover (`rotateStaffCodeForYear`), each one is
+listed in the team view and can be withdrawn there, and each is eight
+characters from an unambiguous alphabet, so the exposure is a leak rather than a
+guess. A `single_use` column would close it properly, and that is a migration,
+which this audit does not write.
+
 ### RLS: confirmed by the owner, not by this audit
 
 The earlier passes listed the policies created directly against the Supabase
