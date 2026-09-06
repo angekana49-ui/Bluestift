@@ -136,13 +136,42 @@ export async function pricingEntry(
   }
 }
 
+/**
+ * The plan catalogue, memoised per instance for a minute.
+ *
+ * This is read on the landing page, on /pricing, and by the public plans
+ * endpoint — the three things a first-time visitor loads before they have an
+ * account — and every read was a fresh round trip to the database for a table
+ * that changes when someone edits the price list. On a warm instance the query
+ * now happens once a minute instead of once a visitor.
+ *
+ * Same shape as the entitlements cache above it: process-local, so it is not
+ * shared between serverless instances, and self-healing — a price edit is live
+ * everywhere within the TTL with nothing to invalidate by hand. Deliberately
+ * short for that reason.
+ */
+const PLANS_TTL_MS = 60_000;
+const plansCache = new Map<string, { value: BillingPlan[]; expires: number }>();
+
 /** Active plans, optionally filtered by category (b2b for schools, b2c for students). */
 export async function listPlans(category?: "b2b" | "b2c"): Promise<BillingPlan[]> {
+  const key = category ?? "all";
+  const hit = plansCache.get(key);
+  if (hit && Date.now() < hit.expires) return hit.value;
+
   const schools = createSchoolsAdminClient();
   let q = schools.from("subscription_plans").select(PLAN_COLS).eq("is_active", true);
   if (category) q = q.eq("category", category);
-  const { data } = await q.order("price", { ascending: true, nullsFirst: false });
-  return ((data as PlanRow[] | null) ?? []).map(mapPlan);
+  const { data, error } = await q.order("price", { ascending: true, nullsFirst: false });
+  const plans = ((data as PlanRow[] | null) ?? []).map(mapPlan);
+
+  // A SUCCESSFUL read is cached, empty or not — those are different facts, and
+  // treating "no plans yet" as a failure would mean paying the round trip on
+  // every visit exactly when there is nothing to fetch. A failed read is not
+  // cached, so a database hiccup cannot pin "no plans" in front of a minute's
+  // worth of visitors.
+  if (!error) plansCache.set(key, { value: plans, expires: Date.now() + PLANS_TTL_MS });
+  return plans;
 }
 
 // ---- Region-adapted pricing (PPP price-book) -------------------------------

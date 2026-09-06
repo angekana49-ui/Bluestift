@@ -40,11 +40,20 @@ const plex = IBM_Plex_Sans({
   variable: "--font-plex",
   display: "swap",
 });
+/**
+ * NOT preloaded, and it is the largest face we ship — 73 KB, more than Inter
+ * and Plex together. Preloading puts a font in the critical path of EVERY page
+ * whether or not that page uses it, and Caveat writes one greeting. It now
+ * loads when something actually asks for it; `display: swap` means the greeting
+ * appears immediately in the fallback and changes hand a moment later, which is
+ * the correct trade for decoration.
+ */
 const caveat = Caveat({
   subsets: ["latin"],
   weight: ["600", "700"],
   variable: "--font-caveat",
   display: "swap",
+  preload: false,
 });
 // Instrument Serif (italic) — the accent face used by the public marketing site.
 const instrumentSerif = Instrument_Serif({
@@ -53,6 +62,9 @@ const instrumentSerif = Instrument_Serif({
   style: ["italic"],
   variable: "--font-instrument-serif",
   display: "swap",
+  // Same reasoning as Caveat: an accent face for the marketing site has no
+  // business in the critical path of the tutor.
+  preload: false,
 });
 
 export const metadata: Metadata = {

@@ -81,16 +81,54 @@ async function attachAuthors(
   });
 }
 
+/**
+ * A minute's memory for content that changes when someone publishes something.
+ *
+ * /research and the newsletter list were querying the database on every single
+ * visit for articles that change a few times a month. On a warm instance the
+ * read now happens once a minute instead of once a visitor — which is the
+ * difference this makes on the pages a stranger sees first, before they have an
+ * account or a reason to wait.
+ *
+ * Process-local and self-healing, the same shape as the caches in
+ * lib/entitlements.ts and lib/billing.ts: nothing to invalidate by hand, and a
+ * newly published post is live everywhere within the TTL.
+ *
+ * The free-expression wall is deliberately NOT in here. It is live by design —
+ * someone posting expects to see it, and so does the next visitor.
+ *
+ * What gets cached is a SUCCESSFUL read, not a non-empty one. Those are
+ * different things and conflating them is a trap: a site with nothing published
+ * yet would never cache, and would pay the round trip on every visit precisely
+ * when it has the least to show. A failed read is not cached, so a database
+ * hiccup cannot pin an empty page in front of the next minute's visitors.
+ */
+const CONTENT_TTL_MS = 60_000;
+const contentCache = new Map<string, { value: unknown; expires: number }>();
+
+async function memo<T>(key: string, load: () => Promise<{ value: T; ok: boolean }>): Promise<T> {
+  const hit = contentCache.get(key);
+  if (hit && Date.now() < hit.expires) return hit.value as T;
+  const { value, ok } = await load();
+  if (ok) contentCache.set(key, { value, expires: Date.now() + CONTENT_TTL_MS });
+  return value;
+}
+
 export async function getPublishedPosts(): Promise<PublicResearchPost[]> {
-  const admin = createContentAdminClient();
-  const { data, error } = await admin
-    .from("research_posts")
-    .select("id, title, slug, content, type, published_at, created_at")
-    .eq("status", "published")
-    .order("published_at", { ascending: false, nullsFirst: false })
-    .limit(50);
-  if (error || !data) return [];
-  return attachAuthors(data as Omit<PublicResearchPost, "authors">[]);
+  return memo("research_posts", async () => {
+    const admin = createContentAdminClient();
+    const { data, error } = await admin
+      .from("research_posts")
+      .select("id, title, slug, content, type, published_at, created_at")
+      .eq("status", "published")
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .limit(50);
+    if (error || !data) return { value: [] as PublicResearchPost[], ok: false };
+    return {
+      value: await attachAuthors(data as Omit<PublicResearchPost, "authors">[]),
+      ok: true,
+    };
+  });
 }
 
 export async function getPostBySlug(
@@ -167,11 +205,13 @@ export async function getSurveyStats(): Promise<{ responses: number; posts: numb
 }
 
 export async function getNewsletterIssues(): Promise<PublicNewsletterIssue[]> {
-  const admin = createContentAdminClient();
-  const { data } = await admin
-    .from("newsletter_issues")
-    .select("id, issue_number, title, published_at, content_url")
-    .order("published_at", { ascending: false })
-    .limit(50);
-  return (data ?? []) as PublicNewsletterIssue[];
+  return memo("newsletter_issues", async () => {
+    const admin = createContentAdminClient();
+    const { data, error } = await admin
+      .from("newsletter_issues")
+      .select("id, issue_number, title, published_at, content_url")
+      .order("published_at", { ascending: false })
+      .limit(50);
+    return { value: (data ?? []) as PublicNewsletterIssue[], ok: !error };
+  });
 }

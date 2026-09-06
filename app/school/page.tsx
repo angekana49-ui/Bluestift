@@ -54,6 +54,16 @@ export default async function SchoolPage({
   const resolvedActiveSchoolId = membership?.schoolId ?? activeSchoolId ?? null;
   const role = membership?.role ?? null;
 
+  /**
+   * Started here, awaited at the bottom. It needs nothing but the active school
+   * id, which wave 1 already resolved — so leaving it as a bare `await` below
+   * queued a round trip behind the dashboard read for no reason. `softValue`
+   * absorbs its own failure, so nothing here can reject unobserved.
+   */
+  const planLabelPromise = resolvedActiveSchoolId
+    ? softValue(getPlanLabel({ schoolId: resolvedActiveSchoolId }), "Free")
+    : Promise.resolve(null);
+
   let dashboard: SchoolDashboard | null = null;
   let profClasses: AdminClass[] = [];
   let profContext: ProfContext | null = null;
@@ -79,9 +89,7 @@ export default async function SchoolPage({
 
   // The plan/forfait line under the name in the profile chip: the active school's
   // subscription (same for admin and teacher — they share the school's plan).
-  const planLabel = resolvedActiveSchoolId
-    ? await softValue(getPlanLabel({ schoolId: resolvedActiveSchoolId }), "Free")
-    : null;
+  const planLabel = await planLabelPromise;
 
   // The signed-in user's own account, so the prof dashboard can open Settings
   // in-place (profile chip → in-dashboard panel) instead of bouncing to the
