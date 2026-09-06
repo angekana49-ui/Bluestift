@@ -10,7 +10,7 @@ import { sendBrandedEmail, getUserEmail, siteUrl } from "@/lib/email";
 import { checkStrictRateLimit } from "@/lib/rate-limit";
 
 // Local shapes for the untyped `schools` schema.
-type CodeRow = { id: string; school_id: string; auto_approve: boolean };
+type CodeRow = { id: string; school_id: string; auto_approve: boolean; single_use?: boolean };
 type SchoolRow = { name: string };
 type MemberRow = { id: string; confirmed_school_year_id?: string | null };
 
@@ -48,6 +48,31 @@ async function notifyAdminsOfRequest(
       if (to) await sendBrandedEmail({ brand: "schools", to, ...email });
     }),
   );
+}
+
+/**
+ * Spend an invitation code.
+ *
+ * A code minted for one named person (app/api/school/profs) admits that person
+ * and then stops — otherwise a forwarded invitation is a second membership, and
+ * every invitation ever sent stays a live credential until the year rolls over.
+ * A shared staffroom code has `single_use` false and is untouched: it is meant
+ * to be redeemed many times.
+ *
+ * Best-effort and last: the teacher is already in, and failing their join
+ * because the bookkeeping failed would be the wrong way round. On a database
+ * without the column, `single_use` is undefined and nothing happens.
+ */
+async function spendIfSingleUse(
+  schools: ReturnType<typeof createSchoolsAdminClient>,
+  codeRow: CodeRow,
+): Promise<void> {
+  if (codeRow.single_use !== true) return;
+  try {
+    await schools.from("staff_invite_codes").update({ is_active: false }).eq("id", codeRow.id);
+  } catch {
+    // the membership stands either way
+  }
 }
 
 /**
@@ -94,7 +119,10 @@ export async function POST(request: Request) {
   // Resolve the active code → school (service_role; teachers can't read codes).
   const { data: codeData } = await schools
     .from("staff_invite_codes")
-    .select("id, school_id, auto_approve")
+    // `*`, not a column list: `single_use` arrives with migration
+    // 20260906120000, and naming it would break this lookup outright on a
+    // database that has not run it yet.
+    .select("*")
     .eq("code", code)
     .eq("is_active", true)
     .maybeSingle();
@@ -133,6 +161,7 @@ export async function POST(request: Request) {
     // their history are kept — this renews the year, it doesn't re-create them.
     if (codeRow.auto_approve) {
       await confirmMembershipForYear(member.id, currentYearId);
+      await spendIfSingleUse(schools, codeRow);
       await setActiveSchoolCookie(codeRow.school_id);
       return NextResponse.json({ status: "renewed", schoolName });
     }
@@ -148,6 +177,7 @@ export async function POST(request: Request) {
       .single();
     if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
     await confirmMembershipForYear((created as { id: string }).id, currentYearId);
+    await spendIfSingleUse(schools, codeRow);
     // Land the teacher in the school they just joined.
     await setActiveSchoolCookie(codeRow.school_id);
     return NextResponse.json({ status: "joined", schoolName });

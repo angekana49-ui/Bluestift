@@ -61,6 +61,44 @@ describe("removing a teacher", () => {
   });
 });
 
+describe("an invitation admits one person", () => {
+  const joinTeam = readFileSync(join(process.cwd(), "app/api/school/join-team/route.ts"), "utf8");
+  const migration = readFileSync(
+    join(process.cwd(), "supabase/migrations/20260906120000_staff_invite_single_use.sql"),
+    "utf8",
+  );
+
+  it("marks the code it mints as single-use", () => {
+    expect(post).toContain("single_use = true");
+  });
+
+  it("survives a deploy that lands before its migration", () => {
+    // Inserting a column the database does not have yet would 500 the
+    // invitation; it falls back instead.
+    expect(post).toContain("withoutColumn");
+    expect(post).toMatch(/42703|does not exist/);
+    expect(joinTeam).toContain('.select("*")');
+  });
+
+  it("spends the code once it has admitted somebody", () => {
+    expect(joinTeam).toContain("spendIfSingleUse");
+    expect(joinTeam).toContain('.update({ is_active: false })');
+    // Both ways in: a new membership, and a returning teacher renewing.
+    expect(joinTeam.match(/await spendIfSingleUse\(/g)).toHaveLength(2);
+  });
+
+  it("leaves shared staffroom codes alone", () => {
+    expect(joinTeam).toContain("codeRow.single_use !== true");
+    expect(migration).toContain("default false");
+  });
+
+  it("spends the code AFTER the membership is written, never before", () => {
+    expect(joinTeam.indexOf('.from("school_admins")')).toBeLessThan(
+      joinTeam.indexOf("await spendIfSingleUse("),
+    );
+  });
+});
+
 describe("the path that does create a membership still requires the person to act", () => {
   const joinTeam = readFileSync(
     join(process.cwd(), "app/api/school/join-team/route.ts"),

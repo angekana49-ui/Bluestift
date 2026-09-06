@@ -96,22 +96,38 @@ export async function POST(request: Request) {
   let code: string | null = null;
   let codeId: string | null = null;
   let inviteError: unknown = null;
+  /**
+   * `single_use` marks this as an invitation to ONE person rather than a
+   * staffroom code, so the redemption path can spend it (migration
+   * 20260906120000). Written optimistically and retried without the column,
+   * because a deploy can reach production before its migration does and an
+   * invitation that 500s is worse than one that behaves like it did last week.
+   */
+  let withoutColumn = false;
   for (let attempt = 0; attempt < 6 && !code; attempt++) {
     const candidate = makeStaffCode();
+    const row: Record<string, unknown> = {
+      school_id: membership.schoolId,
+      code: candidate,
+      auto_approve: true,
+      is_active: true,
+      created_by: membership.adminId,
+    };
+    if (!withoutColumn) row.single_use = true;
+
     const { data, error } = await schools
       .from("staff_invite_codes")
-      .insert({
-        school_id: membership.schoolId,
-        code: candidate,
-        auto_approve: true,
-        is_active: true,
-        created_by: membership.adminId,
-      })
+      .insert(row)
       .select("id")
       .single();
     if (!error) {
       code = candidate;
       codeId = (data as { id: string }).id;
+    } else if (!withoutColumn && /single_use|column .* does not exist|42703/i.test(error.message)) {
+      // The migration has not landed yet. Fall back for this attempt and every
+      // one after it, rather than burning the retry budget on the same failure.
+      withoutColumn = true;
+      attempt--;
     } else if (!/duplicate|unique|23505/i.test(error.message)) {
       inviteError = error;
       break;
