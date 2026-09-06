@@ -1,9 +1,10 @@
 # Security
 
-A record of the security audit of 6 September 2026 — four passes, all on that
-one day: what they changed, and what they deliberately left alone. It is written for the next person to touch these
-files — including a stranger, since this code is open. Nothing here is a secret:
-an attacker who reads it learns which doors are locked, not which are open.
+A record of the security audit of 6 September 2026 — five passes, all within
+that one day: what they changed, and what they deliberately left alone. It is
+written for the next person to touch these files, including a stranger, since
+this code is open. Nothing here is a secret: an attacker who reads it learns
+which doors are locked, not which are open.
 
 ## The threat this product actually has
 
@@ -285,10 +286,6 @@ class and grants no read of anyone else's data; redemption is rate-limited.
 uniqueness constraint, and this audit does not write migrations. It is counter
 integrity on a public marketing page, not a security boundary.
 
-**`types/database.types.ts` is behind the migrations.** Regenerating needs
-credentials this audit does not hold. One table is reached through a documented
-cast that will stop compiling — deliberately — the next time `gen:types` runs.
-
 ## What was checked and found sound
 
 Worth writing down, so the next audit does not re-derive it:
@@ -326,9 +323,8 @@ These are decisions, not oversights. Revisit them when the reason changes. The
 list is short now: everything else that was on it after the first three passes
 was closed in the fourth, and the items that survived are recorded there with
 the reason each one survived — no upstream fix to take (`@xmldom/xmldom`), no
-read of anyone else's data at stake (six-character class codes), no security
-boundary involved (wall-reaction dedupe), no credentials to hand
-(`types/database.types.ts`).
+read of anyone else's data at stake (six-character class codes), and no security
+boundary involved (wall-reaction dedupe).
 
 **Styles still allow `'unsafe-inline'`.** A nonce covers `<style>` elements and
 does nothing for `style="…"` attributes, which this design system uses on
@@ -337,27 +333,53 @@ do not already cover, and would blank the interface. The remaining exposure is
 CSS injection, which needs the same HTML-injection foothold the script rules now
 deny and buys far less when it lands.
 
-## Open, and needing a decision rather than code
+## Fifth pass: the last two, and one closed by the owner
 
-**Adding a teacher is unilateral.** A school admin can attach any account to
-their school as staff without that person accepting. After fix 4 the attacker
-gains nothing they did not already have (they must know the email, and the
-victim's data is not exposed by the membership), but the victim can be enrolled
-in a stranger's school without being asked. There is already an invite-code
-flow that does ask. Making direct-add an invitation is a product change, so it
-is the owner's call.
+### 16. Joining a school takes two people now — fixed
 
-**RLS policies are not all in `supabase/migrations/`.** Several were created
-directly against the project, so the repo cannot be read as the whole story and
-this audit could not verify them from source. Dumping the live policies into a
-migration would make the database's own boundaries reviewable.
+`POST /api/school/profs` wrote a `school_admins` row outright, so a school admin
+could attach any account to their school without asking. Anyone can create a
+school in one signup, so this was not a privilege held by a small set of people:
+a stranger could make you staff somewhere you had never heard of, and list your
+name and address to themselves in the process.
 
-To be clear about which boundaries those are, because it is easy to conflate
-them with the school flows: the staff code and the admin approval are checks
-written in route files, and this audit read them. The unverifiable part is
-elsewhere — the policies on `learning.conversation_files`, `learning.room_files`
-and `storage.objects` that `/api/files/signed-url` leans on instead of doing its
-own check. That route returns a signed URL when a row comes back, on the
-reasoning that RLS would not have returned the row otherwise. It is the one
-place where a policy this repo cannot show is the only thing between one
-student's uploads and another's.
+It now invites. A code is minted for that one invitation, emailed to that one
+address, and the membership is created only when the invited person redeems it
+at `/api/school/join-team` — the path that already exists and already requires
+them to act. The code comes back to the admin too, with a flag saying whether
+the email actually went, because `RESEND_API_KEY` is optional here and an
+invitation nobody can deliver has to be one the admin can read out instead. It
+is listed like any other code, so it can be copied or withdrawn.
+
+Leaving stayed a direct action. Consent is needed to join an organisation, not
+to be removed from one.
+
+### RLS: confirmed by the owner, not by this audit
+
+The earlier passes listed the policies created directly against the Supabase
+project as unverifiable from source, because they are not in
+`supabase/migrations/`. The owner has confirmed the configuration in Supabase is
+correct. That is the authority here — this audit reads the repository, and the
+repository does not contain them.
+
+The point still worth keeping is where it matters: `/api/files/signed-url`
+performs no ownership check of its own on the two id paths. It asks for a row
+and signs a URL if one comes back, on the reasoning that RLS would not have
+returned the row otherwise. Everything else in this codebase checks in the route
+because the service role bypasses RLS; that route is the one place the database
+is the whole boundary. Putting those policies in a migration would make it
+reviewable by anyone reading the code, which is a different thing from being
+correct — it already is.
+
+### Types: needs a credential this audit does not hold
+
+`types/database.types.ts` is behind the migrations, and `npm run gen:types` was
+run: it failed because the Supabase CLI has no access token here, and the script
+correctly refused to overwrite the file rather than replacing it with an error.
+So one table, `learning.kernel_profile_snapshots`, is still reached through a
+cast confined to a single call site in `lib/compliance/export.ts`.
+
+Running `npm run gen:types` with `SUPABASE_ACCESS_TOKEN` set will regenerate the
+file, at which point the typed client accepts the table and that cast stops
+compiling — deliberately, so the workaround cannot outlive its reason.
+

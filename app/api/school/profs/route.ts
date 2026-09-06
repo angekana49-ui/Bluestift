@@ -2,21 +2,32 @@ import { NextResponse } from "next/server";
 import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, createSchoolsAdminClient } from "@/lib/supabase/admin";
-import { getAdminMembership } from "@/lib/school-admin";
+import { getAdminMembership, makeStaffCode } from "@/lib/school-admin";
 import { checkStrictUserRateLimit } from "@/lib/rate-limit";
+import { sendBrandedEmail, siteUrl } from "@/lib/email";
 
 /**
- * Add a prof to the admin_master's school BY EMAIL. The prof must already have a
- * Bluestift account.
+ * INVITE a teacher to the admin_master's school, by email. They must already
+ * have a Bluestift account, and they must accept — nothing is written to
+ * `school_admins` here.
  *
- * Email only, and username lookup is deliberately gone.
+ * It used to add them outright. Anyone can create a school in one signup, so
+ * that let a stranger attach any account to a school of their own without ever
+ * asking: the victim opened /school and found themselves staff somewhere they
+ * had never heard of, listed by name to whoever put them there. Membership in
+ * an organisation is not something one party should be able to decide alone.
  *
- * Adding a teacher puts them on the team list, which shows their email address —
- * so a lookup that accepted a username turned this into a directory: type a
- * handle, add, read the address, remove. Anyone can create a school in one
- * signup, so "an admin" is not a small set of people. Requiring the email means
- * the caller already has the one thing this could have told them, and the
- * endpoint stops being able to reveal anything about an account nobody knew.
+ * The acceptance runs through machinery that already exists rather than new
+ * schema: a fresh auto-approve code is minted for this invitation, emailed to
+ * that address, and redeemed at /api/school/join-team, which is already the
+ * consented path in. The code is returned to the admin as well, because email
+ * is optional in this deployment (`RESEND_API_KEY`) and an invitation nobody
+ * can deliver has to be one the admin can read out instead.
+ *
+ * Email only, and username lookup is deliberately gone: adding a teacher puts
+ * them on the team list, which shows their address, so a lookup that accepted a
+ * handle was a directory — type a handle, invite, read the address. Requiring
+ * the email means the caller already holds the one thing this could reveal.
  */
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -79,18 +90,65 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "That user is already in your school." }, { status: 409 });
   }
 
-  const { data: created, error } = await schools
-    .from("school_admins")
-    .insert({ user_id: found.id, school_id: membership.schoolId, role: "prof" })
-    .select("id")
-    .single();
-  if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
+  // A code for THIS invitation, not the school's shared one. Auto-approve
+  // because the admin has already given their half of the consent by sending
+  // it; what was missing was the other half.
+  let code: string | null = null;
+  let codeId: string | null = null;
+  let inviteError: unknown = null;
+  for (let attempt = 0; attempt < 6 && !code; attempt++) {
+    const candidate = makeStaffCode();
+    const { data, error } = await schools
+      .from("staff_invite_codes")
+      .insert({
+        school_id: membership.schoolId,
+        code: candidate,
+        auto_approve: true,
+        is_active: true,
+        created_by: membership.adminId,
+      })
+      .select("id")
+      .single();
+    if (!error) {
+      code = candidate;
+      codeId = (data as { id: string }).id;
+    } else if (!/duplicate|unique|23505/i.test(error.message)) {
+      inviteError = error;
+      break;
+    }
+  }
+  if (!code || !codeId) {
+    return NextResponse.json(
+      { error: inviteError ? clientError(inviteError) : "Could not create the invitation." },
+      { status: 500 },
+    );
+  }
+
+  const name = found.display_name || found.username || "there";
+  const sent = await sendBrandedEmail({
+    brand: "schools",
+    to: found.email ?? identifier,
+    subject: `${membership.schoolName} invited you to join them on Bluestift`,
+    heading: `${membership.schoolName} invited you`,
+    lines: [
+      `Hi ${name},`,
+      `${membership.schoolName} has invited you to join their team on Bluestift Schools as a teacher.`,
+      `Open Schools and enter this code to accept: ${code}`,
+      "If you weren't expecting this, you can ignore it — nothing changes on your account unless you enter the code.",
+    ],
+    cta: { label: "Accept the invitation", url: `${siteUrl("schools")}/school` },
+  });
 
   return NextResponse.json({
-    adminId: (created as { id: string }).id,
-    userId: found.id,
-    name: found.display_name || found.username || "Prof",
+    invited: true,
     email: found.email,
+    name: found.display_name || found.username || "Teacher",
+    code,
+    // The row id, so the code can be listed, copied and deactivated like any
+    // other — an invitation the admin cannot withdraw is not an invitation.
+    codeId,
+    // The admin needs to know whether to pass the code on by hand.
+    emailed: sent.ok === true,
   });
 }
 

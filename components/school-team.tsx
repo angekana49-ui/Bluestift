@@ -41,6 +41,7 @@ export function SchoolTeam({ classes }: { classes: ClassOpt[] }) {
   const [invites, setInvites] = useState<TeamInvite[]>([]);
   const [requests, setRequests] = useState<TeamRequest[]>([]);
   const [autoApprove, setAutoApprove] = useState(false);
+  const [inviteSent, setInviteSent] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -86,17 +87,35 @@ export function SchoolTeam({ classes }: { classes: ClassOpt[] }) {
     }
   }
 
+  /**
+   * Inviting does NOT add anyone. The teacher accepts with the code, and only
+   * then do they appear in the list above — so nothing is appended here, and
+   * the confirmation says what actually happened.
+   */
   async function addProf(e: React.FormEvent) {
     e.preventDefault();
     if (!profId.trim()) return;
     setError(null);
+    setInviteSent(null);
     try {
-      const p = (await postJson("/api/school/profs", { identifier: profId })) as TeamProf;
-      setProfs((v) => [...v, p]);
-      if (!aProf) setAProf(p.adminId);
+      const r = (await postJson("/api/school/profs", { identifier: profId })) as {
+        email: string | null;
+        name: string;
+        code: string;
+        codeId: string;
+        emailed: boolean;
+      };
+      setInviteSent(
+        r.emailed
+          ? `Invitation sent to ${r.email ?? profId}. They join once they enter the code.`
+          : `Email isn't set up here, so send them this code yourself: ${r.code}`,
+      );
       setProfId("");
+      // The new code belongs on the list below, where it can be copied or
+      // deactivated like any other.
+      setInvites((v) => [{ id: r.codeId, code: r.code, autoApprove: true, isActive: true }, ...v]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not add the prof.");
+      setError(err instanceof Error ? err.message : "Could not send the invitation.");
     }
   }
 
@@ -332,8 +351,11 @@ export function SchoolTeam({ classes }: { classes: ClassOpt[] }) {
         <ListNoMatch search={profSearch} />
         <form onSubmit={addProf} style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem", flexWrap: "wrap" }}>
           <input style={{ ...input, flex: 1, minWidth: 200 }} placeholder="Teacher email" value={profId} onChange={(e) => setProfId(e.target.value)} />
-          <button type="submit" style={btn}>Add teacher</button>
+          <button type="submit" style={btn}>Invite teacher</button>
         </form>
+        {inviteSent && (
+          <p style={{ fontSize: "0.85rem", opacity: 0.75, marginBottom: 0 }}>{inviteSent}</p>
+        )}
       </div>
 
       {/* Invite codes */}
