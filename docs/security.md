@@ -1,7 +1,7 @@
 # Security
 
-A record of the security audit of 6 September 2026 — five passes, all within
-that one day: what they changed, and what they deliberately left alone. It is
+A record of the security audit of 6 September 2026 — six passes, the first
+five within that one day: what they changed, and what they deliberately left alone. It is
 written for the next person to touch these files, including a stranger, since
 this code is open. Nothing here is a secret: an attacker who reads it learns
 which doors are locked, not which are open.
@@ -275,9 +275,27 @@ Verified by planting a broken generated file and confirming the run refuses.
 
 ### Still accepted, now for better reasons
 
-**`@xmldom/xmldom`** (moderate, transitive via mammoth) has no fix to take:
-mammoth's latest release still pins `^0.8.6`, and the flaw is in XML
-serialization, which mammoth does not do — it only parses.
+**`@xmldom/xmldom` — patched, and the earlier entry here was wrong.** This
+document previously recorded it as accepted because "no upstream fix exists to
+take". That was a false inference from a true premise: mammoth does pin
+`^0.8.6`, but 0.8.15 patches the flaw INSIDE that range and had been published
+for over a fortnight when the claim was written. Nothing but the lockfile held
+0.8.13. Taken with `npm audit fix` — no `overrides`, no `--force`, no semver
+major, package.json untouched.
+
+The unreachability analysis that made it low-priority still holds and is worth
+keeping: the flaw is XML *fragment injection* during `requireWellFormed`
+serialization; mammoth only parses, and the vulnerable branch needs an
+`EntityReference` node that nothing in the library ever constructs. But "we
+cannot fix it" and "it cannot hurt us" are different claims, and only the second
+one was true.
+
+The same run cleared a **high** advisory in `browserslist`, also in range. What
+remains is the vitest chain (one critical, one high, three moderate), fixable
+only by a semver-major upgrade of the test runner. Those are dev dependencies —
+nothing there ships to a user — and a major bump of the runner beneath 750 tests
+is not a thing to do blind at the end of a session. Production dependencies now
+report zero vulnerabilities.
 
 **Class codes stay six characters.** A guessed one enrols the guesser in a
 class and grants no read of anyone else's data; redemption is rate-limited.
@@ -285,53 +303,6 @@ class and grants no read of anyone else's data; redemption is rate-limited.
 **Wall reactions still have no per-visitor dedupe.** Fixing it properly needs a
 uniqueness constraint, and this audit does not write migrations. It is counter
 integrity on a public marketing page, not a security boundary.
-
-## What was checked and found sound
-
-Worth writing down, so the next audit does not re-derive it:
-
-- **No SQL or PostgREST injection.** Every filter is a parameterised builder
-  call. The single interpolated filter (`school/instructions`) interpolates a
-  UUID the server read from the database, never client input.
-- **No XSS sink.** No `dangerouslySetInnerHTML`, no `innerHTML`, no `eval`
-  anywhere. The Markdown parser is hand-written specifically to refuse HTML
-  passthrough, and link hrefs are allowlisted to `http(s):`/`mailto:`.
-- **No SSRF.** Every server-side `fetch` target is a literal or an environment
-  variable. No user-supplied URL is ever fetched.
-- **No secret in the repo or its history.** `.env*` has never been committed
-  (`.env.example` was, with placeholders only, and is now ignored too). No key
-  material appears in any tracked file.
-- **Recovery keys** are never stored — SHA-256 of an 80-bit uniformly random
-  key — and generating a new one is gated on a memory word (scrypt, per-row
-  salt, unreadable by the account's own client) with a fail-closed guess limit.
-- **Storage paths** reject traversal explicitly rather than normalising, and
-  every object key is prefixed with the owner's id under an RLS policy that
-  checks it.
-- **The service worker** caches no `/api/*` response and no HTML document, which
-  is what keeps a shared school machine from serving one student's page to the
-  next.
-- **The Kernel's skeleton key** is only used for background work; calls about one
-  student travel on that student's own token once `KERNEL_USER_SCOPED_AUTH` is on.
-- **Prompt injection** is addressed in the system prompt: uploaded documents and
-  teacher guidance are fenced and declared to be content, not instructions.
-- **Cron endpoints** compare their bearer in constant time and refuse when the
-  secret is unset — closed, never open, on a misconfiguration.
-
-## Accepted risks, and why
-
-These are decisions, not oversights. Revisit them when the reason changes. The
-list is short now: everything else that was on it after the first three passes
-was closed in the fourth, and the items that survived are recorded there with
-the reason each one survived — no upstream fix to take (`@xmldom/xmldom`), no
-read of anyone else's data at stake (six-character class codes), and no security
-boundary involved (wall-reaction dedupe).
-
-**Styles still allow `'unsafe-inline'`.** A nonce covers `<style>` elements and
-does nothing for `style="…"` attributes, which this design system uses on
-roughly a hundred components. Removing it would tighten nothing the script rules
-do not already cover, and would blank the interface. The remaining exposure is
-CSS injection, which needs the same HTML-injection foothold the script rules now
-deny and buys far less when it lands.
 
 ## Fifth pass: the last two, and one closed by the owner
 
@@ -394,4 +365,114 @@ cast confined to a single call site in `lib/compliance/export.ts`.
 Running `npm run gen:types` with `SUPABASE_ACCESS_TOKEN` set will regenerate the
 file, at which point the typed client accepts the table and that cast stops
 compiling — deliberately, so the workaround cannot outlive its reason.
+
+## Sixth pass: the last of it
+
+A final sweep, part of it run as a fan-out of independent auditors. It was cut
+short by an account spend limit — six fresh-eyes lenses never ran, so this pass
+is NOT a clean bill of health for the ground they were meant to cover
+(dependency failure modes, the unexamined modules, correctness bugs, and an
+adversarial read of the code written that day). What did complete is below.
+
+### 17. The signed-URL route states its own predicate — fixed
+
+It was the only route authorising an id-based read purely by "RLS returned a
+row", three lines above a service-role signature no policy can refuse. The row
+is still read through the RLS-scoped client — two nets, not a replacement — and
+the route now also checks: `room_members` for the caller on the file's room, and
+`conversations.user_id` for the caller on the file's parent.
+
+Both predicates are easy to get wrong in the same direction. `uploader_id` looks
+right and is wrong twice: on a room file it would break the sharing the feature
+exists for (a room document belongs to the room, and every member may open it),
+and on a conversation file it is a proxy for ownership that would refuse a
+legitimate open on any row where the two diverge. `assertRoomOpen` is also
+absent on purpose — a timed room that has ended is read-only, not unreadable.
+
+### 18. Acknowledging alerts stopped being an N+1 — fixed
+
+`POST /api/school/alerts/resolve` accepts up to fifty alert ids and asked two
+questions about each one, in sequence, each costing its own round trips — up to
+about 350 before anything was written, on a button teachers press daily. Both
+questions are now asked once for the whole set (`getAlertOwners`,
+`reachableStudents`), and the per-id refusals keep their exact precedence: an
+unknown id still 404s before a foreign student 403s. The per-id helpers were
+deleted so nothing can quietly regress to the old shape.
+
+### 19. Joining a class is limited per account, not per address — fixed
+
+`POST /api/school/join` was capped at thirty attempts per ten minutes per IP,
+failing closed. That is the one endpoint where thirty children join at once from
+one school's gateway, so the ceiling refused the flow the route exists to serve —
+while barely inconveniencing an attacker, since a session is free and an IP
+bucket is escaped with a proxy. It is now eight per ten minutes per ACCOUNT, so
+guessing costs a fresh signup against the anonymous-signup cap, and a classroom
+is never the thing being limited.
+
+### 20. The last lint warning is gone — fixed
+
+`components/site/KernelDiagrams.tsx` had a `useMemo` missing `conceptLabel`. Not
+a bug: the function closed over exactly `tr`, which was already in the deps. But
+the invariant was held by a comment the rule could not read, so `conceptLabel`
+is now a `useCallback` on `tr` — machine-checked, same recompute cadence.
+
+### Examined and deliberately left
+
+**Wall-reaction dedupe is not worth the fix that was proposed.** A per-post
+limiter bucket would block a NATted classroom on exactly the traffic this wall
+is for — many people, one gateway, the same top post — and, because it replaces
+one global bucket with one per post, it would RAISE what a single address can
+insert per hour from a fixed 120 to three times the number of posts. The
+fail-open global limiter is the better of the two.
+
+**Six-character class codes stay.** The attack is untargeted — you cannot aim at
+a named school without tens of millions of guesses — and a hit enrols the
+guesser and exposes no other child's data.
+
+## What was checked and found sound
+
+Worth writing down, so the next audit does not re-derive it:
+
+- **No SQL or PostgREST injection.** Every filter is a parameterised builder
+  call. The single interpolated filter (`school/instructions`) interpolates a
+  UUID the server read from the database, never client input.
+- **No XSS sink.** No `dangerouslySetInnerHTML`, no `innerHTML`, no `eval`
+  anywhere. The Markdown parser is hand-written specifically to refuse HTML
+  passthrough, and link hrefs are allowlisted to `http(s):`/`mailto:`.
+- **No SSRF.** Every server-side `fetch` target is a literal or an environment
+  variable. No user-supplied URL is ever fetched.
+- **No secret in the repo or its history.** `.env*` has never been committed
+  (`.env.example` was, with placeholders only, and is now ignored too). No key
+  material appears in any tracked file.
+- **Recovery keys** are never stored — SHA-256 of an 80-bit uniformly random
+  key — and generating a new one is gated on a memory word (scrypt, per-row
+  salt, unreadable by the account's own client) with a fail-closed guess limit.
+- **Storage paths** reject traversal explicitly rather than normalising, and
+  every object key is prefixed with the owner's id under an RLS policy that
+  checks it.
+- **The service worker** caches no `/api/*` response and no HTML document, which
+  is what keeps a shared school machine from serving one student's page to the
+  next.
+- **The Kernel's skeleton key** is only used for background work; calls about one
+  student travel on that student's own token once `KERNEL_USER_SCOPED_AUTH` is on.
+- **Prompt injection** is addressed in the system prompt: uploaded documents and
+  teacher guidance are fenced and declared to be content, not instructions.
+- **Cron endpoints** compare their bearer in constant time and refuse when the
+  secret is unset — closed, never open, on a misconfiguration.
+
+## Accepted risks, and why
+
+These are decisions, not oversights. Revisit them when the reason changes. The
+list is short now: everything else that was on it after the first three passes
+was closed in the fourth, and the items that survived are recorded there with
+the reason each one survived — no read of anyone else's data at stake
+(six-character class codes), and no security boundary involved (wall-reaction
+dedupe).
+
+**Styles still allow `'unsafe-inline'`.** A nonce covers `<style>` elements and
+does nothing for `style="…"` attributes, which this design system uses on
+roughly a hundred components. Removing it would tighten nothing the script rules
+do not already cover, and would blank the interface. The remaining exposure is
+CSS injection, which needs the same HTML-injection foothold the script rules now
+deny and buys far less when it lands.
 
