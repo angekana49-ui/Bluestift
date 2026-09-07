@@ -870,23 +870,32 @@ export async function getClassRoster(userId: string, classId: string): Promise<C
 }
 
 /**
- * True when this student is in one of the caller's own classes.
+ * Which of these students are in the caller's own classes.
  *
- * The guard for any action taken on a named student from the staff side. An
- * id in a request body is a claim, not a permission — a teacher must not reach
- * a child they don't teach, in this school or any other.
+ * The guard for any action taken on named students from the staff side: an id
+ * in a request body is a claim, not a permission — a teacher must not reach a
+ * child they do not teach, in this school or any other.
+ *
+ * One query for the set. The per-student form it replaced re-resolved the
+ * caller's classes on every call, so a batch of fifty cost fifty roster lookups
+ * plus fifty membership resolutions. Anyone absent from the result is simply
+ * not reachable, so callers keep their per-id refusal.
  */
-export async function canReachStudent(userId: string, studentUserId: string): Promise<boolean> {
+export async function reachableStudents(
+  userId: string,
+  studentUserIds: string[],
+): Promise<Set<string>> {
+  const ids = [...new Set(studentUserIds)];
+  if (ids.length === 0) return new Set();
   const classes = await getProfClasses(userId);
-  if (classes.length === 0) return false;
+  if (classes.length === 0) return new Set();
   const schools = createSchoolsAdminClient();
   const { data } = await schools
     .from("student_identities")
     .select("user_id")
-    .eq("user_id", studentUserId)
-    .in("class_id", classes.map((c) => c.id))
-    .limit(1);
-  return ((data as { user_id: string }[] | null) ?? []).length > 0;
+    .in("user_id", ids)
+    .in("class_id", classes.map((c) => c.id));
+  return new Set(((data as { user_id: string }[] | null) ?? []).map((r) => r.user_id));
 }
 
 export type SchoolRole = "admin_master" | "prof";

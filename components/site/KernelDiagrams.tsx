@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import type { Theme } from "./theme";
 import { at, useShotSequence } from "./ProductShots";
 import { useTranslate } from "@/components/ui/locale";
@@ -1485,12 +1485,26 @@ export function ConceptGraphShot({ theme: t }: { theme: Theme }) {
    */
   const [ex, setEx] = useState(0);
   const kase = CASES[ex];
-  /** A concept's id (from NAMES), translated to what a visitor actually reads. */
-  const conceptLabel = (id: string) => tr((CONCEPT_LABEL_KEY[id] ?? id) as MessageKey);
-  // Rebuilt whenever the locale changes (`tr` is stable across renders in the
-  // same locale — see useTranslate), because the label solver sizes every box
-  // off the real translated text, not off English's.
-  const tours = useMemo(() => buildTours((i) => conceptLabel(NAMES[i]).length), [tr]);
+  /**
+   * A concept's id (from NAMES), translated to what a visitor actually reads.
+   *
+   * Memoised on `tr` so the solver below can depend on THIS function rather
+   * than on the value it happens to close over. The old form was correct — `tr`
+   * was already in the deps — but the rule could not see that, because a plain
+   * arrow gets a new identity every render. Naming the dependency makes the
+   * invariant machine-checked instead of a comment, and the recompute cadence
+   * is unchanged: `tr` is itself memoised on the locale (see useTranslate).
+   */
+  const conceptLabel = useCallback(
+    (id: string) => tr((CONCEPT_LABEL_KEY[id] ?? id) as MessageKey),
+    [tr],
+  );
+  // Rebuilt whenever the locale changes, because the label solver sizes every
+  // box off the real translated text, not off English's.
+  const tours = useMemo(
+    () => buildTours((i) => conceptLabel(NAMES[i]).length),
+    [conceptLabel],
+  );
   const tour = tours[ex];
   // Aliased at their old names so the drawing below reads as one diagnosis
   // rather than as a lookup repeated ninety times.

@@ -119,6 +119,26 @@ idempotent. Nothing to add.
 through `image-set()`; the launch screens are only fetched when iOS installs the
 app.
 
+## Second pass: the round trips themselves
+
+The note below said the next lever was the NUMBER of round trips, not
+milliseconds. One case was bad enough to fix straight away.
+
+**Acknowledging alerts was an N+1.** `POST /api/school/alerts/resolve` takes up
+to fifty alert ids and asked two questions about each — who is this alert about,
+and do I teach them — one id at a time, in sequence. The second question
+re-resolved the caller's classes every time. Up to about 350 sequential round
+trips before a single write, on a button teachers press daily. Both questions
+are now asked once for the whole set, and the per-id refusals are unchanged.
+
+**`getAdminMembership` is still two queries**, and it runs three or four times
+in one `/school` render because nothing in this codebase memoises per request.
+Wrapping the membership read in React's `cache()` would collapse that to one per
+request across pages and API routes alike. It is the largest remaining win and
+it was left for a round with room to test it properly — it changes a function
+that nearly every school route depends on, and this pass was cut short by a
+spend limit.
+
 ## Where the remaining time goes
 
 After these changes the public pages are dominated by their own data queries,

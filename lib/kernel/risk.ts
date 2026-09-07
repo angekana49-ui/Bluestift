@@ -147,22 +147,33 @@ export function foldStudentRisk(
 }
 
 /**
- * Which student an alert is about, or null if there is no such alert.
+ * Which students a set of alerts is about.
  *
- * An alert id is an opaque UUID a caller could guess or copy, so knowing it
- * proves nothing. Before acting on one, resolve its owner here and check that
- * student is on the caller's own roster — otherwise a teacher could close an
- * alert raised about a child in another school.
+ * An alert id is an opaque UUID a caller could guess or copy, so holding one
+ * proves nothing: before acting on an alert, resolve its owner here and check
+ * that student is on the caller's own roster, or a teacher could close an alert
+ * raised about a child in another school.
+ *
+ * Asked for the whole set at once, because the dashboard acknowledges every
+ * alert behind one student line together — the per-id form turned a single
+ * click into a round trip per alert. Ids the kernel does not know are simply
+ * absent from the map, which is what lets the caller keep answering 404 per id
+ * rather than for the batch.
  */
-export async function getAlertOwner(alertId: string): Promise<string | null> {
+export async function getAlertOwners(alertIds: string[]): Promise<Map<string, string>> {
+  const ids = [...new Set(alertIds)];
+  if (ids.length === 0) return new Map();
   const kernel = createKernelAdminClient();
   const { data } = await kernel
     .from("kernel_monitoring")
-    .select("user_id")
-    .eq("id", alertId)
+    .select("id, user_id")
     .eq("level", "alert")
-    .maybeSingle();
-  return (data as { user_id: string | null } | null)?.user_id ?? null;
+    .in("id", ids);
+  const out = new Map<string, string>();
+  for (const row of ((data as { id: string; user_id: string | null }[] | null) ?? [])) {
+    if (row.user_id) out.set(row.id, row.user_id);
+  }
+  return out;
 }
 
 /**

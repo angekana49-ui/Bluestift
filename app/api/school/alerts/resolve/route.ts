@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getAdminMembership, canReachStudent } from "@/lib/school-admin";
-import { getAlertOwner } from "@/lib/kernel/risk";
+import { getAdminMembership, reachableStudents } from "@/lib/school-admin";
+import { getAlertOwners } from "@/lib/kernel/risk";
 import { kernel, KernelError } from "@/lib/kernel/client";
 
 /**
@@ -42,12 +42,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Too many alerts in one call." }, { status: 400 });
   }
 
-  // Every id is checked. Authorizing the first and trusting the rest is how a
-  // caller smuggles someone else's alert in behind one of their own.
+  // Every id is still checked — authorizing the first and trusting the rest is
+  // how a caller smuggles someone else's alert in behind one of their own — but
+  // the two questions are now asked once for the whole set instead of once per
+  // id. Fifty alerts behind one dashboard line used to mean up to 350 sequential
+  // round trips before anything was written; it is two lookups and a loop over
+  // memory. The per-id refusals keep their exact precedence: unknown id 404s
+  // before a foreign student 403s.
+  const owners = await getAlertOwners(alertIds);
+  const reachable = await reachableStudents(user.id, [...owners.values()]);
   for (const alertId of alertIds) {
-    const owner = await getAlertOwner(alertId);
+    const owner = owners.get(alertId);
     if (!owner) return NextResponse.json({ error: "Alert not found." }, { status: 404 });
-    if (!(await canReachStudent(user.id, owner))) {
+    if (!reachable.has(owner)) {
       return NextResponse.json({ error: "Not your student." }, { status: 403 });
     }
   }

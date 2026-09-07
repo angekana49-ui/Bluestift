@@ -4,8 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { classCapacity } from "@/lib/school-admin";
 import { resolveSeatGate } from "@/lib/billing";
-import { checkStrictRateLimit } from "@/lib/rate-limit";
-import { clientIp } from "@/lib/request-ip";
+import { checkStrictUserRateLimit } from "@/lib/rate-limit";
 import { ageBand, isMinor } from "@/lib/compliance/age";
 import { forgetOptionalProcessing } from "@/lib/compliance/optional-processing";
 
@@ -49,7 +48,23 @@ export async function POST(request: Request) {
   if (!firstName || !lastName) {
     return NextResponse.json({ error: "First and last name are required." }, { status: 400 });
   }
-  if (!(await checkStrictRateLimit("school_class_join", clientIp(request), 30, "10 minutes"))) {
+  /**
+   * Bucketed on the ACCOUNT, not the address, and the address was wrong on both
+   * counts here.
+   *
+   * It refused legitimate traffic: this is the one endpoint where thirty
+   * children join at once, from one school's gateway, on the same morning — and
+   * a fail-closed ceiling of thirty per ten minutes per IP turns the thirty-first
+   * student away from the flow the route exists to serve. Chat is limited per
+   * user for exactly this reason (see lib/rate-limit.ts).
+   *
+   * And it barely inconvenienced the thing it was for: a session is free, so an
+   * IP bucket lets one account spray codes through every proxy an attacker has.
+   * On the account, guessing costs a fresh signup each time — a Turnstile solve
+   * against the twenty-per-hour-per-IP anon cap. A real student joins once, or
+   * twice with a typo, never eight times in ten minutes.
+   */
+  if (!(await checkStrictUserRateLimit("school_class_join", user.id, 8, "10 minutes"))) {
     return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }
 
