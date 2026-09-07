@@ -108,24 +108,19 @@ export async function POST(request: Request) {
    * that admits everyone it is forwarded to, silently and with a 200. Now the
    * column is there, failing loudly is the right end of that trade.
    *
-   * The row stays `Record<string, unknown>` because the generated types have
-   * not been rebuilt since the migration — see test/export-untyped-table.test.ts
-   * for the other half of that debt.
    */
   for (let attempt = 0; attempt < 6 && !code; attempt++) {
     const candidate = makeStaffCode();
-    const row: Record<string, unknown> = {
-      school_id: membership.schoolId,
-      code: candidate,
-      auto_approve: true,
-      is_active: true,
-      created_by: membership.adminId,
-      single_use: true,
-    };
-
     const { data, error } = await schools
       .from("staff_invite_codes")
-      .insert(row)
+      .insert({
+        school_id: membership.schoolId,
+        code: candidate,
+        auto_approve: true,
+        is_active: true,
+        created_by: membership.adminId,
+        single_use: true,
+      })
       .select("id")
       .single();
     if (!error) {

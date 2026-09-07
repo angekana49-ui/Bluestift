@@ -73,34 +73,6 @@ export async function buildDataExport(userId: string, email: string | null): Pro
     }
   };
 
-  /**
-   * `learning.kernel_profile_snapshots` is a real table (migration
-   * 20260728004630) that is missing from `types/database.types.ts`, because the
-   * generated types have not been rebuilt since it landed. The cast is confined
-   * to this one call site rather than widening the client for the whole file,
-   * and the query is `select("*")`, so nothing here depends on the column list.
-   *
-   * Delete it the next time `gen:types` runs against the project. Nothing
-   * here will complain on its own — `as unknown as` compiles against
-   * anything — so the reminder lives in test/export-untyped-table.test.ts,
-   * which fails the moment the generated types learn the table.
-   */
-  const untypedLearning = (table: string, column: string) =>
-    (
-      admin.schema("learning") as unknown as {
-        from: (t: string) => {
-          select: (c: string, o?: typeof COUNTED) => {
-            eq: (
-              k: string,
-              v: string,
-            ) => PromiseLike<{ data: unknown; error: unknown; count: number | null }>;
-          };
-        };
-      }
-    )
-      .from(table)
-      .select("*", COUNTED)
-      .eq(column, userId);
 
   /**
    * Say so when a section came back shorter than the database says it is.
@@ -240,7 +212,14 @@ export async function buildDataExport(userId: string, email: string | null): Pro
     ),
     // The app's durable copy of the Kernel's read of the learner, including the
     // analysis the learner asked to keep ("Memorize") and the Kernel's summary.
-    rows("kernel_profile_snapshot", untypedLearning("kernel_profile_snapshots", "user_id")),
+    rows(
+      "kernel_profile_snapshot",
+      admin
+        .schema("learning")
+        .from("kernel_profile_snapshots")
+        .select("*", COUNTED)
+        .eq("user_id", userId),
+    ),
     rows(
       "promo_redemptions",
       admin.from("user_promo_code_redemptions").select("*", COUNTED).eq("user_id", userId),

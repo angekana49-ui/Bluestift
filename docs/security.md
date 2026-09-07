@@ -354,20 +354,28 @@ is the whole boundary. Putting those policies in a migration would make it
 reviewable by anyone reading the code, which is a different thing from being
 correct — it already is.
 
-### Types: needs a credential this audit does not hold
+### Types: needed a credential this audit did not hold — resolved 2026-09-07
 
-`types/database.types.ts` is behind the migrations, and `npm run gen:types` was
-run: it failed because the Supabase CLI has no access token here, and the script
-correctly refused to overwrite the file rather than replacing it with an error.
-So one table, `learning.kernel_profile_snapshots`, is still reached through a
-cast confined to a single call site in `lib/compliance/export.ts`.
+`types/database.types.ts` was behind the migrations, and `npm run gen:types`
+failed because the Supabase CLI had no access token here. The script refused to
+overwrite the file rather than replacing it with an error, which is the whole
+reason it exists. So one table, `learning.kernel_profile_snapshots`, was reached
+through a cast confined to a single call site in `lib/compliance/export.ts`.
 
-Running `npm run gen:types` with `SUPABASE_ACCESS_TOKEN` set will regenerate the
-file, at which point the cast should be deleted. It will not announce itself:
-`as unknown as` compiles against anything, so an earlier draft of this note was
-wrong to say the cast "stops compiling". The reminder is a test instead —
-`test/export-untyped-table.test.ts` fails as soon as the generated types learn
-the table, and names the line to remove.
+An earlier draft of this note said the cast would "stop compiling" once the
+types were rebuilt. That was wrong: `as unknown as` compiles against anything,
+and the workaround would have outlived its reason with nobody told. The reminder
+became a test instead, and on 2026-09-07 it fired: the token was supplied, the
+types were regenerated, the cast came out, and the export now reads the table
+through the typed client.
+
+Two things are worth keeping from it. The token the CLI wants is **not** one of
+the three Supabase keys in the project's env file — those are project
+credentials, and `SUPABASE_ACCESS_TOKEN` is an account-level personal access
+token for the management API, a different credential class with a confusingly
+similar name. And `scripts/gen-types.mjs` now loads the project's env files
+itself, because a script that demands a hand-exported secret is a script people
+route around.
 
 ## Sixth pass: the last of it
 
