@@ -363,8 +363,11 @@ So one table, `learning.kernel_profile_snapshots`, is still reached through a
 cast confined to a single call site in `lib/compliance/export.ts`.
 
 Running `npm run gen:types` with `SUPABASE_ACCESS_TOKEN` set will regenerate the
-file, at which point the typed client accepts the table and that cast stops
-compiling — deliberately, so the workaround cannot outlive its reason.
+file, at which point the cast should be deleted. It will not announce itself:
+`as unknown as` compiles against anything, so an earlier draft of this note was
+wrong to say the cast "stops compiling". The reminder is a test instead —
+`test/export-untyped-table.test.ts` fails as soon as the generated types learn
+the table, and names the line to remove.
 
 ## Sixth pass: the last of it
 

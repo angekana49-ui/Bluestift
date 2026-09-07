@@ -67,9 +67,10 @@ export async function buildDataExport(userId: string, email: string | null): Pro
    * to this one call site rather than widening the client for the whole file,
    * and the query is `select("*")`, so nothing here depends on the column list.
    *
-   * Delete it the next time `gen:types` runs against the project — at which
-   * point the typed client will accept the table and this stops compiling,
-   * which is the reminder.
+   * Delete it the next time `gen:types` runs against the project. Nothing
+   * here will complain on its own — `as unknown as` compiles against
+   * anything — so the reminder lives in test/export-untyped-table.test.ts,
+   * which fails the moment the generated types learn the table.
    */
   const untypedLearning = (table: string, column: string) =>
     (
