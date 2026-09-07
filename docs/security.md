@@ -377,6 +377,36 @@ similar name. And `scripts/gen-types.mjs` now loads the project's env files
 itself, because a script that demands a hand-exported secret is a script people
 route around.
 
+## Seventh pass: the file named to be shared
+
+`.env.example` holds live values for `KERNEL_API_SECRET`, `TURNSTILE_SECRET_KEY`
+and `RESEND_API_KEY`. Six passes missed it because the audit was working under
+an instruction not to read env files, which was the right instruction and also
+a blind spot — the one file in that set whose name promises it is safe to share.
+
+**Nothing leaked.** The file stopped being tracked in `c017b78` ("Stop tracking
+.env.example; ignore all .env files"), and the two commits that did track it,
+`12b08d0` and `a694af1`, carried empty fields and placeholders. Every live value
+was searched for across every commit with `git log --all -S` and found in none.
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` is in history and belongs there: it reaches the
+browser on every page load and is protected by RLS, not by being unknown. No
+rotation is warranted.
+
+What existed was a trap rather than a breach, and the trap is the interesting
+part. `.gitignore` now ignores `.env.*` wholesale, so the template that is
+*supposed* to be committed cannot be — which means the file people copy, paste
+into an issue, screenshot while onboarding a contributor, or hand over on a USB
+stick is the one carrying three working credentials. One `git add -f`, or one
+person relaxing an ignore rule because "it's only the example file", and a
+repository meant to be read by strangers publishes them.
+
+The values are the owner's to clear; this audit does not write to env files.
+The rule is machine-checked instead of remembered:
+`test/env-example-carries-no-secrets.test.ts` fails while any key naming itself
+a secret holds something that is neither empty nor an obvious placeholder,
+exempts `NEXT_PUBLIC_*` by definition, and skips where the file is absent — a
+fresh clone, and CI.
+
 ## Sixth pass: the last of it
 
 A final sweep, part of it run as a fan-out of independent auditors. It was cut
