@@ -38,7 +38,8 @@ They are deliberately separate systems.
 
 ```bash
 npm install
-cp .env.example .env.local     # then fill in the values below
+# create .env.local yourself with the variables below — no env file ships
+# with this repository, not even a template
 npm run dev                    # http://localhost:3000
 ```
 
@@ -54,8 +55,24 @@ Minimum to get a usable local app:
 Everything else degrades gracefully when unset: no `RESEND_API_KEY` means emails
 are skipped rather than failing, `BILLING_PROVIDER=sandbox` runs the full
 pending → paid → activate loop with no external account, and the Kernel being
-down costs personalisation, not the conversation. `.env.example` documents each
-one and what happens when it's missing.
+down costs personalisation, not the conversation.
+
+`.gitignore` ignores every `.env*` file, template included, and
+`test/env-files-stay-out-of-git.test.ts` fails if one is ever tracked. That is
+deliberate and it is why this table exists: the setup instructions live here,
+in the file everyone can read, rather than in a file nobody receives. The
+second table below covers what the rest of the app needs when you go past the
+minimum.
+
+| Variable | What it is for |
+|---|---|
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY` | Captcha on this app's own public forms. The site key renders the widget; the secret verifies server-side and, when unset in production, those routes refuse every submission rather than skip the check. Supabase Auth holds its **own** copy of the secret for sign-up and sign-in — one Cloudflare widget, two places to paste it. |
+| `KERNEL_API_URL`, `KERNEL_API_SECRET` | The FastAPI Kernel. Unset means no personalisation, not a broken app. |
+| `RESEND_API_KEY`, `EMAIL_FROM` | Transactional email. Unset makes every send a no-op. |
+| `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` | Analytics. Host defaults to the EU region. Unset disables it entirely. |
+| `CRON_SECRET` | Shared with Vercel Cron. Unset makes the cron routes refuse everything. |
+| `BILLING_PROVIDER` and its provider keys | `sandbox` by default; `stripe` or `cinetpay` need their own keys and webhook secrets. |
+| `SUPABASE_ACCESS_TOKEN` | Only for `npm run gen:types`. An **account**-level personal access token from the Supabase dashboard, not one of the project keys above — different credential class, similar name. |
 
 ```bash
 npm test          # vitest

@@ -400,12 +400,26 @@ stick is the one carrying three working credentials. One `git add -f`, or one
 person relaxing an ignore rule because "it's only the example file", and a
 repository meant to be read by strangers publishes them.
 
-The values are the owner's to clear; this audit does not write to env files.
-The rule is machine-checked instead of remembered:
-`test/env-example-carries-no-secrets.test.ts` fails while any key naming itself
-a secret holds something that is neither empty nor an obvious placeholder,
-exempts `NEXT_PUBLIC_*` by definition, and skips where the file is absent — a
-fresh clone, and CI.
+**The owner settled it the other way, and better.** The proposal here was to
+blank the values, on the reasoning that a file named "example" is one people
+share. The decision was that no env file will ever be visible at all — none,
+template included — so what `.env.example` contains is nobody's business but
+theirs. That removes the premise rather than the symptom, and it is the
+stronger rule: blanking a file relies on nobody refilling it, while never
+shipping one has no such dependency.
+
+So the check changed to match. `test/env-files-stay-out-of-git.test.ts` asserts
+that `.gitignore` covers the whole `.env*` family and, more to the point, that
+`git ls-files` reports none — the only assertion that catches a `git add -f` or
+a relaxed ignore rule six months from now. An ignore rule does nothing to a
+file that is already tracked, which is why the second half is the real one.
+
+The consequence was in the README, which told a newcomer to `cp .env.example
+.env.local` — a file that will not be in their clone. Setup now lives in the
+README itself, in the file everyone can read, with a second table covering what
+the app needs past the minimum: the two halves of the Turnstile secret, the
+Kernel pair, email, analytics, the cron secret, and the account-level
+`SUPABASE_ACCESS_TOKEN` that is not one of the project keys.
 
 ## Sixth pass: the last of it
 
