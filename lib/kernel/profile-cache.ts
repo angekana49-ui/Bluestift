@@ -1,4 +1,5 @@
 import "server-only";
+import { capMap, CACHE_MAX_ENTRIES } from "@/lib/bounded-map";
 import { kernel } from "./client";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { withTimeout } from "@/lib/net/timeout";
@@ -165,6 +166,13 @@ export async function getCognitiveContext(userId: string): Promise<CognitiveCont
       null,
     );
     if (row) {
+      // Four maps keyed by account, none of which evicts except on a later read
+      // of the same key — and `anchoredCache` holds its entries for thirty days.
+      // Capped here, where new keys enter. See lib/bounded-map.ts.
+      capMap(cache, CACHE_MAX_ENTRIES);
+      capMap(alertsCache, CACHE_MAX_ENTRIES);
+      capMap(analysisCache, CACHE_MAX_ENTRIES);
+      capMap(anchoredCache, CACHE_MAX_ENTRIES);
       if (!l1 && row.profile) {
         profile = row.profile;
         const at = row.profile_updated_at ? Date.parse(row.profile_updated_at) : 0;
@@ -238,6 +246,9 @@ export function setLatestAnalysis(
   };
 
   const stamp = new Date().toISOString();
+  capMap(alertsCache, CACHE_MAX_ENTRIES);
+  capMap(analysisCache, CACHE_MAX_ENTRIES);
+  capMap(anchoredCache, CACHE_MAX_ENTRIES);
   alertsCache.set(userId, { alerts, at: Date.now() });
   analysisCache.set(userId, analysis);
   if (opts.anchored) anchoredCache.set(userId, analysis);

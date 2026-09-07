@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { ageGateResponse } from "@/lib/compliance/api-gate";
-import { checkUserRateLimit } from "@/lib/rate-limit";
+import { checkStrictUserRateLimit } from "@/lib/rate-limit";
 import {
   MAX_DOC_CHARS,
   isSupportedLocale,
@@ -58,9 +58,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "document too long to translate" }, { status: 413 });
   }
 
-  // Per USER, not per IP: in our markets a whole school shares one NAT, and an
-  // IP bucket would let one class throttle the building.
-  if (!(await checkUserRateLimit("doc_translate", user.id, 40, "60 minutes"))) {
+  /**
+   * Per USER, not per IP: in our markets a whole school shares one NAT, and an
+   * IP bucket would let one class throttle the building.
+   *
+   * And STRICT, so it fails closed. Below this line is a model call we pay for,
+   * which is the same thing the chat limiter guards and the chat limiter is
+   * strict. The fail-open variant meant a database hiccup turned metered
+   * translation into unmetered spend, per user, for as long as the hiccup
+   * lasted. Failing closed costs almost nothing by comparison: the limiter is
+   * backed by the same database every page already reads, so if it is
+   * unreachable the visitor is not translating documents anyway.
+   */
+  if (!(await checkStrictUserRateLimit("doc_translate", user.id, 40, "60 minutes"))) {
     return NextResponse.json(
       { error: "Too many translations just now — try again shortly." },
       { status: 429 },

@@ -1,4 +1,5 @@
 import "server-only";
+import { capMap, CACHE_MAX_ENTRIES } from "@/lib/bounded-map";
 import { ROOM_TIMER_MIN, ROOM_TIMER_MAX } from "@/lib/rooms";
 import { NextResponse } from "next/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
@@ -867,6 +868,10 @@ function cacheGet<T>(m: Map<string, CacheEntry<T>>, key: string): T | null {
   return e.value;
 }
 function cacheSet<T>(m: Map<string, CacheEntry<T>>, key: string, value: T): void {
+  // Keyed by account, and expiry only fires when a key is read again — so
+  // without a ceiling this grows with every distinct visitor the instance ever
+  // serves. See lib/bounded-map.ts.
+  capMap(m, CACHE_MAX_ENTRIES);
   m.set(key, { value, expires: Date.now() + RESOLVE_TTL_MS });
 }
 

@@ -180,13 +180,19 @@ describe("the endpoint", () => {
     // these it is an open translation service billed to us.
     expect(route).toMatch(/status: 401/);
     expect(route).toMatch(/MAX_DOC_CHARS/);
-    expect(route).toMatch(/checkUserRateLimit/);
+    expect(route).toMatch(/checkStrictUserRateLimit/);
   });
 
   it("limits per USER, not per IP", () => {
     // A whole school shares one NAT in our markets; an IP bucket would let one
     // class throttle the building.
-    expect(route).toMatch(/checkUserRateLimit\("doc_translate"/);
+    expect(route).toMatch(/checkStrictUserRateLimit\("doc_translate"/);
+  });
+
+  it("uses the limiter that fails CLOSED, because a model call is below it", () => {
+    // The fail-open variant turned a database hiccup into unmetered spend for
+    // as long as it lasted. Chat guards the same cost with the strict form.
+    expect(route).not.toMatch(/checkUserRateLimit/);
   });
 
   it("accepts only the four shipped languages", () => {

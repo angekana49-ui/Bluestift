@@ -416,6 +416,40 @@ a bug: the function closed over exactly `tr`, which was already in the deps. But
 the invariant was held by a comment the rule could not read, so `conceptLabel`
 is now a `useCallback` on `tr` — machine-checked, same recompute cadence.
 
+### 21. A model call sat behind a limiter that opens when the database blinks — fixed
+
+`lib/rate-limit.ts` deliberately offers two shapes: `checkRateLimit` fails OPEN,
+because anti-spam on a public form should not lock people out over a hiccup, and
+`checkStrictRateLimit` fails CLOSED, because an outage must not become a
+brute-force bypass. Every call site was checked against what it guards.
+
+All correct but one. `/api/documents/translate` used the fail-open variant, and
+the line below it is a model call we pay for — the same thing the chat limiter
+guards, where the strict form is used. A database hiccup turned metered
+translation into unmetered spend, per account, for as long as it lasted. It is
+strict now, and the cost of that is close to nothing: the limiter is backed by
+the database every page already reads, so if it is unreachable the visitor is
+not translating documents anyway.
+
+The two remaining fail-open limiters both guard the public marketing wall, which
+is where that trade belongs.
+
+### 22. Six caches could grow forever — fixed
+
+The in-process caches keyed by an account id expire LAZILY: the TTL is checked
+when a key is read again, so a key nobody reads again is never removed. Six of
+them — entitlements by user and by school, the consent memo, and the Kernel's
+profile, alerts, analysis and anchored slots — had no size ceiling. The anchored
+slot is the sharpest, because its TTL is thirty days.
+
+On serverless the instance is usually recycled long before that matters, which
+is exactly why this survived five passes: the leak is invisible until a process
+lives a while, and the entries are whole cognitive profiles. `lib/bounded-map.ts`
+now caps them, clearing wholesale rather than tracking insertion order — the
+same conclusion `lib/observability/report.ts` had already reached for the same
+reason. The two caches keyed by a fixed handful of strings are left alone; they
+cannot grow.
+
 ### Examined and deliberately left
 
 **Wall-reaction dedupe is not worth the fix that was proposed.** A per-post
@@ -424,6 +458,16 @@ is for — many people, one gateway, the same top post — and, because it repla
 one global bucket with one per post, it would RAISE what a single address can
 insert per hour from a fixed 120 to three times the number of posts. The
 fail-open global limiter is the better of the two.
+
+**A truncated data export is the one thing here that code cannot fix alone.**
+`lib/compliance/export.ts` and the school record carry no `.limit()`, but
+PostgREST applies its own `db.max_rows` ceiling per project, and a select that
+hits it returns a short answer with no error. A student with more messages than
+that ceiling would receive a silently incomplete export — a GDPR article 15
+failure wearing a performance costume. Nothing in the repository reveals the
+project's setting, so this is an owner check: if `db.max_rows` is set, either
+raise it beyond any realistic account or page the export with `.range()`. Worth
+doing before anyone exercises the right in anger.
 
 **Six-character class codes stay.** The attack is untargeted — you cannot aim at
 a named school without tens of millions of guesses — and a hit enrols the

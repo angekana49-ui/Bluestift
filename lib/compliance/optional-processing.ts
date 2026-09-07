@@ -1,4 +1,5 @@
 import "server-only";
+import { capMap, CACHE_MAX_ENTRIES } from "@/lib/bounded-map";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ageBand, allowsOptionalProcessing } from "./age";
 
@@ -38,6 +39,9 @@ export async function optionalProcessingAllowed(userId: string): Promise<boolean
     allowed = false;
   }
 
+  // Nothing removes an expired entry here — it is only overwritten on the next
+  // read — so the map needs a ceiling of its own. See lib/bounded-map.ts.
+  capMap(memo, CACHE_MAX_ENTRIES);
   memo.set(userId, { allowed, at: now });
   return allowed;
 }
