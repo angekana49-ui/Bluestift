@@ -462,15 +462,25 @@ one global bucket with one per post, it would RAISE what a single address can
 insert per hour from a fixed 120 to three times the number of posts. The
 fail-open global limiter is the better of the two.
 
-**A truncated data export is the one thing here that code cannot fix alone.**
-`lib/compliance/export.ts` and the school record carry no `.limit()`, but
+**A truncated data export was the one thing here that code could not fix
+alone — until it was.** `lib/compliance/export.ts` carries no `.limit()`, but
 PostgREST applies its own `db.max_rows` ceiling per project, and a select that
 hits it returns a short answer with no error. A student with more messages than
 that ceiling would receive a silently incomplete export — a GDPR article 15
-failure wearing a performance costume. Nothing in the repository reveals the
-project's setting, so this is an owner check: if `db.max_rows` is set, either
-raise it beyond any realistic account or page the export with `.range()`. Worth
-doing before anyone exercises the right in anger.
+failure wearing a performance costume.
+
+This was first written up as an owner check, because nothing in the repository
+reveals the setting. That was the wrong end of it: the setting lives in a
+dashboard and can change without a commit, so checking it once proves nothing
+about the next export. The export now asks the database for the exact row count
+beside the rows — `select(cols, { count: "exact" })` — and compares. When the
+two disagree it still returns the rows it got, and records
+`<section>:incomplete:<got>/<total>` in the bundle's `_errors`. A partial answer
+the subject knows is partial is worth more than a refusal and far more than a
+silent one. Held by `test/export-completeness.test.ts`.
+
+Measured on 2026-09-07 the heaviest account holds fourteen messages, so nothing
+is near any plausible ceiling today. The check is not for today.
 
 **Six-character class codes stay.** The attack is untargeted — you cannot aim at
 a named school without tens of millions of guesses — and a hit enrols the

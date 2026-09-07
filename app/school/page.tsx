@@ -71,7 +71,9 @@ export default async function SchoolPage({
     // Roll the active school year forward if the previous one has ended.
     // Deliberately NOT parallelised with the dashboard read: the dashboard
     // scopes classes to the school's currentYearId, which this may repoint —
-    // racing them would show last year's classes on roll-over day.
+    // racing them would show last year's classes on roll-over day. The same
+    // ordering is why getAdminMembership must not be memoised per request;
+    // its own doc comment carries the long version.
     if (membership) await ensureCurrentSchoolYear(membership.schoolId);
     dashboard = await getSchoolDashboard(user.id);
   } else if (role === "prof") {

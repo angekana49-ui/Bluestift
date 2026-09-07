@@ -912,7 +912,19 @@ export type Membership = {
   needsReconfirmation: boolean;
 };
 
-/** The user's *active* school_admins membership (id, role, school), or null. */
+/**
+ * The user's *active* school_admins membership (id, role, school), or null.
+ *
+ * Two queries, and one /school render calls it three or four times, so
+ * wrapping it in React's `cache()` looks like free latency. It is not, and
+ * this is the reason: app/school/page.tsx runs `ensureCurrentSchoolYear`
+ * BETWEEN two of those calls, and that write is precisely what repoints
+ * `schools.current_school_year_id` on roll-over day. A per-request memo would
+ * hand the dashboard the pre-rollover `currentYearId`, and it would render
+ * last year's classes — once a year, per school, with nothing in the logs to
+ * say so. Memoise the callers, or invalidate on that write. Do not blanket-
+ * memoise this.
+ */
 export async function getAdminMembership(userId: string): Promise<Membership | null> {
   try {
     const schools = createSchoolsAdminClient();

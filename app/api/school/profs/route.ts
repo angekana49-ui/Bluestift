@@ -99,11 +99,19 @@ export async function POST(request: Request) {
   /**
    * `single_use` marks this as an invitation to ONE person rather than a
    * staffroom code, so the redemption path can spend it (migration
-   * 20260906120000). Written optimistically and retried without the column,
-   * because a deploy can reach production before its migration does and an
-   * invitation that 500s is worse than one that behaves like it did last week.
+   * 20260906120000, applied 2026-09-07).
+   *
+   * This used to retry without the column, to cover the window where a deploy
+   * could reach production before its migration did. That window has closed,
+   * and the fallback was never free: any insert error whose message merely
+   * mentioned the column would have downgraded a named invitation into a code
+   * that admits everyone it is forwarded to, silently and with a 200. Now the
+   * column is there, failing loudly is the right end of that trade.
+   *
+   * The row stays `Record<string, unknown>` because the generated types have
+   * not been rebuilt since the migration — see test/export-untyped-table.test.ts
+   * for the other half of that debt.
    */
-  let withoutColumn = false;
   for (let attempt = 0; attempt < 6 && !code; attempt++) {
     const candidate = makeStaffCode();
     const row: Record<string, unknown> = {
@@ -112,8 +120,8 @@ export async function POST(request: Request) {
       auto_approve: true,
       is_active: true,
       created_by: membership.adminId,
+      single_use: true,
     };
-    if (!withoutColumn) row.single_use = true;
 
     const { data, error } = await schools
       .from("staff_invite_codes")
@@ -123,11 +131,6 @@ export async function POST(request: Request) {
     if (!error) {
       code = candidate;
       codeId = (data as { id: string }).id;
-    } else if (!withoutColumn && /single_use|column .* does not exist|42703/i.test(error.message)) {
-      // The migration has not landed yet. Fall back for this attempt and every
-      // one after it, rather than burning the retry budget on the same failure.
-      withoutColumn = true;
-      attempt--;
     } else if (!/duplicate|unique|23505/i.test(error.message)) {
       inviteError = error;
       break;

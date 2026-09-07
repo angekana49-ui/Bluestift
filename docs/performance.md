@@ -133,11 +133,21 @@ are now asked once for the whole set, and the per-id refusals are unchanged.
 
 **`getAdminMembership` is still two queries**, and it runs three or four times
 in one `/school` render because nothing in this codebase memoises per request.
-Wrapping the membership read in React's `cache()` would collapse that to one per
-request across pages and API routes alike. It is the largest remaining win and
-it was left for a round with room to test it properly — it changes a function
-that nearly every school route depends on, and this pass was cut short by a
-spend limit.
+Wrapping it in React's `cache()` is the obvious collapse, and it is wrong.
+
+`app/school/page.tsx` calls `ensureCurrentSchoolYear` BETWEEN two of those
+reads, deliberately and with a comment saying so: that write is what repoints
+`schools.current_school_year_id` when a school year ends, and the dashboard
+read after it scopes classes to the year it finds. A per-request memo would serve
+the dashboard the pre-rollover year, and `/school` would render last year's
+classes. Once a year, per school, with nothing in the logs — the failure is
+annual, brief and invisible, which is the worst combination to ship.
+
+So the win is real but it is not one line. It needs either memoising the callers
+individually, or a request-scoped store that the rollover write invalidates.
+Both are a round of their own. The reason is recorded on the function itself and
+held by `test/export-completeness.test.ts`, so the next person to spot the easy
+win meets the reason before the bug.
 
 ## Where the remaining time goes
 

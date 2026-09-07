@@ -69,15 +69,19 @@ describe("an invitation admits one person", () => {
   );
 
   it("marks the code it mints as single-use", () => {
-    expect(post).toContain("single_use = true");
+    expect(post).toContain("single_use: true");
+    expect(joinTeam).toContain('.select("*")');
   });
 
-  it("survives a deploy that lands before its migration", () => {
-    // Inserting a column the database does not have yet would 500 the
-    // invitation; it falls back instead.
-    expect(post).toContain("withoutColumn");
-    expect(post).toMatch(/42703|does not exist/);
-    expect(joinTeam).toContain('.select("*")');
+  it("no longer downgrades itself to a shared code when the insert fails", () => {
+    // The route used to retry without the column, for the window where a
+    // deploy could land before its migration. The migration is applied
+    // (2026-09-07) and the fallback was not free: any insert error whose
+    // message merely mentioned the column would have turned an invitation
+    // addressed to one person into a code that admits everyone it is
+    // forwarded to — silently, with a 200. It fails loudly now.
+    expect(post).not.toContain("withoutColumn");
+    expect(post).not.toMatch(/42703|does not exist/);
   });
 
   it("spends the code once it has admitted somebody", () => {

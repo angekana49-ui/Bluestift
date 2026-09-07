@@ -43,6 +43,19 @@ const KERNEL_TABLES = [
   "kernel_requests",
 ] as const;
 
+/**
+ * Every list read here asks for the exact row count beside the rows.
+ *
+ * PostgREST applies a `db.max_rows` ceiling per project and a select that
+ * reaches it returns a SHORT answer with no error at all — so without this,
+ * an account with more rows than the ceiling would receive a quietly
+ * incomplete export, which is an article 15 failure wearing a performance
+ * costume. Nothing in this codebase can read that setting, and it can be
+ * changed in a dashboard without touching the repository, so the export
+ * verifies rather than trusts.
+ */
+const COUNTED = { count: "exact" } as const;
+
 export type DataExport = Record<string, unknown>;
 
 export async function buildDataExport(userId: string, email: string | null): Promise<DataExport> {
@@ -76,30 +89,51 @@ export async function buildDataExport(userId: string, email: string | null): Pro
     (
       admin.schema("learning") as unknown as {
         from: (t: string) => {
-          select: (c: string) => {
-            eq: (k: string, v: string) => PromiseLike<{ data: unknown; error: unknown }>;
+          select: (c: string, o?: typeof COUNTED) => {
+            eq: (
+              k: string,
+              v: string,
+            ) => PromiseLike<{ data: unknown; error: unknown; count: number | null }>;
           };
         };
       }
     )
       .from(table)
-      .select("*")
+      .select("*", COUNTED)
       .eq(column, userId);
 
-  const rows = async (label: string, q: PromiseLike<{ data: unknown; error: unknown }>) =>
+  /**
+   * Say so when a section came back shorter than the database says it is.
+   *
+   * The rows are still returned: a partial answer the subject knows is
+   * partial beats a silent one, and beats no answer at all. `_errors` in the
+   * bundle carries the shortfall, with both numbers, so the gap is legible
+   * to whoever has to act on it rather than inferred from a suspicious total.
+   */
+  const whole = <T>(label: string, list: T[], count: number | null | undefined): T[] => {
+    if (typeof count === "number" && count > list.length) {
+      errors.push(`${label}:incomplete:${list.length}/${count}`);
+    }
+    return list;
+  };
+
+  const rows = async (
+    label: string,
+    q: PromiseLike<{ data: unknown; error: unknown; count?: number | null }>,
+  ) =>
     section(label, async () => {
-      const { data, error } = await q;
+      const { data, error, count } = await q;
       if (error) throw error;
-      return data ?? [];
+      return whole(label, (data ?? []) as unknown[], count);
     });
 
   const conversationIds = await section("conversation_ids", async () => {
-    const { data } = await admin
+    const { data, count } = await admin
       .schema("learning")
       .from("conversations")
-      .select("id")
+      .select("id", COUNTED)
       .eq("user_id", userId);
-    return (data ?? []).map((r) => r.id);
+    return whole("conversation_ids", data ?? [], count).map((r) => r.id);
   });
 
   const [
@@ -141,79 +175,79 @@ export async function buildDataExport(userId: string, email: string | null): Pro
         .maybeSingle();
       return { ...((data ?? {}) as Record<string, unknown>), auth_email: email };
     }),
-    rows("onboarding_events", admin.from("onboarding_events").select("*").eq("user_id", userId)),
+    rows("onboarding_events", admin.from("onboarding_events").select("*", COUNTED).eq("user_id", userId)),
     rows(
       "conversations",
-      admin.schema("learning").from("conversations").select("*").eq("user_id", userId),
+      admin.schema("learning").from("conversations").select("*", COUNTED).eq("user_id", userId),
     ),
     section("messages", async () => {
       // Both sides of the exchange: their own messages and Raya's replies,
       // which are only reachable through the conversations they own.
       const ids = conversationIds ?? [];
       if (ids.length === 0) return [];
-      const { data } = await admin
+      const { data, count } = await admin
         .schema("learning")
         .from("messages")
-        .select("*")
+        .select("*", COUNTED)
         .in("conversation_id", ids)
         .order("created_at", { ascending: true });
-      return data ?? [];
+      return whole("messages", data ?? [], count);
     }),
     rows(
       "tool_outputs",
-      admin.schema("learning").from("tool_outputs").select("*").eq("user_id", userId),
+      admin.schema("learning").from("tool_outputs").select("*", COUNTED).eq("user_id", userId),
     ),
     section("conversation_files", async () => {
       const ids = conversationIds ?? [];
       if (ids.length === 0) return [];
-      const { data } = await admin
+      const { data, count } = await admin
         .schema("learning")
         .from("conversation_files")
-        .select("*")
+        .select("*", COUNTED)
         .in("conversation_id", ids);
-      return data ?? [];
+      return whole("conversation_files", data ?? [], count);
     }),
     rows(
       "room_members",
-      admin.schema("learning").from("room_members").select("*").eq("user_id", userId),
+      admin.schema("learning").from("room_members").select("*", COUNTED).eq("user_id", userId),
     ),
     rows(
       "room_messages",
-      admin.schema("learning").from("room_messages").select("*").eq("user_id", userId),
+      admin.schema("learning").from("room_messages").select("*", COUNTED).eq("user_id", userId),
     ),
     rows(
       "challenges",
-      admin.schema("learning").from("challenges").select("*").eq("created_by", userId),
+      admin.schema("learning").from("challenges").select("*", COUNTED).eq("created_by", userId),
     ),
     rows(
       "challenge_attempts",
-      admin.schema("learning").from("challenge_attempts").select("*").eq("user_id", userId),
+      admin.schema("learning").from("challenge_attempts").select("*", COUNTED).eq("user_id", userId),
     ),
-    rows("shares", admin.schema("learning").from("shares").select("*").eq("user_id", userId)),
+    rows("shares", admin.schema("learning").from("shares").select("*", COUNTED).eq("user_id", userId)),
     rows(
       "student_simulations",
-      admin.schema("learning").from("student_simulations").select("*").eq("user_id", userId),
+      admin.schema("learning").from("student_simulations").select("*", COUNTED).eq("user_id", userId),
     ),
-    rows("user_media", admin.schema("rag").from("user_media").select("*").eq("user_id", userId)),
-    rows("school_identity", schools.from("student_identities").select("*").eq("user_id", userId)),
-    rows("class_enrollments", admin.from("class_enrollments").select("*").eq("user_id", userId)),
+    rows("user_media", admin.schema("rag").from("user_media").select("*", COUNTED).eq("user_id", userId)),
+    rows("school_identity", schools.from("student_identities").select("*", COUNTED).eq("user_id", userId)),
+    rows("class_enrollments", admin.from("class_enrollments").select("*", COUNTED).eq("user_id", userId)),
     // Notes staff wrote ABOUT the student. They are in the school's own record
     // of the student, and art. 15 covers what is held about a person, not only
     // what they typed — so they belong in the student's bundle too.
     rows(
       "staff_followups",
-      schools.from("student_followups").select("*").eq("student_user_id", userId),
+      schools.from("student_followups").select("*", COUNTED).eq("student_user_id", userId),
     ),
     // The app's durable copy of the Kernel's read of the learner, including the
     // analysis the learner asked to keep ("Memorize") and the Kernel's summary.
     rows("kernel_profile_snapshot", untypedLearning("kernel_profile_snapshots", "user_id")),
     rows(
       "promo_redemptions",
-      admin.from("user_promo_code_redemptions").select("*").eq("user_id", userId),
+      admin.from("user_promo_code_redemptions").select("*", COUNTED).eq("user_id", userId),
     ),
     rows(
       "data_requests",
-      admin.from("data_requests").select("*").eq("subject_user_id", userId),
+      admin.from("data_requests").select("*", COUNTED).eq("subject_user_id", userId),
     ),
   ]);
 
@@ -224,7 +258,7 @@ export async function buildDataExport(userId: string, email: string | null): Pro
   await Promise.all(
     KERNEL_TABLES.map(async (table) => {
       cognitive[table] =
-        (await rows(`kernel:${table}`, kernel.from(table).select("*").eq("user_id", userId))) ?? [];
+        (await rows(`kernel:${table}`, kernel.from(table).select("*", COUNTED).eq("user_id", userId))) ?? [];
     }),
   );
 
