@@ -18,6 +18,28 @@
 import { spawnSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 
+/**
+ * The access token lives in the project's env file, which `next dev` loads and
+ * a bare `node scripts/…` does not — so this used to fail with the token
+ * sitting right there, and the fix looked like "export a secret by hand in
+ * every terminal". Load it here instead.
+ *
+ * Nothing is read out of these files by this script: the values go into the
+ * environment of the CLI it spawns and are never inspected, logged, or written
+ * anywhere. Later files win over earlier ones, matching Next's own precedence,
+ * and a token exported in the shell wins over all of them — an explicit
+ * override should not be silently replaced by a file.
+ */
+const exported = process.env.SUPABASE_ACCESS_TOKEN;
+for (const file of [".env", ".env.local"]) {
+  try {
+    process.loadEnvFile(file);
+  } catch {
+    // Absent or unparseable. The next candidate, or the shell, may still have it.
+  }
+}
+if (exported) process.env.SUPABASE_ACCESS_TOKEN = exported;
+
 const OUT = "types/database.types.ts";
 const PROJECT = "mbvovxnfdptxvnhmdxew";
 const SCHEMAS = ["public", "learning", "schools", "rag", "content"];
