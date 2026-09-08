@@ -1,4 +1,15 @@
 """
+SUPERSEDED — do not run this to regenerate public/'s marks or icons any more.
+Its raster output is capped at these crops' native ~500px, which is exactly
+why it was replaced: brand/*.svg are a vector trace of this same artwork (see
+brand/README.md for how, and why they look identical), and
+scripts/render-brand-icons.mjs renders public/'s marks and icons from those
+instead, at any size without the ceiling this script has. Running this file
+now would overwrite that better output with a resize of the same old crops.
+Kept only because it's still how those five SVGs' starting point (a clean,
+background-removed raster at full source resolution) gets made, should the
+source art ever need retracing.
+
 Turn the delivered logo crops in .archive/assets/logos into the canonical brand
 marks in public/, and the home-screen icons the two manifests point at. Run from
 the repo root:

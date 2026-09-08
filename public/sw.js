@@ -35,7 +35,7 @@
 // version renames both caches, and `sweepCaches` retires what that stranded —
 // that is the only cache-bust this worker has. Read the note on `sweepCaches`
 // before assuming it retires both the same way: it deliberately does not.
-const VERSION = "v7";
+const VERSION = "v8";
 
 /*
  * Two caches, because the two kinds of asset have opposite lifetimes and one
