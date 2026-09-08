@@ -9,11 +9,10 @@ const compat = new FlatCompat({ baseDirectory: __dirname });
 
 const eslintConfig = [
   {
-    // Vendored, not ours: the landing-page design handoff ships a bundled
+    // Vendored, not ours: design handoffs under .archive/ ship bundled
     // support.js and reference HTML that account for ~30k lint problems and
-    // drown every real one. It is a reference artefact, never built or served.
+    // drown every real one. Reference artefacts, never built or served.
     ignores: [
-      "design_handoff_bluestift_landing/**",
       ".archive/**",
       ".next/**",
       "graphify-out/**",

@@ -1,6 +1,7 @@
 // BlueStift public marketing site — theme tokens (single source of truth).
 // Home's richer light palette is used as the canonical light variant for every
-// public page, per the design handoff (design_handoff_bluestift_landing).
+// public page, per the original design handoff (archived — see
+// scripts/process-logos.py for how to get back at .archive/ contents).
 // This is intentionally SEPARATE from components/ui/tokens.ts (the connected
 // app's theme) — the two never mix.
 

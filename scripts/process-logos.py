@@ -1,10 +1,15 @@
 """
-Turn the delivered logo crops in assets/logos into the canonical brand marks in
-public/, and the home-screen icons the two manifests point at. Run from the repo
-root:
+Turn the delivered logo crops in .archive/assets/logos into the canonical brand
+marks in public/, and the home-screen icons the two manifests point at. Run from
+the repo root:
   python scripts/process-logos.py
-Needs Pillow. The sources live outside /public deliberately — they are 1.5 MB of
-raw crops with no runtime use, and everything under /public is served publicly.
+Needs Pillow. The sources live outside /public (and out of git entirely, under
+.archive/ — see .gitignore) deliberately: they are 1.5 MB of raw crops with no
+runtime use, and everything under /public is served publicly.
+
+.archive/ itself is kept compressed on disk (archive-backup.tar.gz, repo root) to
+save space — extract it first if you need to actually run this:
+  tar -xzf archive-backup.tar.gz
 
 The iOS launch screens are NOT made here — see scripts/render-launch-screens.mjs.
 They carry the wordmark set in IBM Plex Sans, and the only copy of that face in
@@ -39,7 +44,7 @@ from collections import deque
 from pathlib import Path
 from PIL import Image
 
-SRC = Path("assets/logos")
+SRC = Path(".archive/assets/logos")
 OUT = Path("public")
 SIZE = 256
 MARGIN = 0.10

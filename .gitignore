@@ -35,5 +35,8 @@ yarn-error.log*
 .vscode/*
 !.vscode/extensions.json
 
-# local archive of dead code / old design handoffs — not source
+# local archive of dead code / old design handoffs / raw logo crops — not
+# source; kept compressed on disk (see scripts/process-logos.py for how to
+# get back at what's inside)
 /.archive/
+/archive-backup.tar.gz
