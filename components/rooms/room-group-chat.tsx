@@ -110,7 +110,7 @@ export function RoomGroupChat({
     <button
       onClick={onAskRaya}
       disabled={busy || expired}
-      title="Bring Raya into the room"
+      title={tr("room.askRayaTitle")}
       style={{
         flex: "none",
         height: 38,
@@ -126,7 +126,7 @@ export function RoomGroupChat({
         whiteSpace: "nowrap",
       }}
     >
-      Ask <RayaName />
+      {tr("room.askPrefix")} <RayaName />
     </button>
   );
 
@@ -163,7 +163,7 @@ export function RoomGroupChat({
       onSend={() => onSend()}
       busy={false}
       uploading={uploading}
-      placeholder={expired ? "Session ended — read-only" : "Message the group…"}
+      placeholder={expired ? tr("room.composerPlaceholderExpired") : tr("room.composerPlaceholderActive")}
       voice={voice}
       onUpload={onUpload}
       error={error}
@@ -208,25 +208,27 @@ export function RoomGroupChat({
                 animation: "writeReveal 2.2s cubic-bezier(0.65,0,0.35,1) 0.15s 1 both",
               }}
             >
-              {greetingName ? `Hi ${greetingName}, say hello` : "Say hello"}
+              {greetingName
+                ? `${tr("room.greetingWithNameA")} ${greetingName}, ${tr("room.greetingWithNameB")}`
+                : tr("room.greetingNoName")}
             </h1>
             <Bird variant={1} fill={status.aiIndigo} />
             <Bird variant={2} fill={t.mutedLight} />
           </div>
           <p style={{ maxWidth: 380, margin: "14px 0 26px", fontSize: 15, lineHeight: 1.7, color: t.muted }}>
-            Study together with your squad, share documents, or bring <RayaName /> into the room.
+            {tr("room.groupIntroA")} <RayaName /> {tr("room.groupIntroB")}
           </p>
 
           {composer(true)}
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center", maxWidth: 460, marginTop: 26 }}>
             {[
-              { label: "Say hello", disabled: expired, onClick: () => onSend("Hi everyone") },
+              { label: tr("room.greetingNoName"), disabled: expired, onClick: () => onSend("Hi everyone") },
               // Hybrid: a subject-aware opener when the room has one, else nothing here.
               ...(subject?.trim()
-                ? [{ label: `Start on ${subject.trim()}`, disabled: expired, onClick: () => onSend(`Let's start on ${subject.trim()}`) }]
+                ? [{ label: `${tr("room.startOnPrefix")} ${subject.trim()}`, disabled: expired, onClick: () => onSend(`Let's start on ${subject.trim()}`) }]
                 : []),
-              { label: "Ask Raya to help", disabled: expired || busy, onClick: () => onAskRaya() },
+              { label: tr("room.askRayaToHelp"), disabled: expired || busy, onClick: () => onAskRaya() },
             ].map((chip, i) => (
               <span
                 key={chip.label}
@@ -256,7 +258,7 @@ export function RoomGroupChat({
             {messages.map((m) => {
               // A shared-document notice (livestreamed when someone uploads).
               if (m.has_media) {
-                const who = m.user_id === myUserId ? "You" : nameOf(m.user_id);
+                const who = m.user_id === myUserId ? tr("room.youLabel") : nameOf(m.user_id);
                 const file = roomFiles[m.id];
                 if (!file) {
                   return (
@@ -272,7 +274,7 @@ export function RoomGroupChat({
                         padding: "5px 12px",
                       }}
                     >
-                      📄 {who} shared a document: <strong>{m.content}</strong>
+                      📄 {who} {tr("room.sharedDocumentNotice")} <strong>{m.content}</strong>
                     </div>
                   );
                 }
@@ -284,7 +286,7 @@ export function RoomGroupChat({
                   >
                     {avatarFor(m)}
                     <div style={{ display: "flex", flexDirection: "column", alignItems: mine ? "flex-end" : "flex-start", gap: 3, minWidth: 0 }}>
-                      <span style={{ fontSize: 13, color: t.mutedLight }}>{who} shared a document</span>
+                      <span style={{ fontSize: 13, color: t.mutedLight }}>{who} {tr("room.sharedDocument")}</span>
                       <div style={{ ...bubble(mine ? "me" : "other"), minWidth: 220 }}>
                         <AttachmentCard file={file} onOpen={onPreview} />
                       </div>
@@ -301,7 +303,7 @@ export function RoomGroupChat({
                   {avatarFor(m)}
                   <div style={{ display: "flex", flexDirection: "column", alignItems: kind === "me" ? "flex-end" : "flex-start", gap: 3, minWidth: 0 }}>
                     <span style={{ fontSize: 13, color: t.mutedLight }}>
-                      {kind === "raya" ? <RayaName /> : kind === "me" ? "You" : nameOf(m.user_id)}
+                      {kind === "raya" ? <RayaName /> : kind === "me" ? tr("room.youLabel") : nameOf(m.user_id)}
                     </span>
                     <div style={bubble(kind)}>
                       {/* Raya's replies are Markdown; a member's message is literal. */}

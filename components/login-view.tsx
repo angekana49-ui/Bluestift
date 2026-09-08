@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { netFetch } from "@/lib/net/client-fetch";
 import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
 import {
   AuthSplit,
@@ -80,11 +81,15 @@ export function LoginView({
     setMsg(null);
     try {
       await clearPendingSession();
-      const res = await fetch("/api/auth/anon", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ captchaToken }),
-      });
+      const res = await netFetch(
+        "/api/auth/anon",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ captchaToken }),
+        },
+        { timeoutMs: 15_000 },
+      );
       const data = await res.json().catch(() => null);
       resetCaptcha();
       if (!res.ok) return setMsg(data?.error ?? tr("auth.err.startFailed"));
@@ -119,11 +124,15 @@ export function LoginView({
     setMsg(null);
     try {
       await clearPendingSession();
-      const res = await fetch("/api/auth/recover", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ code: recoveryCode.trim(), captchaToken }),
-      });
+      const res = await netFetch(
+        "/api/auth/recover",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ code: recoveryCode.trim(), captchaToken }),
+        },
+        { timeoutMs: 15_000 },
+      );
       const data = await res.json().catch(() => null);
       if (!res.ok) {
         resetCaptcha();

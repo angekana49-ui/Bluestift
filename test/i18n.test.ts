@@ -48,6 +48,17 @@ describe("i18n catalogue", () => {
     }
   });
 
+  it("keeps the account-deletion confirmation word literal in every locale", () => {
+    // components/raya/settings-data-card.tsx checks the typed confirmation
+    // against the literal English word "DELETE" (never localized — see
+    // deleteAccount there). If this placeholder ever asked for a translated
+    // word instead, a non-English user typing exactly what's on screen would
+    // be unable to delete their own account.
+    for (const locale of LOCALES) {
+      expect(lookup(locale.code, "raya.settings.data.deletePlaceholder")).toBe("DELETE");
+    }
+  });
+
   it("coerces unknown or absent stored locales to the default", () => {
     expect(normalizeLocale("kl")).toBe(DEFAULT_LOCALE);
     expect(normalizeLocale(null)).toBe(DEFAULT_LOCALE);

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { useAppTheme } from "@/components/ui/theme";
 import { display, status as statusColors, type AppTheme } from "@/components/ui/tokens";
+import { useTranslate } from "@/components/ui/locale";
 
 /**
  * Full-screen focused study players for the Tools studio: one thing at a time —
@@ -48,6 +49,7 @@ export function FocusOverlay({
   wide?: boolean;
   children: ReactNode;
 }) {
+  const tr = useTranslate();
   return (
     <div
       // Same pale-blue animated wash as the chat conversations, not a flat white.
@@ -74,8 +76,8 @@ export function FocusOverlay({
       >
         <button
           onClick={onClose}
-          title="Close"
-          aria-label="Close"
+          title={tr("room.closeTitle")}
+          aria-label={tr("room.closeTitle")}
           style={{
             display: "flex",
             alignItems: "center",
@@ -212,6 +214,7 @@ export function QuizPlayer({
   resultActions?: ReactNode;
 }) {
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
   const [index, setIndex] = useState(0);
   const [picks, setPicks] = useState<Record<number, number>>({});
   const [done, setDone] = useState(false);
@@ -251,18 +254,18 @@ export function QuizPlayer({
   if (done) {
     const pct = score && score.total > 0 ? Math.round((score.correct / score.total) * 100) : 0;
     return (
-      <FocusOverlay theme={t} title={title} subtitle="Result" onClose={onExit} actions={resultActions ?? actions}>
+      <FocusOverlay theme={t} title={title} subtitle={tr("player.result")} onClose={onExit} actions={resultActions ?? actions}>
         <div style={{ textAlign: "center", paddingTop: 40 }}>
-          <div style={{ fontSize: 15, color: t.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Your score</div>
+          <div style={{ fontSize: 15, color: t.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>{tr("player.yourScore")}</div>
           {score ? (
             <>
               <div style={{ fontSize: 60, fontWeight: 800, fontFamily: display, color: t.text, margin: "8px 0" }}>{pct}%</div>
               <div style={{ fontSize: 17, color: t.muted }}>
-                {score.correct} / {score.total} correct
+                {score.correct} / {score.total} {tr("player.correctSuffix")}
               </div>
             </>
           ) : (
-            <div style={{ fontSize: 21, color: t.text, margin: "16px 0" }}>Submitted ✓</div>
+            <div style={{ fontSize: 21, color: t.text, margin: "16px 0" }}>{tr("player.submitted")}</div>
           )}
           <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 28 }}>
             <button
@@ -274,10 +277,10 @@ export function QuizPlayer({
                 setDone(false);
               }}
             >
-              Restart
+              {tr("player.restart")}
             </button>
             <button style={primaryBtn(t)} onClick={onExit}>
-              Done
+              {tr("player.done")}
             </button>
           </div>
         </div>
@@ -298,22 +301,22 @@ export function QuizPlayer({
       footer={
         <>
           <button style={{ ...ghostBtn(t), opacity: index === 0 ? 0.4 : 1 }} disabled={index === 0} onClick={() => setIndex((i) => Math.max(0, i - 1))}>
-            ‹ Prev
+            {tr("player.prevButton")}
           </button>
           <span style={{ flex: 1 }} />
           {isLast ? (
             <button style={{ ...primaryBtn(t), opacity: canNext && !busy ? 1 : 0.5 }} disabled={!canNext || busy} onClick={finish}>
-              {busy ? "Scoring…" : "Finish"}
+              {busy ? tr("player.scoring") : tr("player.finish")}
             </button>
           ) : (
             <button style={{ ...primaryBtn(t), opacity: canNext ? 1 : 0.5 }} disabled={!canNext} onClick={() => setIndex((i) => Math.min(total - 1, i + 1))}>
-              Next ›
+              {tr("player.nextButton")}
             </button>
           )}
         </>
       }
     >
-      <div style={{ fontSize: 14, color: t.mutedLight, marginBottom: 8 }}>Question {index + 1}</div>
+      <div style={{ fontSize: 14, color: t.mutedLight, marginBottom: 8 }}>{tr("player.questionWord")} {index + 1}</div>
       <div style={{ fontSize: 23, fontWeight: 700, color: t.text, lineHeight: 1.4, marginBottom: 22 }}>{q.question}</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {q.options.map((opt, oi) => {
@@ -381,7 +384,7 @@ export function QuizPlayer({
       </div>
       {revealed && q.explanation && (
         <div style={{ marginTop: 18, padding: "14px 16px", background: t.cardBg2, border: `1px solid ${t.cardBorder}`, borderRadius: 12, fontSize: 15, lineHeight: 1.55, color: t.muted }}>
-          <span style={{ fontWeight: 700, color: t.text }}>Why: </span>
+          <span style={{ fontWeight: 700, color: t.text }}>{tr("player.explanationWhy")}</span>
           {q.explanation}
         </div>
       )}
@@ -421,6 +424,7 @@ export function TestPlayer({
   resultActions?: ReactNode;
 }) {
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
   const [index, setIndex] = useState(0);
   const [mcq, setMcq] = useState<Record<string, number>>({});
   const [open, setOpen] = useState<Record<string, string>>({});
@@ -451,21 +455,21 @@ export function TestPlayer({
   if (result) {
     const pct = Math.round((result.score ?? 0) * 100);
     return (
-      <FocusOverlay theme={t} title={title} subtitle="Result" onClose={onExit} actions={resultActions}>
+      <FocusOverlay theme={t} title={title} subtitle={tr("player.result")} onClose={onExit} actions={resultActions}>
         <div style={{ textAlign: "center", paddingTop: 20, paddingBottom: 8 }}>
-          <div style={{ fontSize: 15, color: t.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Your score</div>
+          <div style={{ fontSize: 15, color: t.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>{tr("player.yourScore")}</div>
           <div style={{ fontSize: 56, fontWeight: 800, fontFamily: display, color: t.text, margin: "6px 0" }}>{pct}%</div>
-          <div style={{ fontSize: 16, color: t.muted }}>{result.correct} / {result.total} correct</div>
+          <div style={{ fontSize: 16, color: t.muted }}>{result.correct} / {result.total} {tr("player.correctSuffix")}</div>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 20, flexWrap: "wrap" }}>
             {onAnalyze && (
               <button style={{ ...primaryBtn(t), opacity: analyzing ? 0.6 : 1 }} disabled={analyzing} onClick={onAnalyze}>
-                {analyzing ? "Analysing…" : "✨ Analyse my answers"}
+                {analyzing ? tr("player.analysing") : tr("player.analyzeButton")}
               </button>
             )}
             <button style={ghostBtn(t)} onClick={() => { setResult(null); setIndex(0); }}>
-              Review
+              {tr("player.review")}
             </button>
-            <button style={ghostBtn(t)} onClick={onExit}>Done</button>
+            <button style={ghostBtn(t)} onClick={onExit}>{tr("player.done")}</button>
           </div>
         </div>
 
@@ -485,7 +489,7 @@ export function TestPlayer({
                 </div>
                 {r.type === "mcq" && !r.isCorrect && r.correctIndex != null && qq?.options && (
                   <div style={{ fontSize: 15, color: t.muted, marginTop: 6 }}>
-                    Correct: <span style={{ color: greenTint(t).fg, fontWeight: 600 }}>{qq.options[r.correctIndex]}</span>
+                    {tr("player.correctPrefix")}<span style={{ color: greenTint(t).fg, fontWeight: 600 }}>{qq.options[r.correctIndex]}</span>
                   </div>
                 )}
                 {r.feedback && <div style={{ fontSize: 15, color: t.muted, marginTop: 6, lineHeight: 1.5 }}>{r.feedback}</div>}
@@ -507,23 +511,23 @@ export function TestPlayer({
       footer={
         <>
           <button style={{ ...ghostBtn(t), opacity: index === 0 ? 0.4 : 1 }} disabled={index === 0} onClick={() => setIndex((i) => Math.max(0, i - 1))}>
-            ‹ Prev
+            {tr("player.prevButton")}
           </button>
           <span style={{ flex: 1 }} />
           {isLast ? (
             <button style={{ ...primaryBtn(t), opacity: busy ? 0.6 : 1 }} disabled={busy} onClick={finish}>
-              {busy ? "Grading…" : "Finish"}
+              {busy ? tr("player.grading") : tr("player.finish")}
             </button>
           ) : (
             <button style={{ ...primaryBtn(t), opacity: answered(q) ? 1 : 0.5 }} disabled={!answered(q)} onClick={() => setIndex((i) => Math.min(total - 1, i + 1))}>
-              Next ›
+              {tr("player.nextButton")}
             </button>
           )}
         </>
       }
     >
       <div style={{ fontSize: 14, color: t.mutedLight, marginBottom: 8 }}>
-        Question {index + 1} · {q.type === "open" ? "Open answer" : "Multiple choice"}
+        {tr("player.questionWord")} {index + 1} · {q.type === "open" ? tr("player.openAnswerType") : tr("player.multipleChoiceType")}
       </div>
       <div style={{ fontSize: 23, fontWeight: 700, color: t.text, lineHeight: 1.4, marginBottom: 22 }}>{q.question}</div>
 
@@ -531,7 +535,7 @@ export function TestPlayer({
         <textarea
           value={open[q.id] ?? ""}
           onChange={(e) => setOpen((o) => ({ ...o, [q.id]: e.target.value }))}
-          placeholder="Write your answer…"
+          placeholder={tr("player.writeAnswerPlaceholder")}
           rows={7}
           style={{
             width: "100%",
@@ -602,6 +606,7 @@ export function TestPlayer({
 
 export function FlashcardsPlayer({ title, cards, onExit, actions }: { title: string; cards: PlayerCard[]; onExit: () => void; actions?: ReactNode }) {
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
   const [order, setOrder] = useState(() => cards.map((_, i) => i));
   const [pos, setPos] = useState(0);
   const [flipped, setFlipped] = useState(false);
@@ -643,21 +648,21 @@ export function FlashcardsPlayer({ title, cards, onExit, actions }: { title: str
     <FocusOverlay
       theme={t}
       title={title}
-      subtitle={`${known.size} known`}
+      subtitle={`${known.size} ${tr("player.knownSuffix")}`}
       onClose={onExit}
       progress={<ProgressDots t={t} total={total} index={pos} />}
       actions={
         <>
           {actions}
-          <button style={ghostBtn(t)} onClick={shuffle} title="Shuffle">
-            ⇄ Shuffle
+          <button style={ghostBtn(t)} onClick={shuffle} title={tr("player.shuffleButton")}>
+            {tr("player.shuffleButton")}
           </button>
         </>
       }
       footer={
         <>
           <button style={{ ...ghostBtn(t), opacity: pos === 0 ? 0.4 : 1 }} disabled={pos === 0} onClick={() => go(-1)}>
-            ‹ Prev
+            {tr("player.prevButton")}
           </button>
           <button
             style={{
@@ -667,10 +672,10 @@ export function FlashcardsPlayer({ title, cards, onExit, actions }: { title: str
             }}
             onClick={toggleKnown}
           >
-            {isKnown ? "✓ Known" : "Mark known"}
+            {isKnown ? tr("player.knownButton") : tr("player.markKnownButton")}
           </button>
           <button style={{ ...primaryBtn(t), opacity: pos === total - 1 ? 0.4 : 1 }} disabled={pos === total - 1} onClick={() => go(1)}>
-            Next ›
+            {tr("player.nextButton")}
           </button>
         </>
       }
@@ -695,10 +700,10 @@ export function FlashcardsPlayer({ title, cards, onExit, actions }: { title: str
         }}
       >
         <span style={{ fontSize: 13, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700, color: face.fg }}>
-          {flipped ? "Answer" : "Question"}
+          {flipped ? tr("player.answerLabel") : tr("player.questionLabel")}
         </span>
         <span style={{ fontSize: 25, fontWeight: 600, lineHeight: 1.45, color: t.text }}>{flipped ? card.back : card.front}</span>
-        <span style={{ fontSize: 14, color: t.muted, marginTop: 8 }}>Tap to flip</span>
+        <span style={{ fontSize: 14, color: t.muted, marginTop: 8 }}>{tr("player.tapToFlip")}</span>
       </button>
     </FocusOverlay>
   );
@@ -805,6 +810,7 @@ export function MindMapView({
   actions?: ReactNode;
 }) {
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
 
   // The route: a decorative Départ, the theme, each branch, then Arrivée.
   const nodes = useMemo<{ role: MapRole; label: string; children: string[] }[]>(
@@ -915,20 +921,20 @@ export function MindMapView({
     <FocusOverlay
       theme={t}
       title={title}
-      subtitle="Mind map"
+      subtitle={tr("player.mindMapSubtitle")}
       onClose={onExit}
       wide
       actions={
         <>
-          <button style={ghostBtn(t)} onClick={() => setPos(serpentine())} title="Reset the layout">
-            ↺ Reset
+          <button style={ghostBtn(t)} onClick={() => setPos(serpentine())} title={tr("player.resetLayoutTitle")}>
+            {tr("player.resetButton")}
           </button>
           {actions}
         </>
       }
     >
       <div style={{ textAlign: "center", fontSize: 14, color: t.muted, marginBottom: 14 }}>
-        Drag the checkpoints to lay out your own path — arranging it helps you remember it. Tap Départ / Arrivée to light their alert.
+        {tr("player.mindMapInstructions")}
       </div>
       <div style={{ position: "relative", width: canvasW, height: canvasH, margin: "0 auto", touchAction: "none" }}>
         {/* The winding path, drawn BEHIND the cards so it never touches their text. */}
@@ -954,7 +960,7 @@ export function MindMapView({
                 onPointerDown={(e) => onPointerDown(k, e)}
                 onPointerMove={onPointerMove}
                 onPointerUp={onPointerUp}
-                title={isEndpoint ? "Drag to move · tap to toggle alert" : "Drag to arrange"}
+                title={isEndpoint ? tr("player.dragToMoveTitle") : tr("player.dragToArrangeTitle")}
                 style={{
                   position: "absolute",
                   left: 0,

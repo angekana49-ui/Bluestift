@@ -3,39 +3,42 @@
 import { useEffect, useState } from "react";
 import type { ClassInsight, SchoolSubject, Simulation } from "@/lib/school-admin";
 import { useAppTheme } from "@/components/ui/theme";
+import { netFetch, getJsonCached, invalidateCached } from "@/lib/net/client-fetch";
 import { DocumentActions } from "@/components/ui/doc-actions";
 import { panelCard, textInput, ctaButton } from "@/components/ui/forms";
 import { type BrandedDoc } from "@/lib/document";
+import { useTranslate } from "@/components/ui/locale";
+import type { MessageKey } from "@/lib/i18n";
 
 const pct = (v: number | null) => (v == null ? "—" : `${Math.round(v * 100)}%`);
 
 type SchoolClass = { id: string; name: string };
 
 /** Compose the certified insights + simulations into a branded Markdown document. */
-function insightsToDoc(insights: ClassInsight[], sims: Simulation[], schoolName?: string): BrandedDoc {
-  const lines: string[] = ["# Kernel insights"];
-  if (insights.length === 0) lines.push("No certified insights yet.");
+function insightsToDoc(insights: ClassInsight[], sims: Simulation[], schoolName: string | undefined, tr: (key: MessageKey) => string): BrandedDoc {
+  const lines: string[] = [`# ${tr("school.insights.kernelInsightsTitle")}`];
+  if (insights.length === 0) lines.push(tr("school.insights.noCertifiedYet"));
   for (const i of insights) {
     lines.push(`## ${i.className} · ${i.subjectName}`);
-    lines.push(`- Average mastery: ${pct(i.avgMastery)}`);
+    lines.push(`- ${tr("school.overview.kpiAvgMastery")}: ${pct(i.avgMastery)}`);
     if (i.masteryTrend != null) lines.push(`- Trend: ${i.masteryTrend >= 0 ? "+" : ""}${Math.round(i.masteryTrend * 100)}%`);
-    if (i.topGaps.length > 0) lines.push(`- Top gaps: ${i.topGaps.slice(0, 6).join(", ")}`);
-    if (i.topRecommendation) lines.push(`- Recommendation: ${i.topRecommendation}`);
+    if (i.topGaps.length > 0) lines.push(`- ${tr("school.insights.topGapsLabel")}: ${i.topGaps.slice(0, 6).join(", ")}`);
+    if (i.topRecommendation) lines.push(`- ${tr("school.insights.recommendationLabel")}: ${i.topRecommendation}`);
   }
   if (sims.length > 0) {
-    lines.push("# What-if simulations");
+    lines.push(`# ${tr("school.insights.whatIfSimsHeading")}`);
     for (const s of sims) {
       const p = (s.parameters ?? {}) as { subjectName?: string; className?: string | null; addHours?: number; focus?: string | null };
       const r = (s.result ?? {}) as { projected_mastery_pct?: number | null; summary?: string };
-      const head = `+${p.addHours ?? 0}h/week · ${p.subjectName ?? "subject"}${p.className ? ` · ${p.className}` : ""}${p.focus ? ` · ${p.focus}` : ""}`;
+      const head = `+${p.addHours ?? 0}${tr("school.insights.hoursPerWeekSuffix")} · ${p.subjectName ?? tr("school.insights.subjectFallback")}${p.className ? ` · ${p.className}` : ""}${p.focus ? ` · ${p.focus}` : ""}`;
       lines.push(`## ${head}`);
-      if (r.projected_mastery_pct != null) lines.push(`- Projected mastery: ${r.projected_mastery_pct}%`);
+      if (r.projected_mastery_pct != null) lines.push(`- ${tr("school.insights.projectedMasteryLabel")}: ${r.projected_mastery_pct}%`);
       if (r.summary) lines.push(`- ${r.summary}`);
     }
   }
   return {
     brand: "bluestift",
-    title: "Kernel insights",
+    title: tr("school.insights.kernelInsightsTitle"),
     meta: new Date().toLocaleDateString(),
     audience: schoolName,
     body: lines.join("\n"),
@@ -44,6 +47,7 @@ function insightsToDoc(insights: ClassInsight[], sims: Simulation[], schoolName?
 
 export function SchoolInsights({ schoolName }: { schoolName?: string }) {
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
   const box = panelCard(t);
   const input = textInput(t);
   const btn = ctaButton(t);
@@ -61,44 +65,63 @@ export function SchoolInsights({ schoolName }: { schoolName?: string }) {
 
   useEffect(() => {
     (async () => {
-      try {
-        const [ins, sim] = await Promise.all([
-          (await fetch("/api/school/insights")).json(),
-          (await fetch("/api/school/simulations")).json(),
-        ]);
-        setInsights(ins.insights ?? []);
-        setSubjects(ins.subjects ?? []);
-        setClasses(ins.classes ?? []);
-        setSubjectId((ins.subjects?.[0] as SchoolSubject | undefined)?.id ?? "");
-        setSims(sim.simulations ?? []);
-      } catch {
-        setError("Could not load insights.");
+      // Both requests fire together (the old code's Promise.all secretly ran
+      // them one after another — `await fetch()` inside the array resolves
+      // the first call before the second is ever issued) and are cached-first,
+      // so re-opening this tab renders the last known insights instantly.
+      const [ins, sim] = await Promise.all([
+        getJsonCached<{ insights?: ClassInsight[]; subjects?: SchoolSubject[]; classes?: SchoolClass[] }>(
+          "/api/school/insights",
+          { cacheKey: "school:insights" },
+        ),
+        getJsonCached<{ simulations?: Simulation[] }>("/api/school/simulations", {
+          cacheKey: "school:simulations",
+        }),
+      ]);
+      if (!ins.data && !sim.data) {
+        setError(tr("school.insights.loadFailed"));
+        return;
       }
+      if (ins.data) {
+        setInsights(ins.data.insights ?? []);
+        setSubjects(ins.data.subjects ?? []);
+        setClasses(ins.data.classes ?? []);
+        setSubjectId((ins.data.subjects?.[0] as SchoolSubject | undefined)?.id ?? "");
+      }
+      if (sim.data) setSims(sim.data.simulations ?? []);
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function runSimulation(e: React.FormEvent) {
     e.preventDefault();
     if (busy || !subjectId) {
-      if (!subjectId) setError("Pick a subject first.");
+      if (!subjectId) setError(tr("school.reports.pickSubjectFirst"));
       return;
     }
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/school/simulations", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ subjectId, classId: classId || null, addHours, focus }),
-      });
+      // The projection is generated by the LLM server-side, so the default 10s
+      // budget is raised the same way the other LLM-backed POSTs in this app are.
+      const res = await netFetch(
+        "/api/school/simulations",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ subjectId, classId: classId || null, addHours, focus }),
+        },
+        { timeoutMs: 65_000 },
+      );
       const data = await res.json();
       if (!res.ok) {
         setError(data?.error ?? `Request failed (${res.status}).`);
         return;
       }
       setSims((s) => [data as Simulation, ...s]);
+      invalidateCached("school:simulations");
     } catch {
-      setError("Could not run the simulation.");
+      setError(tr("kernel.sim.runFailed"));
     } finally {
       setBusy(false);
     }
@@ -111,17 +134,17 @@ export function SchoolInsights({ schoolName }: { schoolName?: string }) {
       {/* Kernel insights */}
       <div style={box}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          <h3 style={{ margin: 0, flex: 1 }}>Kernel insights</h3>
+          <h3 style={{ margin: 0, flex: 1 }}>{tr("school.insights.kernelInsightsTitle")}</h3>
           {(insights.length > 0 || sims.length > 0) && (
-            <DocumentActions doc={insightsToDoc(insights, sims, schoolName)} compact shareable={false} personal />
+            <DocumentActions doc={insightsToDoc(insights, sims, schoolName, tr)} compact shareable={false} personal />
           )}
         </div>
         <p style={{ opacity: 0.55, fontSize: "0.8rem", margin: "0.5rem 0 0.75rem" }}>
-          Certified by the Cognitive Kernel · read-only.
+          {tr("school.insights.certifiedReadOnly")}
         </p>
         {insights.length === 0 ? (
           <p style={{ margin: 0, opacity: 0.65 }}>
-            No insights yet — they appear once the Kernel has processed enough activity in your classes.
+            {tr("school.insights.noInsightsYetLong")}
           </p>
         ) : (
           insights.map((i) => (
@@ -130,7 +153,7 @@ export function SchoolInsights({ schoolName }: { schoolName?: string }) {
                 <strong style={{ flex: 1 }}>
                   {i.className} · {i.subjectName}
                 </strong>
-                <span style={{ opacity: 0.7, fontSize: "0.85rem" }}>avg mastery {pct(i.avgMastery)}</span>
+                <span style={{ opacity: 0.7, fontSize: "0.85rem" }}>{tr("school.insights.avgMasteryLower")} {pct(i.avgMastery)}</span>
                 {i.masteryTrend != null && (
                   <span style={{ fontSize: "0.8rem", color: i.masteryTrend >= 0 ? "#22c55e" : "#f87171" }}>
                     {i.masteryTrend >= 0 ? "▲" : "▼"} {Math.abs(Math.round(i.masteryTrend * 100))}%
@@ -139,7 +162,7 @@ export function SchoolInsights({ schoolName }: { schoolName?: string }) {
               </div>
               {i.topGaps.length > 0 && (
                 <div style={{ fontSize: "0.85rem", opacity: 0.8, marginTop: "0.25rem" }}>
-                  Top gaps: {i.topGaps.slice(0, 4).join(", ")}
+                  {tr("school.insights.topGapsLabel")}: {i.topGaps.slice(0, 4).join(", ")}
                 </div>
               )}
               {i.topRecommendation && (
@@ -152,13 +175,13 @@ export function SchoolInsights({ schoolName }: { schoolName?: string }) {
 
       {/* Simulation */}
       <div style={box}>
-        <h3 style={{ marginTop: 0 }}>What-if simulation</h3>
+        <h3 style={{ marginTop: 0 }}>{tr("kernel.sim.title")}</h3>
         <p style={{ opacity: 0.55, fontSize: "0.8rem", margin: "0 0 0.75rem" }}>
-          Projects a plausible outcome from the certified baseline. An estimate, not a Kernel guarantee.
+          {tr("school.insights.simDescription")}
         </p>
         <form onSubmit={runSimulation} style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
           <select style={input} value={subjectId} onChange={(e) => setSubjectId(e.target.value)} disabled={busy}>
-            {subjects.length === 0 && <option value="">No subjects</option>}
+            {subjects.length === 0 && <option value="">{tr("school.team.noSubjectsOption")}</option>}
             {subjects.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
@@ -166,7 +189,7 @@ export function SchoolInsights({ schoolName }: { schoolName?: string }) {
             ))}
           </select>
           <select style={input} value={classId} onChange={(e) => setClassId(e.target.value)} disabled={busy}>
-            <option value="">All classes</option>
+            <option value="">{tr("school.archive.allClasses")}</option>
             {classes.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -184,17 +207,17 @@ export function SchoolInsights({ schoolName }: { schoolName?: string }) {
               style={{ ...input, width: 60, margin: "0 0.35rem" }}
               disabled={busy}
             />
-            h/week
+            {tr("school.insights.hoursPerWeekSuffix")}
           </label>
           <input
             style={{ ...input, flex: 1, minWidth: 160 }}
-            placeholder="Focus (optional, e.g. the discriminant)"
+            placeholder={tr("school.insights.focusPlaceholder")}
             value={focus}
             onChange={(e) => setFocus(e.target.value)}
             disabled={busy}
           />
           <button type="submit" style={{ ...btn, opacity: busy ? 0.7 : 1 }} disabled={busy}>
-            {busy ? "Running…" : "Run"}
+            {busy ? tr("school.insights.running") : tr("kernel.sim.run")}
           </button>
         </form>
 
@@ -208,6 +231,7 @@ export function SchoolInsights({ schoolName }: { schoolName?: string }) {
 
 function SimulationCard({ sim }: { sim: Simulation }) {
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
   const p = sim.parameters as {
     subjectName?: string;
     className?: string | null;
@@ -225,7 +249,7 @@ function SimulationCard({ sim }: { sim: Simulation }) {
     <div style={{ border: `1px solid ${t.cardBorder}`, borderRadius: 12, padding: "0.75rem", marginTop: "0.75rem", background: t.cardBg }}>
       <div style={{ display: "flex", gap: "0.5rem", alignItems: "baseline" }}>
         <strong style={{ flex: 1 }}>
-          +{p.addHours ?? 0}h/week · {p.subjectName ?? "subject"}
+          +{p.addHours ?? 0}{tr("school.insights.hoursPerWeekSuffix")} · {p.subjectName ?? tr("school.insights.subjectFallback")}
           {p.className ? ` · ${p.className}` : ""}
           {p.focus ? ` · ${p.focus}` : ""}
         </strong>
@@ -233,12 +257,12 @@ function SimulationCard({ sim }: { sim: Simulation }) {
           <span style={{ fontWeight: 700 }}>→ {r.projected_mastery_pct}%</span>
         )}
         {r.confidence && (
-          <span style={{ fontSize: "0.75rem", opacity: 0.6 }}>conf. {r.confidence}</span>
+          <span style={{ fontSize: "0.75rem", opacity: 0.6 }}>{tr("school.insights.confidencePrefix")} {r.confidence}</span>
         )}
       </div>
       {r.summary && <p style={{ margin: "0.4rem 0 0", fontSize: "0.9rem", lineHeight: 1.5 }}>{r.summary}</p>}
       {r.risks && r.risks.length > 0 && (
-        <p style={{ margin: "0.35rem 0 0", fontSize: "0.82rem", opacity: 0.7 }}>Risks: {r.risks.join("; ")}</p>
+        <p style={{ margin: "0.35rem 0 0", fontSize: "0.82rem", opacity: 0.7 }}>{tr("school.insights.risksPrefix")} {r.risks.join("; ")}</p>
       )}
     </div>
   );

@@ -2,6 +2,7 @@
 
 import type { ComponentType, CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
+import { netFetch } from "@/lib/net/client-fetch";
 import SitePage from "@/components/site/SitePage";
 import type { Theme } from "@/components/site/theme";
 import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
@@ -95,18 +96,22 @@ export function FeedbackView({ signedIn }: { signedIn: boolean }) {
   async function submit() {
     if (!canSend || state === "busy") return;
     setState("busy");
-    const res = await fetch("/api/content/feedback", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        type,
-        rating: rating || undefined,
-        message,
-        email: email || undefined,
-        page_url: typeof document !== "undefined" ? document.referrer || null : null,
-        token: captchaToken,
-      }),
-    });
+    const res = await netFetch(
+      "/api/content/feedback",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type,
+          rating: rating || undefined,
+          message,
+          email: email || undefined,
+          page_url: typeof document !== "undefined" ? document.referrer || null : null,
+          token: captchaToken,
+        }),
+      },
+      { timeoutMs: 15_000 },
+    );
     turnstileRef.current?.reset();
     setCaptchaToken(null);
     setState(res.ok ? "done" : "error");

@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useAppTheme } from "@/components/ui/theme";
+import { netFetch, getJsonCached, invalidateCached } from "@/lib/net/client-fetch";
 import { panelCard, cardTitle, textInput, ctaButton } from "@/components/ui/forms";
 import { MIN_B2B_SEATS, termTotal, isAnnualTerm } from "@/lib/billing/terms";
+import { useTranslate } from "@/components/ui/locale";
+import type { MessageKey } from "@/lib/i18n";
 
 /** Mirror of the billing JSON returned by /api/school/billing (see lib/billing.ts). */
 type Plan = {
@@ -41,23 +44,24 @@ type Billing = {
   plans: Plan[];
 };
 
-const PAYMENT_METHODS = [
-  { id: "transfer", label: "Bank transfer" },
-  { id: "mobile_money", label: "Mobile money" },
-  { id: "invoice", label: "Invoice" },
-  { id: "card", label: "Card (manual)" },
-  { id: "other", label: "Other" },
+const PAYMENT_METHODS: { id: string; labelKey: MessageKey }[] = [
+  { id: "transfer", labelKey: "school.billing.method.transfer" },
+  { id: "mobile_money", labelKey: "school.billing.method.mobileMoney" },
+  { id: "invoice", labelKey: "school.billing.method.invoice" },
+  { id: "card", labelKey: "school.billing.method.card" },
+  { id: "other", labelKey: "school.billing.method.other" },
 ];
 
 const fmtDate = (v: string | null) => (v ? new Date(v).toLocaleDateString() : "—");
-const fmtPrice = (p: Plan) => {
-  if (p.price == null) return "On quote";
-  if (p.priceUnit === "per_seat") return `$${p.price} / student / mo`;
-  return p.price === 0 ? "Free" : `$${p.price}/${p.billingPeriod === "yearly" ? "yr" : "mo"}`;
+const fmtPrice = (p: Plan, tr: (key: MessageKey) => string) => {
+  if (p.price == null) return tr("school.billing.onQuote");
+  if (p.priceUnit === "per_seat") return `$${p.price} ${tr("school.billing.perStudentMoSuffix")}`;
+  return p.price === 0 ? tr("school.billing.free") : `$${p.price}/${p.billingPeriod === "yearly" ? tr("school.billing.yr") : tr("school.billing.mo")}`;
 };
 
 export function SchoolBilling() {
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
   const box = panelCard(t);
   const title = cardTitle(t);
 
@@ -66,22 +70,26 @@ export function SchoolBilling() {
   const [error, setError] = useState<string | null>(null);
 
   async function load() {
-    try {
-      const res = await fetch("/api/school/billing");
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? "Could not load billing.");
-      setBilling(data as Billing);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not load billing.");
-    } finally {
+    // Cached first: re-opening the Billing tab renders the last known seat
+    // count and plan instantly, then reconciles once the refresh lands.
+    const { data } = await getJsonCached<Billing>("/api/school/billing", {
+      cacheKey: "school:billing",
+      onUpdate: (fresh) => setBilling(fresh),
+    });
+    if (!data) {
+      setError(tr("school.billing.loadFailed"));
       setLoading(false);
+      return;
     }
+    setBilling(data);
+    setLoading(false);
   }
   useEffect(() => {
     void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (loading) return <p style={{ color: t.muted, fontSize: 15 }}>Loading billing…</p>;
+  if (loading) return <p style={{ color: t.muted, fontSize: 15 }}>{tr("school.billing.loadingBilling")}</p>;
   if (error) return <p style={{ color: "#f87171", fontSize: 15 }}>{error}</p>;
   if (!billing) return null;
 
@@ -105,7 +113,7 @@ export function SchoolBilling() {
       {/* Current plan + seat usage */}
       <div style={box}>
         <div style={{ ...title, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span>Current plan</span>
+          <span>{tr("school.billing.currentPlan")}</span>
           <span
             style={{
               fontSize: 13,
@@ -118,27 +126,27 @@ export function SchoolBilling() {
               padding: "2px 10px",
             }}
           >
-            {billing.status === "none" ? "No plan" : billing.status}
+            {billing.status === "none" ? tr("school.billing.noPlan") : billing.status}
           </span>
         </div>
         <div style={{ fontSize: 23, fontWeight: 700, color: t.text, marginBottom: 2 }}>
-          {billing.planName ?? "Not subscribed"}
+          {billing.planName ?? tr("school.billing.notSubscribed")}
         </div>
         <div style={{ fontSize: 14, color: t.muted }}>
           {onPilot
-            ? `Pilot access until ${fmtDate(billing.pilotUntil)} — seats unlimited during the pilot.`
+            ? `${tr("school.billing.pilotAccessA")} ${fmtDate(billing.pilotUntil)} ${tr("school.billing.pilotAccessB")}`
             : billing.expiresAt
-              ? `Renews / expires ${fmtDate(billing.expiresAt)}`
-              : "Activate a plan below to enable school-wide seats."}
+              ? `${tr("school.billing.renewsExpires")} ${fmtDate(billing.expiresAt)}`
+              : tr("school.billing.activateBelow")}
         </div>
 
         {/* Seat meter */}
         <div style={{ marginTop: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: t.muted, marginBottom: 6 }}>
-            <span>Seats used</span>
+            <span>{tr("school.billing.seatsUsed")}</span>
             <span style={{ color: t.text, fontWeight: 600 }}>
               {seats.used}
-              {seats.limit == null ? " / unlimited" : ` / ${seats.limit}`}
+              {seats.limit == null ? ` ${tr("school.billing.unlimitedSuffix")}` : ` / ${seats.limit}`}
             </span>
           </div>
           <div style={{ height: 8, borderRadius: 99, background: t.inputBg, overflow: "hidden" }}>
@@ -154,7 +162,7 @@ export function SchoolBilling() {
           </div>
           {seats.limit != null && seats.remaining === 0 && (
             <p style={{ fontSize: 13, color: "#f87171", margin: "6px 0 0" }}>
-              Seat limit reached — new students can&apos;t join until you add seats or upgrade.
+              {tr("school.billing.seatLimitReached")}
             </p>
           )}
         </div>
@@ -162,7 +170,7 @@ export function SchoolBilling() {
 
       {/* Plan catalog / activation */}
       <div style={box}>
-        <div style={title}>Plans</div>
+        <div style={title}>{tr("school.billing.plansHeading")}</div>
         {/* The billing agreement, stated plainly (not tacit). */}
         <div
           style={{
@@ -175,20 +183,16 @@ export function SchoolBilling() {
             lineHeight: 1.5,
           }}
         >
-          <strong>What you pay for:</strong> seats, not sessions. You hold{" "}
+          <strong>{tr("school.billing.whatYouPayForLabel")}</strong> {tr("school.billing.whatYouPayForBody")}{" "}
           {billing.declaredEffectif != null ? (
-            <strong>{billing.declaredEffectif} seats</strong>
+            <strong>{billing.declaredEffectif} {tr("school.billing.seatsWord")}</strong>
           ) : (
-            "a set number of seats"
+            tr("school.billing.setNumberOfSeats")
           )}{" "}
-          — one per enrolled student — and the bill is the same whether one of them opens Raya
-          this month or every one of them. That number is also the ceiling: when the seats are
-          taken, the next student can&apos;t join until you add more.
+          {tr("school.billing.whatYouPayForTail")}
         </div>
         <p style={{ fontSize: 14, color: t.muted, margin: "0 0 14px" }}>
-          Record a payment received out-of-band (transfer, invoice) to activate your plan. Prices
-          below are the USD reference. Online self-serve checkout is temporarily unavailable while
-          we finalize our payment integration.
+          {tr("school.billing.recordPaymentIntro")}
         </p>
         <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
           {billing.plans.map((p) => (
@@ -206,22 +210,22 @@ export function SchoolBilling() {
 
       {/* History */}
       <div style={box}>
-        <div style={title}>Billing history</div>
+        <div style={title}>{tr("school.billing.historyHeading")}</div>
         {billing.history.length === 0 ? (
           <p style={{ fontSize: 14, color: t.mutedLight, margin: 0 }}>
-            No subscriptions yet — activating a plan records an entry here.
+            {tr("school.billing.noSubscriptionsYet")}
           </p>
         ) : (
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
               <thead>
                 <tr style={{ color: t.muted, textAlign: "left" }}>
-                  <th style={{ padding: "6px 8px" }}>Plan</th>
-                  <th style={{ padding: "6px 8px" }}>Status</th>
-                  <th style={{ padding: "6px 8px" }}>Amount</th>
-                  <th style={{ padding: "6px 8px" }}>Method</th>
-                  <th style={{ padding: "6px 8px" }}>Reference</th>
-                  <th style={{ padding: "6px 8px" }}>Period</th>
+                  <th style={{ padding: "6px 8px" }}>{tr("school.billing.colPlan")}</th>
+                  <th style={{ padding: "6px 8px" }}>{tr("school.billing.colStatus")}</th>
+                  <th style={{ padding: "6px 8px" }}>{tr("school.billing.colAmount")}</th>
+                  <th style={{ padding: "6px 8px" }}>{tr("school.billing.colMethod")}</th>
+                  <th style={{ padding: "6px 8px" }}>{tr("school.billing.colReference")}</th>
+                  <th style={{ padding: "6px 8px" }}>{tr("school.billing.colPeriod")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -260,6 +264,7 @@ function PlanCard({
   onActivated: (b: Billing) => void;
 }) {
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
   const input = textInput(t);
   const btn = ctaButton(t);
   const isPerSeat = plan.priceUnit === "per_seat";
@@ -287,33 +292,38 @@ function PlanCard({
   async function activate() {
     if (busy) return;
     if (isPerSeat && !(seatCount > 0)) {
-      setError("Enter the number of students on the contract.");
+      setError(tr("school.billing.enterStudentsError"));
       return;
     }
     if (isPerSeat && seatCount < floorSeats) {
-      setError(`Contract at least ${floorSeats} seats (minimum ${MIN_B2B_SEATS} students, or your current headcount).`);
+      setError(`${tr("school.billing.contractMinA")} ${floorSeats} ${tr("school.billing.contractMinB")} ${MIN_B2B_SEATS} ${tr("school.billing.contractMinC")}`);
       return;
     }
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/school/billing", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          planId: plan.id,
-          paymentMethod: method,
-          paymentReference: reference || undefined,
-          seatLimit: isPerSeat ? seatCount : undefined,
-          months: monthCount,
-        }),
-      });
+      const res = await netFetch(
+        "/api/school/billing",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            planId: plan.id,
+            paymentMethod: method,
+            paymentReference: reference || undefined,
+            seatLimit: isPerSeat ? seatCount : undefined,
+            months: monthCount,
+          }),
+        },
+        { timeoutMs: 15_000 },
+      );
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? "Could not activate.");
+      if (!res.ok) throw new Error(data?.error ?? tr("school.billing.activateFailed"));
       if (data.billing) onActivated(data.billing as Billing);
+      invalidateCached("school:billing");
       setOpen(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not activate.");
+      setError(e instanceof Error ? e.message : tr("school.billing.activateFailed"));
     } finally {
       setBusy(false);
     }
@@ -332,10 +342,10 @@ function PlanCard({
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
         <span style={{ fontSize: 16, fontWeight: 700, color: t.text }}>{plan.name}</span>
-        <span style={{ fontSize: 14, fontWeight: 700, color: t.text }}>{fmtPrice(plan)}</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: t.text }}>{fmtPrice(plan, tr)}</span>
       </div>
       <div style={{ fontSize: 13, color: t.muted, margin: "2px 0 8px" }}>
-        {isPerSeat ? "Billed per student — set the contracted headcount" : `${plan.seatLimit ?? 1} seat`}
+        {isPerSeat ? tr("school.billing.billedPerStudent") : `${plan.seatLimit ?? 1} ${tr("school.billing.seatSuffix")}`}
       </div>
       <ul style={{ margin: "0 0 12px", padding: 0, listStyle: "none", flex: 1 }}>
         {plan.features.map((f, i) => (
@@ -347,10 +357,10 @@ function PlanCard({
       </ul>
 
       {current ? (
-        <div style={{ fontSize: 13, fontWeight: 700, color: "#22c55e", textAlign: "center" }}>Current plan</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "#22c55e", textAlign: "center" }}>{tr("school.billing.currentPlan")}</div>
       ) : !open ? (
         <button style={{ ...btn, width: "100%" }} onClick={() => setOpen(true)}>
-          Activate
+          {tr("school.billing.activateButton")}
         </button>
       ) : (
         <div style={{ display: "grid", gap: 8 }}>
@@ -360,63 +370,62 @@ function PlanCard({
                 style={input}
                 type="number"
                 min={floorSeats || 1}
-                placeholder="Number of students (contracted)"
+                placeholder={tr("school.billing.studentsPlaceholder")}
                 value={students}
                 onChange={(e) => setStudents(e.target.value)}
                 disabled={busy}
               />
               <div style={{ fontSize: 13, color: t.muted, marginTop: -2 }}>
                 {defaultSeats > 0
-                  ? `Prefilled from your declared effectif (${defaultSeats}).` +
-                    (floorSeats > 0 ? ` Can't go below ${floorSeats} already enrolled.` : "")
-                  : "Bill for the students you'll enroll — this also caps new joins."}
+                  ? `${tr("school.billing.prefilledA")} (${defaultSeats}).` +
+                    (floorSeats > 0 ? ` ${tr("school.billing.cantGoBelowA")} ${floorSeats} ${tr("school.billing.cantGoBelowB")}` : "")
+                  : tr("school.billing.billForStudents")}
               </div>
             </>
           )}
           <select style={input} value={method} onChange={(e) => setMethod(e.target.value)} disabled={busy}>
             {PAYMENT_METHODS.map((m) => (
               <option key={m.id} value={m.id}>
-                {m.label}
+                {tr(m.labelKey)}
               </option>
             ))}
           </select>
           <input
             style={input}
-            placeholder="Payment reference (optional)"
+            placeholder={tr("school.billing.referencePlaceholder")}
             value={reference}
             onChange={(e) => setReference(e.target.value)}
             disabled={busy}
           />
           <select style={input} value={months} onChange={(e) => setMonths(e.target.value)} disabled={busy}>
-            <option value="12">Annual — 12 months (recommended)</option>
-            <option value="3">Quarterly — 3 months</option>
-            <option value="1">Monthly — 1 month</option>
+            <option value="12">{tr("school.billing.annual12")}</option>
+            <option value="3">{tr("school.billing.quarterly3")}</option>
+            <option value="1">{tr("school.billing.monthly1")}</option>
           </select>
           {estimated != null && (
             <div style={{ fontSize: 14, color: t.text }}>
-              Total for {seatCount} students × {monthCount} mo:{" "}
+              {tr("school.billing.totalForA")} {seatCount} {tr("school.billing.totalForB")} {monthCount} {tr("school.billing.totalForC")}{" "}
               <strong>${estimated.toLocaleString(undefined, { maximumFractionDigits: 2 })}</strong>
               {annualSaving && (
-                <span style={{ color: "#22c55e", fontWeight: 700 }}> · 15% annual discount applied</span>
+                <span style={{ color: "#22c55e", fontWeight: 700 }}> · {tr("school.billing.annualDiscountApplied")}</span>
               )}
             </div>
           )}
           {error && <span style={{ color: "#f87171", fontSize: 13 }}>{error}</span>}
           <div style={{ display: "flex", gap: 8 }}>
             <button style={{ ...btn, flex: 1, opacity: busy ? 0.7 : 1 }} onClick={activate} disabled={busy}>
-              {busy ? "Activating…" : "Confirm payment"}
+              {busy ? tr("school.billing.activating") : tr("school.billing.confirmPayment")}
             </button>
             <button
               style={{ ...btn, background: t.cardBg2, color: t.text, border: `1px solid ${t.cardBorder}` }}
               onClick={() => setOpen(false)}
               disabled={busy}
             >
-              Cancel
+              {tr("school.billing.cancel")}
             </button>
           </div>
           <div style={{ fontSize: 13, color: t.muted, textAlign: "center", marginTop: 2, lineHeight: 1.4 }}>
-            Online checkout (card · mobile money · PayPal) is temporarily unavailable while we
-            finalize our payment integration — record your payment above and we&apos;ll activate it.
+            {tr("school.billing.onlineCheckoutUnavailable")}
           </div>
         </div>
       )}

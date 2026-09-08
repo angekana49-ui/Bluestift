@@ -7,6 +7,10 @@
 // gate. Room server actions can't return a Response, so they dispatch directly
 // via `dispatchUpgrade`.
 
+import { lookup } from "@/lib/i18n";
+import { LOCALE_KEY, normalizeLocale } from "@/lib/locale";
+import { readPref } from "@/lib/shared-pref";
+
 export const UPGRADE_EVENT = "bluestift:upgrade-needed";
 
 export type UpgradeDetail = {
@@ -48,7 +52,7 @@ export function installUpgradeInterceptor(): void {
         if (data && (data.code === "feature_locked" || data.code === "quota_reached")) {
           dispatchUpgrade({
             code: data.code,
-            message: data.error ?? "This requires a higher plan.",
+            message: data.error ?? lookup(normalizeLocale(readPref(LOCALE_KEY)), "upgrade.requiresHigherPlan"),
             feature: data.feature,
             metric: data.metric,
             used: data.used,

@@ -1,5 +1,6 @@
 "use client";
 import type { RayaEntitlements, RayaTier } from "@/lib/entitlements";
+import { netFetch } from "@/lib/net/client-fetch";
 
 export type ClientEntitlements = {
   tier: RayaTier;
@@ -23,7 +24,10 @@ export async function getClientEntitlements(): Promise<ClientEntitlements | null
   if (inflight) return inflight;
   inflight = (async () => {
     try {
-      const res = await fetch("/api/entitlements", { cache: "no-store" });
+      // This is the file netFetch (lib/net/client-fetch.ts) generalized from —
+      // it kept its bare fetch, so a slow connection could hang the UI-gating
+      // read forever instead of failing open the way its own contract promises.
+      const res = await netFetch("/api/entitlements", { cache: "no-store" }, { timeoutMs: 10_000 });
       if (!res.ok) return null;
       const data = (await res.json()) as ClientEntitlements;
       cache = data;

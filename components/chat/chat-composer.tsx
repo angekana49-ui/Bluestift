@@ -7,8 +7,24 @@ import { IconButton } from "@/components/ui/shell";
 import { IconMic, IconAttach, IconAiMode, IconCheck, IconLock } from "@/components/ui/icons";
 import { text, type AppTheme } from "@/components/ui/tokens";
 import { FilePicker } from "@/components/ui/file-picker";
+import { useTranslate } from "@/components/ui/locale";
+import type { MessageKey } from "@/lib/i18n";
 import { useAiMode } from "./use-ai-mode";
 import type { AiMode } from "@/lib/raya/modes";
+
+/** UI-display keys for the three AI modes — the underlying `AI_MODES` data
+ *  (lib/raya/modes.ts) stays English since nothing there reaches the LLM
+ *  prompt, but is shared client/server, so translation happens at render time. */
+const MODE_LABEL_KEY: Record<AiMode, MessageKey> = {
+  encouraging: "chat.mode.encouraging.label",
+  direct: "chat.mode.direct.label",
+  challenging: "chat.mode.challenging.label",
+};
+const MODE_BLURB_KEY: Record<AiMode, MessageKey> = {
+  encouraging: "chat.mode.encouraging.blurb",
+  direct: "chat.mode.direct.blurb",
+  challenging: "chat.mode.challenging.blurb",
+};
 
 /** The minimal voice-recorder shape the composer needs (see useVoiceRecorder). */
 export type ComposerVoice = {
@@ -102,6 +118,7 @@ export function ChatComposer({
    */
   stacked?: boolean;
 }) {
+  const tr = useTranslate();
   // The day's plan allowance. `quota` is only ever set when a limit exists AND
   // is enforced, so everything below is dead code until that is switched on.
   const left = quota ? Math.max(0, quota.limit - quota.used) : null;
@@ -161,7 +178,7 @@ export function ChatComposer({
             {pending.map((a) => (
               <AttachmentChip key={a.id} file={a} onRemove={() => onRemovePending?.(a.id)} busy={busy} />
             ))}
-            {uploading && <span style={{ fontSize: text.xs, color: t.mutedLight }}>Reading the document…</span>}
+            {uploading && <span style={{ fontSize: text.xs, color: t.mutedLight }}>{tr("chat.readingDocument")}</span>}
           </div>
         )}
 
@@ -171,14 +188,14 @@ export function ChatComposer({
           <div style={{ padding: "0 0 8px", fontSize: text.sm, color: spent ? t.text : t.mutedLight }}>
             {spent ? (
               <>
-                That&apos;s your {quota?.limit} messages for today. They come back tomorrow —{" "}
+                {tr("chat.quota.spentPrefix")} {quota?.limit} {tr("chat.quota.spentSuffix")}{" "}
                 <a href="/pricing" style={{ color: "inherit", textDecoration: "underline" }}>
-                  or take a bigger plan
+                  {tr("chat.quota.upgradeLink")}
                 </a>
                 .
               </>
             ) : (
-              `${left} message${left === 1 ? "" : "s"} left today`
+              `${left} ${tr(left === 1 ? "chat.quota.leftOne" : "chat.quota.leftOther")}`
             )}
           </div>
         )}
@@ -198,7 +215,7 @@ export function ChatComposer({
                   disabled={voice.busy}
                   style={{ ...linkButton, color: "inherit" }}
                 >
-                  Retry
+                  {tr("chat.retry")}
                 </button>
                 {voice.discard && (
                   <>
@@ -208,7 +225,7 @@ export function ChatComposer({
                       onClick={voice.discard}
                       style={{ ...linkButton, color: t.mutedLight }}
                     >
-                      Discard
+                      {tr("chat.discard")}
                     </button>
                   </>
                 )}
@@ -225,7 +242,7 @@ export function ChatComposer({
               size={38}
               radius={999}
               onClick={voice.toggle}
-              title="Voice message"
+              title={tr("chat.voiceMessage")}
               bg={voice.recording ? "#e0245e" : t.cardBg2}
               color={voice.recording ? "#fff" : t.muted}
             >
@@ -292,7 +309,7 @@ export function ChatComposer({
               // doc sent to two different threads).
               resetAfterPick
               label=""
-              ariaLabel="Attach a file"
+              ariaLabel={tr("chat.attachFile")}
               icon={<IconAttach size={16} />}
               wrapperStyle={{ flex: "none" }}
               buttonStyle={{
@@ -401,6 +418,7 @@ export function ChatComposer({
  * (app/api/raya/chat/route.ts clamps back to the default), this is only UX.
  */
 function AiModePicker({ theme: t, state }: { theme: AppTheme; state: ReturnType<typeof useAiMode> }) {
+  const tr = useTranslate();
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLSpanElement>(null);
   const current = state.modes.find((m) => m.id === state.mode) ?? state.modes[0];
@@ -412,7 +430,7 @@ function AiModePicker({ theme: t, state }: { theme: AppTheme; state: ReturnType<
         size={38}
         radius={999}
         onClick={() => setOpen((o) => !o)}
-        title={`AI mode — ${current.label}`}
+        title={`${tr("chat.aiModeTitlePrefix")} ${tr(MODE_LABEL_KEY[current.id])}`}
         bg={open ? t.rowActiveBg : undefined}
         color={t.text}
       >
@@ -447,6 +465,7 @@ function AiModeMenu({
   state: ReturnType<typeof useAiMode>;
   onClose: () => void;
 }) {
+  const tr = useTranslate();
   const ref = useRef<HTMLDivElement>(null);
   const [rect, setRect] = useState<{ left: number; bottom: number } | null>(null);
 
@@ -510,7 +529,7 @@ function AiModeMenu({
       }}
     >
       <div style={{ padding: "5px 9px 3px", fontSize: 12, fontWeight: 700, color: t.mutedLight, textTransform: "uppercase", letterSpacing: "0.03em" }}>
-        AI mode
+        {tr("chat.aiModeHeading")}
       </div>
       {state.modes.map((m: { id: AiMode; label: string; blurb: string }) => {
         const active = m.id === state.mode;
@@ -550,9 +569,9 @@ function AiModeMenu({
               {locked && <IconLock size={13} />}
             </span>
             <span style={{ minWidth: 0 }}>
-              <span style={{ display: "block", fontSize: 13.5, fontWeight: 600 }}>{m.label}</span>
+              <span style={{ display: "block", fontSize: 13.5, fontWeight: 600 }}>{tr(MODE_LABEL_KEY[m.id])}</span>
               <span style={{ display: "block", fontSize: 12, color: t.mutedLight, marginTop: 1 }}>
-                {locked ? "Upgrade to Plus to unlock" : m.blurb}
+                {locked ? tr("chat.aiModeUpgradeHint") : tr(MODE_BLURB_KEY[m.id])}
               </span>
             </span>
           </button>

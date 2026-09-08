@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { netFetch } from "@/lib/net/client-fetch";
 import { useAppTheme } from "@/components/ui/theme";
 import { DocumentActions } from "@/components/ui/doc-actions";
 import { type AppTheme } from "@/components/ui/tokens";
@@ -11,6 +12,8 @@ import { ShareLinkButton } from "@/components/study/share-button";
 import { parseDoc } from "@/lib/doc-format";
 import { FilePicker } from "@/components/ui/file-picker";
 import { neutralButton, formActions } from "@/components/ui/forms";
+import { useTranslate } from "@/components/ui/locale";
+import type { MessageKey } from "@/lib/i18n";
 
 type Challenge = {
   id: string;
@@ -31,10 +34,10 @@ type LeaderRow = {
 
 // Test kinds, as in the Tools studio — chosen at creation. Rooms keep their own
 // originality (the shared leaderboard) on top of the same focused player.
-const TEST_KINDS = [
-  { id: "quiz", label: "Quiz", hint: "Quick multiple-choice" },
-  { id: "exam", label: "Exam", hint: "Mixed MCQ + open" },
-  { id: "skills", label: "Skills", hint: "Open competency" },
+const TEST_KINDS: { id: string; labelKey: MessageKey; hintKey: MessageKey }[] = [
+  { id: "quiz", labelKey: "tools.selfTest.kind.quiz.label", hintKey: "tools.selfTest.kind.quiz.hint" },
+  { id: "exam", labelKey: "tools.selfTest.kind.exam.label", hintKey: "tools.selfTest.kind.exam.hint" },
+  { id: "skills", labelKey: "tools.selfTest.kind.skills.label", hintKey: "tools.selfTest.kind.skills.hint" },
 ];
 
 const mkBtn = (t: AppTheme): React.CSSProperties => ({
@@ -103,6 +106,7 @@ export function RoomChallenges({
   readOnly?: boolean;
 }) {
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
   const btn = mkBtn(t);
   const ghost = mkGhost(t);
   const box = mkBox(t);
@@ -152,10 +156,14 @@ export function RoomChallenges({
       fd.append("goal", goal);
       fd.append("kind", kind);
       if (sourceFile) fd.append("file", sourceFile);
-      const res = await fetch("/api/challenges/create", { method: "POST", body: fd });
+      // The route generates the question set with the LLM (maxDuration 60s on
+      // the server) — a bare fetch never times out on its own, but netFetch's
+      // 10s default would abort a legitimately-running generation, so it's
+      // raised to match the server's own budget.
+      const res = await netFetch("/api/challenges/create", { method: "POST", body: fd }, { timeoutMs: 65_000 });
       const data = await res.json();
       if (!res.ok) {
-        setError(data?.error ?? "Couldn't create the challenge.");
+        setError(data?.error ?? tr("room.challenges.createFailed"));
         return;
       }
       setName("");
@@ -163,7 +171,7 @@ export function RoomChallenges({
       setSourceFile(null);
       await loadChallenges();
     } catch {
-      setError("Couldn't create the challenge.");
+      setError(tr("room.challenges.createFailed"));
     } finally {
       setBusy(false);
     }
@@ -186,7 +194,7 @@ export function RoomChallenges({
         options: (q.options as string[]) ?? [],
       }));
       if (qs.length === 0) {
-        setError("This challenge has no questions yet.");
+        setError(tr("room.challenges.noQuestionsYet"));
         return;
       }
       setActive(ch);
@@ -203,13 +211,18 @@ export function RoomChallenges({
   // the squad standings are ready the moment the player finishes.
   async function submitAnswers(answers: TestAnswer[]): Promise<TestResult> {
     if (!active) throw new Error("no active challenge");
-    const res = await fetch("/api/challenges/submit", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ challengeId: active.id, answers }),
-    });
+    // Open answers are graded by the LLM server-side (maxDuration 60s).
+    const res = await netFetch(
+      "/api/challenges/submit",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ challengeId: active.id, answers }),
+      },
+      { timeoutMs: 65_000 },
+    );
     const data = await res.json();
-    if (!res.ok) throw new Error(data?.error ?? "Couldn't submit.");
+    if (!res.ok) throw new Error(data?.error ?? tr("tools.selfTest.submitFailed"));
     setResult({ score: data.score, correct: data.correct, total: data.total });
     const { data: lb } = await supabase.rpc("challenge_leaderboard", { p_challenge_id: active.id });
     setLeaderboard(lb ?? []);
@@ -222,17 +235,22 @@ export function RoomChallenges({
     setAnalyzing(true);
     setError(null);
     try {
-      const res = await fetch("/api/challenges/analyze", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ challengeId: active.id }),
-      });
+      // A full narrative analysis, non-streamed (maxDuration 60s on the server).
+      const res = await netFetch(
+        "/api/challenges/analyze",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ challengeId: active.id }),
+        },
+        { timeoutMs: 65_000 },
+      );
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? "Could not analyse.");
+      if (!res.ok) throw new Error(data?.error ?? tr("room.challenges.analyzeFailed"));
       setAnalysis({ title: data.title, body: data.analysis });
       setView("analysis");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not analyse.");
+      setError(e instanceof Error ? e.message : tr("room.challenges.analyzeFailed"));
     } finally {
       setAnalyzing(false);
     }
@@ -275,7 +293,7 @@ export function RoomChallenges({
     }));
     return (
       <TestPlayer
-        title={active.title ?? "Challenge"}
+        title={active.title ?? tr("room.challenges.fallbackTitle")}
         questions={testQuestions}
         onSubmit={submitAnswers}
         onExit={() => setView("list")}
@@ -285,7 +303,7 @@ export function RoomChallenges({
           <>
             <DocumentActions doc={resultDoc()} compact shareable={false} personal />
             <ShareLinkButton theme={t} doc={resultDoc()} />
-            <button style={ghost} onClick={() => setView("standings")} title="Squad standings">🏆 Standings</button>
+            <button style={ghost} onClick={() => setView("standings")} title={tr("room.challenges.standingsTitle")}>{tr("room.challenges.standingsButtonLabel")}</button>
           </>
         }
       />
@@ -297,7 +315,7 @@ export function RoomChallenges({
     return (
       <ReaderView
         title={analysis.title}
-        subtitle="Analysis"
+        subtitle={tr("room.challenges.analysisSubtitle")}
         blocks={parseDoc(analysis.body)}
         onExit={() => setView("list")}
         actions={
@@ -315,15 +333,15 @@ export function RoomChallenges({
     return (
       <div style={box}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
-          <h3 style={{ margin: 0, flex: 1, fontSize: 16, fontWeight: 700, color: t.text }}>🏆 Squad standings</h3>
+          <h3 style={{ margin: 0, flex: 1, fontSize: 16, fontWeight: 700, color: t.text }}>{tr("room.challenges.standingsHeading")}</h3>
           {result && (
             <span style={{ fontSize: 15, color: t.muted }}>
-              You · {result.correct}/{result.total} · {Math.round(result.score * 100)}%
+              {tr("room.challenges.youWord")} · {result.correct}/{result.total} · {Math.round(result.score * 100)}%
             </span>
           )}
         </div>
-        <h4 style={{ color: t.text, fontSize: 15, margin: "10px 0 4px" }}>{active?.title ?? "Challenge"}</h4>
-        {leaderboard.length === 0 && <p style={{ color: t.muted, fontSize: 15 }}>No scores yet.</p>}
+        <h4 style={{ color: t.text, fontSize: 15, margin: "10px 0 4px" }}>{active?.title ?? tr("room.challenges.fallbackTitle")}</h4>
+        {leaderboard.length === 0 && <p style={{ color: t.muted, fontSize: 15 }}>{tr("room.challenges.noScoresYet")}</p>}
         {leaderboard
           .slice()
           .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
@@ -348,15 +366,15 @@ export function RoomChallenges({
                   {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}.`}
                 </span>
                 <span style={{ flex: 1, minWidth: 0, fontWeight: mine ? 700 : 500 }}>
-                  {mine ? "You" : r.display_name || (r.username ? `@${r.username}` : "Member")}
+                  {mine ? tr("room.challenges.youWord") : r.display_name || (r.username ? `@${r.username}` : tr("room.challenges.memberFallback"))}
                 </span>
                 <span style={{ fontWeight: 700 }}>{Math.round((r.score ?? 0) * 100)}%</span>
               </div>
             );
           })}
         <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
-          <button style={btn} onClick={() => setView("list")}>Back to challenges</button>
-          <button style={ghost} onClick={() => downloadBrandedPdf(resultDoc())}>My result (PDF)</button>
+          <button style={btn} onClick={() => setView("list")}>{tr("room.challenges.backToChallenges")}</button>
+          <button style={ghost} onClick={() => downloadBrandedPdf(resultDoc())}>{tr("room.challenges.myResultPdf")}</button>
           <ShareLinkButton theme={t} doc={resultDoc()} />
         </div>
       </div>
@@ -368,32 +386,32 @@ export function RoomChallenges({
     <div>
       {readOnly ? (
         <div style={{ ...box, color: t.muted, fontSize: 15 }}>
-          🔒 This session has ended — challenges are read-only. You can review past scores below.
+          {tr("room.challenges.readOnlyBanner")}
         </div>
       ) : (
       <div style={box}>
-        <h3 style={{ marginTop: 0, marginBottom: 12, fontSize: 16, fontWeight: 700, color: t.text }}>New challenge</h3>
-        <input style={field} placeholder="Name (optional — e.g. Chapter 3 quiz)" value={name} onChange={(e) => setName(e.target.value)} />
-        <input style={field} placeholder="Topic (e.g. Newton's laws)" value={topic} onChange={(e) => setTopic(e.target.value)} />
+        <h3 style={{ marginTop: 0, marginBottom: 12, fontSize: 16, fontWeight: 700, color: t.text }}>{tr("room.challenges.newChallengeTitle")}</h3>
+        <input style={field} placeholder={tr("room.challenges.namePlaceholder")} value={name} onChange={(e) => setName(e.target.value)} />
+        <input style={field} placeholder={tr("room.challenges.topicPlaceholder")} value={topic} onChange={(e) => setTopic(e.target.value)} />
         <textarea
           style={{ ...field, resize: "vertical" }}
           rows={2}
-          placeholder="Goal — what should this challenge test? (e.g. exam application problems)"
+          placeholder={tr("room.challenges.goalPlaceholder")}
           value={goal}
           onChange={(e) => setGoal(e.target.value)}
         />
         <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 13, color: t.mutedLight, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Type of challenge</div>
+          <div style={{ fontSize: 13, color: t.mutedLight, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{tr("room.challenges.typeOfChallengeLabel")}</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {TEST_KINDS.map((k) => (
-              <button key={k.id} type="button" style={chip(t, kind === k.id)} onClick={() => setKind(k.id)} title={k.hint}>
-                {k.label}
+              <button key={k.id} type="button" style={chip(t, kind === k.id)} onClick={() => setKind(k.id)} title={tr(k.hintKey)}>
+                {tr(k.labelKey)}
               </button>
             ))}
           </div>
         </div>
         <div style={{ marginBottom: 8 }}>
-          <div style={{ fontSize: 14, color: t.muted, marginBottom: 6 }}>Source file (optional)</div>
+          <div style={{ fontSize: 14, color: t.muted, marginBottom: 6 }}>{tr("room.challenges.sourceFileLabel")}</div>
           <FilePicker
             accept=".txt,.md,.markdown,.csv,.pdf,.docx,.xlsx,.mp3,.m4a,.wav,.webm,.ogg,.flac,audio/*,application/pdf,text/plain"
             onPick={(files) => setSourceFile(files?.[0] ?? null)}
@@ -404,7 +422,7 @@ export function RoomChallenges({
         </div>
         <div style={formActions}>
           <button style={{ ...btn, opacity: busy || (!topic.trim() && !goal.trim() && !sourceFile) ? 0.5 : 1 }} onClick={create} disabled={busy || (!topic.trim() && !goal.trim() && !sourceFile)}>
-            {busy ? "Generating…" : "Generate the challenge"}
+            {busy ? tr("room.challenges.generating") : tr("room.challenges.generateButton")}
           </button>
         </div>
         {error && <p style={{ color: "#f87171", fontSize: 15 }}>{error}</p>}
@@ -412,7 +430,7 @@ export function RoomChallenges({
       )}
 
       <div style={{ marginTop: 16 }}>
-        {challenges.length === 0 && <p style={{ color: t.muted, fontSize: 15 }}>No challenges — create one.</p>}
+        {challenges.length === 0 && <p style={{ color: t.muted, fontSize: 15 }}>{tr("room.challenges.noChallengesYet")}</p>}
         {challenges.map((ch) => (
           <div
             key={ch.id}
@@ -428,14 +446,14 @@ export function RoomChallenges({
             }}
           >
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600, color: t.text, fontSize: 15 }}>{ch.title ?? "Challenge"}</div>
+              <div style={{ fontWeight: 600, color: t.text, fontSize: 15 }}>{ch.title ?? tr("room.challenges.fallbackTitle")}</div>
               {ch.description && <div style={{ fontSize: 14, color: t.muted }}>{ch.description}</div>}
               <div style={{ fontSize: 13, color: t.mutedLight }}>
-                {ch.question_count ?? 0} questions · {kindLabel(ch.format)} · {ch.status}
+                {ch.question_count ?? 0} {tr("tools.selfTest.questionsWord")} · {kindLabel(ch.format, tr)} · {ch.status}
               </div>
             </div>
             <button style={{ ...btn, opacity: busy || readOnly ? 0.5 : 1 }} onClick={() => open(ch)} disabled={busy || readOnly}>
-              Play
+              {tr("room.challenges.playButton")}
             </button>
           </div>
         ))}
@@ -445,8 +463,8 @@ export function RoomChallenges({
 }
 
 /** Storage `format` → the friendly challenge kind shown on the list. */
-function kindLabel(format?: string | null): string {
-  if (format === "exam") return "Exam";
-  if (format === "open") return "Skills";
-  return "Quiz";
+function kindLabel(format: string | null | undefined, tr: (key: MessageKey) => string): string {
+  if (format === "exam") return tr("tools.selfTest.kind.exam.label");
+  if (format === "open") return tr("tools.selfTest.kind.skills.label");
+  return tr("tools.selfTest.kind.quiz.label");
 }

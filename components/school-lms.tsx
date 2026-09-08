@@ -3,16 +3,22 @@
 import { useEffect, useState } from "react";
 import type { LmsConnection, LmsMapping } from "@/lib/school-admin";
 import { useAppTheme } from "@/components/ui/theme";
+import { netFetch, getJsonCached, invalidateCached } from "@/lib/net/client-fetch";
 import { panelCard, textInput, ctaButton, ghostButton, formActions } from "@/components/ui/forms";
+import { useTranslate } from "@/components/ui/locale";
 
 type ClassOpt = { id: string; name: string };
 
-async function req(url: string, method: string, body?: unknown) {
-  const res = await fetch(url, {
-    method,
-    headers: body ? { "content-type": "application/json" } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+async function req(url: string, method: string, body?: unknown, timeoutMs = 15_000) {
+  const res = await netFetch(
+    url,
+    {
+      method,
+      headers: body ? { "content-type": "application/json" } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    },
+    { timeoutMs },
+  );
   const data = await res.json().catch(() => null);
   if (!res.ok) throw new Error(data?.error ?? `Request failed (${res.status}).`);
   return data;
@@ -20,6 +26,7 @@ async function req(url: string, method: string, body?: unknown) {
 
 export function SchoolLms({ classes }: { classes: ClassOpt[] }) {
   const { theme: tt } = useAppTheme();
+  const tr = useTranslate();
   const box = panelCard(tt);
   const btn = ctaButton(tt);
   const [connections, setConnections] = useState<LmsConnection[]>([]);
@@ -28,16 +35,20 @@ export function SchoolLms({ classes }: { classes: ClassOpt[] }) {
 
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
-    if (q.get("connected")) setNotice("Google Classroom connected. Sync your courses below.");
-    if (q.get("lmsError")) setError(`Google Classroom: ${q.get("lmsError")}`);
+    if (q.get("connected")) setNotice(tr("school.lms.connectedNotice"));
+    if (q.get("lmsError")) setError(`${tr("school.lms.errorPrefix")} ${q.get("lmsError")}`);
     (async () => {
-      try {
-        const d = await req("/api/school/lms", "GET");
-        setConnections(d.connections ?? []);
-      } catch {
-        setError("Could not load the LMS connection.");
+      const { data } = await getJsonCached<{ connections?: LmsConnection[] }>("/api/school/lms", {
+        cacheKey: "school:lms",
+        onUpdate: (fresh) => setConnections(fresh.connections ?? []),
+      });
+      if (!data) {
+        setError(tr("school.lms.loadFailed"));
+        return;
       }
+      setConnections(data.connections ?? []);
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const google = connections.find((c) => c.provider === "google_classroom");
@@ -47,8 +58,9 @@ export function SchoolLms({ classes }: { classes: ClassOpt[] }) {
     try {
       await req(`/api/school/lms?id=${id}`, "DELETE");
       setConnections((v) => v.filter((c) => c.id !== id));
+      invalidateCached("school:lms");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not disconnect.");
+      setError(err instanceof Error ? err.message : tr("school.lms.disconnectFailed"));
     }
   }
 
@@ -66,11 +78,11 @@ export function SchoolLms({ classes }: { classes: ClassOpt[] }) {
         {!google ? (
           <>
             <p style={{ opacity: 0.6, fontSize: "0.85rem", margin: "0 0 0.75rem" }}>
-              Connect your Google Workspace to import your courses and map them to your classes.
+              {tr("school.lms.connectIntro")}
             </p>
             <div style={{ ...formActions, marginTop: 0 }}>
               <a href="/api/school/lms/google/start" style={{ ...btn, textDecoration: "none", display: "inline-block" }}>
-                Connect Google Classroom
+                {tr("school.lms.connectButton")}
               </a>
             </div>
           </>
@@ -102,6 +114,7 @@ function MappingRow({
   onError: (m: string) => void;
 }) {
   const { theme: tt } = useAppTheme();
+  const tr = useTranslate();
   const input = textInput(tt);
   const ghost = ghostButton(tt);
   const [assigning, setAssigning] = useState(classes[0]?.id ?? "");
@@ -117,7 +130,7 @@ function MappingRow({
         mappings: c.mappings.map((m) => (m.id === mp.id ? { ...m, classId: r.classId, className: r.className } : m)),
       }));
     } catch (err) {
-      onError(err instanceof Error ? err.message : "Could not assign.");
+      onError(err instanceof Error ? err.message : tr("school.lms.assignFailed"));
     }
   }
   async function remove() {
@@ -125,7 +138,7 @@ function MappingRow({
       await req(`/api/school/lms/mappings?id=${mp.id}`, "DELETE");
       onPatch(conn.id, (c) => ({ ...c, mappings: c.mappings.filter((m) => m.id !== mp.id) }));
     } catch (err) {
-      onError(err instanceof Error ? err.message : "Could not remove.");
+      onError(err instanceof Error ? err.message : tr("school.lms.removeFailed"));
     }
   }
   return (
@@ -142,7 +155,7 @@ function MappingRow({
       ) : (
         <>
           <select style={{ ...input, padding: "0.3rem 0.5rem" }} value={assigning} onChange={(e) => setAssigning(e.target.value)}>
-            {classes.length === 0 && <option value="">No classes</option>}
+            {classes.length === 0 && <option value="">{tr("school.team.noClassesOption")}</option>}
             {classes.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -150,7 +163,7 @@ function MappingRow({
             ))}
           </select>
           <button style={ghost} onClick={assign}>
-            Assign
+            {tr("school.team.assignButton")}
           </button>
         </>
       )}
@@ -175,6 +188,7 @@ function GoogleConnection({
   onError: (m: string) => void;
 }) {
   const { theme: tt } = useAppTheme();
+  const tr = useTranslate();
   const ghost = ghostButton(tt);
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
@@ -183,10 +197,15 @@ function GoogleConnection({
     setSyncing(true);
     setSyncMsg(null);
     try {
-      const r = (await req("/api/school/lms/google/sync", "POST")) as { imported: number; total: number };
-      setSyncMsg(`Imported ${r.imported} new of ${r.total} course(s). Reload to see them.`);
+      // A full roster sync against the Google Classroom API — slower than a
+      // plain JSON round trip, so it gets more room than the 15s default.
+      const r = (await req("/api/school/lms/google/sync", "POST", undefined, 30_000)) as {
+        imported: number;
+        total: number;
+      };
+      setSyncMsg(`${tr("school.lms.importedA")} ${r.imported} ${tr("school.lms.importedB")} ${r.total} ${tr("school.lms.importedC")}`);
     } catch (err) {
-      onError(err instanceof Error ? err.message : "Sync failed.");
+      onError(err instanceof Error ? err.message : tr("school.lms.syncFailed"));
     } finally {
       setSyncing(false);
     }
@@ -199,23 +218,23 @@ function GoogleConnection({
             an unwrapped row; without it the name can't shrink and the row
             overflows on a narrow screen (see MappingRow below). */}
         <strong style={{ flex: 1, minWidth: 0 }}>
-          Connected{conn.externalOrgName ? <span style={{ opacity: 0.5, fontWeight: 400 }}> · {conn.externalOrgName}</span> : null}
+          {tr("school.lms.connectedPrefix")}{conn.externalOrgName ? <span style={{ opacity: 0.5, fontWeight: 400 }}> · {conn.externalOrgName}</span> : null}
         </strong>
         <button style={ghost} onClick={sync} disabled={syncing}>
-          {syncing ? "Syncing…" : "Sync courses"}
+          {syncing ? tr("school.lms.syncing") : tr("school.lms.syncCourses")}
         </button>
         <button style={ghost} onClick={() => onDisconnect(conn.id)}>
-          Disconnect
+          {tr("school.lms.disconnectButton")}
         </button>
       </div>
       {syncMsg && <p style={{ color: "#22c55e", fontSize: "0.85rem", margin: "0.5rem 0 0" }}>{syncMsg}</p>}
 
       <div style={{ marginTop: "0.6rem", fontSize: "0.75rem", opacity: 0.5, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-        Course mappings
+        {tr("school.lms.courseMappingsHeading")}
       </div>
       {conn.mappings.length === 0 && (
         <p style={{ opacity: 0.5, fontSize: "0.85rem", margin: "0.3rem 0" }}>
-          None yet — sync to import courses, then assign each to a class.
+          {tr("school.lms.noneYetSync")}
         </p>
       )}
       {conn.mappings.map((mp) => (

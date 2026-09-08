@@ -224,7 +224,7 @@ export function ChatSurface({
                   background: busy ? status.warn : status.positive,
                 }}
               />
-              {busy ? "Thinking…" : "In session"}
+              {busy ? tr("chat.thinking") : tr("chat.inSession")}
             </div>
           </div>
           {headerActions}
@@ -237,7 +237,7 @@ export function ChatSurface({
             <IconButton
               theme={t}
               onClick={onToggleRight}
-              title={rightOpen ? "Hide panel" : "Show panel"}
+              title={rightOpen ? tr("chat.hidePanel") : tr("chat.showPanel")}
               bg={rightOpen ? t.sidebarActiveBg : undefined}
             >
               <IconPanel size={14} />
@@ -258,9 +258,9 @@ export function ChatSurface({
                 padding: 12,
               }}
             >
-              <div style={{ fontSize: text.xs, fontWeight: 700, color: t.text, marginBottom: 8 }}>Session documents</div>
+              <div style={{ fontSize: text.xs, fontWeight: 700, color: t.text, marginBottom: 8 }}>{tr("chat.sessionDocuments")}</div>
               {sessionFiles.length === 0 && (
-                <div style={{ fontSize: text.xs, color: t.muted }}>No documents yet.</div>
+                <div style={{ fontSize: text.xs, color: t.muted }}>{tr("chat.noDocuments")}</div>
               )}
               {sessionFiles.map((f) => (
                 <div

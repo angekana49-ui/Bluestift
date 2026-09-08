@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { netFetch } from "@/lib/net/client-fetch";
 import {
   downloadRecoveryKey,
   formatRecoveryKey,
@@ -182,11 +183,15 @@ export function OnboardingForm({
   async function submitAge(): Promise<boolean> {
     setBusy(true);
     try {
-      const res = await fetch("/api/account/age", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ birthYear: Number(birthYear.trim()) }),
-      });
+      const res = await netFetch(
+        "/api/account/age",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ birthYear: Number(birthYear.trim()) }),
+        },
+        { timeoutMs: 15_000 },
+      );
       const data = (await res.json()) as { allowed?: boolean; error?: string };
       if (!res.ok) {
         setError(data.error ?? `${tr("onb.err.saveFailed")} (${res.status}).`);

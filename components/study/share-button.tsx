@@ -3,6 +3,8 @@
 import { useState } from "react";
 import type { AppTheme } from "@/components/ui/tokens";
 import type { BrandedDoc } from "@/lib/document";
+import { netFetch } from "@/lib/net/client-fetch";
+import { useTranslate } from "@/components/ui/locale";
 
 /**
  * Turns a branded document into a public read-only link (POST /api/share) and
@@ -10,6 +12,7 @@ import type { BrandedDoc } from "@/lib/document";
  * doc — notes, a test result, a progression summary — is shareable.
  */
 export function ShareLinkButton({ theme: t, doc }: { theme: AppTheme; doc: BrandedDoc }) {
+  const tr = useTranslate();
   const [state, setState] = useState<"idle" | "busy" | "done" | "error">("idle");
   const [url, setUrl] = useState<string | null>(null);
 
@@ -17,11 +20,15 @@ export function ShareLinkButton({ theme: t, doc }: { theme: AppTheme; doc: Brand
     if (state === "busy") return;
     setState("busy");
     try {
-      const res = await fetch("/api/share", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ title: doc.title, body: doc.body, brand: doc.brand }),
-      });
+      const res = await netFetch(
+        "/api/share",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ title: doc.title, body: doc.body, brand: doc.brand }),
+        },
+        { timeoutMs: 15_000 },
+      );
       const data = await res.json();
       if (!res.ok || !data.url) throw new Error(data?.error ?? "share failed");
       setUrl(data.url);
@@ -50,13 +57,13 @@ export function ShareLinkButton({ theme: t, doc }: { theme: AppTheme; doc: Brand
   if (state === "done" && url) {
     return (
       <a href={url} target="_blank" rel="noopener noreferrer" title={url} style={{ ...btn, textDecoration: "none", color: t.dark ? "#4ade80" : "#15803d" }}>
-        ✓ Link copied
+        {tr("shareBtn.linkCopied")}
       </a>
     );
   }
   return (
-    <button style={btn} onClick={share} disabled={state === "busy"} title="Create a public read-only link">
-      {state === "busy" ? "…" : state === "error" ? "Retry link" : "🔗 Link"}
+    <button style={btn} onClick={share} disabled={state === "busy"} title={tr("shareBtn.createTitle")}>
+      {state === "busy" ? "…" : state === "error" ? tr("shareBtn.retry") : tr("shareBtn.link")}
     </button>
   );
 }

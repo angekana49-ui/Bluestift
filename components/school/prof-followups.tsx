@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useAppTheme } from "@/components/ui/theme";
+import { netFetch, getJsonCached, invalidateCached } from "@/lib/net/client-fetch";
 import { panelCard, textInput, ctaButton, ghostButton } from "@/components/ui/forms";
+import { useTranslate } from "@/components/ui/locale";
 
 type Followup = {
   id: string;
@@ -13,11 +15,15 @@ type Followup = {
 };
 
 async function req(url: string, method: string, body?: unknown) {
-  const res = await fetch(url, {
-    method,
-    headers: body ? { "content-type": "application/json" } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  const res = await netFetch(
+    url,
+    {
+      method,
+      headers: body ? { "content-type": "application/json" } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    },
+    { timeoutMs: 15_000 },
+  );
   const data = await res.json().catch(() => null);
   if (!res.ok) throw new Error(data?.error ?? `Request failed (${res.status}).`);
   return data;
@@ -32,6 +38,7 @@ const fmt = (d: string) => new Date(d).toLocaleDateString(undefined, { day: "num
  */
 export function FollowupsPanel({ classId, studentUserId }: { classId: string; studentUserId: string }) {
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
   const box = panelCard(t);
   const input = textInput(t);
   const btn = ctaButton(t);
@@ -45,25 +52,32 @@ export function FollowupsPanel({ classId, studentUserId }: { classId: string; st
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const cacheKey = `school:followups:${classId}:${studentUserId}`;
+
   useEffect(() => {
     let alive = true;
     setLoading(true);
     (async () => {
-      try {
-        const d = await req(
-          `/api/school/followups?classId=${encodeURIComponent(classId)}&studentId=${encodeURIComponent(studentUserId)}`,
-          "GET",
-        );
-        if (alive) setItems((d.followups ?? []) as Followup[]);
-      } catch {
-        // leave empty — the panel still renders its composer
-      } finally {
-        if (alive) setLoading(false);
+      // Cached first: flipping between students in the roster renders each
+      // one's known notes instantly instead of a blank panel every time.
+      const { data } = await getJsonCached<{ followups?: Followup[] }>(
+        `/api/school/followups?classId=${encodeURIComponent(classId)}&studentId=${encodeURIComponent(studentUserId)}`,
+        {
+          cacheKey,
+          onUpdate: (fresh) => {
+            if (alive) setItems(fresh.followups ?? []);
+          },
+        },
+      );
+      if (alive) {
+        setItems(data?.followups ?? []);
+        setLoading(false);
       }
     })();
     return () => {
       alive = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [classId, studentUserId]);
 
   async function add(e: React.FormEvent) {
@@ -77,10 +91,11 @@ export function FollowupsPanel({ classId, studentUserId }: { classId: string; st
         studentUserId,
         content: draft.trim(),
       })) as { id: string; content: string; createdAt: string; updatedAt: string };
-      setItems((v) => [{ ...d, authorName: "You" }, ...v]);
+      setItems((v) => [{ ...d, authorName: tr("room.youLabel") }, ...v]);
       setDraft("");
+      invalidateCached(cacheKey);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save the note.");
+      setError(err instanceof Error ? err.message : tr("school.followups.saveFailed"));
     } finally {
       setBusy(false);
     }
@@ -94,8 +109,9 @@ export function FollowupsPanel({ classId, studentUserId }: { classId: string; st
       await req("/api/school/followups", "PATCH", { id, content: editDraft.trim() });
       setItems((v) => v.map((x) => (x.id === id ? { ...x, content: editDraft.trim() } : x)));
       setEditingId(null);
+      invalidateCached(cacheKey);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not update.");
+      setError(err instanceof Error ? err.message : tr("school.class.updateFailed"));
     } finally {
       setBusy(false);
     }
@@ -106,36 +122,37 @@ export function FollowupsPanel({ classId, studentUserId }: { classId: string; st
     try {
       await req(`/api/school/followups?id=${encodeURIComponent(id)}`, "DELETE");
       setItems((v) => v.filter((x) => x.id !== id));
+      invalidateCached(cacheKey);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not delete.");
+      setError(err instanceof Error ? err.message : tr("school.instructionsPanel.deleteFailed"));
     }
   }
 
   return (
     <div style={box}>
-      <h3 style={{ marginTop: 0 }}>Follow-up notes</h3>
+      <h3 style={{ marginTop: 0 }}>{tr("school.followups.heading")}</h3>
       <p style={{ opacity: 0.6, fontSize: "0.82rem", marginTop: 0 }}>
-        Your running log on this student — shared with the class team (you and the school admin).
+        {tr("school.followups.intro")}
       </p>
       {error && <p style={{ color: "#f87171", fontSize: "0.85rem" }}>{error}</p>}
 
       <form onSubmit={add} style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.85rem" }}>
         <input
           style={{ ...input, flex: 1, minWidth: 220 }}
-          placeholder="Add an observation or a plan…"
+          placeholder={tr("school.followups.placeholder")}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           maxLength={2000}
         />
         <button type="submit" style={btn} disabled={busy || !draft.trim()}>
-          Add note
+          {tr("school.followups.addNote")}
         </button>
       </form>
 
       {loading ? (
-        <p style={{ opacity: 0.55, fontSize: "0.85rem", margin: 0 }}>Loading…</p>
+        <p style={{ opacity: 0.55, fontSize: "0.85rem", margin: 0 }}>{tr("school.loading")}</p>
       ) : items.length === 0 ? (
-        <p style={{ opacity: 0.55, fontSize: "0.85rem", margin: 0 }}>No notes yet.</p>
+        <p style={{ opacity: 0.55, fontSize: "0.85rem", margin: 0 }}>{tr("school.followups.noNotesYet")}</p>
       ) : (
         items.map((it) => (
           <div key={it.id} style={{ padding: "0.5rem 0", borderTop: `1px solid ${t.cardBorder}` }}>
@@ -149,10 +166,10 @@ export function FollowupsPanel({ classId, studentUserId }: { classId: string; st
                   autoFocus
                 />
                 <button style={ghost} onClick={() => saveEdit(it.id)} disabled={busy}>
-                  Save
+                  {tr("school.class.save")}
                 </button>
                 <button style={{ ...ghost, background: "transparent" }} onClick={() => setEditingId(null)}>
-                  Cancel
+                  {tr("school.class.cancel")}
                 </button>
               </div>
             ) : (
@@ -169,12 +186,12 @@ export function FollowupsPanel({ classId, studentUserId }: { classId: string; st
                       setEditDraft(it.content);
                     }}
                   >
-                    Edit
+                    {tr("school.followups.editButton")}
                   </button>
                   <button
                     style={{ background: "transparent", border: "none", color: "#6b7794", cursor: "pointer" }}
                     onClick={() => remove(it.id)}
-                    title="Delete"
+                    title={tr("school.instructionsPanel.deleteTitle")}
                   >
                     ✕
                   </button>

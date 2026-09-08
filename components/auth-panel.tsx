@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { clearLocalData } from "@/lib/net/local-data";
+import { netFetch } from "@/lib/net/client-fetch";
 import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
 import { useResolvedTheme } from "@/components/ui/theme";
 import { useTranslate } from "@/components/ui/locale";
@@ -79,11 +80,15 @@ export function AuthPanel({
     try {
       // Server-side: creates the anonymous account, makes it recoverable, and
       // re-mints the session (attaching the recovery credential revokes it).
-      const res = await fetch("/api/auth/anon", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ captchaToken }),
-      });
+      const res = await netFetch(
+        "/api/auth/anon",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ captchaToken }),
+        },
+        { timeoutMs: 15_000 },
+      );
       const data = await res.json().catch(() => null);
       resetCaptcha();
       if (!res.ok) return setMsg(data?.error ?? tr("auth.err.startFailed"));
@@ -127,11 +132,15 @@ export function AuthPanel({
     setBusy(true);
     setMsg(null);
     try {
-      const res = await fetch("/api/auth/recover", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ code, captchaToken }),
-      });
+      const res = await netFetch(
+        "/api/auth/recover",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ code, captchaToken }),
+        },
+        { timeoutMs: 15_000 },
+      );
       const data = await res.json().catch(() => null);
       if (!res.ok) {
         resetCaptcha();
@@ -412,11 +421,15 @@ function RecoveryKeyCard({
     setBusy(true);
     setErr(null);
     try {
-      const res = await fetch("/api/account/recovery-key", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ keyword }),
-      });
+      const res = await netFetch(
+        "/api/account/recovery-key",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ keyword }),
+        },
+        { timeoutMs: 15_000 },
+      );
       const data = (await res.json().catch(() => null)) as
         | { code?: string; error?: string; warning?: string }
         | null;

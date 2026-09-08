@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { netFetch, getJsonCached } from "@/lib/net/client-fetch";
+import { useTranslate } from "@/components/ui/locale";
+import type { MessageKey } from "@/lib/i18n";
 
 /** Mirrors the shape returned by GET /api/billing/plans (see lib/billing.ts). */
 type Plan = {
@@ -11,12 +14,12 @@ type Plan = {
   priceUnit: "flat" | "per_seat";
 };
 
-const PAYMENT_METHODS = [
-  { id: "transfer", label: "Bank transfer" },
-  { id: "mobile_money", label: "Mobile money" },
-  { id: "invoice", label: "Invoice" },
-  { id: "card", label: "Card (manual)" },
-  { id: "other", label: "Other" },
+const PAYMENT_METHODS: { id: string; labelKey: MessageKey }[] = [
+  { id: "transfer", labelKey: "ops.billing.methodTransfer" },
+  { id: "mobile_money", labelKey: "ops.billing.methodMobileMoney" },
+  { id: "invoice", labelKey: "ops.billing.methodInvoice" },
+  { id: "card", labelKey: "ops.billing.methodCard" },
+  { id: "other", labelKey: "ops.billing.methodOther" },
 ];
 
 const box: React.CSSProperties = {
@@ -63,6 +66,7 @@ const toggle = (active: boolean): React.CSSProperties => ({
 });
 
 export function OpsBillingForm() {
+  const tr = useTranslate();
   const [target, setTarget] = useState<"user" | "school">("user");
   const [email, setEmail] = useState("");
   const [schoolId, setSchoolId] = useState("");
@@ -81,10 +85,12 @@ export function OpsBillingForm() {
     setPlanId("");
     setPlans([]);
     const category = target === "user" ? "b2c" : "b2b";
-    fetch(`/api/billing/plans?category=${category}`)
-      .then((r) => r.json())
-      .then((d) => setPlans((d?.plans as Plan[] | undefined) ?? []))
-      .catch(() => setPlans([]));
+    // The catalogue barely moves — cached generously.
+    void getJsonCached<{ plans?: Plan[] }>(`/api/billing/plans?category=${category}`, {
+      cacheKey: `billing:plans:${category}`,
+      cacheTtlMs: 5 * 60_000,
+      onUpdate: (fresh) => setPlans(fresh.plans ?? []),
+    }).then(({ data }) => setPlans(data?.plans ?? []));
   }, [target]);
 
   const plan = plans.find((p) => p.id === planId) ?? null;
@@ -95,33 +101,37 @@ export function OpsBillingForm() {
     setError(null);
     setResult(null);
 
-    if (!planId) return setError("Pick a plan.");
-    if (target === "user" && !email.trim()) return setError("Enter the user's email.");
-    if (target === "school" && !schoolId.trim()) return setError("Enter the school id.");
-    if (isPerSeat && !(Number(seatLimit) > 0)) return setError("Enter the contracted seat count.");
+    if (!planId) return setError(tr("ops.billing.pickPlan"));
+    if (target === "user" && !email.trim()) return setError(tr("ops.billing.enterEmail"));
+    if (target === "school" && !schoolId.trim()) return setError(tr("ops.billing.enterSchoolId"));
+    if (isPerSeat && !(Number(seatLimit) > 0)) return setError(tr("ops.billing.enterSeatCount"));
 
     setBusy(true);
     try {
-      const res = await fetch("/api/ops/billing/activate", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          target,
-          email: target === "user" ? email.trim() : undefined,
-          schoolId: target === "school" ? schoolId.trim() : undefined,
-          planId,
-          seatLimit: isPerSeat ? Number(seatLimit) : undefined,
-          months: Number(months) || 12,
-          amount: amount.trim() ? Number(amount) : undefined,
-          paymentMethod: method,
-          paymentReference: reference.trim() || undefined,
-        }),
-      });
+      const res = await netFetch(
+        "/api/ops/billing/activate",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            target,
+            email: target === "user" ? email.trim() : undefined,
+            schoolId: target === "school" ? schoolId.trim() : undefined,
+            planId,
+            seatLimit: isPerSeat ? Number(seatLimit) : undefined,
+            months: Number(months) || 12,
+            amount: amount.trim() ? Number(amount) : undefined,
+            paymentMethod: method,
+            paymentReference: reference.trim() || undefined,
+          }),
+        },
+        { timeoutMs: 15_000 },
+      );
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? "Could not activate.");
+      if (!res.ok) throw new Error(data?.error ?? tr("ops.billing.activateFailed"));
       setResult({ subscriptionId: data.subscriptionId, expiresAt: data.expiresAt });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not activate.");
+      setError(e instanceof Error ? e.message : tr("ops.billing.activateFailed"));
     } finally {
       setBusy(false);
     }
@@ -131,16 +141,16 @@ export function OpsBillingForm() {
     <div style={box}>
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
         <button type="button" style={toggle(target === "user")} onClick={() => setTarget("user")}>
-          Individual (B2C)
+          {tr("ops.billing.individualToggle")}
         </button>
         <button type="button" style={toggle(target === "school")} onClick={() => setTarget("school")}>
-          School (B2B)
+          {tr("ops.billing.schoolToggle")}
         </button>
       </div>
 
       {target === "user" ? (
         <>
-          <label style={label}>User email</label>
+          <label style={label}>{tr("ops.billing.userEmailLabel")}</label>
           <input
             style={input}
             type="email"
@@ -152,10 +162,10 @@ export function OpsBillingForm() {
         </>
       ) : (
         <>
-          <label style={label}>School id</label>
+          <label style={label}>{tr("ops.billing.schoolIdLabel")}</label>
           <input
             style={input}
-            placeholder="uuid — found in Supabase (schools.schools)"
+            placeholder={tr("ops.billing.schoolIdPlaceholder")}
             value={schoolId}
             onChange={(e) => setSchoolId(e.target.value)}
             disabled={busy}
@@ -163,24 +173,24 @@ export function OpsBillingForm() {
         </>
       )}
 
-      <label style={label}>Plan</label>
+      <label style={label}>{tr("ops.billing.planLabel")}</label>
       <select style={input} value={planId} onChange={(e) => setPlanId(e.target.value)} disabled={busy}>
-        <option value="">Select a plan…</option>
+        <option value="">{tr("ops.billing.selectPlanPlaceholder")}</option>
         {plans.map((p) => (
           <option key={p.id} value={p.id}>
-            {p.name} {p.price == null ? "(on quote)" : p.priceUnit === "per_seat" ? `($${p.price}/student/mo)` : `($${p.price})`}
+            {p.name} {p.price == null ? tr("ops.billing.onQuote") : p.priceUnit === "per_seat" ? `($${p.price}/student/mo)` : `($${p.price})`}
           </option>
         ))}
       </select>
 
       {isPerSeat && (
         <>
-          <label style={label}>Contracted seats (students)</label>
+          <label style={label}>{tr("ops.billing.seatsLabel")}</label>
           <input
             style={input}
             type="number"
             min={1}
-            placeholder="e.g. 250"
+            placeholder={tr("ops.billing.seatsPlaceholder")}
             value={seatLimit}
             onChange={(e) => setSeatLimit(e.target.value)}
             disabled={busy}
@@ -188,34 +198,35 @@ export function OpsBillingForm() {
         </>
       )}
 
-      <label style={label}>Term (months)</label>
+      <label style={label}>{tr("ops.billing.termLabel")}</label>
       <input style={input} type="number" min={1} value={months} onChange={(e) => setMonths(e.target.value)} disabled={busy} />
 
-      <label style={label}>Amount collected — optional, USD (leave blank to auto-compute)</label>
+      <label style={label}>{tr("ops.billing.amountLabel")}</label>
       <input style={input} type="number" min={0} step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} disabled={busy} />
 
-      <label style={label}>Payment method</label>
+      <label style={label}>{tr("ops.billing.methodLabel")}</label>
       <select style={input} value={method} onChange={(e) => setMethod(e.target.value)} disabled={busy}>
         {PAYMENT_METHODS.map((m) => (
           <option key={m.id} value={m.id}>
-            {m.label}
+            {tr(m.labelKey)}
           </option>
         ))}
       </select>
 
-      <label style={label}>Reference — optional (transfer id, invoice #…)</label>
+      <label style={label}>{tr("ops.billing.referenceLabel")}</label>
       <input style={input} value={reference} onChange={(e) => setReference(e.target.value)} disabled={busy} />
 
       {error && <p style={{ color: "#f87171", fontSize: 14, margin: "0 0 14px" }}>{error}</p>}
       {result && (
         <p style={{ color: "#4ade80", fontSize: 14, margin: "0 0 14px" }}>
-          Activated — subscription {result.subscriptionId}, expires{" "}
-          {new Date(result.expiresAt).toLocaleDateString()}.
+          {tr("ops.billing.activatedA")}
+          {result.subscriptionId}
+          {tr("ops.billing.activatedB")} {new Date(result.expiresAt).toLocaleDateString()}.
         </p>
       )}
 
       <button type="button" style={{ ...btn, opacity: busy ? 0.6 : 1 }} onClick={submit} disabled={busy}>
-        {busy ? "Activating…" : "Activate plan"}
+        {busy ? tr("ops.billing.activating") : tr("ops.billing.activateButton")}
       </button>
     </div>
   );

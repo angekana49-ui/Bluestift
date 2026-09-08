@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslate } from "@/components/ui/locale";
 import { useVoiceRecorder } from "@/lib/use-voice-recorder";
 import { splitByMessage, type Attachment } from "@/components/attachment";
 import { netFetch, getJsonCached, invalidateCached } from "@/lib/net/client-fetch";
@@ -57,6 +58,7 @@ export function useChatEngine({
   initialFiles: ConversationFile[];
   initialConversations: Conversation[];
 }) {
+  const tr = useTranslate();
   const initial = splitByMessage(initialFiles);
   const [conversationId, setConversationId] = useState(initialId);
   const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
@@ -134,7 +136,7 @@ export function useChatEngine({
       );
       const data = await res.json().catch(() => null);
       if (!res.ok) {
-        setError(data?.error ? `Upload: ${data.error}` : "Upload failed.");
+        setError(data?.error ? `${tr("chat.uploadFailedPrefix")} ${data.error}` : tr("chat.uploadFailed"));
         return;
       }
       // A doc can open a fresh chat — adopt the conversation it created.
@@ -153,7 +155,7 @@ export function useChatEngine({
     } catch {
       // The picked File is still in the caller's input element; tell the user
       // plainly rather than pretending the document is attached.
-      setError("Upload failed — check your connection and try again.");
+      setError(tr("chat.uploadFailedOffline"));
     } finally {
       setUploading(false);
     }
@@ -188,14 +190,14 @@ export function useChatEngine({
         onUpdate: apply,
       });
       if (!data) {
-        setError("Could not load conversation.");
+        setError(tr("chat.couldNotLoad"));
         return;
       }
       setConversationId(id);
       apply(data);
       lastReplyRef.current = Date.now();
     } catch {
-      setError("Could not load conversation.");
+      setError(tr("chat.couldNotLoad"));
     } finally {
       setBusy(false);
     }
@@ -213,7 +215,7 @@ export function useChatEngine({
         setMessages([]);
       }
     } catch {
-      setError("Could not delete conversation.");
+      setError(tr("chat.couldNotDelete"));
     } finally {
       setBusy(false);
     }
@@ -242,7 +244,7 @@ export function useChatEngine({
         }),
       });
       if (!res.ok) {
-        setError("Could not archive conversation.");
+        setError(tr("chat.couldNotArchive"));
         return false;
       }
       const stamp = archived ? new Date().toISOString() : null;
@@ -255,7 +257,7 @@ export function useChatEngine({
       }
       return true;
     } catch {
-      setError("Could not archive conversation.");
+      setError(tr("chat.couldNotArchive"));
       return false;
     } finally {
       setBusy(false);
@@ -293,8 +295,8 @@ export function useChatEngine({
       if (!res.ok) {
         setError(
           data?.error === "empty"
-            ? "Nothing to memorize in this conversation yet."
-            : "Raya could not memorize this conversation — try again in a moment.",
+            ? tr("chat.memorizeNothing")
+            : tr("chat.memorizeFailed"),
         );
         return null;
       }
@@ -306,7 +308,7 @@ export function useChatEngine({
         concepts: typeof data?.concepts === "number" ? data.concepts : null,
       };
     } catch {
-      setError("Raya could not memorize this conversation — try again in a moment.");
+      setError(tr("chat.memorizeFailed"));
       return null;
     } finally {
       setBusy(false);
@@ -401,12 +403,12 @@ export function useChatEngine({
             rollback(clientMsgId, sentFiles);
             return true;
           }
-          setError(data?.error ? `Raya error: ${data.error}` : `Request failed (${res.status}).`);
+          setError(data?.error ? `${tr("chat.rayaErrorPrefix")} ${data.error}` : `${tr("chat.requestFailedPrefix")} (${res.status}).`);
           rollback(clientMsgId, sentFiles);
           return true; // handled — not a retryable delivery failure
         }
         markFailed(clientMsgId, text, sentFiles);
-        setError(data?.error ? `Raya error: ${data.error}` : `Request failed (${res.status}).`);
+        setError(data?.error ? `${tr("chat.rayaErrorPrefix")} ${data.error}` : `${tr("chat.requestFailedPrefix")} (${res.status}).`);
         return false;
       }
       // The server sends these only while the quota is both set and enforced,
@@ -469,7 +471,7 @@ export function useChatEngine({
       // server. Keep the message (with its files) and let the retry — which
       // carries the same clientMsgId — resolve it either way.
       markFailed(clientMsgId, text, sentFiles);
-      setError("Could not reach Raya — your message is saved.");
+      setError(tr("chat.couldNotReach"));
       return false;
     } finally {
       setBusy(false);
@@ -558,7 +560,7 @@ export function useChatEngine({
 
   // ── derived view data ──────────────────────────────────────
   const activeTitle =
-    conversations.find((c) => c.id === conversationId)?.title ?? "New session";
+    conversations.find((c) => c.id === conversationId)?.title ?? tr("chat.newSession");
   const sessionFiles = [...Object.values(filesByMessage).flat(), ...pending];
 
   return {

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { ComponentType } from "react";
 import { useRef, useState } from "react";
+import { netFetch } from "@/lib/net/client-fetch";
 import SitePage from "@/components/site/SitePage";
 import type { Theme } from "@/components/site/theme";
 import { GUTTER, MEASURE, pageH1, pageTop, serifEm } from "@/components/site/layout";
@@ -270,17 +271,21 @@ function SurveyFlow({ t, profile, onDone }: { t: Theme; profile: "teacher" | "st
   async function finish(all: Answer[]) {
     setSubmitting(true);
     setError(false);
-    const res = await fetch("/api/content/survey", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        profile,
-        language: browserLang(),
-        answers: all,
-        time_to_complete_seconds: Math.round((Date.now() - startedAt.current) / 1000),
-        token: captchaToken,
-      }),
-    });
+    const res = await netFetch(
+      "/api/content/survey",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profile,
+          language: browserLang(),
+          answers: all,
+          time_to_complete_seconds: Math.round((Date.now() - startedAt.current) / 1000),
+          token: captchaToken,
+        }),
+      },
+      { timeoutMs: 15_000 },
+    );
     setSubmitting(false);
     if (!res.ok) {
       turnstileRef.current?.reset();
@@ -407,11 +412,15 @@ function DoneScreen({ t, responseId, onFreeWall }: { t: Theme; responseId: strin
 
   async function saveEmail() {
     if (!email.includes("@") || !responseId) return;
-    const res = await fetch("/api/content/survey/contact", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ response_id: responseId, email, token: captchaToken }),
-    });
+    const res = await netFetch(
+      "/api/content/survey/contact",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ response_id: responseId, email, token: captchaToken }),
+      },
+      { timeoutMs: 15_000 },
+    );
     turnstileRef.current?.reset();
     setCaptchaToken(null);
     if (res.ok) setSaved(true);
@@ -478,11 +487,15 @@ function FreeWall({ t, initialPosts }: { t: Theme; initialPosts: WallPost[] }) {
     if (!text.trim() || busy) return;
     setBusy(true);
     setError(false);
-    const res = await fetch("/api/content/wall", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: text.trim(), profile, language: browserLang(), token: captchaToken }),
-    });
+    const res = await netFetch(
+      "/api/content/wall",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: text.trim(), profile, language: browserLang(), token: captchaToken }),
+      },
+      { timeoutMs: 15_000 },
+    );
     setBusy(false);
     turnstileRef.current?.reset();
     setCaptchaToken(null);
@@ -500,11 +513,15 @@ function FreeWall({ t, initialPosts }: { t: Theme; initialPosts: WallPost[] }) {
     if (reacted.has(key)) return;
     setReacted((s) => new Set(s).add(key));
     setPosts((p) => p.map((post) => (post.id === id ? { ...post, [kind]: post[kind] + 1 } : post)));
-    await fetch("/api/content/wall/react", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ post_id: id, type: kind }),
-    });
+    await netFetch(
+      "/api/content/wall/react",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ post_id: id, type: kind }),
+      },
+      { timeoutMs: 10_000 },
+    );
   }
 
   return (

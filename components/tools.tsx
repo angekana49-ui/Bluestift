@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { netFetch } from "@/lib/net/client-fetch";
 import { type BrandedDoc } from "@/lib/document";
 import { parseDoc } from "@/lib/doc-format";
 import { QuizPlayer, FlashcardsPlayer, ReaderView, MindMapView } from "@/components/study/focus-player";
@@ -11,6 +12,8 @@ import { IconQuiz, IconFlashcards, IconSummary } from "@/components/ui/icons";
 import { neutralButton, formActions } from "@/components/ui/forms";
 import { SectionHeader } from "@/components/raya/section-header";
 import { FilePicker } from "@/components/ui/file-picker";
+import { useTranslate } from "@/components/ui/locale";
+import type { MessageKey } from "@/lib/i18n";
 
 type QuizQuestion = {
   question: string;
@@ -50,13 +53,13 @@ type ActivePlayer =
   | { kind: "flashcards"; title: string; cards: Flashcard[] }
   | { kind: "mind_map"; title: string; mindMap: MindMap };
 
-const TOOLS = [
-  { id: "summary", label: "Summary", ready: true },
-  { id: "quiz", label: "Quiz (MCQ)", ready: true },
-  { id: "flashcards", label: "Flashcards", ready: true },
-  { id: "mind_map", label: "Mind map", ready: true },
-  { id: "audio_summary", label: "Audio summary", ready: false },
-  { id: "infographic", label: "Infographic", ready: false },
+const TOOLS: { id: string; labelKey: MessageKey; ready: boolean }[] = [
+  { id: "summary", labelKey: "tools.tool.summary", ready: true },
+  { id: "quiz", labelKey: "tools.tool.quiz", ready: true },
+  { id: "flashcards", labelKey: "tools.tool.flashcards", ready: true },
+  { id: "mind_map", labelKey: "tools.tool.mindMap", ready: true },
+  { id: "audio_summary", labelKey: "tools.tool.audioSummary", ready: false },
+  { id: "infographic", labelKey: "tools.tool.infographic", ready: false },
 ];
 
 // Themed style helpers.
@@ -121,6 +124,7 @@ export function Tools({
   studentName?: string;
 }) {
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
   // A source is a picked doc — a fresh upload (has `bytes`, maybe inline `text`
   // if it couldn't be stored) or an existing library doc reused (mediaId only).
   const [sources, setSources] = useState<Source[]>([]);
@@ -165,20 +169,23 @@ export function Tools({
     const arr = Array.from(files);
     const addBytes = arr.reduce((s, f) => s + f.size, 0);
     if (packetBytes + addBytes > MAX_PACKET_BYTES) {
-      setError(`That packet is too large — keep the total under ${Math.round(MAX_PACKET_BYTES / 1024 / 1024)} MB.`);
+      setError(`${tr("tools.packetTooLargeA")} ${Math.round(MAX_PACKET_BYTES / 1024 / 1024)} ${tr("tools.packetTooLargeB")}`);
       return;
     }
     setBusy(true);
     try {
       for (const f of arr) {
-        setStatusMsg(`Reading ${f.name}… (audio is transcribed, this can take a moment)`);
+        setStatusMsg(`${tr("tools.readingFilePrefix")} ${f.name}${tr("tools.readingFileSuffix")}`);
         try {
           const fd = new FormData();
           fd.append("file", f);
-          const res = await fetch("/api/tools/extract", { method: "POST", body: fd });
+          // Audio/PDF go through server-side extraction (maxDuration 60s) — a
+          // bare fetch never times out, but the default 10s would abort a
+          // legitimately-running transcription.
+          const res = await netFetch("/api/tools/extract", { method: "POST", body: fd }, { timeoutMs: 65_000 });
           const data = await res.json();
           if (!res.ok) {
-            setError(data?.error ?? `Couldn't read ${f.name}.`);
+            setError(data?.error ?? `${tr("tools.couldntReadPrefix")} ${f.name}.`);
             continue;
           }
           setSources((s) => [
@@ -186,10 +193,10 @@ export function Tools({
             { mediaId: data.media_id ?? null, name: f.name, kind: data.kind, bytes: f.size, text: data.media_id ? undefined : (data.text ?? "") },
           ]);
         } catch {
-          setError(`Couldn't process ${f.name}.`);
+          setError(`${tr("tools.couldntProcessPrefix")} ${f.name}.`);
         }
       }
-      setStatusMsg("Ready ✓");
+      setStatusMsg(tr("tools.ready"));
     } finally {
       setBusy(false);
     }
@@ -199,38 +206,43 @@ export function Tools({
     if (sources.length === 0 || busy) return;
     setBusy(true);
     setError(null);
-    setStatusMsg("Generating…");
+    setStatusMsg(tr("tools.generating"));
     try {
       const sourceMediaIds = sources.map((s) => s.mediaId).filter((id): id is string => !!id);
       const inline = sources.filter((s) => !s.mediaId && s.text).map((s) => s.text as string).join("\n\n");
-      const res = await fetch("/api/tools/generate", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          tool_type: tool,
-          source_media_ids: sourceMediaIds,
-          source_text: inline || undefined,
-          title: baseName,
-        }),
-      });
+      // LLM-generated output (quiz/flashcards/summary), non-streamed.
+      const res = await netFetch(
+        "/api/tools/generate",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            tool_type: tool,
+            source_media_ids: sourceMediaIds,
+            source_text: inline || undefined,
+            title: baseName,
+          }),
+        },
+        { timeoutMs: 65_000 },
+      );
       const data = await res.json();
       if (!res.ok) {
-        setError(data?.error ?? `Request failed (${res.status}).`);
+        setError(data?.error ?? `${tr("tools.requestFailedPrefix")} (${res.status}).`);
         return;
       }
       // On success, drop straight into the focused player for this artifact.
       if (data.tool_type === "summary") {
-        setPlayer({ kind: "summary", title: `Summary — ${baseName}`, text: (data.output_content?.text as string) ?? "" });
+        setPlayer({ kind: "summary", title: `${tr("tools.pretty.summary")} — ${baseName}`, text: (data.output_content?.text as string) ?? "" });
       } else if (data.tool_type === "flashcards") {
-        setPlayer({ kind: "flashcards", title: `Flashcards — ${baseName}`, cards: (data.output_content?.cards as Flashcard[]) ?? [] });
+        setPlayer({ kind: "flashcards", title: `${tr("tools.pretty.flashcards")} — ${baseName}`, cards: (data.output_content?.cards as Flashcard[]) ?? [] });
       } else if (data.tool_type === "mind_map") {
-        setPlayer({ kind: "mind_map", title: `Mind map — ${baseName}`, mindMap: (data.output_content as MindMap) ?? { title: baseName, branches: [] } });
+        setPlayer({ kind: "mind_map", title: `${tr("tools.pretty.mindMap")} — ${baseName}`, mindMap: (data.output_content as MindMap) ?? { title: baseName, branches: [] } });
       } else {
-        setPlayer({ kind: "quiz", title: `Quiz — ${baseName}`, questions: (data.output_content?.questions as QuizQuestion[]) ?? [] });
+        setPlayer({ kind: "quiz", title: `${tr("tools.pretty.quiz")} — ${baseName}`, questions: (data.output_content?.questions as QuizQuestion[]) ?? [] });
       }
-      setStatusMsg("Done ✓");
+      setStatusMsg(tr("tools.done"));
     } catch {
-      setError("Generation failed.");
+      setError(tr("tools.generationFailed"));
     } finally {
       setBusy(false);
     }
@@ -238,11 +250,15 @@ export function Tools({
 
   async function downloadUpload(path: string | null) {
     if (!path) return;
-    const res = await fetch("/api/files/signed-url", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ path }),
-    });
+    const res = await netFetch(
+      "/api/files/signed-url",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ path }),
+      },
+      { timeoutMs: 15_000 },
+    );
     const data = await res.json();
     if (data.url) window.open(data.url, "_blank");
   }
@@ -251,13 +267,13 @@ export function Tools({
   function openOutput(o: Output) {
     const c = o.output_content as Record<string, unknown> | null;
     if (o.tool_type === "summary") {
-      setPlayer({ kind: "summary", title: "Summary", text: (c?.text as string) ?? "" });
+      setPlayer({ kind: "summary", title: tr("tools.pretty.summary"), text: (c?.text as string) ?? "" });
     } else if (o.tool_type === "quiz") {
-      setPlayer({ kind: "quiz", title: "Quiz", questions: (c?.questions as QuizQuestion[]) ?? [] });
+      setPlayer({ kind: "quiz", title: tr("tools.pretty.quiz"), questions: (c?.questions as QuizQuestion[]) ?? [] });
     } else if (o.tool_type === "flashcards") {
-      setPlayer({ kind: "flashcards", title: "Flashcards", cards: (c?.cards as Flashcard[]) ?? [] });
+      setPlayer({ kind: "flashcards", title: tr("tools.pretty.flashcards"), cards: (c?.cards as Flashcard[]) ?? [] });
     } else if (o.tool_type === "mind_map") {
-      setPlayer({ kind: "mind_map", title: "Mind map", mindMap: (o.output_content as MindMap) ?? { title: "Mind map", branches: [] } });
+      setPlayer({ kind: "mind_map", title: tr("tools.pretty.mindMap"), mindMap: (o.output_content as MindMap) ?? { title: tr("tools.pretty.mindMap"), branches: [] } });
     }
   }
 
@@ -284,7 +300,7 @@ export function Tools({
           subtitle could be machine-translated. */}
       <SectionHeader
         title="Tools Studio"
-        subtitle="Generate quizzes, summaries and flashcards from any lesson — then study them one at a time."
+        subtitle={tr("tools.pageSubtitle")}
       />
 
       {/* tool picker */}
@@ -309,7 +325,7 @@ export function Tools({
               <div style={{ width: 36, height: 36, borderRadius: 11, background: t.ctaBg, color: t.ctaText, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
                 {toolIcon[x.id] ?? <IconSummary size={18} />}
               </div>
-              <div style={{ fontSize: 15, fontWeight: 700 }}>{x.label}</div>
+              <div style={{ fontSize: 15, fontWeight: 700 }}>{tr(x.labelKey)}</div>
             </button>
           );
         })}
@@ -346,9 +362,10 @@ export function Tools({
           transition: "border-color 0.15s ease, background 0.15s ease",
         }}
       >
-        Drop one or more files (PDF, notes, Word, Excel, audio) — they combine into one packet
+        {tr("tools.dropzone")}
         <div style={{ fontSize: 13, color: t.mutedLight, marginTop: 4 }}>
-          Up to {Math.round(MAX_PACKET_BYTES / 1024 / 1024)} MB total{packetBytes > 0 ? ` · ${(packetBytes / 1024 / 1024).toFixed(1)} MB used` : ""}
+          {tr("tools.upTo")} {Math.round(MAX_PACKET_BYTES / 1024 / 1024)} {tr("tools.mbTotal")}
+          {packetBytes > 0 ? ` · ${(packetBytes / 1024 / 1024).toFixed(1)} ${tr("tools.mbUsed")}` : ""}
         </div>
         <div style={{ display: "flex", justifyContent: "center", marginTop: 12 }}>
           <FilePicker
@@ -388,7 +405,7 @@ export function Tools({
               </span>
               <button
                 onClick={() => removeSource(i)}
-                title="Remove"
+                title={tr("tools.remove")}
                 style={{ background: t.cardBg2, border: `1px solid ${t.cardBorder}`, color: t.mutedLight, borderRadius: "50%", width: 20, height: 20, cursor: "pointer", lineHeight: 1, fontSize: 14 }}
               >
                 ✕
@@ -401,7 +418,7 @@ export function Tools({
       <div style={formActions}>
         {statusMsg && <span style={{ fontSize: 14, color: t.muted, marginRight: "auto" }}>{statusMsg}</span>}
         <button style={{ ...cta(t), opacity: busy || sources.length === 0 ? 0.5 : 1 }} onClick={generate} disabled={busy || sources.length === 0}>
-          Generate
+          {tr("tools.generate")}
         </button>
       </div>
       {error && <p style={{ color: "#f87171", marginTop: 12, fontSize: 15 }}>{error}</p>}
@@ -410,19 +427,19 @@ export function Tools({
         <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 14 }}>
           {uploads.length > 0 && (
             <div style={panel(t)}>
-              <LibraryHeader theme={t} title="Your files" count={uploads.length} hint="Reuse any of these as a source — no re-upload." />
+              <LibraryHeader theme={t} title={tr("tools.yourFiles")} count={uploads.length} hint={tr("tools.yourFilesHint")} />
               {uploads.map((u) => {
                 const inUse = sources.some((s) => s.mediaId === u.id);
                 return (
                   <LibraryRow
                     key={u.id}
                     theme={t}
-                    label={u.title ?? "file"}
+                    label={u.title ?? tr("tools.fileFallback")}
                     meta={u.type ?? undefined}
-                    action={inUse ? "Added" : "Use"}
+                    action={inUse ? tr("tools.added") : tr("tools.use")}
                     disabled={inUse}
                     onAction={() => reuseFromLibrary(u)}
-                    action2="Open"
+                    action2={tr("tools.open")}
                     onAction2={() => downloadUpload(u.url)}
                   />
                 );
@@ -431,14 +448,14 @@ export function Tools({
           )}
           {outputs.length > 0 && (
             <div style={panel(t)}>
-              <LibraryHeader theme={t} title="Generated" count={outputs.length} hint="Quizzes, summaries, flashcards and mind maps you've made." />
+              <LibraryHeader theme={t} title={tr("tools.generated")} count={outputs.length} hint={tr("tools.generatedHint")} />
               {outputs.map((o) => (
                 <LibraryRow
                   key={o.id}
                   theme={t}
-                  label={prettyTool(o.tool_type)}
+                  label={PRETTY_TOOL_KEY[o.tool_type] ? tr(PRETTY_TOOL_KEY[o.tool_type]) : o.tool_type}
                   meta={o.status === "done" ? new Date(o.created_at).toLocaleDateString() : o.status}
-                  action="Study"
+                  action={tr("tools.study")}
                   disabled={o.status !== "done"}
                   onAction={() => openOutput(o)}
                 />
@@ -447,14 +464,14 @@ export function Tools({
           )}
           {selfTests.length > 0 && (
             <div style={panel(t)}>
-              <LibraryHeader theme={t} title="Self-tests" count={selfTests.length} hint="Your tests and their scores." />
+              <LibraryHeader theme={t} title={tr("tools.selfTests")} count={selfTests.length} hint={tr("tools.selfTestsHint")} />
               {selfTests.map((s) => (
                 <LibraryRow
                   key={s.id}
                   theme={t}
-                  label={s.title ?? "Self-test"}
+                  label={s.title ?? tr("tools.selfTest.fallbackTitle")}
                   meta={s.score != null ? `${Math.round(s.score * 100)}%` : undefined}
-                  action="Study"
+                  action={tr("tools.study")}
                   onAction={() => openSelfTest(s.id)}
                 />
               ))}
@@ -489,7 +506,7 @@ export function Tools({
       {player?.kind === "summary" && (
         <ReaderView
           title={player.title}
-          subtitle="Summary"
+          subtitle={tr("tools.pretty.summary")}
           blocks={parseDoc(player.text)}
           onExit={closePlayer}
           actions={downloadActions(doc(player.title, player.text))}
@@ -507,13 +524,12 @@ export function Tools({
   );
 }
 
-const PRETTY_TOOL: Record<string, string> = {
-  summary: "Summary",
-  quiz: "Quiz",
-  flashcards: "Flashcards",
-  mind_map: "Mind map",
+const PRETTY_TOOL_KEY: Record<string, MessageKey> = {
+  summary: "tools.pretty.summary",
+  quiz: "tools.pretty.quiz",
+  flashcards: "tools.pretty.flashcards",
+  mind_map: "tools.pretty.mindMap",
 };
-const prettyTool = (id: string) => PRETTY_TOOL[id] ?? id;
 
 function LibraryHeader({ theme: t, title, count, hint }: { theme: AppTheme; title: string; count: number; hint: string }) {
   return (

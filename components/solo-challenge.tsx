@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { netFetch } from "@/lib/net/client-fetch";
 import { type BrandedDoc } from "@/lib/document";
 import { TestPlayer, ReaderView, type TestAnswer, type TestQuestion, type TestResult } from "@/components/study/focus-player";
 import { ShareLinkButton } from "@/components/study/share-button";
@@ -11,14 +12,16 @@ import { useAppTheme } from "@/components/ui/theme";
 import { type AppTheme } from "@/components/ui/tokens";
 import { FilePicker } from "@/components/ui/file-picker";
 import { neutralButton, formActions } from "@/components/ui/forms";
+import { useTranslate } from "@/components/ui/locale";
+import type { MessageKey } from "@/lib/i18n";
 
 type Question = { id: string; type: "mcq" | "open"; content: string | null; options: string[] };
 
 // Test kinds — a quick MCQ quiz, a full mixed exam, or open competency questions.
-const TEST_KINDS = [
-  { id: "quiz", label: "Quiz", hint: "Quick multiple-choice" },
-  { id: "exam", label: "Exam", hint: "Mixed MCQ + open" },
-  { id: "skills", label: "Skills", hint: "Open competency" },
+const TEST_KINDS: { id: string; labelKey: MessageKey; hintKey: MessageKey }[] = [
+  { id: "quiz", labelKey: "tools.selfTest.kind.quiz.label", hintKey: "tools.selfTest.kind.quiz.hint" },
+  { id: "exam", labelKey: "tools.selfTest.kind.exam.label", hintKey: "tools.selfTest.kind.exam.hint" },
+  { id: "skills", labelKey: "tools.selfTest.kind.skills.label", hintKey: "tools.selfTest.kind.skills.hint" },
 ];
 type SoloItem = {
   id: string;
@@ -70,18 +73,26 @@ const chip = (t: AppTheme, on: boolean): React.CSSProperties => ({
 });
 
 // Smart defaults: one-tap common topics + a pre-filled goal so the form is never
-// blank (decision-fatigue killer). The user overrides either at will.
-const TOPIC_SUGGESTIONS = ["Maths", "Physics", "Chemistry", "Biology", "History", "Languages"];
-const DEFAULT_GOAL = "Review the key ideas and check I really understand them.";
+// blank (decision-fatigue killer). The user overrides either at will. Same six
+// subjects as rooms-list.tsx and student-simulation.tsx.
+const TOPIC_KEYS: MessageKey[] = [
+  "subject.maths",
+  "subject.physics",
+  "subject.chemistry",
+  "subject.biology",
+  "subject.history",
+  "subject.languages",
+];
 
 export function SoloChallenge({ myUserId, studentName }: { myUserId: string; studentName?: string }) {
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
   const [supabase] = useState(() => createClient());
   const [view, setView] = useState<"list" | "take" | "analysis">("list");
   const [items, setItems] = useState<SoloItem[]>([]);
   const [name, setName] = useState("");
   const [topic, setTopic] = useState("");
-  const [goal, setGoal] = useState(DEFAULT_GOAL);
+  const [goal, setGoal] = useState(() => tr("tools.selfTest.defaultGoal"));
   const [kind, setKind] = useState("quiz");
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
@@ -145,19 +156,21 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
       fd.append("goal", goal);
       fd.append("kind", kind);
       if (file) fd.append("file", file);
-      const res = await fetch("/api/challenges/create", { method: "POST", body: fd });
+      // Question generation is LLM-backed (server maxDuration 60s) — the
+      // default 10s would abort a legitimately-running generation.
+      const res = await netFetch("/api/challenges/create", { method: "POST", body: fd }, { timeoutMs: 65_000 });
       const data = await res.json();
       if (!res.ok) {
-        setError(data?.error ?? "Couldn't create the self-test.");
+        setError(data?.error ?? tr("tools.selfTest.createFailed"));
         return;
       }
       setName("");
       setTopic("");
-      setGoal(DEFAULT_GOAL);
+      setGoal(tr("tools.selfTest.defaultGoal"));
       setFile(null);
       await load();
     } catch {
-      setError("Couldn't create the self-test.");
+      setError(tr("tools.selfTest.createFailed"));
     } finally {
       setBusy(false);
     }
@@ -180,7 +193,7 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
         options: (q.options as string[]) ?? [],
       }));
       if (qs.length === 0) {
-        setError("This test has no questions yet.");
+        setError(tr("tools.selfTest.noQuestions"));
         return;
       }
       setActive(it);
@@ -197,13 +210,18 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
   // full breakdown so the player can show its result screen.
   async function submitAnswers(answers: TestAnswer[]): Promise<TestResult> {
     if (!active) throw new Error("no active self-test");
-    const res = await fetch("/api/challenges/submit", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ challengeId: active.id, answers }),
-    });
+    // Open answers are graded by the LLM server-side (maxDuration 60s).
+    const res = await netFetch(
+      "/api/challenges/submit",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ challengeId: active.id, answers }),
+      },
+      { timeoutMs: 65_000 },
+    );
     const data = await res.json();
-    if (!res.ok) throw new Error(data?.error ?? "Could not submit.");
+    if (!res.ok) throw new Error(data?.error ?? tr("tools.selfTest.submitFailed"));
     setResult({ score: data.score, correct: data.correct, total: data.total });
     await load();
     return data as TestResult;
@@ -215,17 +233,22 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
     setAnalyzing(true);
     setError(null);
     try {
-      const res = await fetch("/api/challenges/analyze", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ challengeId: active.id }),
-      });
+      // A full narrative analysis, non-streamed (maxDuration 60s on the server).
+      const res = await netFetch(
+        "/api/challenges/analyze",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ challengeId: active.id }),
+        },
+        { timeoutMs: 65_000 },
+      );
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? "Could not analyse.");
+      if (!res.ok) throw new Error(data?.error ?? tr("tools.selfTest.analyzeFailed"));
       setAnalysis({ title: data.title, body: data.analysis });
       setView("analysis");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not analyse.");
+      setError(e instanceof Error ? e.message : tr("tools.selfTest.analyzeFailed"));
     } finally {
       setAnalyzing(false);
     }
@@ -234,7 +257,7 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
   function analysisDoc(): BrandedDoc {
     return {
       brand: "raya",
-      title: analysis?.title ?? "Analysis",
+      title: analysis?.title ?? tr("tools.selfTest.analysisFallback"),
       meta: new Date().toLocaleDateString(),
       audience: studentName || undefined,
       body: analysis?.body ?? "",
@@ -244,14 +267,14 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
   function resultDoc(): BrandedDoc {
     const body = [
       active?.description ? `${active.description}\n` : "",
-      `## Score`,
+      `## ${tr("tools.selfTest.scoreHeading")}`,
       `${result?.correct ?? 0}/${result?.total ?? 0} · ${Math.round((result?.score ?? 0) * 100)}%`,
     ]
       .filter(Boolean)
       .join("\n");
     return {
       brand: "raya",
-      title: active?.title ? `${active.title} — result` : "Self-test result",
+      title: active?.title ? `${active.title} — ${tr("tools.selfTest.resultSuffix")}` : tr("tools.selfTest.resultFallback"),
       meta: new Date().toLocaleDateString(),
       audience: studentName || undefined,
       body,
@@ -263,14 +286,21 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
     const done = items.filter((i) => i.score != null);
     const avg = done.length ? Math.round((done.reduce((a, i) => a + (i.score ?? 0), 0) / done.length) * 100) : null;
     const body = [
-      "# My progress",
-      avg != null ? `Average score: ${avg}% across ${done.length} completed test${done.length > 1 ? "s" : ""}.` : "No completed tests yet.",
-      "## Tests",
-      ...(items.length ? items.map((i) => `- ${i.title ?? "Self-test"} — ${i.score != null ? Math.round(i.score * 100) + "%" : "not taken"}`) : ["No tests yet."]),
+      `# ${tr("tools.selfTest.myProgress")}`,
+      avg != null
+        ? `${tr("tools.selfTest.avgScorePrefix")} ${avg}% ${tr("tools.selfTest.acrossWord")} ${done.length} ${tr(done.length > 1 ? "tools.selfTest.completedTestOther" : "tools.selfTest.completedTestOne")}.`
+        : tr("tools.selfTest.noCompletedYet"),
+      `## ${tr("tools.selfTest.testsHeading")}`,
+      ...(items.length
+        ? items.map(
+            (i) =>
+              `- ${i.title ?? tr("tools.selfTest.fallbackTitle")} — ${i.score != null ? Math.round(i.score * 100) + "%" : tr("tools.selfTest.notTaken")}`,
+          )
+        : [tr("tools.selfTest.noTestsYet")]),
     ].join("\n");
     return {
       brand: "raya",
-      title: studentName ? `${studentName} — progress` : "My progress",
+      title: studentName ? `${studentName} — ${tr("tools.selfTest.progressWord")}` : tr("tools.selfTest.myProgress"),
       meta: new Date().toLocaleDateString(),
       audience: studentName || undefined,
       body,
@@ -287,7 +317,7 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
     }));
     return (
       <TestPlayer
-        title={active.title ?? "Self-test"}
+        title={active.title ?? tr("tools.selfTest.fallbackTitle")}
         questions={testQuestions}
         onSubmit={submitAnswers}
         onExit={() => {
@@ -311,7 +341,7 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
     return (
       <ReaderView
         title={analysis.title}
-        subtitle="Analysis"
+        subtitle={tr("tools.selfTest.analysisSubtitle")}
         blocks={parseDoc(analysis.body)}
         onExit={() => setView("list")}
         actions={
@@ -328,35 +358,38 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
   return (
     <div>
       <div style={panel(t)}>
-        <h3 style={{ marginTop: 0, marginBottom: 12, fontSize: 16, fontWeight: 700, color: t.text }}>New self-test</h3>
-        <input style={field(t)} placeholder="Name (optional — e.g. Chapter 3 quiz)" value={name} onChange={(e) => setName(e.target.value)} />
-        <input style={field(t)} placeholder="Topic (optional)" value={topic} onChange={(e) => setTopic(e.target.value)} />
+        <h3 style={{ marginTop: 0, marginBottom: 12, fontSize: 16, fontWeight: 700, color: t.text }}>{tr("tools.selfTest.newTitle")}</h3>
+        <input style={field(t)} placeholder={tr("tools.selfTest.namePlaceholder")} value={name} onChange={(e) => setName(e.target.value)} />
+        <input style={field(t)} placeholder={tr("tools.selfTest.topicPlaceholder")} value={topic} onChange={(e) => setTopic(e.target.value)} />
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
-          {TOPIC_SUGGESTIONS.map((s) => (
-            <button key={s} type="button" style={chip(t, topic === s)} onClick={() => setTopic(topic === s ? "" : s)}>
-              {s}
-            </button>
-          ))}
+          {TOPIC_KEYS.map((key) => {
+            const s = tr(key);
+            return (
+              <button key={key} type="button" style={chip(t, topic === s)} onClick={() => setTopic(topic === s ? "" : s)}>
+                {s}
+              </button>
+            );
+          })}
         </div>
         <textarea
           style={{ ...field(t), resize: "vertical" }}
           rows={2}
-          placeholder="Goal — what do you want to test yourself on?"
+          placeholder={tr("tools.selfTest.goalPlaceholder")}
           value={goal}
           onChange={(e) => setGoal(e.target.value)}
         />
         <div style={{ marginBottom: 10 }}>
-          <div style={{ fontSize: 13, color: t.mutedLight, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Type of test</div>
+          <div style={{ fontSize: 13, color: t.mutedLight, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{tr("tools.selfTest.typeLabel")}</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {TEST_KINDS.map((k) => (
-              <button key={k.id} type="button" style={chip(t, kind === k.id)} onClick={() => setKind(k.id)} title={k.hint}>
-                {k.label}
+              <button key={k.id} type="button" style={chip(t, kind === k.id)} onClick={() => setKind(k.id)} title={tr(k.hintKey)}>
+                {tr(k.labelKey)}
               </button>
             ))}
           </div>
         </div>
         <div style={{ marginBottom: 8 }}>
-          <div style={{ fontSize: 14, color: t.muted, marginBottom: 6 }}>Source file (optional)</div>
+          <div style={{ fontSize: 14, color: t.muted, marginBottom: 6 }}>{tr("tools.selfTest.sourceFileLabel")}</div>
           <FilePicker
             accept=".txt,.md,.markdown,.csv,.pdf,.docx,.xlsx,.mp3,.m4a,.wav,.webm,.ogg,.flac,audio/*,application/pdf,text/plain"
             onPick={(files) => setFile(files?.[0] ?? null)}
@@ -367,7 +400,7 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
         </div>
         <div style={formActions}>
           <button style={{ ...cta(t), opacity: busy || (!topic.trim() && !goal.trim() && !file) ? 0.5 : 1 }} onClick={create} disabled={busy || (!topic.trim() && !goal.trim() && !file)}>
-            {busy ? "Generating…" : "Create the self-test"}
+            {busy ? tr("tools.generating") : tr("tools.selfTest.createButton")}
           </button>
         </div>
         {error && <p style={{ color: "#f87171", fontSize: 15 }}>{error}</p>}
@@ -375,14 +408,14 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
 
       <div style={{ marginTop: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ flex: 1, fontSize: 13, color: t.mutedLight, textTransform: "uppercase", letterSpacing: "0.06em" }}>Your progress</div>
+          <div style={{ flex: 1, fontSize: 13, color: t.mutedLight, textTransform: "uppercase", letterSpacing: "0.06em" }}>{tr("tools.selfTest.yourProgress")}</div>
           {items.length > 0 && (
             <>
               <DocumentActions doc={progressionDoc()} compact personal />
             </>
           )}
         </div>
-        {items.length === 0 && <p style={{ color: t.muted, marginTop: 8, fontSize: 15 }}>No self-tests yet.</p>}
+        {items.length === 0 && <p style={{ color: t.muted, marginTop: 8, fontSize: 15 }}>{tr("tools.selfTest.noneYet")}</p>}
         {items.map((it) => (
           <div
             key={it.id}
@@ -398,14 +431,14 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
             }}
           >
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600, color: t.text, fontSize: 15 }}>{it.title ?? "Self-test"}</div>
+              <div style={{ fontWeight: 600, color: t.text, fontSize: 15 }}>{it.title ?? tr("tools.selfTest.fallbackTitle")}</div>
               <div style={{ fontSize: 13, color: t.mutedLight }}>
-                {it.question_count ?? 0} questions
-                {it.score != null && ` · last score ${Math.round(it.score * 100)}%`}
+                {it.question_count ?? 0} {tr("tools.selfTest.questionsWord")}
+                {it.score != null && ` · ${tr("tools.selfTest.lastScore")} ${Math.round(it.score * 100)}%`}
               </div>
             </div>
             <button style={{ ...cta(t), opacity: busy ? 0.5 : 1 }} onClick={() => open(it)} disabled={busy}>
-              {it.score != null ? "Retry" : "Start"}
+              {it.score != null ? tr("tools.selfTest.retryButton") : tr("tools.selfTest.startButton")}
             </button>
           </div>
         ))}

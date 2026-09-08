@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { netFetch } from "@/lib/net/client-fetch";
+import { useTranslate } from "@/components/ui/locale";
 
 /** A file row from learning.conversation_files or learning.room_files. */
 export type Attachment = {
@@ -93,16 +95,17 @@ export function AttachmentChip({
   onRemove?: () => void;
   busy?: boolean;
 }) {
+  const tr = useTranslate();
   const size = formatBytes(file.file_size);
   return (
     <span style={{ ...chipBase, opacity: busy ? 0.6 : 1 }}>
       <span>{iconFor(file)}</span>
-      <span style={nameStyle}>{file.file_name ?? "Document"}</span>
+      <span style={nameStyle}>{file.file_name ?? tr("attachment.document")}</span>
       {size && <span style={{ opacity: 0.5 }}>{size}</span>}
       {onRemove && (
         <button
           onClick={onRemove}
-          title="Remove"
+          title={tr("attachment.removeTitle")}
           disabled={busy}
           style={{
             background: "transparent",
@@ -129,11 +132,12 @@ export function AttachmentCard({
   file: Attachment;
   onOpen: (file: Attachment) => void;
 }) {
+  const tr = useTranslate();
   const size = formatBytes(file.file_size);
   return (
     <button
       onClick={() => onOpen(file)}
-      title="Preview"
+      title={tr("attachment.previewTitle")}
       style={{
         display: "flex",
         alignItems: "center",
@@ -150,7 +154,7 @@ export function AttachmentCard({
       }}
     >
       <span style={{ fontSize: "1.1rem" }}>{iconFor(file)}</span>
-      <span style={{ ...nameStyle, flex: 1 }}>{file.file_name ?? "Document"}</span>
+      <span style={{ ...nameStyle, flex: 1 }}>{file.file_name ?? tr("attachment.document")}</span>
       {size && <span style={{ opacity: 0.6, fontSize: "0.75rem" }}>{size}</span>}
     </button>
   );
@@ -170,6 +174,7 @@ export function FilePreview({
   scope: AttachmentScope;
   onClose: () => void;
 }) {
+  const tr = useTranslate();
   const [url, setUrl] = useState<string | null>(null);
   const [text, setText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -184,32 +189,37 @@ export function FilePreview({
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/files/signed-url", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(
-            scope === "room" ? { roomFileId: file.id } : { conversationFileId: file.id },
-          ),
-        });
+        const res = await netFetch(
+          "/api/files/signed-url",
+          {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(
+              scope === "room" ? { roomFileId: file.id } : { conversationFileId: file.id },
+            ),
+          },
+          { timeoutMs: 15_000 },
+        );
         const data = await res.json().catch(() => null);
         if (cancelled) return;
         if (!res.ok || !data?.url) {
-          setError(data?.error ?? "Could not open the file.");
+          setError(data?.error ?? tr("attachment.couldNotOpen"));
           return;
         }
         setUrl(data.url);
         // Text is small and already plain — render it rather than download it.
         if (isTextual(file)) {
-          const raw = await fetch(data.url).then((r) => r.text());
+          const raw = await (await netFetch(data.url, {}, { timeoutMs: 20_000 })).text();
           if (!cancelled) setText(raw.slice(0, 200_000));
         }
       } catch {
-        if (!cancelled) setError("Could not open the file.");
+        if (!cancelled) setError(tr("attachment.couldNotOpen"));
       }
     })();
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file, scope]);
 
   const size = formatBytes(file.file_size);
@@ -252,7 +262,7 @@ export function FilePreview({
         >
           <span>{iconFor(file)}</span>
           <strong style={{ ...nameStyle, flex: 1, maxWidth: "none" }}>
-            {file.file_name ?? "Document"}
+            {file.file_name ?? tr("attachment.document")}
           </strong>
           {size && <span style={{ opacity: 0.5, fontSize: "0.8rem" }}>{size}</span>}
           {url && (
@@ -268,12 +278,12 @@ export function FilePreview({
                 textDecoration: "none",
               }}
             >
-              Download
+              {tr("attachment.download")}
             </a>
           )}
           <button
             onClick={onClose}
-            title="Close"
+            title={tr("attachment.closeTitle")}
             style={{
               background: "transparent",
               color: "#8b95ad",
@@ -288,7 +298,7 @@ export function FilePreview({
 
         <div style={{ flex: 1, minHeight: 320, overflow: "auto", padding: "1rem" }}>
           {error && <p style={{ color: "#f87171" }}>{error}</p>}
-          {!error && !url && <p style={{ opacity: 0.5 }}>Opening…</p>}
+          {!error && !url && <p style={{ opacity: 0.5 }}>{tr("attachment.opening")}</p>}
           {url && isPdf(file) && (
             <iframe
               src={url}
@@ -312,13 +322,11 @@ export function FilePreview({
                 opacity: 0.9,
               }}
             >
-              {text ?? "Loading…"}
+              {text ?? tr("school.loading")}
             </pre>
           )}
           {url && !isPdf(file) && !isAudio(file) && !isTextual(file) && (
-            <p style={{ opacity: 0.7 }}>
-              No inline preview for this format — use Download to open it.
-            </p>
+            <p style={{ opacity: 0.7 }}>{tr("attachment.noInlinePreview")}</p>
           )}
         </div>
       </div>

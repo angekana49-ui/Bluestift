@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useAppTheme } from "@/components/ui/theme";
+import { getJsonCached } from "@/lib/net/client-fetch";
 import { panelCard, ctaButton, ghostButton, textInput } from "@/components/ui/forms";
 import { KpiTile } from "@/components/ui/widgets";
 import { InstructionsPanel } from "@/components/school/class-instructions";
 import { RayaName } from "@/components/ui/brand";
+import { useTranslate } from "@/components/ui/locale";
 
 type ClassOpt = { id: string; name: string; studentCount?: number };
 type Alert = {
@@ -46,6 +48,7 @@ export function ProfOverviewView({
   onGoto: (tab: "focus" | "prepare" | "reports") => void;
 }) {
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
   const box = panelCard(t);
   const btn = ctaButton(t);
   const ghost = ghostButton(t);
@@ -58,13 +61,17 @@ export function ProfOverviewView({
   useEffect(() => {
     let alive = true;
     (async () => {
-      try {
-        const d = await (await fetch("/api/school/prof-overview")).json();
-        if (alive && d.overview) setOv(d.overview as Overview);
-      } catch {
-        // KPIs degrade to the class props below
-      } finally {
-        if (alive) setLoading(false);
+      // Cached first: this is the teacher's landing tab, so it's the page most
+      // worth rendering instantly from the last known KPIs while it reconciles.
+      const { data } = await getJsonCached<{ overview?: Overview }>("/api/school/prof-overview", {
+        cacheKey: "school:profOverview",
+        onUpdate: (fresh) => {
+          if (alive && fresh.overview) setOv(fresh.overview);
+        },
+      });
+      if (alive) {
+        if (data?.overview) setOv(data.overview);
+        setLoading(false);
       }
     })();
     return () => {
@@ -76,40 +83,40 @@ export function ProfOverviewView({
   const studentCount = ov?.studentCount ?? classes.reduce((a, c) => a + (c.studentCount ?? 0), 0);
   const alertCount = ov?.alertCount ?? 0;
 
-  const firstName = teacherName.trim().split(/\s+/)[0] || "there";
+  const firstName = teacherName.trim().split(/\s+/)[0] || tr("school.profOverview.thereFallback");
 
   return (
     <div>
       <div style={{ ...box, display: "flex", alignItems: "center", gap: 12 }}>
         <div style={{ flex: 1 }}>
-          <h2 style={{ fontSize: "1.15rem", margin: 0 }}>Welcome back, {firstName}</h2>
+          <h2 style={{ fontSize: "1.15rem", margin: 0 }}>{tr("school.profOverview.welcomeBack")} {firstName}</h2>
           <p style={{ margin: "4px 0 0", opacity: 0.6, fontSize: "0.85rem" }}>
-            Your teaching home — students, alerts, and what to work on next.
+            {tr("school.profOverview.subtitle")}
           </p>
         </div>
         <button style={btn} onClick={() => onGoto("prepare")}>
-          Prepare material
+          {tr("school.profOverview.prepareMaterial")}
         </button>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 12, marginBottom: 18 }}>
-        <KpiTile theme={t} label="Classes" value={classCount} shine />
-        <KpiTile theme={t} label="Students" value={studentCount} shine />
-        <KpiTile theme={t} label="Need attention" value={alertCount} />
+        <KpiTile theme={t} label={tr("nav.classes")} value={classCount} shine />
+        <KpiTile theme={t} label={tr("school.overview.kpiStudents")} value={studentCount} shine />
+        <KpiTile theme={t} label={tr("school.profOverview.kpiNeedAttention")} value={alertCount} />
       </div>
 
       <div style={box}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-          <h3 style={{ margin: 0, flex: 1 }}>Students to focus on</h3>
+          <h3 style={{ margin: 0, flex: 1 }}>{tr("school.profOverview.studentsToFocusOn")}</h3>
           <button style={ghost} onClick={() => onGoto("focus")}>
-            Open Focus →
+            {tr("school.profOverview.openFocusArrow")}
           </button>
         </div>
         {loading ? (
-          <p style={{ opacity: 0.55, fontSize: "0.85rem", margin: 0 }}>Loading…</p>
+          <p style={{ opacity: 0.55, fontSize: "0.85rem", margin: 0 }}>{tr("school.loading")}</p>
         ) : !ov || ov.alerts.length === 0 ? (
           <p style={{ opacity: 0.55, fontSize: "0.85rem", margin: 0 }}>
-            No students need attention right now.
+            {tr("school.insights.noneNeedAttention")}
           </p>
         ) : (
           ov.alerts.slice(0, 6).map((a) => (
@@ -119,11 +126,11 @@ export function ProfOverviewView({
                 {a.name}
                 <span style={{ opacity: 0.5, fontSize: "0.8rem" }}>
                   {" "}
-                  · {a.className} · {a.statusLabel ?? "at risk"} · {pctOrDash(a.avgMastery)}
+                  · {a.className} · {a.statusLabel ?? tr("school.insights.atRiskFallback")} · {pctOrDash(a.avgMastery)}
                 </span>
               </span>
               <button style={ghost} onClick={() => onOpenStudent(a.classId, a.userId)}>
-                Focus →
+                {tr("school.profOverview.focusArrow")}
               </button>
             </div>
           ))
@@ -132,9 +139,9 @@ export function ProfOverviewView({
 
       <div style={box}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.6rem", flexWrap: "wrap" }}>
-          <h3 style={{ margin: 0, flex: 1 }}>Steer <RayaName /> for a class</h3>
+          <h3 style={{ margin: 0, flex: 1 }}>{tr("school.profOverview.steerRayaPrefix")} <RayaName /> {tr("school.profOverview.forAClass")}</h3>
           <select style={input} value={instrClassId} onChange={(e) => setInstrClassId(e.target.value)}>
-            {classes.length === 0 && <option value="">No classes</option>}
+            {classes.length === 0 && <option value="">{tr("school.team.noClassesOption")}</option>}
             {classes.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -146,17 +153,17 @@ export function ProfOverviewView({
           <InstructionsPanel classId={instrClassId} />
         ) : (
           <p style={{ opacity: 0.55, fontSize: "0.85rem", margin: 0 }}>
-            You have no assigned classes yet.
+            {tr("school.profOverview.noAssignedClassesYet")}
           </p>
         )}
       </div>
 
       <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
         <button style={ghost} onClick={() => onGoto("prepare")}>
-          Prepare an exam or exercise
+          {tr("school.profOverview.prepareExamOrExercise")}
         </button>
         <button style={ghost} onClick={() => onGoto("reports")}>
-          Generate a class report
+          {tr("school.profOverview.generateClassReport")}
         </button>
       </div>
     </div>

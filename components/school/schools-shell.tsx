@@ -21,6 +21,7 @@ import { display, type AppTheme } from "@/components/ui/tokens";
 import { RayaText, SchoolsName } from "@/components/ui/brand";
 import { DegradedBanner } from "@/components/ui/degraded-banner";
 import { initialsOf } from "@/lib/name";
+import { useTranslate } from "@/components/ui/locale";
 
 export type SchoolNavItem = {
   key: string;
@@ -84,6 +85,7 @@ export function SchoolsShell({
   contentFlush?: boolean;
   children: ReactNode;
 }) {
+  const tr = useTranslate();
   const [collapsed, setCollapsed] = useState(false);
   const [rightOpen, setRightOpen] = useRightPanel();
   /** Small-screen only: the sidebar is an overlay drawer. */
@@ -226,7 +228,7 @@ export function SchoolsShell({
                 onClick={() => setRightOpen((o) => !o)}
                 size={34}
                 radius={10}
-                title={rightOpen ? "Hide panel" : "Show panel"}
+                title={rightOpen ? tr("chat.hidePanel") : tr("chat.showPanel")}
                 bg={rightOpen ? t.sidebarActiveBg : undefined}
               >
                 <IconPanel size={15} />

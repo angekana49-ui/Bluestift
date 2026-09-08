@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { netFetch } from "@/lib/net/client-fetch";
 import { downloadBrandedPdf, downloadBrandedText, type BrandedDoc } from "@/lib/document";
 import { ShareLinkButton } from "@/components/study/share-button";
 import { useAppTheme } from "@/components/ui/theme";
 import { IconGlobe } from "@/components/site/icons";
 import { radius, text as textScale, type AppTheme } from "@/components/ui/tokens";
 import { LOCALES, type Locale } from "@/lib/locale";
-import { useAppLocale } from "@/components/ui/locale";
+import { useAppLocale, useTranslate } from "@/components/ui/locale";
 
 /**
  * The export row: a language, then TXT / PDF / Share.
@@ -50,6 +51,7 @@ export function DocumentActions({
 }) {
   const { theme: t } = useAppTheme();
   const { locale: uiLocale } = useAppLocale();
+  const tr = useTranslate();
 
   // Defaults to the interface language, which is the right guess often enough
   // to save most people the click, and is never applied without being shown.
@@ -106,16 +108,23 @@ export function DocumentActions({
     setBusy(true);
     setNote(null);
     try {
-      const res = await fetch("/api/documents/translate", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ title: doc.title, meta: doc.meta ?? null, body: doc.body, locale: lang, personal }),
-      });
+      // Model-backed (and cached server-side on repeat content) — a big
+      // document's first translation can take a while, so this needs real
+      // headroom rather than the 10s default.
+      const res = await netFetch(
+        "/api/documents/translate",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ title: doc.title, meta: doc.meta ?? null, body: doc.body, locale: lang, personal }),
+        },
+        { timeoutMs: 65_000 },
+      );
       const data = (await res.json().catch(() => null)) as
         | { title?: string; meta?: string | null; body?: string; translated?: boolean; error?: string }
         | null;
       if (!res.ok || !data?.body || !data.title) {
-        setNote(data?.error ?? "Couldn't translate — downloading the original.");
+        setNote(data?.error ?? tr("docActions.translateFailed"));
         return doc;
       }
       const translated: BrandedDoc = {
@@ -125,10 +134,10 @@ export function DocumentActions({
         body: data.body,
       };
       if (data.translated) cacheRef.current.set(lang, translated);
-      else setNote("This is already in that language — downloading as it is.");
+      else setNote(tr("docActions.alreadyThatLanguage"));
       return translated;
     } catch {
-      setNote("Couldn't translate — downloading the original.");
+      setNote(tr("docActions.translateFailed"));
       return doc;
     } finally {
       setBusy(false);
@@ -152,8 +161,8 @@ export function DocumentActions({
           onClick={() => setOpen((o) => !o)}
           aria-haspopup="listbox"
           aria-expanded={open}
-          aria-label="Document language"
-          title="Language of the downloaded document"
+          aria-label={tr("docActions.languageLabel")}
+          title={tr("docActions.languageTitle")}
           style={{ ...btn, display: "inline-flex", alignItems: "center", gap: 6 }}
         >
           <IconGlobe size={14} strokeWidth={1.8} />
@@ -163,7 +172,7 @@ export function DocumentActions({
         {open && (
           <div
             role="listbox"
-            aria-label="Document language"
+            aria-label={tr("docActions.languageLabel")}
             style={{
               position: "absolute",
               left: 0,

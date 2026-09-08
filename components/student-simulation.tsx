@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useAppTheme } from "@/components/ui/theme";
+import { netFetch, getJsonCached, invalidateCached } from "@/lib/net/client-fetch";
 import { panelCard, cardTitle, textInput, ctaButton, ghostButton } from "@/components/ui/forms";
 import type { AppTheme } from "@/components/ui/tokens";
+import { useTranslate } from "@/components/ui/locale";
+import type { MessageKey } from "@/lib/i18n";
 
 type SimResult = {
   projected_mastery_pct: number | null;
@@ -24,7 +27,19 @@ type SimRun = {
 };
 
 // One-tap focus suggestions so the field is never a blank box.
-const FOCUS_SUGGESTIONS = ["My weakest concepts", "Maths", "Essay writing", "Exam problems", "Reading comprehension"];
+const FOCUS_KEYS: MessageKey[] = [
+  "kernel.sim.focus.weakest",
+  "subject.maths",
+  "kernel.sim.focus.essay",
+  "kernel.sim.focus.examProblems",
+  "kernel.sim.focus.readingComprehension",
+];
+
+const CONF_PHRASE_KEY: Record<string, MessageKey> = {
+  low: "kernel.sim.confPhrase.low",
+  medium: "kernel.sim.confPhrase.medium",
+  high: "kernel.sim.confPhrase.high",
+};
 
 const confColor = (c: string) => (c === "high" ? "#22c55e" : c === "medium" ? "#f59e0b" : "#94a3b8");
 
@@ -36,6 +51,7 @@ const confColor = (c: string) => (c === "high" ? "#22c55e" : c === "medium" ? "#
  */
 export function StudentSimulation() {
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
   const [focus, setFocus] = useState("");
   const [hours, setHours] = useState(3);
   const [busy, setBusy] = useState(false);
@@ -48,14 +64,15 @@ export function StudentSimulation() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        const res = await fetch("/api/simulations");
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!cancelled) setHistory((data.simulations ?? []) as SimRun[]);
-      } catch {
-        // history is a nicety — ignore failures
-      }
+      // History is a nicety — cached first so it's never a spinner, and a
+      // miss just leaves the list empty rather than showing an error.
+      const { data } = await getJsonCached<{ simulations?: SimRun[] }>("/api/simulations", {
+        cacheKey: "kernel:simulations",
+        onUpdate: (fresh) => {
+          if (!cancelled) setHistory(fresh.simulations ?? []);
+        },
+      });
+      if (!cancelled && data) setHistory(data.simulations ?? []);
     })();
     return () => {
       cancelled = true;
@@ -67,14 +84,20 @@ export function StudentSimulation() {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/simulations", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ focus, addHours: hours }),
-      });
+      // Server-side LLM projection — the same 65s budget as the other
+      // simulation/projection endpoints in the app.
+      const res = await netFetch(
+        "/api/simulations",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ focus, addHours: hours }),
+        },
+        { timeoutMs: 65_000 },
+      );
       const data = await res.json().catch(() => null);
       if (!res.ok) {
-        setError(data?.error ?? "Couldn't run the simulation.");
+        setError(data?.error ?? tr("kernel.sim.runFailed"));
         return;
       }
       setResult(data.result as SimResult);
@@ -83,9 +106,10 @@ export function StudentSimulation() {
           { id: data.id, focus: focus || null, add_hours: hours, result: data.result, created_at: data.createdAt },
           ...h,
         ]);
+        invalidateCached("kernel:simulations");
       }
     } catch {
-      setError("Couldn't run the simulation.");
+      setError(tr("kernel.sim.runFailed"));
     } finally {
       setBusy(false);
     }
@@ -108,16 +132,15 @@ export function StudentSimulation() {
 
   return (
     <div style={panelCard(t)}>
-      <h2 style={cardTitle(t)}>What-if simulation</h2>
+      <h2 style={cardTitle(t)}>{tr("kernel.sim.title")}</h2>
       <p style={{ margin: "0 0 14px", color: t.muted, fontSize: 14, lineHeight: 1.6 }}>
-        Project where you could get if you put in more focused study. It&apos;s a grounded estimate from
-        your own Kernel profile — a compass, not a promise.
+        {tr("kernel.sim.intro")}
       </p>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
         <input
           style={{ ...textInput(t), flex: 1, minWidth: 180, width: "auto" }}
-          placeholder="Focus (e.g. Fractions) — optional"
+          placeholder={tr("kernel.sim.focusPlaceholder")}
           value={focus}
           onChange={(e) => setFocus(e.target.value)}
         />
@@ -128,19 +151,20 @@ export function StudentSimulation() {
         >
           {[1, 2, 3, 5, 8, 10].map((h) => (
             <option key={h} value={h}>
-              +{h} h / week
+              +{h} {tr("kernel.sim.hoursPerWeek")}
             </option>
           ))}
         </select>
         <button style={{ ...ctaButton(t), opacity: busy ? 0.6 : 1 }} onClick={run} disabled={busy}>
-          {busy ? "Projecting…" : "Run"}
+          {busy ? tr("kernel.sim.projecting") : tr("kernel.sim.run")}
         </button>
       </div>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-        {FOCUS_SUGGESTIONS.map((s) => {
+        {FOCUS_KEYS.map((key) => {
+          const s = tr(key);
           const on = focus === s;
           return (
-            <button key={s} type="button" style={chip(on)} onClick={() => setFocus(on ? "" : s)}>
+            <button key={key} type="button" style={chip(on)} onClick={() => setFocus(on ? "" : s)}>
               {s}
             </button>
           );
@@ -153,18 +177,18 @@ export function StudentSimulation() {
         <div style={{ marginTop: 16, borderTop: `1px solid ${t.cardBorder}`, paddingTop: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
             {current != null && (
-              <Stat theme={t} label="Now" value={`${current}%`} color={t.muted} />
+              <Stat theme={t} label={tr("kernel.sim.now")} value={`${current}%`} color={t.muted} />
             )}
             {projected != null && (
               <>
                 <span style={{ color: t.mutedLight }}>→</span>
-                <Stat theme={t} label="Projected" value={`${projected}%`} color="#22c55e" />
+                <Stat theme={t} label={tr("kernel.sim.projected")} value={`${projected}%`} color="#22c55e" />
               </>
             )}
             {delta != null && (
               <span style={{ fontSize: 14, fontWeight: 700, color: delta >= 0 ? "#22c55e" : "#ef4444" }}>
                 {delta >= 0 ? "+" : ""}
-                {delta} pts
+                {delta} {tr("kernel.sim.pts")}
               </span>
             )}
             <span
@@ -179,21 +203,21 @@ export function StudentSimulation() {
                 padding: "3px 10px",
               }}
             >
-              {result.confidence} confidence
+              {tr(CONF_PHRASE_KEY[result.confidence] ?? "kernel.sim.confPhrase.medium")}
             </span>
-            <button style={ghostButton(t)} title="Dismiss" onClick={() => setResult(null)}>
+            <button style={ghostButton(t)} title={tr("kernel.sim.dismiss")} onClick={() => setResult(null)}>
               ✕
             </button>
           </div>
 
           <p style={{ fontSize: 15, color: t.text, lineHeight: 1.65, margin: "0 0 12px" }}>{result.summary}</p>
 
-          <List theme={t} title="What this assumes" items={result.assumptions} />
-          <List theme={t} title="Watch out for" items={result.risks} />
-          <List theme={t} title="Your next steps" items={result.next_steps} accent="#2f7fe0" />
+          <List theme={t} title={tr("kernel.sim.assumes")} items={result.assumptions} />
+          <List theme={t} title={tr("kernel.sim.risks")} items={result.risks} />
+          <List theme={t} title={tr("kernel.sim.nextSteps")} items={result.next_steps} accent="#2f7fe0" />
 
           <p style={{ fontSize: 13, color: t.mutedLight, margin: "10px 0 0" }}>
-            Estimate generated from your cognitive profile — not a guarantee.
+            {tr("kernel.sim.disclaimer")}
           </p>
         </div>
       )}
@@ -204,7 +228,7 @@ export function StudentSimulation() {
             onClick={() => setShowHistory((s) => !s)}
             style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: 13, fontWeight: 700, color: t.muted }}
           >
-            {showHistory ? "▾" : "▸"} Past simulations ({history.length})
+            {showHistory ? "▾" : "▸"} {tr("kernel.sim.pastSimulations")} ({history.length})
           </button>
           {showHistory && (
             <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 10 }}>
@@ -228,7 +252,7 @@ export function StudentSimulation() {
                     }}
                   >
                     <span style={{ flex: 1, fontSize: 14, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      +{h.add_hours}h · {h.focus || "weakest concepts"}
+                      +{h.add_hours}h · {h.focus || tr("kernel.sim.weakestConceptsFallback")}
                     </span>
                     {cur != null && proj != null && (
                       <span style={{ fontSize: 14, fontWeight: 700, color: proj >= cur ? "#22c55e" : "#ef4444" }}>

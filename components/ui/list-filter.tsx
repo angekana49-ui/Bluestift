@@ -3,6 +3,7 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { filterBySearch } from "@/lib/search";
 import { useAppTheme } from "@/components/ui/theme";
+import { useTranslate } from "@/components/ui/locale";
 import { IconSearch } from "@/components/ui/icons";
 import { radius, text, type AppTheme } from "@/components/ui/tokens";
 
@@ -146,6 +147,7 @@ export function ListToolbar<T>({
  */
 function SearchField<T>({ search }: { search: ListSearch<T> }) {
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
   return (
     <div style={{ position: "relative", flex: "1 1 220px", minWidth: 180, maxWidth: 380 }}>
       <span
@@ -173,8 +175,8 @@ function SearchField<T>({ search }: { search: ListSearch<T> }) {
             search.clear();
           }
         }}
-        placeholder={`Search ${search.noun}…`}
-        aria-label={`Search ${search.noun}`}
+        placeholder={`${tr("list.searchWord")} ${search.noun}…`}
+        aria-label={`${tr("list.searchWord")} ${search.noun}`}
         style={{
           background: t.inputBg,
           color: t.text,
@@ -299,6 +301,7 @@ export function FilterChips({
  */
 export function ListNoMatch<T>({ search }: { search: ListSearch<T> }) {
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
   if (!search.noMatch) return null;
   return (
     <div
@@ -313,7 +316,7 @@ export function ListNoMatch<T>({ search }: { search: ListSearch<T> }) {
       }}
     >
       <span>
-        No {search.noun} match “{search.query.trim()}”.
+        {search.noun}{tr("list.noMatchVerb")} “{search.query.trim()}”.
       </span>
       <button
         type="button"
@@ -329,7 +332,7 @@ export function ListNoMatch<T>({ search }: { search: ListSearch<T> }) {
           cursor: "pointer",
         }}
       >
-        Clear search
+        {tr("list.clearSearch")}
       </button>
     </div>
   );
@@ -343,10 +346,11 @@ export function ListNoMatch<T>({ search }: { search: ListSearch<T> }) {
  */
 export function ListCount<T>({ search }: { search: ListSearch<T> }) {
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
   if (!search.active || search.noMatch) return null;
   return (
     <span style={{ color: t.mutedLight, fontSize: text.xs, fontWeight: 600 }}>
-      {search.visible.length} of {search.total}
+      {search.visible.length} {tr("list.ofWord")} {search.total}
     </span>
   );
 }

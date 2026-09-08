@@ -10,6 +10,7 @@ import { softValue } from "@/lib/page-data";
 import { initialsOf } from "@/lib/name";
 import { resolveRayaEntitlements } from "@/lib/entitlements";
 import { isMinorBirthYear } from "@/lib/rooms";
+import { getServerTranslate } from "@/lib/i18n/server";
 
 export default async function RoomsPage() {
   const supabase = await createClient();
@@ -29,6 +30,7 @@ export default async function RoomsPage() {
     created_at: string;
   };
   const cols = "id, name, subject, visibility, status, created_at";
+  const tr = await getServerTranslate();
 
   // Wave 1: profile, memberships and the (soft) plan label together — the plan
   // label used to sit on its own serial round trip.
@@ -74,7 +76,7 @@ export default async function RoomsPage() {
   return (
     <RayaScaffold active="rooms" studentName={studentName} studentInitials={initialsOf(studentName)} studentAvatarUrl={profile.profile_picture_url} studentPlan={studentPlan}>
       <PageBody>
-        <SectionHeader title="Rooms" subtitle="Study in a group with Raya in the room." />
+        <SectionHeader title="Rooms" subtitle={tr("rooms.pageSubtitle")} />
         <RoomsList
           rooms={rooms ?? []}
           myRoomIds={myRoomIds}

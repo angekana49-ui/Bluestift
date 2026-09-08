@@ -8,6 +8,8 @@ import { Modal } from "@/components/ui/modal";
 import { type BrandedDoc } from "@/lib/document";
 import { RayaName } from "@/components/ui/brand";
 import { netFetch, getJsonCached, invalidateCached } from "@/lib/net/client-fetch";
+import { useTranslate } from "@/components/ui/locale";
+import type { MessageKey } from "@/lib/i18n";
 
 type ClassOpt = { id: string; name: string };
 type SubjectOpt = { id: string; name: string };
@@ -36,11 +38,11 @@ type Assignment = {
   done: number;
 };
 
-const KIND_LABEL: Record<string, string> = {
-  exam: "Exam",
-  exercise: "Exercise set",
-  worksheet: "Worksheet",
-  quiz: "Quiz",
+const KIND_LABEL_KEY: Record<string, MessageKey> = {
+  exam: "tools.selfTest.kind.exam.label",
+  exercise: "school.prepare.kindExerciseSet",
+  worksheet: "school.prepare.kindWorksheet",
+  quiz: "tools.pretty.quiz",
 };
 const pctScore = (v: number | null) => (v == null ? "—" : `${Math.round(v * 100)}%`);
 
@@ -63,6 +65,7 @@ export function PrepareView({
   defaultSubjectId?: string | null;
 }) {
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
   const box = panelCard(t);
   const input = textInput(t);
   const btn = ctaButton(t);
@@ -157,7 +160,7 @@ export function PrepareView({
       setLibrary((v) => [item, ...v]);
       invalidateCached("school:prepare");
     } catch {
-      setError("Could not generate. The tutoring engine may be busy — try again.");
+      setError(tr("school.prepare.generateFailed"));
     } finally {
       setBusy(false);
     }
@@ -166,7 +169,7 @@ export function PrepareView({
   const docFor = (r: Resource): BrandedDoc => ({
     brand: "bluestift",
     title: r.title,
-    meta: [KIND_LABEL[r.kind] ?? r.kind, new Date(r.createdAt).toLocaleDateString()].filter(Boolean).join(" · "),
+    meta: [KIND_LABEL_KEY[r.kind] ? tr(KIND_LABEL_KEY[r.kind]) : r.kind, new Date(r.createdAt).toLocaleDateString()].filter(Boolean).join(" · "),
     audience: schoolName,
     body: r.content,
   });
@@ -174,20 +177,19 @@ export function PrepareView({
   return (
     <div>
       <div style={box}>
-        <h2 style={{ fontSize: "1.1rem", margin: "0 0 0.25rem" }}>Prepare with <RayaName /></h2>
+        <h2 style={{ fontSize: "1.1rem", margin: "0 0 0.25rem" }}>{tr("school.prepare.titleA")} <RayaName /></h2>
         <p style={{ opacity: 0.6, fontSize: "0.85rem", margin: "0 0 0.85rem" }}>
-          Generate a {KIND_LABEL[kind]?.toLowerCase()} grounded in your class&apos;s real gaps — the
-          Kernel points <RayaName /> at the weakest concepts so the material shores them up.
+          {tr("school.prepare.introA")} {tr(KIND_LABEL_KEY[kind]).toLowerCase()} {tr("school.prepare.introB")} <RayaName /> {tr("school.prepare.introC")}
         </p>
         <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", alignItems: "center" }}>
           <select style={input} value={kind} onChange={(e) => setKind(e.target.value as Kind)} disabled={busy}>
-            <option value="exercise">Exercise set</option>
-            <option value="worksheet">Worksheet</option>
-            <option value="quiz">Quiz (MCQ)</option>
-            <option value="exam">Exam</option>
+            <option value="exercise">{tr("school.prepare.kindExerciseSet")}</option>
+            <option value="worksheet">{tr("school.prepare.kindWorksheet")}</option>
+            <option value="quiz">{tr("tools.tool.quiz")}</option>
+            <option value="exam">{tr("tools.selfTest.kind.exam.label")}</option>
           </select>
           <select style={input} value={classId} onChange={(e) => setClassId(e.target.value)} disabled={busy}>
-            <option value="">No class (general)</option>
+            <option value="">{tr("school.prepare.noClassGeneral")}</option>
             {classes.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -195,7 +197,7 @@ export function PrepareView({
             ))}
           </select>
           <select style={input} value={subjectId} onChange={(e) => setSubjectId(e.target.value)} disabled={busy}>
-            <option value="">Any subject</option>
+            <option value="">{tr("school.prepare.anySubject")}</option>
             {subjects.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
@@ -209,13 +211,13 @@ export function PrepareView({
             max={20}
             value={count}
             onChange={(e) => setCount(Number(e.target.value))}
-            title="Number of questions"
+            title={tr("school.prepare.numberOfQuestionsTitle")}
             disabled={busy}
           />
         </div>
         <input
           style={{ ...input, width: "100%", marginTop: "0.6rem" }}
-          placeholder="Topic or focus (optional) — e.g. fractions, the water cycle…"
+          placeholder={tr("school.prepare.topicPlaceholder")}
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
           maxLength={200}
@@ -223,10 +225,10 @@ export function PrepareView({
         />
         <div style={formActions}>
           <span style={{ opacity: 0.6, fontSize: "0.78rem", marginRight: "auto" }}>
-            Download &amp; print, or assign it to a class from your library below.
+            {tr("school.prepare.downloadAssignHint")}
           </span>
           <button style={{ ...btn, opacity: busy ? 0.7 : 1 }} onClick={generate} disabled={busy}>
-            {busy ? "Generating…" : "Generate"}
+            {busy ? tr("tools.generating") : tr("tools.generate")}
           </button>
         </div>
         {error && <p style={{ color: "#f87171", margin: "0.75rem 0 0" }}>{error}</p>}
@@ -246,7 +248,7 @@ export function PrepareView({
 
       {library.length > 0 && (
         <div style={box}>
-          <h3 style={{ marginTop: 0 }}>Your library</h3>
+          <h3 style={{ marginTop: 0 }}>{tr("school.prepare.yourLibrary")}</h3>
           {library.map((r, i) => (
             <LibraryRow
               key={r.id ?? i}
@@ -261,7 +263,7 @@ export function PrepareView({
 
       {assignments.length > 0 && (
         <div style={box}>
-          <h3 style={{ marginTop: 0 }}>Assigned to classes</h3>
+          <h3 style={{ marginTop: 0 }}>{tr("school.prepare.assignedToClasses")}</h3>
           {assignments.map((a) => (
             <AssignmentRow key={a.assignmentId} a={a} />
           ))}
@@ -284,6 +286,7 @@ function LibraryRow({
   onAssigned: () => void;
 }) {
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
   const input = textInput(t);
   const btn = ctaButton(t);
   const ghost = ghostButton(t);
@@ -313,12 +316,12 @@ function LibraryRow({
         { timeoutMs: 15_000 },
       );
       const d = await res.json();
-      if (!res.ok) throw new Error(d?.error ?? "Could not assign.");
-      setMsg("Assigned ✓");
+      if (!res.ok) throw new Error(d?.error ?? tr("school.prepare.assignFailed"));
+      setMsg(tr("school.prepare.assignedCheck"));
       setOpen(false);
       onAssigned();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not assign.");
+      setError(e instanceof Error ? e.message : tr("school.prepare.assignFailed"));
     } finally {
       setBusy(false);
     }
@@ -331,17 +334,17 @@ function LibraryRow({
           {r.title}
           <span style={{ opacity: 0.5, fontSize: "0.78rem" }}>
             {" "}
-            · {KIND_LABEL[r.kind] ?? r.kind}
+            · {KIND_LABEL_KEY[r.kind] ? tr(KIND_LABEL_KEY[r.kind]) : r.kind}
             {r.className ? ` · ${r.className}` : ""}
           </span>
         </span>
         <span style={{ opacity: 0.5, fontSize: "0.8rem" }}>{new Date(r.createdAt).toLocaleDateString()}</span>
         <button style={ghost} onClick={onView}>
-          View
+          {tr("school.roster.view")}
         </button>
         {assignable && (
           <button style={ghost} onClick={() => setOpen((v) => !v)}>
-            {open ? "Cancel" : "Assign"}
+            {open ? tr("school.class.cancel") : tr("school.team.assignButton")}
           </button>
         )}
       </div>
@@ -349,7 +352,7 @@ function LibraryRow({
       {open && (
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center", marginTop: "0.5rem" }}>
           <select style={input} value={classId} onChange={(e) => setClassId(e.target.value)} disabled={busy}>
-            {classes.length === 0 && <option value="">No classes</option>}
+            {classes.length === 0 && <option value="">{tr("school.team.noClassesOption")}</option>}
             {classes.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -361,7 +364,7 @@ function LibraryRow({
             type="datetime-local"
             value={due}
             onChange={(e) => setDue(e.target.value)}
-            title="Deadline (optional)"
+            title={tr("school.prepare.deadlineOptional")}
             disabled={busy}
           />
           {/* A select and a date field are both fixed-width, so the row's slack
@@ -374,7 +377,7 @@ function LibraryRow({
             onClick={assign}
             disabled={busy || !classId}
           >
-            {busy ? "Assigning…" : "Assign to class"}
+            {busy ? tr("school.prepare.assigning") : tr("school.prepare.assignToClass")}
           </button>
           {error && (
             <span style={{ color: "#f87171", fontSize: "0.8rem", flexBasis: "100%" }}>{error}</span>
@@ -388,6 +391,7 @@ function LibraryRow({
 /** One assignment row with an expandable per-student results table. */
 function AssignmentRow({ a }: { a: Assignment }) {
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
   const ghost = ghostButton(t);
   const [open, setOpen] = useState(false);
   const [results, setResults] = useState<{ name: string; done: boolean; score: number | null }[] | null>(null);
@@ -425,33 +429,33 @@ function AssignmentRow({ a }: { a: Assignment }) {
           {a.title}
           <span style={{ opacity: 0.5, fontSize: "0.78rem" }}>
             {" "}
-            · {KIND_LABEL[a.kind] ?? a.kind} · {a.className}
-            {due ? ` · due ${due}` : ""}
+            · {KIND_LABEL_KEY[a.kind] ? tr(KIND_LABEL_KEY[a.kind]) : a.kind} · {a.className}
+            {due ? ` · ${tr("school.prepare.dueSuffix")} ${due}` : ""}
           </span>
         </span>
         <span style={{ fontSize: "0.82rem", opacity: 0.75 }}>
-          {a.done}/{a.assigned} done
+          {a.done}/{a.assigned} {tr("school.prepare.doneSuffix")}
         </span>
         <button style={ghost} onClick={toggle}>
-          {open ? "Hide" : "Results"}
+          {open ? tr("school.archive.hide") : tr("school.prepare.results")}
         </button>
       </div>
       {open && (
         <div style={{ marginTop: "0.5rem" }}>
           {loading ? (
-            <p style={{ opacity: 0.55, fontSize: "0.82rem", margin: 0 }}>Loading…</p>
+            <p style={{ opacity: 0.55, fontSize: "0.82rem", margin: 0 }}>{tr("school.loading")}</p>
           ) : !results || results.length === 0 ? (
-            <p style={{ opacity: 0.55, fontSize: "0.82rem", margin: 0 }}>No students in this class yet.</p>
+            <p style={{ opacity: 0.55, fontSize: "0.82rem", margin: 0 }}>{tr("school.prepare.noStudentsInClassYet")}</p>
           ) : (
             <>
               {avg != null && (
-                <p style={{ fontSize: "0.82rem", margin: "0 0 0.35rem", opacity: 0.7 }}>Class average: {pctScore(avg)}</p>
+                <p style={{ fontSize: "0.82rem", margin: "0 0 0.35rem", opacity: 0.7 }}>{tr("school.prepare.classAverage")} {pctScore(avg)}</p>
               )}
               {results.map((s, i) => (
                 <div key={i} style={{ display: "flex", gap: "0.5rem", padding: "0.2rem 0", fontSize: "0.85rem" }}>
                   <span style={{ flex: 1 }}>{s.name}</span>
                   <span style={{ opacity: s.done ? 1 : 0.5, color: s.done ? "#22c55e" : undefined }}>
-                    {s.done ? pctScore(s.score) : "Not done"}
+                    {s.done ? pctScore(s.score) : tr("school.prepare.notDone")}
                   </span>
                 </div>
               ))}

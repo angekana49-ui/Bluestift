@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import type { PostHog } from "posthog-js";
 import { createClient } from "@/lib/supabase/client";
+import { netFetch } from "@/lib/net/client-fetch";
 import {
   analyticsAvailable,
   capturing,
@@ -100,7 +101,7 @@ function useMinorLockout(): boolean {
     let active = true;
     (async () => {
       try {
-        const res = await fetch("/api/account/age");
+        const res = await netFetch("/api/account/age", {}, { timeoutMs: 10_000 });
         if (!res.ok) return;
         const { band } = (await res.json()) as { band: string | null };
         if (!active || band === "adult") return;

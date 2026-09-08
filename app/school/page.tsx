@@ -15,6 +15,7 @@ import { softValue } from "@/lib/page-data";
 import { recoveryKeyState, hasRealEmail } from "@/lib/auth";
 import type { AdminClass, ProfContext, SchoolDashboard } from "@/lib/school-admin";
 import { SchoolAdmin } from "@/components/school-admin";
+import { getServerTranslate } from "@/lib/i18n/server";
 
 export default async function SchoolPage({
   searchParams,
@@ -60,8 +61,9 @@ export default async function SchoolPage({
    * queued a round trip behind the dashboard read for no reason. `softValue`
    * absorbs its own failure, so nothing here can reject unobserved.
    */
+  const tr = await getServerTranslate();
   const planLabelPromise = resolvedActiveSchoolId
-    ? softValue(getPlanLabel({ schoolId: resolvedActiveSchoolId }), "Free")
+    ? softValue(getPlanLabel({ schoolId: resolvedActiveSchoolId }), tr("raya.settings.billing.free"))
     : Promise.resolve(null);
 
   let dashboard: SchoolDashboard | null = null;
@@ -87,7 +89,7 @@ export default async function SchoolPage({
   // like Raya) — the dashboard is an extension of Raya for staff, so we show
   // *them*, not the school name / "My classes".
   const userName = profile.display_name || profile.username || "";
-  const teacherName = userName || "Teacher";
+  const teacherName = userName || tr("school.role.teacher");
 
   // The plan/forfait line under the name in the profile chip: the active school's
   // subscription (same for admin and teacher — they share the school's plan).

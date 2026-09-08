@@ -14,7 +14,7 @@ import { FilePreview, type Attachment } from "@/components/attachment";
 import { type BrandedDoc } from "@/lib/document";
 import { DocumentActions } from "@/components/ui/doc-actions";
 import { useDarkMode, useAppTheme, AppThemeProvider } from "@/components/ui/theme";
-import { LocaleProvider } from "@/components/ui/locale";
+import { LocaleProvider, useTranslate } from "@/components/ui/locale";
 import { useLocale } from "@/lib/use-locale";
 import { RayaShell } from "@/components/raya/raya-shell";
 import { RightPanel, IconButton, PageBody } from "@/components/ui/shell";
@@ -176,6 +176,7 @@ function RoomViewBody({
 }) {
   const router = useRouter();
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
   const btn = mkBtn(t);
   const ghost = mkGhost(t);
   const listBox = mkListBox(t);
@@ -240,19 +241,25 @@ function RoomViewBody({
     setRepBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/rooms/report", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ roomId }),
-      });
+      // Server-generated narrative report (LLM-backed, non-streamed) — the
+      // same 65s budget as the room's other full-generation calls.
+      const res = await netFetch(
+        "/api/rooms/report",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ roomId }),
+        },
+        { timeoutMs: 65_000 },
+      );
       const data = await res.json();
       if (!res.ok) {
-        setError(data?.error ?? "Could not generate the report.");
+        setError(data?.error ?? tr("room.reportGenFailed"));
         return;
       }
       setReport(data.report);
     } catch {
-      setError("Could not generate the report.");
+      setError(tr("room.reportGenFailed"));
     } finally {
       setRepBusy(false);
     }
@@ -289,9 +296,9 @@ function RoomViewBody({
   const [realtimeDown, setRealtimeDown] = useState(false);
 
   function nameOf(userId: string | null): string {
-    if (!userId) return "Member";
+    if (!userId) return tr("room.memberFallback");
     const r = roster[userId];
-    return r?.display_name || (r?.username ? `@${r.username}` : "Member");
+    return r?.display_name || (r?.username ? `@${r.username}` : tr("room.memberFallback"));
   }
 
   /** A member's avatar seed (initials + optional photo) for the chat + panel. */
@@ -314,17 +321,23 @@ function RoomViewBody({
     // Same endpoint as the solo chat, so the same plan quota applies to it.
     metered: true,
     aiModeSwitcher: true,
-    greeting: (name) => (name ? `This stays between us, ${name}` : "Private line to Raya"),
-    emptyHint: "Private to you and Raya. Ask anything about the room's topic — Raya can read the shared documents.",
-    suggestions: ["Explain the key idea", "Quiz me on this", "Break down the shared docs"],
-    placeholder: "Write privately to Raya…",
+    greeting: (name) => (name ? `${tr("room.privateGreetingWithName")} ${name}` : tr("room.privateGreetingNoName")),
+    emptyHint: tr("room.privateEmptyHint"),
+    suggestions: [tr("room.privateSuggestion1"), tr("room.privateSuggestion2"), tr("room.privateSuggestion3")],
+    placeholder: tr("room.privatePlaceholder"),
     extraBody: { roomId },
     // Hybrid: no LLM needed — when the room has a subject we template the chips
     // from it (works offline); otherwise the static set above stays.
     personalizedHooks: async () => {
       const s = subject?.trim();
       if (!s) return null;
-      return { suggestions: [`Explain the key idea of ${s}`, `Quiz me on ${s}`, "Break down the shared docs"] };
+      return {
+        suggestions: [
+          `${tr("room.privateSuggestionOfA")} ${s}`,
+          `${tr("room.privateSuggestionOfB")} ${s}`,
+          tr("room.privateSuggestion3"),
+        ],
+      };
     },
   };
   const privateEngine = useChatEngine({
@@ -483,7 +496,7 @@ function RoomViewBody({
       setJoined(true);
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not join.");
+      setError(e instanceof Error ? e.message : tr("room.joinFailed"));
     } finally {
       setBusy(false);
     }
@@ -524,7 +537,7 @@ function RoomViewBody({
       // first (as this did) threw the text away on every failed send.
       if (textArg === undefined) setInput("");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not send — your message is still here.");
+      setError(e instanceof Error ? e.message : tr("room.sendFailed"));
       if (textArg === undefined) setInput(text);
     }
   }
@@ -538,16 +551,17 @@ function RoomViewBody({
       const fd = new FormData();
       fd.append("roomId", roomId);
       fd.append("file", file);
-      const res = await fetch("/api/rooms/files", { method: "POST", body: fd });
+      // Audio/PDF go through server-side extraction (maxDuration 60s).
+      const res = await netFetch("/api/rooms/files", { method: "POST", body: fd }, { timeoutMs: 65_000 });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
-        setError(data?.error ?? "Upload failed.");
+        setError(data?.error ?? tr("room.uploadFailed"));
         return;
       }
       const f = data.file as RoomFileRow | undefined;
       if (f?.message_id) setRoomFiles((m) => ({ ...m, [f.message_id as string]: f }));
     } catch {
-      setError("Upload failed.");
+      setError(tr("room.uploadFailed"));
     } finally {
       setGroupUploading(false);
     }
@@ -569,7 +583,7 @@ function RoomViewBody({
       );
       const data = await res.json().catch(() => null);
       if (!res.ok) {
-        setError(data?.error ? `Raya: ${data.error}` : "Raya could not reply.");
+        setError(data?.error ? `${tr("room.rayaErrorPrefix")} ${data.error}` : tr("room.rayaNoReply"));
         return;
       }
       // Render the reply straight from the response. Realtime may also deliver
@@ -577,7 +591,7 @@ function RoomViewBody({
       // way the student who asked ever sees it.
       if (data?.message) mergeMessages([data.message as GroupMsg]);
     } catch {
-      setError("Could not reach Raya.");
+      setError(tr("room.rayaUnreachable"));
     } finally {
       setBusy(false);
     }
@@ -616,9 +630,9 @@ function RoomViewBody({
                   : t.cardBg2,
               border: `1px solid ${expired ? "rgba(239,68,68,0.4)" : remainingMs <= 120_000 ? "rgba(245,158,11,0.45)" : t.cardBorder}`,
             }}
-        title={expired ? "The session has ended" : "Time left in this session"}
+        title={expired ? tr("room.timerEndedTitle") : tr("room.timerLeftTitle")}
       >
-        ⏱ {expired ? "Ended" : `${fmtRemaining(remainingMs)} left`}
+        ⏱ {expired ? tr("room.timerEndedShort") : `${fmtRemaining(remainingMs)} ${tr("room.leftSuffix")}`}
       </span>
     ) : null;
 
@@ -627,7 +641,7 @@ function RoomViewBody({
     <IconButton
       theme={t}
       onClick={() => setChromeOpen((o) => !o)}
-      title={chromeOpen ? "Collapse room header" : "Expand room header"}
+      title={chromeOpen ? tr("room.collapseHeader") : tr("room.expandHeader")}
       bg={t.cardBg2}
     >
       <svg
@@ -682,7 +696,7 @@ function RoomViewBody({
             <IconButton
               theme={t}
               onClick={() => setDocsOpen((o) => !o)}
-              title="Room documents"
+              title={tr("room.headerDocsPopoverTitle")}
               bg={docsOpen ? t.sidebarActiveBg : t.cardBg2}
             >
               <IconFile size={14} />
@@ -691,7 +705,7 @@ function RoomViewBody({
                 collapse), and hidden on phone where the mobile header owns it. */}
             {!rightOpen && (
               <span className="app-hide-phone" style={{ display: "inline-flex" }}>
-                <IconButton theme={t} onClick={() => setRightOpen(true)} title="Show panel">
+                <IconButton theme={t} onClick={() => setRightOpen(true)} title={tr("room.showPanel")}>
                   <IconPanel size={14} />
                 </IconButton>
               </span>
@@ -713,9 +727,9 @@ function RoomViewBody({
                   padding: 12,
                 }}
               >
-                <div style={{ fontSize: 13, fontWeight: 700, color: t.text, marginBottom: 8 }}>Room documents</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: t.text, marginBottom: 8 }}>{tr("room.headerDocsPopoverTitle")}</div>
                 {sharedDocs.length === 0 ? (
-                  <div style={{ fontSize: 13, color: t.muted }}>No documents yet.</div>
+                  <div style={{ fontSize: 13, color: t.muted }}>{tr("room.noDocumentsYet")}</div>
                 ) : (
                   sharedDocs.map((f) => (
                     <div
@@ -787,8 +801,8 @@ function RoomViewBody({
             >
               <span aria-hidden>🔒</span>
               <span>
-                This session has ended — the room is now <strong>read-only</strong>. You can still read the
-                conversation and generate the session report.
+                {tr("room.expiredBannerA")} <strong>{tr("room.expiredBannerStrong")}</strong>
+                {tr("room.expiredBannerB")}
               </span>
             </div>
           )}
@@ -806,14 +820,14 @@ function RoomViewBody({
                 style={{ ...tabBtn(channel === c), flex: "none", whiteSpace: "nowrap" }}
               >
                 {c === "group"
-                  ? "Group chat"
+                  ? tr("room.tab.group")
                   : c === "private"
-                    ? <><RayaName /> (private)</>
+                    ? <><RayaName /> {tr("room.tab.privateSuffix")}</>
                     : c === "challenge"
-                      ? "Challenges"
+                      ? tr("room.tab.challenges")
                       : c === "files"
-                        ? "Files"
-                        : "Report"}
+                        ? tr("room.tab.files")
+                        : tr("room.tab.report")}
               </button>
             ))}
           </div>
@@ -837,9 +851,9 @@ function RoomViewBody({
             textAlign: "center",
           }}
         >
-          <p style={{ color: t.muted, fontSize: 15 }}>Join this room to see the conversation.</p>
+          <p style={{ color: t.muted, fontSize: 15 }}>{tr("room.joinPrompt")}</p>
           <button style={btn} onClick={join} disabled={busy}>
-            Join the room
+            {tr("room.joinButton")}
           </button>
           {error && <p style={{ color: "#f87171", fontSize: 15 }}>{error}</p>}
         </div>
@@ -895,40 +909,40 @@ function RoomViewBody({
         ) : (
           <div style={listBox}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <h3 style={{ margin: 0, flex: 1, fontSize: 16, fontWeight: 700, color: t.text }}>Session report</h3>
+              <h3 style={{ margin: 0, flex: 1, fontSize: 16, fontWeight: 700, color: t.text }}>{tr("room.reportHeading")}</h3>
               {report && (
                 <>
                   <DocumentActions doc={reportDoc(roomName, report)} compact personal />
-                  <button style={{ ...ghost, padding: "5px 12px", fontSize: 13 }} title="Close" onClick={() => setReport(null)}>
+                  <button style={{ ...ghost, padding: "5px 12px", fontSize: 13 }} title={tr("room.closeTitle")} onClick={() => setReport(null)}>
                     ✕
                   </button>
                 </>
               )}
               <button style={{ ...btn, opacity: repBusy ? 0.6 : 1 }} onClick={generateReport} disabled={repBusy}>
-                {repBusy ? "Generating…" : report ? "Regenerate" : "Generate the report"}
+                {repBusy ? tr("room.reportGenerating") : report ? tr("room.reportRegenerate") : tr("room.reportGenerateButton")}
               </button>
             </div>
             {!report ? (
               <p style={{ color: t.muted, fontSize: 15 }}>
-                No report yet — generate one from the room conversation.
+                {tr("room.reportEmpty")}
               </p>
             ) : (
               <div style={{ lineHeight: 1.6, color: t.text, fontSize: 15 }}>
                 {report.squad_score != null && (
                   <p>
-                    <strong>Squad score:</strong> {report.squad_score}/100
+                    <strong>{tr("room.squadScoreLabel")}</strong> {report.squad_score}/100
                   </p>
                 )}
                 <p>
-                  <strong>Summary:</strong> {report.summary ?? "—"}
+                  <strong>{tr("room.summaryLabel")}</strong> {report.summary ?? "—"}
                 </p>
                 <p>
-                  <strong>Key learnings:</strong> {report.key_learnings ?? "—"}
+                  <strong>{tr("room.keyLearningsLabel")}</strong> {report.key_learnings ?? "—"}
                 </p>
                 {Array.isArray(report.highlights) &&
                   (report.highlights as string[]).length > 0 && (
                     <>
-                      <strong>Highlights:</strong>
+                      <strong>{tr("room.highlightsLabel")}</strong>
                       <ul style={{ marginTop: 4 }}>
                         {(report.highlights as string[]).map((h, i) => (
                           <li key={i}>{h}</li>
@@ -937,7 +951,7 @@ function RoomViewBody({
                     </>
                   )}
                 <p>
-                  <strong>Recommendations:</strong> {report.recommendations ?? "—"}
+                  <strong>{tr("room.recommendationsLabel")}</strong> {report.recommendations ?? "—"}
                 </p>
               </div>
             )}
@@ -953,15 +967,25 @@ function RoomViewBody({
   // A light, derived notifications feed — no table, just the room's live signals.
   const notifications: { id: string; tone: "risk" | "warn" | "info"; title: string; detail: string }[] = [];
   if (expired) {
-    notifications.push({ id: "ended", tone: "risk", title: "Session ended", detail: "The room is now read-only." });
+    notifications.push({ id: "ended", tone: "risk", title: tr("room.notifSessionEnded"), detail: tr("room.notifReadOnly") });
   } else if (remainingMs != null && remainingMs <= 120_000) {
-    notifications.push({ id: "soon", tone: "warn", title: "Ending soon", detail: `${fmtRemaining(remainingMs)} left in this session.` });
+    notifications.push({ id: "soon", tone: "warn", title: tr("room.notifEndingSoon"), detail: `${fmtRemaining(remainingMs)} ${tr("room.notifLeftInSession")}` });
   } else if (remainingMs != null) {
-    notifications.push({ id: "running", tone: "info", title: "Session in progress", detail: `${fmtRemaining(remainingMs)} left.` });
+    notifications.push({ id: "running", tone: "info", title: tr("room.notifInProgress"), detail: `${fmtRemaining(remainingMs)} ${tr("room.notifLeftPeriod")}` });
   }
-  notifications.push({ id: "presence", tone: "info", title: `${onlineCount} member${onlineCount === 1 ? "" : "s"} online`, detail: `${memberCount} in this room.` });
+  notifications.push({
+    id: "presence",
+    tone: "info",
+    title: `${onlineCount} ${tr(onlineCount === 1 ? "room.notifMemberOnlineOne" : "room.notifMemberOnlineOther")}`,
+    detail: `${memberCount} ${tr("room.notifInThisRoom")}`,
+  });
   if (sharedDocs.length > 0) {
-    notifications.push({ id: "docs", tone: "info", title: `${sharedDocs.length} document${sharedDocs.length === 1 ? "" : "s"} shared`, detail: "Open the Documents section to review them." });
+    notifications.push({
+      id: "docs",
+      tone: "info",
+      title: `${sharedDocs.length} ${tr(sharedDocs.length === 1 ? "room.notifDocSharedOne" : "room.notifDocSharedOther")}`,
+      detail: tr("room.notifOpenDocsHint"),
+    });
   }
 
   const panelSectionTitle: React.CSSProperties = {
@@ -977,7 +1001,7 @@ function RoomViewBody({
     <RightPanel theme={t} width={300} title={roomName} onCollapse={() => setRightOpen(false)}>
       {/* Notifications */}
       <div>
-        <div style={panelSectionTitle}>Notifications</div>
+        <div style={panelSectionTitle}>{tr("room.panelNotifications")}</div>
         {notifications.map((n) => (
           <div key={n.id} style={{ background: t.rowActiveBg, borderRadius: 10, padding: "9px 11px", marginBottom: 6 }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: t.text, display: "flex", alignItems: "center", gap: 6 }}>
@@ -999,9 +1023,9 @@ function RoomViewBody({
 
       {/* Documents */}
       <div>
-        <div style={panelSectionTitle}>Documents</div>
+        <div style={panelSectionTitle}>{tr("room.panelDocuments")}</div>
         {sharedDocs.length === 0 ? (
-          <div style={{ fontSize: 13, color: t.muted }}>No documents shared yet.</div>
+          <div style={{ fontSize: 13, color: t.muted }}>{tr("room.noDocumentsSharedYet")}</div>
         ) : (
           sharedDocs.map((f) => (
             <div
@@ -1032,7 +1056,7 @@ function RoomViewBody({
 
       {/* Members */}
       <div>
-        <div style={panelSectionTitle}>Members</div>
+        <div style={panelSectionTitle}>{tr("room.panelMembers")}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 2px" }}>
           <ChatAvatar theme={t} size={26} isRaya />
           <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: t.text }}><RayaName /></span>
@@ -1040,10 +1064,10 @@ function RoomViewBody({
         </div>
         {Object.values(roster).map((r) => {
           const mine = r.user_id === myUserId;
-          const label = mine ? "You" : nameOf(r.user_id);
+          const label = mine ? tr("room.youLabel") : nameOf(r.user_id);
           return (
             <div key={r.user_id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 2px" }}>
-              <ChatAvatar theme={t} size={26} initials={avatarInitials(label === "You" ? studentName : label)} avatarUrl={r.profile_picture_url} />
+              <ChatAvatar theme={t} size={26} initials={avatarInitials(mine ? studentName : label)} avatarUrl={r.profile_picture_url} />
               <span style={{ flex: 1, minWidth: 0, fontSize: 14, color: t.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {label}
               </span>
@@ -1055,22 +1079,22 @@ function RoomViewBody({
 
       {/* Settings */}
       <div>
-        <div style={panelSectionTitle}>Room settings</div>
+        <div style={panelSectionTitle}>{tr("room.panelSettings")}</div>
         <div style={{ fontSize: 14, color: t.text, display: "flex", flexDirection: "column", gap: 6 }}>
           <div>
-            <span style={{ color: t.muted }}>Subject · </span>
+            <span style={{ color: t.muted }}>{tr("room.settingsSubject")} </span>
             {subject ?? "—"}
           </div>
           <div>
-            <span style={{ color: t.muted }}>Visibility · </span>
-            {visibility === "private" ? "Private" : "Public"}
+            <span style={{ color: t.muted }}>{tr("room.settingsVisibility")} </span>
+            {visibility === "private" ? tr("rooms.visPrivate") : tr("rooms.visPublic")}
           </div>
           <div>
-            <span style={{ color: t.muted }}>Session · </span>
-            {remainingMs == null ? "No time limit" : expired ? "Ended" : `${fmtRemaining(remainingMs)} left`}
+            <span style={{ color: t.muted }}>{tr("room.settingsSession")} </span>
+            {remainingMs == null ? tr("room.noTimeLimit") : expired ? tr("room.timerEndedShort") : `${fmtRemaining(remainingMs)} ${tr("room.leftSuffix")}`}
           </div>
           <button style={{ ...ghost, marginTop: 4, alignSelf: "flex-start" }} onClick={copyInvite}>
-            {copied ? "Invite link copied ✓" : "Copy invite link"}
+            {copied ? tr("room.inviteCopied") : tr("room.copyInviteLink")}
           </button>
         </div>
       </div>
@@ -1081,7 +1105,7 @@ function RoomViewBody({
     <RayaShell
       active="rooms"
       theme={t}
-      profileName={studentName || "My account"}
+      profileName={studentName || tr("room.myAccountFallback")}
       profileInitials={studentInitials}
       profileSubtitle={studentPlan}
       profileAvatarUrl={studentAvatarUrl}
@@ -1132,6 +1156,7 @@ function RoomVisibility({
   locked: boolean;
   canChoose: boolean;
 }) {
+  const tr = useTranslate();
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const isPublic = visibility === "public";
@@ -1140,7 +1165,7 @@ function RoomVisibility({
   async function flip() {
     const next = isPublic ? "private" : "public";
     if (busy) return;
-    if (next === "public" && !window.confirm("Open this room to everyone? Anyone on Bluestift will be able to find it and join.")) return;
+    if (next === "public" && !window.confirm(tr("room.vis.confirmOpen"))) return;
     setBusy(true);
     setNote(null);
     try {
@@ -1154,7 +1179,7 @@ function RoomVisibility({
       }
       onChange(next);
     } catch {
-      setNote("Could not change this. Try again in a moment.");
+      setNote(tr("room.vis.changeFailed"));
     } finally {
       setBusy(false);
     }
@@ -1181,25 +1206,25 @@ function RoomVisibility({
           type="button"
           onClick={flip}
           disabled={busy}
-          title={isPublic ? "Anyone can find and join this room" : "Only people with the invite link can join"}
+          title={isPublic ? tr("room.vis.publicHint") : tr("room.vis.privateHint")}
           style={{ ...pill, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1, font: "inherit", fontSize: 14, fontWeight: 600 }}
         >
-          {isPublic ? "🌐 Public" : "🔒 Private"}
-          <span style={{ color: t.muted, fontWeight: 400 }}>· {busy ? "saving…" : "change"}</span>
+          {isPublic ? `🌐 ${tr("rooms.visPublic")}` : `🔒 ${tr("rooms.visPrivate")}`}
+          <span style={{ color: t.muted, fontWeight: 400 }}>· {busy ? tr("room.vis.saving") : tr("room.vis.change")}</span>
         </button>
       ) : (
         <span
           style={pill}
           title={
             isOwner && locked
-              ? "This room has a member under 18, so it stays private."
+              ? tr("room.vis.minorLockedHint")
               : isPublic
-                ? "Anyone can find and join this room"
-                : "Only people with the invite link can join"
+                ? tr("room.vis.publicHint")
+                : tr("room.vis.privateHint")
           }
         >
-          {isPublic ? "🌐 Public" : "🔒 Private"}
-          {isOwner && locked && <span style={{ color: t.muted, fontWeight: 400 }}>· locked</span>}
+          {isPublic ? `🌐 ${tr("rooms.visPublic")}` : `🔒 ${tr("rooms.visPrivate")}`}
+          {isOwner && locked && <span style={{ color: t.muted, fontWeight: 400 }}>· {tr("room.vis.locked")}</span>}
         </span>
       )}
       {note && (

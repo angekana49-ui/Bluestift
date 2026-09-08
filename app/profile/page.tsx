@@ -16,6 +16,7 @@ import { RayaScaffold } from "@/components/raya/raya-scaffold";
 import { PageBody } from "@/components/ui/shell";
 import { SectionHeader } from "@/components/raya/section-header";
 import { initialsOf } from "@/lib/name";
+import { getServerTranslate } from "@/lib/i18n/server";
 
 export default async function ProfilePage({
   searchParams,
@@ -24,6 +25,7 @@ export default async function ProfilePage({
 }) {
   const { intent } = await searchParams;
   const startCreateSchool = intent === "create";
+  const tr = await getServerTranslate();
   const supabase = await createClient();
   const {
     data: { user },
@@ -81,7 +83,7 @@ export default async function ProfilePage({
   return (
     <RayaScaffold active="kernel" studentName={studentName} studentInitials={initialsOf(studentName)} studentAvatarUrl={profile.profile_picture_url} studentPlan={studentPlan}>
       <PageBody>
-        <SectionHeader title="My Kernel" subtitle="Your mastery, concept by concept — not a single grade." />
+        <SectionHeader title="My Kernel" subtitle={tr("kernel.pageSubtitle")} />
         <SchoolLink initial={schoolLink} />
         <TeacherLink initial={staff} startCreate={startCreateSchool} hasEmail={hasRealEmail(user.email)} />
         <ProgressCurve points={points} />

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAppTheme } from "@/components/ui/theme";
 import { panelCard, cardTitle } from "@/components/ui/forms";
+import { useTranslate } from "@/components/ui/locale";
 
 export type ProgressPoint = { t: string; score: number };
 
@@ -17,6 +18,7 @@ const innerH = H - M.top - M.bottom;
 
 export function ProgressCurve({ points }: { points: ProgressPoint[] }) {
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
   const card = panelCard(t);
   const INK_MUTED = t.mutedLight;
   const [hover, setHover] = useState<number | null>(null);
@@ -24,9 +26,9 @@ export function ProgressCurve({ points }: { points: ProgressPoint[] }) {
   if (points.length === 0) {
     return (
       <div style={card}>
-        <h2 style={cardTitle(t)}>Graded performance over time</h2>
+        <h2 style={cardTitle(t)}>{tr("kernel.curve.title")}</h2>
         <p style={{ margin: 0, color: t.muted, fontSize: 15 }}>
-          Do a few challenges or self-tests and your score curve will show up here.
+          {tr("kernel.curve.empty")}
         </p>
       </div>
     );
@@ -53,15 +55,15 @@ export function ProgressCurve({ points }: { points: ProgressPoint[] }) {
 
   return (
     <div style={card}>
-      <h2 style={cardTitle(t)}>Graded performance over time</h2>
+      <h2 style={cardTitle(t)}>{tr("kernel.curve.title")}</h2>
       <p style={{ margin: "0 0 12px", color: t.muted, fontSize: 14 }}>
-        {sorted.length} {sorted.length === 1 ? "assessment" : "assessments"}
+        {sorted.length} {tr(sorted.length === 1 ? "kernel.curve.assessmentOne" : "kernel.curve.assessmentOther")}
       </p>
       <svg
         viewBox={`0 0 ${W} ${H}`}
         width="100%"
         role="img"
-        aria-label="Line chart of your graded scores over time"
+        aria-label={tr("kernel.curve.ariaLabel")}
         style={{ display: "block", overflow: "visible" }}
       >
         <defs>

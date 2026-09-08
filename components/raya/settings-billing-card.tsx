@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAppTheme } from "@/components/ui/theme";
+import { getJsonCached } from "@/lib/net/client-fetch";
 import { SettingsCard } from "@/components/raya/raya-app";
+import { useTranslate } from "@/components/ui/locale";
 
 type B2cPlan = {
   id: string;
@@ -28,19 +30,23 @@ type B2cPlan = {
  */
 export function StudentBillingCard() {
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
   const [plans, setPlans] = useState<B2cPlan[] | null>(null);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     (async () => {
-      try {
-        const res = await fetch("/api/billing/plans?category=b2c");
-        const data = await res.json();
-        if (Array.isArray(data.plans) && data.plans.length > 0) setPlans(data.plans as B2cPlan[]);
-        else setFailed(true);
-      } catch {
-        setFailed(true);
-      }
+      // The catalogue barely moves (an admin-edited price list), so it's
+      // cached generously — instant render on every repeat visit.
+      const { data } = await getJsonCached<{ plans?: B2cPlan[] }>("/api/billing/plans?category=b2c", {
+        cacheKey: "billing:plansB2c",
+        cacheTtlMs: 5 * 60_000,
+        onUpdate: (fresh) => {
+          if (Array.isArray(fresh.plans) && fresh.plans.length > 0) setPlans(fresh.plans);
+        },
+      });
+      if (Array.isArray(data?.plans) && data.plans.length > 0) setPlans(data.plans);
+      else setFailed(true);
     })();
   }, []);
 
@@ -50,20 +56,20 @@ export function StudentBillingCard() {
   const paid = (plans ?? []).filter((p) => (p.price ?? 0) > 0);
 
   const fmtPrice = (p: B2cPlan) => {
-    if (p.price == null) return "On quote";
-    if (p.price === 0) return "Free";
-    return `$${p.price}/${p.billingPeriod === "yearly" ? "yr" : "mo"}`;
+    if (p.price == null) return tr("raya.settings.billing.onQuote");
+    if (p.price === 0) return tr("raya.settings.billing.free");
+    return `$${p.price}/${p.billingPeriod === "yearly" ? tr("raya.settings.billing.perYear") : tr("raya.settings.billing.perMonth")}`;
   };
 
   return (
     <SettingsCard theme={t} mt id="plan">
       <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 14 }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: t.text, flex: 1 }}>Billing</div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: t.text, flex: 1 }}>{tr("nav.billing")}</div>
         <Link
           href="/pricing"
           style={{ fontSize: 13, fontWeight: 650, color: t.link, textDecoration: "none" }}
         >
-          Compare plans →
+          {tr("raya.settings.billing.comparePlans")}
         </Link>
       </div>
 
@@ -81,18 +87,17 @@ export function StudentBillingCard() {
           marginBottom: 14,
         }}
       >
-        <strong style={{ color: t.text }}>Paid plans aren&apos;t open yet.</strong> We&apos;re
-        finishing the payment integration. Your free plan is unaffected and nothing is owed —
-        the prices below are what they will be when it opens.
+        <strong style={{ color: t.text }}>{tr("raya.settings.billing.notOpenNoticeBold")}</strong>{" "}
+        {tr("raya.settings.billing.notOpenNoticeRest")}
       </div>
 
       {failed && !plans ? (
         <div style={{ fontSize: 14, color: t.muted, lineHeight: 1.55 }}>
-          Couldn&apos;t load the plan list just now. You&apos;re on the free plan, and{" "}
+          {tr("raya.settings.billing.loadFailedA")}{" "}
           <Link href="/pricing" style={{ color: t.link, fontWeight: 650, textDecoration: "none" }}>
-            the pricing page
+            {tr("raya.settings.billing.loadFailedLink")}
           </Link>{" "}
-          has the full comparison.
+          {tr("raya.settings.billing.loadFailedB")}
         </div>
       ) : (
         <div style={{ display: "grid", gap: 10 }}>
@@ -146,7 +151,7 @@ export function StudentBillingCard() {
                     color: current ? "#22c55e" : t.mutedLight,
                   }}
                 >
-                  {current ? "Your plan" : "Not open yet"}
+                  {current ? tr("raya.settings.billing.yourPlan") : tr("raya.settings.billing.notOpenYet")}
                 </div>
               </div>
             );

@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { netFetch } from "@/lib/net/client-fetch";
 import type { AnalyzeResponse } from "@/lib/kernel/types";
 import { downloadBrandedPdf, downloadBrandedText, type BrandedDoc } from "@/lib/document";
 import { useDarkMode, useAppTheme, AppThemeProvider } from "@/components/ui/theme";
-import { LocaleProvider } from "@/components/ui/locale";
+import { LocaleProvider, useTranslate } from "@/components/ui/locale";
+import type { MessageKey } from "@/lib/i18n";
 import { useRightPanel } from "@/components/ui/use-right-panel";
 import { useLocale } from "@/lib/use-locale";
 import { RayaShell } from "@/components/raya/raya-shell";
@@ -23,39 +25,46 @@ export type { ConversationFile } from "@/components/chat/types";
 type Recommendation = { content: string; source: string };
 
 /** The Raya student solo-chat: full voice + document upload + conversation history. */
-const RAYA_CONFIG: ChatConfig = {
-  endpoints: {
-    chat: "/api/raya/chat",
-    conversations: "/api/raya/conversations",
-    files: "/api/raya/files",
-    summarize: "/api/raya/conversations",
-  },
-  capabilities: { voice: true, files: true },
-  // Metered by the Raya plan — the composer shows what is left of the day.
-  metered: true,
-  aiModeSwitcher: true,
-  greeting: (name) => (name ? `What are we cracking today, ${name}?` : "What are we cracking today?"),
-  emptyHint: "Tell me what you'd like to work on — or pick a quick start.",
-  suggestions: ["Pick up where I left off", "Unstick me on something", "Quiz me", "Surprise me"],
-  placeholder: "Write your reply to Raya...",
-  // Hybrid: if the learner has history, /api/raya/hooks personalizes these;
-  // offline / brand-new → the static set above stays.
-  personalizedHooks: fetchHooks("/api/raya/hooks"),
-};
+function getRayaConfig(tr: (key: MessageKey) => string): ChatConfig {
+  return {
+    endpoints: {
+      chat: "/api/raya/chat",
+      conversations: "/api/raya/conversations",
+      files: "/api/raya/files",
+      summarize: "/api/raya/conversations",
+    },
+    capabilities: { voice: true, files: true },
+    // Metered by the Raya plan — the composer shows what is left of the day.
+    metered: true,
+    aiModeSwitcher: true,
+    greeting: (name) => (name ? `${tr("chatHome.greetingWithName")} ${name}?` : tr("chatHome.greetingNoName")),
+    emptyHint: tr("chatHome.emptyHint"),
+    suggestions: [
+      tr("chatHome.suggestion1"),
+      tr("chatHome.suggestion2"),
+      tr("chatHome.suggestion3"),
+      tr("chatHome.suggestion4"),
+    ],
+    placeholder: tr("chatHome.placeholder"),
+    // Hybrid: if the learner has history, /api/raya/hooks personalizes these;
+    // offline / brand-new → the static set above stays.
+    personalizedHooks: fetchHooks("/api/raya/hooks"),
+  };
+}
 
-function analysisToText(a: AnalyzeResponse): string {
+function analysisToText(a: AnalyzeResponse, tr: (key: MessageKey) => string): string {
   return [
-    `Root gap: ${a.root_gap ?? "-"}`,
-    `Summary: ${a.summary || "-"}`,
+    `${tr("chatHome.rootGapLabel")} ${a.root_gap ?? "-"}`,
+    `${tr("room.summaryLabel")} ${a.summary || "-"}`,
     a.recommended_path?.length
-      ? `Recommended path: ${a.recommended_path.join(" -> ")}`
+      ? `${tr("chatHome.recommendedPathLabel")} ${a.recommended_path.join(" -> ")}`
       : "",
     a.detection_path?.length
-      ? `Detection path: ${a.detection_path.join(" -> ")}`
+      ? `${tr("chatHome.detectionPathLabel")} ${a.detection_path.join(" -> ")}`
       : "",
-    `Confidence: ${a.confidence}`,
-    `Knowledge components: ${Object.keys(a.mastery_map).length}`,
-    `Model: ${a.llm_used}`,
+    `${tr("chatHome.confidenceLabel")} ${a.confidence}`,
+    `${tr("chatHome.knowledgeComponentsLabel")} ${Object.keys(a.mastery_map).length}`,
+    `${tr("chatHome.modelLabel")} ${a.llm_used}`,
   ]
     .filter(Boolean)
     .join("\n");
@@ -123,6 +132,8 @@ function ChatBody({
 }) {
   const router = useRouter();
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
+  const RAYA_CONFIG = getRayaConfig(tr);
   const engine = useChatEngine({
     config: RAYA_CONFIG,
     initialId,
@@ -149,10 +160,10 @@ function ChatBody({
   // Branded export of the Kernel analysis (Raya logo, title, footer attribution).
   const analysisDoc = (a: AnalyzeResponse): BrandedDoc => ({
     brand: "raya",
-    title: "Kernel analysis",
+    title: tr("chatHome.kernelAnalysisTitle"),
     meta: new Date().toLocaleDateString(),
     audience: studentName || undefined,
-    body: analysisToText(a),
+    body: analysisToText(a, tr),
   });
 
   async function onAnalyze() {
@@ -161,28 +172,34 @@ function ChatBody({
     setError(null);
     setAnalysis(null);
     try {
-      const res = await fetch("/api/kernel/analyze", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          conversation_history: messages.map((m) => ({
-            role: m.role === "assistant" ? "assistant" : "user",
-            content: m.content ?? "",
-          })),
-        }),
-      });
+      // Proxies to the external Kernel service — give it more room than a
+      // plain JSON round trip before calling it unreachable.
+      const res = await netFetch(
+        "/api/kernel/analyze",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            conversation_history: messages.map((m) => ({
+              role: m.role === "assistant" ? "assistant" : "user",
+              content: m.content ?? "",
+            })),
+          }),
+        },
+        { timeoutMs: 20_000 },
+      );
       const data = await res.json();
       if (!res.ok) {
         setError(
           data?.detail
-            ? `Kernel error: ${JSON.stringify(data.detail)}`
-            : `Request failed (${res.status}). Is the Kernel running?`,
+            ? `${tr("chatHome.kernelErrorPrefix")} ${JSON.stringify(data.detail)}`
+            : `${tr("chat.requestFailedPrefix")} (${res.status}). ${tr("chatHome.isKernelRunning")}`,
         );
         return;
       }
       setAnalysis(data as AnalyzeResponse);
     } catch {
-      setError("Could not reach the Kernel API.");
+      setError(tr("chatHome.couldNotReachKernel"));
     } finally {
       setBusy(false);
     }
@@ -211,8 +228,8 @@ function ChatBody({
           label is the widest thing in the row. */}
       <span
         onClick={() => router.push("/profile")}
-        title="View kernel profile"
-        aria-label="View kernel profile"
+        title={tr("chatHome.viewKernelProfile")}
+        aria-label={tr("chatHome.viewKernelProfile")}
         style={{
           flex: "none",
           display: "flex",
@@ -229,14 +246,14 @@ function ChatBody({
           cursor: "pointer",
         }}
       >
-        <span className="app-pill-label">View kernel profile</span>
+        <span className="app-pill-label">{tr("chatHome.viewKernelProfile")}</span>
         <span className="app-pill-glyph">
           <IconKernel size={15} />
         </span>
       </span>
       <span
         onClick={() => !busy && messages.length > 0 && onAnalyze()}
-        title="Analyze the session (Kernel)"
+        title={tr("chatHome.analyzeSessionTitle")}
         style={{
           flex: "none",
           fontSize: 13,
@@ -248,16 +265,16 @@ function ChatBody({
           opacity: busy || messages.length === 0 ? 0.45 : 1,
         }}
       >
-        Analyze
+        {tr("chatHome.analyze")}
       </span>
     </>
   );
 
   const rightPanel = rightOpen ? (
-    <RightPanel theme={t} width={300} title="For you" onCollapse={() => setRightOpen(false)}>
+    <RightPanel theme={t} width={300} title={tr("chatHome.forYou")} onCollapse={() => setRightOpen(false)}>
       <div>
         {recommendations.length === 0 && (
-          <div style={{ fontSize: 13, color: t.muted }}>No recommendations yet.</div>
+          <div style={{ fontSize: 13, color: t.muted }}>{tr("chatHome.noRecommendationsYet")}</div>
         )}
         {recommendations.map((r, i) => (
           <div key={i} style={{ background: t.rowActiveBg, borderRadius: 12, padding: 10, marginBottom: 6 }}>
@@ -270,19 +287,19 @@ function ChatBody({
       {analysis && (
         <div style={{ border: `1px solid ${t.cardBorder}`, borderRadius: 16, padding: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: t.text, flex: 1 }}>Kernel analysis</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: t.text, flex: 1 }}>{tr("chatHome.kernelAnalysisTitle")}</span>
             <span onClick={() => downloadBrandedText(analysisDoc(analysis))} style={pillBtn(t)}>TXT</span>
             <span onClick={() => downloadBrandedPdf(analysisDoc(analysis))} style={pillBtn(t)}>PDF</span>
-            <span onClick={() => setAnalysis(null)} title="Close" style={pillBtn(t)}>✕</span>
+            <span onClick={() => setAnalysis(null)} title={tr("room.closeTitle")} style={pillBtn(t)}>✕</span>
           </div>
           <div style={{ fontSize: 14, color: t.text, marginBottom: 4 }}>
-            <strong>Root gap:</strong> {analysis.root_gap ?? "—"}
+            <strong>{tr("chatHome.rootGapLabel")}</strong> {analysis.root_gap ?? "—"}
           </div>
           <div style={{ fontSize: 14, color: t.text, marginBottom: 6 }}>
-            <strong>Summary:</strong> {analysis.summary || "—"}
+            <strong>{tr("room.summaryLabel")}</strong> {analysis.summary || "—"}
           </div>
           <div style={{ fontSize: 13, color: t.muted }}>
-            Confidence: {analysis.confidence} · KCs: {Object.keys(analysis.mastery_map).length} · Model: {analysis.llm_used}
+            {tr("chatHome.confidenceLabel")} {analysis.confidence} · {tr("chatHome.kcsAbbrev")} {Object.keys(analysis.mastery_map).length} · {tr("chatHome.modelLabel")} {analysis.llm_used}
           </div>
         </div>
       )}

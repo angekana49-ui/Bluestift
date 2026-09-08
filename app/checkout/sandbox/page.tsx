@@ -2,6 +2,8 @@
 
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { netFetch } from "@/lib/net/client-fetch";
+import { useTranslate } from "@/components/ui/locale";
 
 /**
  * Sandbox hosted-checkout stand-in. Stands in for the aggregator's payment page
@@ -10,6 +12,7 @@ import { useSearchParams } from "next/navigation";
  * to the return page — exercising the full pending→paid→activate loop with no keys.
  */
 function SandboxInner() {
+  const tr = useTranslate();
   const params = useSearchParams();
   const pid = params.get("pid") ?? "";
   const channel = params.get("channel") ?? "card";
@@ -19,11 +22,15 @@ function SandboxInner() {
     if (!pid) return;
     setBusy(true);
     try {
-      await fetch("/api/billing/webhook/sandbox", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ paymentId: pid, status, channel }),
-      });
+      await netFetch(
+        "/api/billing/webhook/sandbox",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ paymentId: pid, status, channel }),
+        },
+        { timeoutMs: 10_000 },
+      );
     } catch {
       // ignore — the return page reads the real status regardless
     }
@@ -55,12 +62,12 @@ function SandboxInner() {
             textTransform: "uppercase",
           }}
         >
-          Sandbox
+          {tr("checkout.sandbox.badge")}
         </div>
-        <h1 style={{ fontSize: "1.3rem", fontWeight: 900, color: "#0b1220", margin: "16px 0 6px" }}>Simulated checkout</h1>
+        <h1 style={{ fontSize: "1.3rem", fontWeight: 900, color: "#0b1220", margin: "16px 0 6px" }}>{tr("checkout.sandbox.title")}</h1>
         <p style={{ fontSize: 15, color: "#64748b", lineHeight: 1.6, margin: "0 0 22px" }}>
-          No real payment provider is configured. Approve or decline to test the flow end to end (method:{" "}
-          <strong>{channel}</strong>).
+          {tr("checkout.sandbox.noticeA")}{" "}
+          <strong>{channel}</strong>{tr("checkout.sandbox.noticeB")}
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <button
@@ -77,7 +84,7 @@ function SandboxInner() {
               cursor: busy ? "default" : "pointer",
             }}
           >
-            {busy ? "Processing…" : "Approve payment"}
+            {busy ? tr("checkout.sandbox.processing") : tr("checkout.sandbox.approve")}
           </button>
           <button
             onClick={() => settle("failed")}
@@ -93,7 +100,7 @@ function SandboxInner() {
               cursor: busy ? "default" : "pointer",
             }}
           >
-            Decline
+            {tr("checkout.sandbox.decline")}
           </button>
         </div>
       </div>

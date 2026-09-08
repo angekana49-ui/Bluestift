@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { UPGRADE_EVENT, installUpgradeInterceptor, type UpgradeDetail } from "@/lib/upgrade";
+import { useTranslate } from "@/components/ui/locale";
 
 /**
  * App-wide "upgrade to continue" modal. Installs the fetch interceptor on mount
@@ -11,6 +12,7 @@ import { UPGRADE_EVENT, installUpgradeInterceptor, type UpgradeDetail } from "@/
  * matching the consent banner.
  */
 export function UpgradeModal() {
+  const tr = useTranslate();
   const [detail, setDetail] = useState<UpgradeDetail | null>(null);
 
   useEffect(() => {
@@ -23,7 +25,7 @@ export function UpgradeModal() {
   if (!detail) return null;
 
   const isQuota = detail.code === "quota_reached";
-  const title = isQuota ? "You've reached a plan limit" : "This is a premium feature";
+  const title = isQuota ? tr("upgrade.quotaTitle") : tr("upgrade.featureTitle");
 
   return (
     <div
@@ -98,7 +100,7 @@ export function UpgradeModal() {
               cursor: "pointer",
             }}
           >
-            Not now
+            {tr("upgrade.notNow")}
           </button>
           <Link
             href="/pricing"
@@ -113,7 +115,7 @@ export function UpgradeModal() {
               textDecoration: "none",
             }}
           >
-            See plans
+            {tr("upgrade.seePlans")}
           </Link>
         </div>
       </div>

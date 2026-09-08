@@ -26,6 +26,7 @@ import { type BrandedDoc } from "@/lib/document";
 import { COUNTRIES, SCHOOL_TYPES } from "@/lib/school-constants";
 import { useDarkMode, useAppTheme, AppThemeProvider } from "@/components/ui/theme";
 import { LocaleProvider, useTranslate } from "@/components/ui/locale";
+import type { MessageKey } from "@/lib/i18n";
 import { useLocale } from "@/lib/use-locale";
 import { SchoolsShell, type SchoolNavItem } from "@/components/school/schools-shell";
 import { RightPanel } from "@/components/ui/shell";
@@ -469,6 +470,7 @@ function SchoolSwitcher({
   activeSchoolId: string | null;
 }) {
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -482,12 +484,12 @@ function SchoolSwitcher({
     });
   }
 
-  const roleLabel = (r: SchoolRole) => (r === "admin_master" ? "Admin" : "Teacher");
+  const roleLabel = (r: SchoolRole) => tr(r === "admin_master" ? "school.role.admin" : "school.role.teacher");
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: "0 6px" }}>
       <div style={{ fontSize: 13, textTransform: "uppercase", letterSpacing: "0.06em", color: t.sidebarMuted, marginBottom: 2 }}>
-        My schools
+        {tr("school.chrome.mySchools")}
       </div>
       {memberships.map((m) => {
         const active = m.schoolId === activeSchoolId;
@@ -545,13 +547,15 @@ function SchoolSwitcher({
  */
 function NoMembership({ initialJoinCode }: { initialJoinCode: string | null }) {
   const { t } = useSchoolStyles();
+  const tr = useTranslate();
+  const fallbackName = tr("school.noMembership.fallbackName");
   return (
-    <SchoolChrome nav={[]} activeKey="" onNav={() => {}} schoolName="School" headerTitle="School">
+    <SchoolChrome nav={[]} activeKey="" onNav={() => {}} schoolName={fallbackName} headerTitle={fallbackName}>
       <JoinSchool initialCode={initialJoinCode} />
       <p style={{ fontSize: 15, color: t.muted, marginTop: 16 }}>
-        Want to run your own school?{" "}
+        {tr("school.noMembership.cta")}{" "}
         <Link href="/profile" style={{ color: t.link, fontWeight: 600 }}>
-          Create one from your profile →
+          {tr("school.noMembership.ctaLink")}
         </Link>
       </p>
     </SchoolChrome>
@@ -577,12 +581,13 @@ function RenewYear({
   yearLabel: string | null;
 }) {
   const { t, box, input, btn } = useSchoolStyles();
+  const tr = useTranslate();
   const router = useRouter();
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const where = schoolName ?? "your school";
+  const where = schoolName ?? tr("school.renewYear.fallbackSchool");
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -595,13 +600,13 @@ function RenewYear({
         status: "joined" | "requested" | "already" | "renewed";
       };
       if (d.status === "requested") {
-        setMsg(`Sent to ${where}. You'll be back in as soon as an admin validates it.`);
+        setMsg(`${tr("school.joinFlow.sentToA")} ${where}${tr("school.joinFlow.sentToB")}`);
       } else {
-        setMsg("You're back in. Loading…");
+        setMsg(tr("school.renewYear.backIn"));
         router.refresh();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not confirm with that code.");
+      setError(err instanceof Error ? err.message : tr("school.joinFlow.confirmFailed"));
     } finally {
       setBusy(false);
     }
@@ -611,28 +616,27 @@ function RenewYear({
     <SchoolChrome nav={[]} activeKey="" onNav={() => {}} schoolName={where} headerTitle={where}>
       <form style={box} onSubmit={submit}>
         <h2 style={{ fontSize: "1.1rem", margin: "0 0 0.25rem" }}>
-          New school year{yearLabel ? ` — ${yearLabel}` : ""}
+          {tr("school.renewYear.heading")}{yearLabel ? ` — ${yearLabel}` : ""}
         </h2>
         <p style={{ margin: "0 0 0.85rem", color: t.muted, fontSize: "0.9rem" }}>
-          {where} has started a new year. Enter the year&apos;s staff code to confirm you&apos;re
-          back; your administrator validates it, then assigns your classes for the year.
+          {where} {tr("school.renewYear.bodySuffix")}
         </p>
         <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
           <input
             style={{ ...input, flex: 1, minWidth: 200, letterSpacing: "0.05em" }}
-            placeholder="This year's staff code"
+            placeholder={tr("school.renewYear.placeholder")}
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             disabled={busy}
           />
           <button type="submit" style={{ ...btn, opacity: busy ? 0.7 : 1 }} disabled={busy || !code.trim()}>
-            {busy ? "Confirming…" : "Confirm"}
+            {busy ? tr("school.renewYear.confirming") : tr("school.renewYear.confirmButton")}
           </button>
         </div>
         {msg && <p style={{ color: "#22c55e", margin: "0.75rem 0 0" }}>{msg}</p>}
         {error && <p style={{ color: "#f87171", margin: "0.75rem 0 0" }}>{error}</p>}
         <p style={{ margin: "0.85rem 0 0", color: t.mutedLight, fontSize: 13 }}>
-          Nothing has been deleted — your past years stay on record.
+          {tr("school.renewYear.footnote")}
         </p>
       </form>
     </SchoolChrome>
@@ -641,6 +645,7 @@ function RenewYear({
 
 function JoinSchool({ initialCode }: { initialCode: string | null }) {
   const { box, input, btn } = useSchoolStyles();
+  const tr = useTranslate();
   const router = useRouter();
   const [code, setCode] = useState(initialCode ?? "");
   const [busy, setBusy] = useState(false);
@@ -660,15 +665,15 @@ function JoinSchool({ initialCode }: { initialCode: string | null }) {
       };
       const where = d.schoolName ? ` ${d.schoolName}` : "";
       if (d.status === "requested") {
-        setMsg(`Request sent to${where}. You'll get access once an admin approves it.`);
+        setMsg(`${tr("school.joinFlow.requestSentA")}${where}${tr("school.joinFlow.requestSentB")}`);
       } else {
         // joined or already a member — land in that school (now the active one).
-        setMsg(`You're in${where}. Loading…`);
+        setMsg(`${tr("school.joinFlow.inPrefix")}${where}. ${tr("school.joinFlow.loadingSuffix")}`);
         router.push("/school");
         router.refresh();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not join with that code.");
+      setError(err instanceof Error ? err.message : tr("school.joinFlow.joinFailed"));
     } finally {
       setBusy(false);
     }
@@ -676,20 +681,20 @@ function JoinSchool({ initialCode }: { initialCode: string | null }) {
 
   return (
     <form style={box} onSubmit={submit}>
-      <h2 style={{ fontSize: "1.1rem", margin: "0 0 0.25rem" }}>Join a school as a teacher</h2>
+      <h2 style={{ fontSize: "1.1rem", margin: "0 0 0.25rem" }}>{tr("school.join.heading")}</h2>
       <p style={{ margin: "0 0 0.85rem", opacity: 0.6, fontSize: "0.9rem" }}>
-        Got an invite code from your school? Enter it to join.
+        {tr("school.join.intro")}
       </p>
       <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
         <input
           style={{ ...input, flex: 1, minWidth: 200, letterSpacing: "0.05em" }}
-          placeholder="Invite code"
+          placeholder={tr("school.joinFlow.placeholder")}
           value={code}
           onChange={(e) => setCode(e.target.value.toUpperCase())}
           disabled={busy}
         />
         <button type="submit" style={{ ...btn, opacity: busy ? 0.7 : 1 }} disabled={busy || !code.trim()}>
-          {busy ? "Joining…" : "Join"}
+          {busy ? tr("school.joinFlow.joining") : tr("school.join.button")}
         </button>
       </div>
       {msg && <p style={{ color: "#22c55e", margin: "0.75rem 0 0" }}>{msg}</p>}
@@ -705,6 +710,7 @@ function JoinSchool({ initialCode }: { initialCode: string | null }) {
  */
 function AddSchoolByCode() {
   const { box, input, btn } = useSchoolStyles();
+  const tr = useTranslate();
   const router = useRouter();
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -724,15 +730,15 @@ function AddSchoolByCode() {
       };
       const where = d.schoolName ? ` ${d.schoolName}` : "";
       if (d.status === "requested") {
-        setMsg(`Request sent to${where}. You'll get access once an admin approves it.`);
+        setMsg(`${tr("school.joinFlow.requestSentA")}${where}${tr("school.joinFlow.requestSentB")}`);
         setCode("");
       } else {
-        setMsg(`You're in${where}. Switching…`);
+        setMsg(`${tr("school.joinFlow.inPrefix")}${where}. ${tr("school.joinFlow.switchingSuffix")}`);
         router.push("/school");
         router.refresh();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not join with that code.");
+      setError(err instanceof Error ? err.message : tr("school.joinFlow.joinFailed"));
     } finally {
       setBusy(false);
     }
@@ -740,21 +746,20 @@ function AddSchoolByCode() {
 
   return (
     <form style={{ ...box, marginTop: 24 }} onSubmit={submit}>
-      <h3 style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 700 }}>＋ Add another school</h3>
+      <h3 style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 700 }}>{tr("school.addByCode.heading")}</h3>
       <p style={{ margin: "0 0 10px", opacity: 0.6, fontSize: 14 }}>
-        Teach at more than one school? Enter another school&apos;s invite code to link it — you can
-        switch between them from the sidebar.
+        {tr("school.addByCode.intro")}
       </p>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <input
           style={{ ...input, flex: 1, minWidth: 180, letterSpacing: "0.05em" }}
-          placeholder="Invite code"
+          placeholder={tr("school.joinFlow.placeholder")}
           value={code}
           onChange={(e) => setCode(e.target.value.toUpperCase())}
           disabled={busy}
         />
         <button type="submit" style={{ ...btn, opacity: busy || !code.trim() ? 0.6 : 1 }} disabled={busy || !code.trim()}>
-          {busy ? "Joining…" : "Add school"}
+          {busy ? tr("school.joinFlow.joining") : tr("school.addByCode.button")}
         </button>
       </div>
       {msg && <p style={{ color: "#22c55e", margin: "10px 0 0", fontSize: 14 }}>{msg}</p>}
@@ -824,12 +829,12 @@ function ProfView({
         `school:roster:${classId}`,
       );
       if (!roster) {
-        setError("Could not load the class.");
+        setError(tr("school.prof.classLoadFailed"));
         return;
       }
       setNav({ mode: "class", roster });
     } catch {
-      setError("Could not load the class.");
+      setError(tr("school.prof.classLoadFailed"));
     } finally {
       setBusy(false);
     }
@@ -844,12 +849,12 @@ function ProfView({
         `school:student:${classId}:${userId}`,
       );
       if (!detail) {
-        setError("Could not load the student.");
+        setError(tr("school.prof.studentLoadFailed"));
         return;
       }
       setNav({ mode: "student", detail, classId, onBack });
     } catch {
-      setError("Could not load the student.");
+      setError(tr("school.prof.studentLoadFailed"));
     } finally {
       setBusy(false);
     }
@@ -867,9 +872,9 @@ function ProfView({
     schoolName ||
     memberships.find((m) => m.schoolId === activeSchoolId)?.schoolName ||
     memberships[0]?.schoolName ||
-    "your school";
+    tr("school.renewYear.fallbackSchool");
   // Profile chip (like Raya): name + photo, with "Teacher · <forfait>" under it.
-  const profileForfait = planLabel ? `Teacher · ${planLabel}` : "Teacher";
+  const profileForfait = planLabel ? `${tr("school.role.teacher")} · ${planLabel}` : tr("school.role.teacher");
 
   // "Raya" is a brand name — it is never translated (see the brand-names rule).
   const navItems: SchoolNavItem[] = [
@@ -896,7 +901,7 @@ function ProfView({
   const tabLabel = navItems.find((n) => n.key === tab)?.label ?? "";
   const contextLabel =
     nav.mode === "student"
-      ? `${nav.detail.firstName} ${nav.detail.lastName}`.trim() || "Student"
+      ? `${nav.detail.firstName} ${nav.detail.lastName}`.trim() || tr("school.prof.studentFallback")
       : nav.mode === "class"
         ? nav.roster.className
         : tab === "raya"
@@ -961,18 +966,18 @@ function ProfView({
         <TeacherBanner name={teacherName} subjects={subjects} schoolName={resolvedSchool} classCount={classes.length} />
         {directives.length > 0 && (
           <div style={{ border: `1px solid ${t.cardBorder}`, background: t.cardBg2, borderRadius: 12, padding: "10px 14px", marginBottom: 16 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: t.muted, marginBottom: 6 }}>📌 From your school</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: t.muted, marginBottom: 6 }}>{tr("school.prof.fromYourSchool")}</div>
             {directives.map((d) => (
               <div key={d.id} style={{ fontSize: 15 }}>{d.content}</div>
             ))}
           </div>
         )}
         {error && <p style={{ color: "#f87171", fontSize: 15 }}>{error}</p>}
-        {busy && <p style={{ color: t.muted, fontSize: 15 }}>Loading…</p>}
+        {busy && <p style={{ color: t.muted, fontSize: 15 }}>{tr("school.loading")}</p>}
         {classes.length === 0 ? (
           <div style={box}>
             <p style={{ margin: 0, color: t.muted, fontSize: 15 }}>
-              You don&apos;t have any assigned classes yet. Your administrator assigns you classes and subjects.
+              {tr("school.prof.noClassesYet")}
             </p>
           </div>
         ) : (
@@ -983,10 +988,10 @@ function ProfView({
                   {c.name}
                   {c.level ? <span style={{ opacity: 0.5, fontWeight: 400 }}> · {c.level}</span> : null}
                 </div>
-                <div style={{ opacity: 0.55, fontSize: 14 }}>{c.studentCount} students</div>
+                <div style={{ opacity: 0.55, fontSize: 14 }}>{c.studentCount} {tr("school.prof.studentsCountWord")}</div>
               </div>
               <button style={ghost} onClick={() => openClass(c.id)} disabled={busy}>
-                Open →
+                {tr("school.prof.openArrow")}
               </button>
             </div>
           ))
@@ -1032,6 +1037,7 @@ function FocusView({
   onOpenStudent: (classId: string, userId: string) => void;
 }) {
   const { t, box } = useSchoolStyles();
+  const tr = useTranslate();
   const [classId, setClassId] = useState(classes[0]?.id ?? "");
   const [roster, setRoster] = useState<ClassRoster | null>(null);
   const [loading, setLoading] = useState(false);
@@ -1068,7 +1074,7 @@ function FocusView({
     return (
       <div style={box}>
         <p style={{ margin: 0, color: t.muted, fontSize: 15 }}>
-          You don&apos;t have any assigned classes yet, so there&apos;s no student to focus on.
+          {tr("school.focus.noAssignedClasses")}
         </p>
       </div>
     );
@@ -1077,9 +1083,9 @@ function FocusView({
   return (
     <div>
       <div style={box}>
-        <h2 style={{ fontSize: "1.1rem", margin: "0 0 0.25rem" }}>Focus on a student</h2>
+        <h2 style={{ fontSize: "1.1rem", margin: "0 0 0.25rem" }}>{tr("school.focus.title")}</h2>
         <p style={{ opacity: 0.6, fontSize: "0.85rem", margin: "0 0 0.75rem" }}>
-          Pick a class, then a student, to open their cognitive detail and your follow-up log.
+          {tr("school.focus.intro")}
         </p>
         <select
           style={{ ...mkInput(t), minWidth: 200 }}
@@ -1095,11 +1101,11 @@ function FocusView({
       </div>
 
       {error && <p style={{ color: "#f87171", fontSize: 15 }}>{error}</p>}
-      {(loading || busy) && <p style={{ color: t.muted, fontSize: 15 }}>Loading…</p>}
+      {(loading || busy) && <p style={{ color: t.muted, fontSize: 15 }}>{tr("school.loading")}</p>}
 
       {roster && roster.students.length === 0 && (
         <div style={box}>
-          <p style={{ margin: 0, opacity: 0.65 }}>No students have joined this class yet.</p>
+          <p style={{ margin: 0, opacity: 0.65 }}>{tr("school.focus.noStudentsYet")}</p>
         </div>
       )}
       {roster && roster.students.length > 0 && (
@@ -1120,16 +1126,17 @@ function FocusView({
  */
 function ProfSettings({ account, classes }: { account: StaffAccount | null; classes: AdminClass[] }) {
   const { t } = useSchoolStyles();
+  const tr = useTranslate();
   if (!account) {
     return (
       <p style={{ color: t.muted, fontSize: 15 }}>
-        <Link href="/account" style={{ color: t.link, fontWeight: 600 }}>Open account settings →</Link>
+        <Link href="/account" style={{ color: t.link, fontWeight: 600 }}>{tr("school.settings.openAccountSettings")}</Link>
       </p>
     );
   }
   return (
     <div style={{ width: "100%", maxWidth: 700, margin: "0 auto" }}>
-      <SectionHeader title="Settings" />
+      <SectionHeader title={tr("settings.title")} />
       <SettingsThemeCard />
       <SettingsLanguageCard />
       <TeachingPreferencesCard classes={classes} />
@@ -1153,6 +1160,7 @@ function ProfSettings({ account, classes }: { account: StaffAccount | null; clas
  */
 function WhoPaysNote() {
   const { t } = useSchoolStyles();
+  const tr = useTranslate();
   return (
     <div
       style={{
@@ -1166,11 +1174,10 @@ function WhoPaysNote() {
         color: t.muted,
       }}
     >
-      <div style={{ fontWeight: 700, color: t.text, marginBottom: 4 }}>What your school covers</div>
-      Your teaching tools — classes, Focus, Prepare, reports and <RayaName /> for <SchoolsName /> — are part of your
-      school&apos;s plan; you never pay for them. Your <strong style={{ color: t.text }}>personal <RayaName /></strong>{" "}
-      (solo chat, Tools, your own Kernel) is your own account, on the free plan unless you choose to
-      upgrade it.
+      <div style={{ fontWeight: 700, color: t.text, marginBottom: 4 }}>{tr("school.whoPays.heading")}</div>
+      {tr("school.whoPays.a")} <RayaName /> {tr("school.whoPays.b")} <SchoolsName /> {tr("school.whoPays.c")}{" "}
+      <strong style={{ color: t.text }}>{tr("school.whoPays.personalWord")} <RayaName /></strong>{" "}
+      {tr("school.whoPays.d")}
     </div>
   );
 }
@@ -1190,6 +1197,7 @@ const TONES = ["", "neutral", "encouraging", "formal", "concise"];
  */
 function TeachingPreferencesCard({ classes }: { classes: AdminClass[] }) {
   const { t, box, input, btn } = useSchoolStyles();
+  const tr = useTranslate();
   const [prefs, setPrefs] = useState<TeachPrefs | null>(null);
   const [subjects, setSubjects] = useState<{ id: string; name: string }[]>([]);
   const [busy, setBusy] = useState(false);
@@ -1228,52 +1236,62 @@ function TeachingPreferencesCard({ classes }: { classes: AdminClass[] }) {
       const d = await postJson("/api/school/preferences", { prefs }, "PATCH");
       invalidateCached("school:preferences");
       setPrefs(d.prefs as TeachPrefs);
-      setMsg("Saved ✓");
+      setMsg(tr("school.prefs.saved"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save.");
+      setError(err instanceof Error ? err.message : tr("school.prefs.saveFailed"));
     } finally {
       setBusy(false);
     }
   }
 
-  if (!prefs) return <div style={box}><p style={{ margin: 0, color: t.muted, fontSize: 15 }}>Loading preferences…</p></div>;
+  if (!prefs) return <div style={box}><p style={{ margin: 0, color: t.muted, fontSize: 15 }}>{tr("school.prefs.loading")}</p></div>;
 
   const set = (patch: Partial<TeachPrefs>) => setPrefs((p) => (p ? { ...p, ...patch } : p));
+  const toneKey = (tone: string): MessageKey =>
+    tone === "neutral"
+      ? "school.tone.neutral"
+      : tone === "encouraging"
+        ? "school.tone.encouraging"
+        : tone === "formal"
+          ? "school.tone.formal"
+          : tone === "concise"
+            ? "school.tone.concise"
+            : "school.tone.default";
 
   return (
     <div style={box}>
-      <h3 style={{ margin: "0 0 0.85rem", fontSize: "1.05rem" }}>Teaching preferences</h3>
+      <h3 style={{ margin: "0 0 0.85rem", fontSize: "1.05rem" }}>{tr("school.prefs.title")}</h3>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.6rem" }}>
         <label style={{ fontSize: "0.8rem", opacity: 0.6 }}>
-          Default class
+          {tr("school.prefs.defaultClass")}
           <select
             style={{ ...input, width: "100%", marginTop: 4 }}
             value={prefs.defaultClassId ?? ""}
             onChange={(e) => set({ defaultClassId: e.target.value || null })}
             disabled={busy}
           >
-            <option value="">None</option>
+            <option value="">{tr("school.prefs.none")}</option>
             {classes.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
         </label>
         <label style={{ fontSize: "0.8rem", opacity: 0.6 }}>
-          Default subject
+          {tr("school.prefs.defaultSubject")}
           <select
             style={{ ...input, width: "100%", marginTop: 4 }}
             value={prefs.defaultSubjectId ?? ""}
             onChange={(e) => set({ defaultSubjectId: e.target.value || null })}
             disabled={busy}
           >
-            <option value="">None</option>
+            <option value="">{tr("school.prefs.none")}</option>
             {subjects.map((s) => (
               <option key={s.id} value={s.id}>{s.name}</option>
             ))}
           </select>
         </label>
         <label style={{ fontSize: "0.8rem", opacity: 0.6 }}>
-          Report tone
+          {tr("school.prefs.reportTone")}
           <select
             style={{ ...input, width: "100%", marginTop: 4 }}
             value={prefs.reportTone ?? ""}
@@ -1282,7 +1300,7 @@ function TeachingPreferencesCard({ classes }: { classes: AdminClass[] }) {
           >
             {TONES.map((tone) => (
               <option key={tone || "default"} value={tone}>
-                {tone ? tone.charAt(0).toUpperCase() + tone.slice(1) : "Default"}
+                {tr(toneKey(tone))}
               </option>
             ))}
           </select>
@@ -1295,12 +1313,12 @@ function TeachingPreferencesCard({ classes }: { classes: AdminClass[] }) {
           onChange={(e) => set({ examFocusWeakConcepts: e.target.checked })}
           disabled={busy}
         />
-        Aim prepared material at my class&apos;s weakest concepts
+        {tr("school.prefs.examFocusCheckbox")}
       </label>
       <div style={{ ...formActions, marginTop: "0.9rem" }}>
         {msg && <span style={{ color: "#22c55e", fontSize: "0.85rem", marginRight: "auto" }}>{msg}</span>}
         <button style={{ ...btn, opacity: busy ? 0.7 : 1 }} onClick={save} disabled={busy}>
-          {busy ? "Saving…" : "Save preferences"}
+          {busy ? tr("school.prefs.saving") : tr("school.prefs.saveButton")}
         </button>
         {error && <span style={{ color: "#f87171", fontSize: "0.85rem" }}>{error}</span>}
       </div>
@@ -1325,6 +1343,7 @@ function TeacherBanner({
   classCount: number;
 }) {
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
   return (
     <div
       style={{
@@ -1359,11 +1378,11 @@ function TeacherBanner({
         <div style={{ fontSize: 16, fontWeight: 700, color: t.text }}>
           {name}
           <span style={{ fontWeight: 500, color: t.muted }}>
-            {" "}· Teacher{subjects.length > 0 ? ` of ${subjects.join(", ")}` : ""}
+            {" "}· {tr("school.banner.teacherWord")}{subjects.length > 0 ? ` ${tr("school.banner.ofWord")} ${subjects.join(", ")}` : ""}
           </span>
         </div>
         <div style={{ fontSize: 14, color: t.mutedLight, marginTop: 2 }}>
-          {schoolName} · {classCount} {classCount === 1 ? "class" : "classes"} · your <RayaName />, extended for teaching
+          {schoolName} · {classCount} {tr(classCount === 1 ? "school.banner.classOne" : "school.banner.classOther")} · {tr("school.banner.yourPrefix")} <RayaName />, {tr("school.banner.extendedForTeaching")}
         </div>
       </div>
     </div>
@@ -1372,30 +1391,30 @@ function TeacherBanner({
 
 /** Read-only insights + at-risk feed for a teacher's assigned classes. */
 /** Compose a teacher's at-risk list + class insights into a branded Markdown document. */
-function profInsightsToDoc(data: ProfInsights, schoolName?: string): BrandedDoc {
-  const lines: string[] = ["# At-risk students"];
+function profInsightsToDoc(data: ProfInsights, schoolName: string | undefined, t: (key: MessageKey) => string): BrandedDoc {
+  const lines: string[] = [`# ${t("school.insights.atRiskTitle")}`];
   if (data.alertsUnavailable) {
     // The PDF outlives the screen it was exported from, so it must not freeze
     // an unknown state into a printed "all clear".
-    lines.push("_Kernel unreachable when this was exported — the list is unknown, not empty._");
+    lines.push(t("school.insights.kernelUnreachableNote"));
   } else if (data.alerts.length === 0) {
-    lines.push("No students need attention right now.");
+    lines.push(t("school.insights.noneNeedAttention"));
   }
   for (const a of data.alerts) {
     lines.push(
-      `- **${a.name}** · ${a.className} · ${a.alertTypes?.join(" · ") ?? a.statusLabel ?? "at risk"} · ${pctOrDash(a.avgMastery)}`,
+      `- **${a.name}** · ${a.className} · ${a.alertTypes?.join(" · ") ?? a.statusLabel ?? t("school.insights.atRiskFallback")} · ${pctOrDash(a.avgMastery)}`,
     );
   }
-  lines.push("# Class insights");
-  if (data.insights.length === 0) lines.push("No certified insights yet.");
+  lines.push(`# ${t("school.insights.classInsightsTitle")}`);
+  if (data.insights.length === 0) lines.push(t("school.insights.noCertifiedYet"));
   for (const ins of data.insights) {
     lines.push(`## ${ins.className} · ${ins.subjectName} — ${pctOrDash(ins.avgMastery)}`);
-    if (ins.topGaps.length > 0) lines.push(`- Top gaps: ${ins.topGaps.join(", ")}`);
-    if (ins.topRecommendation) lines.push(`- Recommendation: ${ins.topRecommendation}`);
+    if (ins.topGaps.length > 0) lines.push(`- ${t("school.insights.topGapsLabel")}: ${ins.topGaps.join(", ")}`);
+    if (ins.topRecommendation) lines.push(`- ${t("school.insights.recommendationLabel")}: ${ins.topRecommendation}`);
   }
   return {
     brand: "bluestift",
-    title: "Class insights",
+    title: t("school.insights.classInsightsTitle"),
     meta: new Date().toLocaleDateString(),
     audience: schoolName,
     body: lines.join("\n"),
@@ -1404,6 +1423,7 @@ function profInsightsToDoc(data: ProfInsights, schoolName?: string): BrandedDoc 
 
 function ProfInsightsView({ onStudent, schoolName }: { onStudent: (classId: string, userId: string) => void; schoolName?: string }) {
   const { box, ghost } = useSchoolStyles();
+  const tr = useTranslate();
   const [data, setData] = useState<ProfInsights | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -1424,7 +1444,7 @@ function ProfInsightsView({ onStudent, schoolName }: { onStudent: (classId: stri
       const fresh = await getJson<ProfInsights>("/api/school/prof-insights", "school:profInsights");
       if (fresh) setData(fresh);
     } catch (e) {
-      setAckError(e instanceof Error ? e.message : "Could not acknowledge.");
+      setAckError(e instanceof Error ? e.message : tr("school.insights.ackFailed"));
     } finally {
       setAcking(null);
     }
@@ -1438,9 +1458,12 @@ function ProfInsightsView({ onStudent, schoolName }: { onStudent: (classId: stri
         (fresh) => setData(fresh),
       );
       if (d) setData(d);
-      else setError("Could not load insights.");
+      else setError(tr("school.insights.loadFailed"));
       setLoading(false);
     })();
+    // Fire once on mount; `tr` is stable per locale and a language switch
+    // mid-fetch does not need to restart the request.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /**
@@ -1452,10 +1475,10 @@ function ProfInsightsView({ onStudent, schoolName }: { onStudent: (classId: stri
   const alertSearch = useListSearch(
     data?.alerts ?? [],
     (a) => [a.name, a.className, a.statusLabel, ...(a.alertTypes ?? [])],
-    { noun: "students" },
+    { noun: tr("list.noun.students") },
   );
 
-  if (loading) return <p style={{ opacity: 0.6 }}>Loading…</p>;
+  if (loading) return <p style={{ opacity: 0.6 }}>{tr("school.loading")}</p>;
   if (error) return <p style={{ color: "#f87171" }}>{error}</p>;
   if (!data) return null;
 
@@ -1463,9 +1486,9 @@ function ProfInsightsView({ onStudent, schoolName }: { onStudent: (classId: stri
     <div>
       <div style={box}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          <h3 style={{ margin: 0, flex: 1 }}>{withCount("At-risk students", data.alerts.length)}</h3>
+          <h3 style={{ margin: 0, flex: 1 }}>{withCount(tr("school.insights.atRiskTitle"), data.alerts.length)}</h3>
           {(data.alerts.length > 0 || data.insights.length > 0) && (
-            <DocumentActions doc={profInsightsToDoc(data, schoolName)} compact shareable={false} personal />
+            <DocumentActions doc={profInsightsToDoc(data, schoolName, tr)} compact shareable={false} personal />
           )}
         </div>
         {data.alertsUnavailable ? (
@@ -1473,10 +1496,10 @@ function ProfInsightsView({ onStudent, schoolName }: { onStudent: (classId: stri
           // saying "all clear" when the kernel is unreachable is the one lie a
           // safety panel must never tell.
           <p style={{ color: "#fbbf24", fontSize: "0.85rem", margin: 0 }}>
-            Can&apos;t reach the kernel — this list is unknown, not empty. Try again shortly.
+            {tr("school.insights.kernelUnreachableBanner")}
           </p>
         ) : data.alerts.length === 0 ? (
-          <p style={{ opacity: 0.55, fontSize: "0.85rem", margin: 0 }}>No students need attention right now.</p>
+          <p style={{ opacity: 0.55, fontSize: "0.85rem", margin: 0 }}>{tr("school.insights.noneNeedAttention")}</p>
         ) : (
           <>
           <ListToolbar search={alertSearch} style={{ marginTop: 12 }} />
@@ -1489,8 +1512,8 @@ function ProfInsightsView({ onStudent, schoolName }: { onStudent: (classId: stri
               <span style={{ flex: 1 }}>
                 {a.name}
                 <span style={{ opacity: 0.5, fontSize: "0.8rem" }}>
-                  {" "}· {a.className} · {a.alertTypes?.join(" · ") ?? a.statusLabel ?? "at risk"}
-                  {a.alertCount && a.alertCount > 1 ? ` · ${a.alertCount} signals` : ""}
+                  {" "}· {a.className} · {a.alertTypes?.join(" · ") ?? a.statusLabel ?? tr("school.insights.atRiskFallback")}
+                  {a.alertCount && a.alertCount > 1 ? ` · ${a.alertCount} ${tr("school.insights.signalsWord")}` : ""}
                   {a.avgMastery != null ? ` · ${pctOrDash(a.avgMastery)}` : ""}
                 </span>
               </span>
@@ -1498,13 +1521,13 @@ function ProfInsightsView({ onStudent, schoolName }: { onStudent: (classId: stri
                 <button
                   style={ghost}
                   disabled={acking === a.userId}
-                  title="Mark as seen — it leaves this list, the student's data is untouched."
+                  title={tr("school.insights.markSeenTitle")}
                   onClick={() => acknowledge(a)}
                 >
-                  {acking === a.userId ? "…" : "Seen"}
+                  {acking === a.userId ? "…" : tr("school.insights.seenLabel")}
                 </button>
               ) : null}
-              <button style={ghost} onClick={() => onStudent(a.classId, a.userId)}>Open →</button>
+              <button style={ghost} onClick={() => onStudent(a.classId, a.userId)}>{tr("school.prof.openArrow")}</button>
             </div>
           ))}
           <ListNoMatch search={alertSearch} />
@@ -1515,11 +1538,11 @@ function ProfInsightsView({ onStudent, schoolName }: { onStudent: (classId: stri
         )}
       </div>
 
-      <h3 style={{ margin: "1.25rem 0 0.5rem" }}>Class insights</h3>
+      <h3 style={{ margin: "1.25rem 0 0.5rem" }}>{tr("school.insights.classInsightsTitle")}</h3>
       {data.insights.length === 0 ? (
         <div style={box}>
           <p style={{ margin: 0, opacity: 0.65 }}>
-            No certified insights yet — they appear once your students have enough activity.
+            {tr("school.insights.noCertifiedYetLong")}
           </p>
         </div>
       ) : (
@@ -1533,12 +1556,12 @@ function ProfInsightsView({ onStudent, schoolName }: { onStudent: (classId: stri
             </div>
             {ins.topGaps.length > 0 && (
               <p style={{ margin: "0.4rem 0 0", fontSize: "0.85rem" }}>
-                <span style={{ opacity: 0.6 }}>Top gaps:</span> {ins.topGaps.join(", ")}
+                <span style={{ opacity: 0.6 }}>{tr("school.insights.topGapsLabel")}:</span> {ins.topGaps.join(", ")}
               </p>
             )}
             {ins.topRecommendation && (
               <p style={{ margin: "0.3rem 0 0", fontSize: "0.85rem" }}>
-                <span style={{ opacity: 0.6 }}>Recommendation:</span> {ins.topRecommendation}
+                <span style={{ opacity: 0.6 }}>{tr("school.insights.recommendationLabel")}:</span> {ins.topRecommendation}
               </p>
             )}
           </div>
@@ -1557,6 +1580,7 @@ function SchoolSettings({
   onUpdated: (s: AdminSchool) => void;
 }) {
   const { t, box, input, btn } = useSchoolStyles();
+  const tr = useTranslate();
   const [name, setName] = useState(school.name);
   const [city, setCity] = useState(school.city ?? "");
   const [countryCode, setCountryCode] = useState(school.countryCode ?? "");
@@ -1589,9 +1613,9 @@ function SchoolSettings({
         phone: d.phone,
         logoUrl: d.logoUrl ?? school.logoUrl,
       });
-      setMsg("Saved ✓");
+      setMsg(tr("school.prefs.saved"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save.");
+      setError(err instanceof Error ? err.message : tr("school.prefs.saveFailed"));
     } finally {
       setBusy(false);
     }
@@ -1612,13 +1636,13 @@ function SchoolSettings({
       );
       const d = await res.json().catch(() => null);
       if (!res.ok) {
-        setError(d?.error ?? "Could not upload the logo.");
+        setError(d?.error ?? tr("school.settings.logoUploadFailed"));
         return;
       }
       onUpdated({ ...school, logoUrl: d.logoUrl });
-      setMsg("Logo updated ✓");
+      setMsg(tr("school.settings.logoUpdated"));
     } catch {
-      setError("Could not upload the logo.");
+      setError(tr("school.settings.logoUploadFailed"));
     } finally {
       setBusy(false);
     }
@@ -1628,7 +1652,7 @@ function SchoolSettings({
     <div style={{ width: "100%", maxWidth: 700, margin: "0 auto" }}>
       <SettingsLanguageCard />
       <form style={box} onSubmit={save}>
-      <h3 style={{ margin: "0 0 0.85rem", fontSize: "1.05rem" }}>School info</h3>
+      <h3 style={{ margin: "0 0 0.85rem", fontSize: "1.05rem" }}>{tr("school.settings.title")}</h3>
 
       <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1rem" }}>
         <div
@@ -1659,7 +1683,7 @@ function SchoolSettings({
           onPick={(files) => uploadLogo(files?.[0] ?? null)}
           disabled={busy}
           resetAfterPick
-          label={busy ? "Uploading…" : "Change logo"}
+          label={busy ? tr("school.settings.uploading") : tr("school.settings.changeLogo")}
           icon={null}
           buttonStyle={neutralButton(t)}
         />
@@ -1667,15 +1691,15 @@ function SchoolSettings({
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.6rem" }}>
         <label style={{ gridColumn: "1 / -1", fontSize: "0.8rem", opacity: 0.6 }}>
-          Name
+          {tr("school.settings.nameLabel")}
           <input style={{ ...input, width: "100%", marginTop: 4 }} value={name} onChange={(e) => setName(e.target.value)} disabled={busy} />
         </label>
         <label style={{ fontSize: "0.8rem", opacity: 0.6 }}>
-          City
+          {tr("school.settings.cityLabel")}
           <input style={{ ...input, width: "100%", marginTop: 4 }} value={city} onChange={(e) => setCity(e.target.value)} disabled={busy} />
         </label>
         <label style={{ fontSize: "0.8rem", opacity: 0.6 }}>
-          Country
+          {tr("school.settings.countryLabel")}
           <CountrySelect
             value={countryCode}
             onChange={setCountryCode}
@@ -1684,7 +1708,7 @@ function SchoolSettings({
           />
         </label>
         <label style={{ fontSize: "0.8rem", opacity: 0.6 }}>
-          Type
+          {tr("school.settings.typeLabel")}
           <select
             style={{ ...input, width: "100%", marginTop: 4 }}
             value={schoolType}
@@ -1692,19 +1716,19 @@ function SchoolSettings({
             disabled={busy}
           >
             <option value="">—</option>
-            {SCHOOL_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {t.charAt(0).toUpperCase() + t.slice(1)}
+            {SCHOOL_TYPES.map((st) => (
+              <option key={st} value={st}>
+                {tr(`school.type.${st}` as MessageKey)}
               </option>
             ))}
           </select>
         </label>
         <label style={{ fontSize: "0.8rem", opacity: 0.6 }}>
-          Contact email
+          {tr("school.settings.contactEmailLabel")}
           <input style={{ ...input, width: "100%", marginTop: 4 }} type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={busy} />
         </label>
         <label style={{ fontSize: "0.8rem", opacity: 0.6 }}>
-          Phone
+          {tr("school.settings.phoneLabel")}
           <input style={{ ...input, width: "100%", marginTop: 4 }} value={phone} onChange={(e) => setPhone(e.target.value)} disabled={busy} />
         </label>
       </div>
@@ -1712,7 +1736,7 @@ function SchoolSettings({
       <div style={{ ...formActions, marginTop: "0.9rem" }}>
         {msg && <span style={{ color: "#22c55e", fontSize: "0.85rem", marginRight: "auto" }}>{msg}</span>}
         <button type="submit" style={{ ...btn, opacity: busy ? 0.7 : 1 }} disabled={busy || !name.trim()}>
-          {busy ? "Saving…" : "Save changes"}
+          {busy ? tr("school.prefs.saving") : tr("school.settings.saveChanges")}
         </button>
         {error && <span style={{ color: "#f87171", fontSize: "0.85rem" }}>{error}</span>}
       </div>
@@ -1778,9 +1802,9 @@ function Dashboard({
         (fresh) => setOverview(fresh),
       );
       if (data) setOverview(data);
-      else setError("Could not load the overview.");
+      else setError(tr("school.dashboard.overviewLoadFailed"));
     } catch {
-      setError("Could not load the overview.");
+      setError(tr("school.dashboard.overviewLoadFailed"));
     } finally {
       setOverviewBusy(false);
     }
@@ -1805,12 +1829,12 @@ function Dashboard({
         `school:roster:${classId}`,
       );
       if (!roster) {
-        setError("Could not load the class.");
+        setError(tr("school.prof.classLoadFailed"));
         return;
       }
       setNav({ mode: "class", roster });
     } catch {
-      setError("Could not load the class.");
+      setError(tr("school.prof.classLoadFailed"));
     } finally {
       setNavBusy(false);
     }
@@ -1825,12 +1849,12 @@ function Dashboard({
         `school:student:${roster.classId}:${userId}`,
       );
       if (!detail) {
-        setError("Could not load the student.");
+        setError(tr("school.prof.studentLoadFailed"));
         return;
       }
       setNav({ mode: "student", detail, roster });
     } catch {
-      setError("Could not load the student.");
+      setError(tr("school.prof.studentLoadFailed"));
     } finally {
       setNavBusy(false);
     }
@@ -1838,11 +1862,7 @@ function Dashboard({
 
   async function startNewYear() {
     if (busy) return;
-    if (
-      !window.confirm(
-        "Start a new school year? New classes will start fresh — this year's classes and students stay archived under the current year.",
-      )
-    ) {
+    if (!window.confirm(tr("school.dashboard.confirmNewYear"))) {
       return;
     }
     setBusy(true);
@@ -1852,7 +1872,7 @@ function Dashboard({
       // Reload so the dashboard re-fetches the (now empty) new year's classes.
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not start a new year.");
+      setError(err instanceof Error ? err.message : tr("school.dashboard.newYearFailed"));
       setBusy(false);
     }
   }
@@ -1874,7 +1894,7 @@ function Dashboard({
       setLevel("");
       setEffectif("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not add the class.");
+      setError(err instanceof Error ? err.message : tr("school.dashboard.addClassFailed"));
     } finally {
       setBusy(false);
     }
@@ -1901,8 +1921,8 @@ function Dashboard({
     const cls = dash.classes.find((c) => c.id === classId);
     if (
       !window.confirm(
-        `Remove “${cls?.name ?? "this class"}” from ${dash.school.currentYearLabel ?? "this year"}?` +
-          " Previous years keep their own copy, with their students.",
+        `${tr("school.dashboard.confirmRemoveClassA")}${cls?.name ?? tr("school.dashboard.thisClassFallback")}${tr("school.dashboard.confirmRemoveClassB")} ${dash.school.currentYearLabel ?? tr("school.dashboard.thisYearFallback")}` +
+          tr("school.dashboard.confirmRemoveClassC"),
       )
     ) {
       return;
@@ -1912,7 +1932,7 @@ function Dashboard({
       await postJson("/api/school/classes", { classId }, "DELETE");
       setClasses(dash.classes.filter((c) => c.id !== classId));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not remove the class.");
+      setError(err instanceof Error ? err.message : tr("school.dashboard.removeClassFailed"));
     }
   }
 
@@ -1936,7 +1956,7 @@ function Dashboard({
       // The server retired any prior code — replace, don't append (one code per class).
       setClasses(dash.classes.map((c) => (c.id === classId ? { ...c, codes: [code] } : c)));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not generate a code.");
+      setError(err instanceof Error ? err.message : tr("school.dashboard.genCodeFailed"));
     }
   }
 
@@ -1952,7 +1972,7 @@ function Dashboard({
         ),
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not update the code.");
+      setError(err instanceof Error ? err.message : tr("school.dashboard.updateCodeFailed"));
     }
   }
 
@@ -1999,31 +2019,31 @@ function Dashboard({
           <div style={{ flex: 1, minWidth: 180 }}>
             <h2 style={{ fontSize: 18, margin: 0, color: t.text }}>{dash.school.name}</h2>
             <p style={{ margin: "4px 0 0", color: t.muted, fontSize: 14 }}>
-              {dash.school.currentYearLabel ? `Year ${dash.school.currentYearLabel} · ` : ""}
-              {dash.classes.length} {dash.classes.length === 1 ? "class" : "classes"}
+              {dash.school.currentYearLabel ? `${tr("school.dashboard.yearPrefix")} ${dash.school.currentYearLabel} · ` : ""}
+              {dash.classes.length} {tr(dash.classes.length === 1 ? "school.banner.classOne" : "school.banner.classOther")}
             </p>
           </div>
           <button style={ghost} onClick={startNewYear} disabled={busy}>
-            New year
+            {tr("school.dashboard.newYearButton")}
           </button>
         </div>
 
         <form style={box} onSubmit={addClass}>
-          <h3 style={{ margin: "0 0 10px", fontSize: 16, color: t.text }}>Add a class</h3>
+          <h3 style={{ margin: "0 0 10px", fontSize: 16, color: t.text }}>{tr("school.dashboard.addClassTitle")}</h3>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <input style={{ ...input, flex: 2, minWidth: 160 }} placeholder="Class name (e.g. 6th A)" value={className} onChange={(e) => setClassName(e.target.value)} disabled={busy} />
-            <input style={{ ...input, flex: 1, minWidth: 110 }} placeholder="Level (optional)" value={level} onChange={(e) => setLevel(e.target.value)} disabled={busy} />
-            <input type="number" min={1} max={1000} style={{ ...input, width: 130 }} placeholder="Class size (n)" title="Class size. The cap is n + 5." value={effectif} onChange={(e) => setEffectif(e.target.value)} disabled={busy} />
+            <input style={{ ...input, flex: 2, minWidth: 160 }} placeholder={tr("school.dashboard.classNamePlaceholder")} value={className} onChange={(e) => setClassName(e.target.value)} disabled={busy} />
+            <input style={{ ...input, flex: 1, minWidth: 110 }} placeholder={tr("school.dashboard.levelPlaceholder")} value={level} onChange={(e) => setLevel(e.target.value)} disabled={busy} />
+            <input type="number" min={1} max={1000} style={{ ...input, width: 130 }} placeholder={tr("school.dashboard.classSizePlaceholder")} title={tr("school.dashboard.classSizeTitle")} value={effectif} onChange={(e) => setEffectif(e.target.value)} disabled={busy} />
             <button type="submit" style={{ ...btn, opacity: busy ? 0.7 : 1 }} disabled={busy || !className.trim()}>
-              Add
+              {tr("school.dashboard.addButton")}
             </button>
           </div>
           <p style={{ margin: "8px 0 0", color: t.mutedLight, fontSize: 13 }}>
-            The class size is the number you set. Students can join up to <strong>n + 5</strong>.
+            {tr("school.dashboard.classSizeNoteA")} <strong>n + 5</strong>{tr("school.dashboard.classSizeNoteB")}
           </p>
         </form>
 
-        {navBusy && <p style={{ color: t.muted, fontSize: 15 }}>Loading…</p>}
+        {navBusy && <p style={{ color: t.muted, fontSize: 15 }}>{tr("school.loading")}</p>}
 
         <ClassesList
           classes={dash.classes}
@@ -2045,7 +2065,7 @@ function Dashboard({
   // active tab — one short line so the header brands the school without saturating.
   const contextLabel =
     nav.mode === "student"
-      ? `${nav.detail.firstName} ${nav.detail.lastName}`.trim() || "Student"
+      ? `${nav.detail.firstName} ${nav.detail.lastName}`.trim() || tr("school.prof.studentFallback")
       : nav.mode === "class"
         ? nav.roster.className
         : tab === "raya"
@@ -2083,7 +2103,7 @@ function Dashboard({
       onNav={goTab}
       schoolName={dash.school.name}
       profileName={adminName || dash.school.name}
-      profileSubtitle={planLabel ? `Admin · ${planLabel}` : "Admin"}
+      profileSubtitle={planLabel ? `${tr("school.role.admin")} · ${planLabel}` : tr("school.role.admin")}
       headerTitle={dash.school.name}
       headerSubtitle={contextLabel}
       headerLogoUrl={dash.school.logoUrl}
@@ -2107,31 +2127,32 @@ function OverviewView({
   onClass: (classId: string) => void;
 }) {
   const { t, box } = useSchoolStyles();
+  const tr = useTranslate();
   // Before the early returns: hooks cannot sit behind a loading branch, and this
   // one has two. An absent overview is an empty list, which the hook handles.
   const sortedClasses = sortByName(overview?.classes ?? [], (c) => c.name);
-  const search = useListSearch(sortedClasses, (c) => [c.name], { noun: "classes" });
+  const search = useListSearch(sortedClasses, (c) => [c.name], { noun: tr("list.noun.classes") });
 
-  if (busy && !overview) return <p style={{ color: t.muted, fontSize: 15 }}>Loading overview…</p>;
-  if (!overview) return <p style={{ color: t.muted, fontSize: 15 }}>No overview available.</p>;
+  if (busy && !overview) return <p style={{ color: t.muted, fontSize: 15 }}>{tr("school.overview.loadingOverview")}</p>;
+  if (!overview) return <p style={{ color: t.muted, fontSize: 15 }}>{tr("school.overview.noOverview")}</p>;
 
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 12, marginBottom: 18 }}>
-        <KpiTile theme={t} label="Students" value={overview.totals.students} shine />
-        <KpiTile theme={t} label="Active (7d)" value={overview.totals.active} shine />
-        <KpiTile theme={t} label="Struggling" value={overview.totals.alerts} />
-        <KpiTile theme={t} label="Average mastery" value={pctOrDash(overview.totals.avgMastery)} />
+        <KpiTile theme={t} label={tr("school.overview.kpiStudents")} value={overview.totals.students} shine />
+        <KpiTile theme={t} label={tr("school.overview.kpiActive7d")} value={overview.totals.active} shine />
+        <KpiTile theme={t} label={tr("school.overview.kpiStruggling")} value={overview.totals.alerts} />
+        <KpiTile theme={t} label={tr("school.overview.kpiAvgMastery")} value={pctOrDash(overview.totals.avgMastery)} />
       </div>
 
       <div style={{ fontSize: 15, fontWeight: 700, color: t.text, margin: "0 0 10px" }}>
-        {withCount(`${school} · by class`, overview.classes.length, t)}
+        {withCount(`${school} · ${tr("school.overview.byClassSuffix")}`, overview.classes.length, t)}
       </div>
 
       {overview.classes.length === 0 ? (
         <div style={box}>
           <p style={{ margin: 0, color: t.muted, fontSize: 15 }}>
-            No classes. Add one in “Classes &amp; codes”.
+            {tr("school.overview.noClassesA")}{tr("nav.classesCodes")}{tr("school.overview.noClassesB")}
           </p>
         </div>
       ) : (
@@ -2149,12 +2170,13 @@ function OverviewView({
 
 function OverviewClassRow({ c, onOpen }: { c: ClassSummary; onOpen: () => void }) {
   const { t, box, ghost } = useSchoolStyles();
+  const tr = useTranslate();
   return (
     <div style={{ ...box, marginBottom: 8, display: "flex", alignItems: "center", gap: 12 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 600, color: t.text }}>{c.name}</div>
         <div style={{ color: t.mutedLight, fontSize: 14 }}>
-          {c.studentCount} students · {c.active} active
+          {c.studentCount} {tr("school.prof.studentsCountWord")} · {c.active} {tr("school.overview.activeWord")}
         </div>
       </div>
       {c.alerts > 0 && (
@@ -2168,7 +2190,7 @@ function OverviewClassRow({ c, onOpen }: { c: ClassSummary; onOpen: () => void }
             fontWeight: 600,
           }}
         >
-          {c.alerts} alert{c.alerts === 1 ? "" : "s"}
+          {c.alerts} {tr(c.alerts === 1 ? "school.overview.alertOne" : "school.overview.alertOther")}
         </span>
       )}
       <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -2178,7 +2200,7 @@ function OverviewClassRow({ c, onOpen }: { c: ClassSummary; onOpen: () => void }
         <span style={{ color: t.text, fontSize: 14, width: 40, textAlign: "right" }}>{pctOrDash(c.avgMastery)}</span>
       </span>
       <button style={ghost} onClick={onOpen}>
-        Open →
+        {tr("school.prof.openArrow")}
       </button>
     </div>
   );
@@ -2187,6 +2209,7 @@ function OverviewClassRow({ c, onOpen }: { c: ClassSummary; onOpen: () => void }
 /** Admin Overview right panel — grounded in the real school overview snapshot. */
 function OverviewRightPanel({ overview }: { overview: SchoolOverview }) {
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
   const avg = overview.totals.avgMastery;
   const weak = [...overview.classes]
     .filter((c) => c.avgMastery != null)
@@ -2196,33 +2219,33 @@ function OverviewRightPanel({ overview }: { overview: SchoolOverview }) {
   const title: React.CSSProperties = { fontSize: 16, fontWeight: 700, marginBottom: 10, color: t.text };
   const insight: React.CSSProperties = { background: t.rowActiveBg, borderRadius: 12, padding: 12, marginBottom: 8 };
   return (
-    <RightPanel theme={t} width={300} title="Live snapshot">
+    <RightPanel theme={t} width={300} title={tr("school.overview.liveSnapshot")}>
       <div style={card}>
-        <div style={title}>Kernel — overall mastery</div>
+        <div style={title}>{tr("dm.kernelMasteryTitle")}</div>
         <MasteryGauge
           theme={t}
           valueLabel={pctOrDash(avg)}
-          caption={`${overview.totals.students} students tracked`}
+          caption={`${overview.totals.students} ${tr("school.overview.studentsTrackedSuffix")}`}
           dashoffset={avg != null ? 188 * (1 - avg) : 188}
         />
       </div>
       <div style={card}>
-        <div style={title}>Alerts</div>
+        <div style={title}>{tr("school.overview.alertsHeading")}</div>
         <div style={{ ...insight, marginBottom: 0 }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: t.text }}>
-            {overview.totals.alerts} student{overview.totals.alerts === 1 ? "" : "s"} struggling
+            {overview.totals.alerts} {tr(overview.totals.alerts === 1 ? "school.overview.strugglingOne" : "school.overview.strugglingOther")}
           </div>
-          <div style={{ fontSize: 13, color: t.muted, marginTop: 2 }}>{overview.totals.active} active over 7 days</div>
+          <div style={{ fontSize: 13, color: t.muted, marginTop: 2 }}>{overview.totals.active} {tr("school.overview.activeOver7Days")}</div>
         </div>
       </div>
       {weak.length > 0 && (
         <div style={card}>
-          <div style={title}>Classes to watch</div>
+          <div style={title}>{tr("school.overview.classesToWatch")}</div>
           {weak.map((c) => (
             <div key={c.id} style={insight}>
               <div style={{ fontSize: 14, fontWeight: 600, color: t.text }}>{c.name}</div>
               <div style={{ fontSize: 13, color: t.muted, marginTop: 2 }}>
-                Mastery {pctOrDash(c.avgMastery)} · {c.alerts} alert{c.alerts === 1 ? "" : "s"}
+                {tr("school.overview.masteryLabel")} {pctOrDash(c.avgMastery)} · {c.alerts} {tr(c.alerts === 1 ? "school.overview.alertOne" : "school.overview.alertOther")}
               </div>
             </div>
           ))}
@@ -2259,11 +2282,12 @@ function ClassesList({
   onRemove: (classId: string) => void;
   onOpen: (classId: string) => void;
 }) {
+  const tr = useTranslate();
   const sorted = sortByName(classes, (c) => c.name);
   const search = useListSearch(
     sorted,
     (c) => [c.name, c.level, ...c.codes.map((k) => k.code)],
-    { noun: "classes" },
+    { noun: tr("list.noun.classes") },
   );
 
   return (
@@ -2304,6 +2328,7 @@ function ClassCard({
   onOpen: () => void;
 }) {
   const { t, box, input, btn, ghost } = useSchoolStyles();
+  const tr = useTranslate();
   const [copied, setCopied] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(c.expectedSize != null ? String(c.expectedSize) : "");
@@ -2321,7 +2346,7 @@ function ClassCard({
       await onRename(c.id, nameDraft.trim(), levelDraft.trim() || null);
       setRenaming(false);
     } catch (err) {
-      setEditErr(err instanceof Error ? err.message : "Could not rename the class.");
+      setEditErr(err instanceof Error ? err.message : tr("school.class.renameFailed"));
     } finally {
       setSaving(false);
     }
@@ -2343,7 +2368,7 @@ function ClassCard({
       await onSetEffectif(c.id, expectedSize);
       setEditing(false);
     } catch (err) {
-      setEditErr(err instanceof Error ? err.message : "Could not update.");
+      setEditErr(err instanceof Error ? err.message : tr("school.class.updateFailed"));
     } finally {
       setSaving(false);
     }
@@ -2377,10 +2402,10 @@ function ClassCard({
               }}
               style={{ ...smallInput, flex: "2 1 140px", minWidth: 120 }}
               disabled={saving}
-              aria-label="Class name"
+              aria-label={tr("school.class.nameLabel")}
             />
             <input
-              placeholder="Level"
+              placeholder={tr("school.class.levelLabel")}
               value={levelDraft}
               onChange={(e) => setLevelDraft(e.target.value)}
               onKeyDown={(e) => {
@@ -2389,10 +2414,10 @@ function ClassCard({
               }}
               style={{ ...smallInput, flex: "1 1 90px", minWidth: 80 }}
               disabled={saving}
-              aria-label="Level"
+              aria-label={tr("school.class.levelLabel")}
             />
             <button style={ghost} onClick={saveName} disabled={saving || !nameDraft.trim()}>
-              {saving ? "…" : "Save"}
+              {saving ? "…" : tr("school.class.save")}
             </button>
             <button
               style={{ ...ghost, background: "transparent" }}
@@ -2404,7 +2429,7 @@ function ClassCard({
               }}
               disabled={saving}
             >
-              Cancel
+              {tr("school.class.cancel")}
             </button>
           </div>
         ) : (
@@ -2422,16 +2447,16 @@ function ClassCard({
               }}
               title={
                 c.expectedSize != null
-                  ? `Size ${c.expectedSize} · cap ${c.capacity} (n+5)`
-                  : "No size limit set"
+                  ? `${tr("school.class.sizeTitleA")} ${c.expectedSize} · ${tr("school.class.sizeTitleB")} ${c.capacity} (n+5)`
+                  : tr("school.class.noSizeLimitSet")
               }
             >
               {c.studentCount}
               {c.capacity != null ? ` / ${c.capacity}` : ""}{" "}
-              {c.studentCount === 1 && c.capacity == null ? "student" : "students"}
+              {tr(c.studentCount === 1 && c.capacity == null ? "school.class.studentWordOne" : "school.class.studentWordOther")}
             </span>
             <button style={ghost} onClick={onOpen}>
-              Open →
+              {tr("school.prof.openArrow")}
             </button>
           </>
         )}
@@ -2440,7 +2465,7 @@ function ClassCard({
 
       <div style={{ marginTop: "0.6rem", display: "flex", flexDirection: "column", gap: "0.4rem" }}>
         {c.codes.length === 0 && (
-          <p style={{ opacity: 0.5, fontSize: "0.85rem", margin: 0 }}>No access code yet.</p>
+          <p style={{ opacity: 0.5, fontSize: "0.85rem", margin: 0 }}>{tr("school.class.noAccessCodeYet")}</p>
         )}
         {c.codes.map((k) => (
           <div key={k.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
@@ -2461,10 +2486,10 @@ function ClassCard({
               {k.code}
             </code>
             <button style={ghost} onClick={() => copy(k.code)}>
-              {copied === k.code ? "Copied ✓" : "Copy"}
+              {copied === k.code ? tr("school.class.copied") : tr("school.class.copy")}
             </button>
             <button style={ghost} onClick={() => onToggleCode(c.id, k.id, !k.isActive)}>
-              {k.isActive ? "Deactivate" : "Reactivate"}
+              {k.isActive ? tr("school.class.deactivate") : tr("school.class.reactivate")}
             </button>
           </div>
         ))}
@@ -2491,7 +2516,7 @@ function ClassCard({
                 min={1}
                 max={1000}
                 autoFocus
-                placeholder="n (blank = no limit)"
+                placeholder={tr("school.class.sizePlaceholder")}
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => {
@@ -2500,10 +2525,10 @@ function ClassCard({
                 }}
                 style={{ ...smallInput, width: 170 }}
                 disabled={saving}
-                aria-label="Expected class size"
+                aria-label={tr("school.class.expectedSizeAria")}
               />
               <button style={ghost} onClick={saveEffectif} disabled={saving}>
-                {saving ? "…" : "Save"}
+                {saving ? "…" : tr("school.class.save")}
               </button>
               <button
                 style={{ ...ghost, background: "transparent" }}
@@ -2514,21 +2539,21 @@ function ClassCard({
                 }}
                 disabled={saving}
               >
-                Cancel
+                {tr("school.class.cancel")}
               </button>
             </>
           ) : (
             !renaming && (
               <>
-                <button style={ghost} onClick={() => setEditing(true)} title="Edit the class size">
-                  {c.expectedSize != null ? "Size ✎" : "+ Size"}
+                <button style={ghost} onClick={() => setEditing(true)} title={tr("school.class.editSizeTitle")}>
+                  {c.expectedSize != null ? tr("school.class.sizeEdit") : tr("school.class.sizeAdd")}
                 </button>
                 <button
                   style={ghost}
                   onClick={() => setRenaming(true)}
-                  title="Rename this class (this year only)"
+                  title={tr("school.class.renameTitle")}
                 >
-                  Rename
+                  {tr("school.class.renameButton")}
                 </button>
                 {/* A class holding students is not removable — that is the
                     server's rule too. Showing it disabled says why, instead of
@@ -2544,11 +2569,11 @@ function ClassCard({
                   disabled={c.studentCount > 0}
                   title={
                     c.studentCount > 0
-                      ? "A class with students can't be removed — it is archived at the end of the year"
-                      : "Remove this class from the current year"
+                      ? tr("school.class.removeDisabledTitle")
+                      : tr("school.class.removeTitle")
                   }
                 >
-                  Remove
+                  {tr("school.class.removeButton")}
                 </button>
               </>
             )
@@ -2560,16 +2585,14 @@ function ClassCard({
             // Regenerating retires the current code for good — confirm first.
             if (
               c.codes.length > 0 &&
-              !window.confirm(
-                "This permanently deactivates the current code — students who already joined keep their access. Continue?",
-              )
+              !window.confirm(tr("school.class.confirmRegenerate"))
             ) {
               return;
             }
             onGenCode(c.id);
           }}
         >
-          {c.codes.length > 0 ? "Regenerate code" : "+ Generate code"}
+          {c.codes.length > 0 ? tr("school.class.regenerateCode") : tr("school.class.generateCode")}
         </button>
       </div>
     </div>
@@ -2594,6 +2617,7 @@ function RosterView({
   onStudent: (userId: string) => void;
 }) {
   const { box, ghost } = useSchoolStyles();
+  const tr = useTranslate();
   const alerts = roster.students.filter(
     (s) => s.riskLevel === "high" || s.riskLevel === "medium" || s.riskLevel === "med",
   ).length;
@@ -2606,20 +2630,20 @@ function RosterView({
   return (
     <div>
       <button style={{ ...ghost, marginBottom: "1rem" }} onClick={onBack}>
-        ← Back to classes
+        {tr("school.roster.backToClasses")}
       </button>
       <div style={box}>
         <h2 style={{ margin: 0 }}>{roster.className}</h2>
         <div style={{ display: "flex", gap: "1.5rem", marginTop: "0.6rem", fontSize: "0.9rem" }}>
           <span>
-            <strong>{roster.students.length}</strong> <span style={{ opacity: 0.6 }}>students</span>
+            <strong>{roster.students.length}</strong> <span style={{ opacity: 0.6 }}>{tr("school.prof.studentsCountWord")}</span>
           </span>
           <span>
             <strong style={{ color: alerts ? "#f87171" : "inherit" }}>{alerts}</strong>{" "}
-            <span style={{ opacity: 0.6 }}>need attention</span>
+            <span style={{ opacity: 0.6 }}>{tr("school.roster.needAttention")}</span>
           </span>
           <span>
-            <strong>{pctOrDash(avg)}</strong> <span style={{ opacity: 0.6 }}>avg mastery</span>
+            <strong>{pctOrDash(avg)}</strong> <span style={{ opacity: 0.6 }}>{tr("school.roster.avgMastery")}</span>
           </span>
         </div>
       </div>
@@ -2629,8 +2653,7 @@ function RosterView({
       {roster.students.length === 0 ? (
         <div style={box}>
           <p style={{ margin: 0, opacity: 0.65 }}>
-            No students have joined this class yet. Share an access code so they can link their
-            account.
+            {tr("school.roster.noStudentsYet")}
           </p>
         </div>
       ) : (
@@ -2665,13 +2688,14 @@ function RosterList({
   onStudent: (userId: string) => void;
 }) {
   const { t } = useSchoolStyles();
+  const tr = useTranslate();
   const [risk, setRisk] = useState("all");
 
   // Surname first: a class list is read as "who is Kouamé", not "who is Marie",
   // and a school's paperwork is ordered that way everywhere else.
   const sorted = sortByName(students, (s) => `${s.lastName} ${s.firstName}`.trim());
   const search = useListSearch(sorted, (s) => [s.firstName, s.lastName, s.statusLabel], {
-    noun: "students",
+    noun: tr("list.noun.students"),
   });
 
   const found = search.visible;
@@ -2700,10 +2724,10 @@ function RosterList({
             value={risk}
             onChange={setRisk}
             options={[
-              { key: "all", label: "All", count: found.length },
-              { key: "alert", label: "Needs attention", count: found.filter(isAlert).length },
-              { key: "ok", label: "On track", count: found.filter(buckets.ok).length },
-              { key: "none", label: "No data", count: found.filter(buckets.none).length },
+              { key: "all", label: tr("school.roster.filterAll"), count: found.length },
+              { key: "alert", label: tr("school.roster.filterNeedsAttention"), count: found.filter(isAlert).length },
+              { key: "ok", label: tr("school.roster.filterOnTrack"), count: found.filter(buckets.ok).length },
+              { key: "none", label: tr("school.roster.filterNoData"), count: found.filter(buckets.none).length },
             ]}
           />
         )}
@@ -2716,13 +2740,13 @@ function RosterList({
       <ListNoMatch search={search} />
       {!search.noMatch && shown.length === 0 && found.length > 0 && (
         <p style={{ color: t.muted, fontSize: 15, padding: "8px 2px" }}>
-          No students in this filter.{" "}
+          {tr("school.roster.noneInFilter")}{" "}
           <button
             type="button"
             onClick={() => setRisk("all")}
             style={{ background: "none", border: "none", padding: 0, color: t.link, fontSize: 15, fontWeight: 650, fontFamily: "inherit", cursor: "pointer" }}
           >
-            Show all
+            {tr("school.roster.showAll")}
           </button>
         </p>
       )}
@@ -2732,6 +2756,7 @@ function RosterList({
 
 function RosterRow({ s, busy, onOpen }: { s: RosterStudent; busy: boolean; onOpen: () => void }) {
   const { box, ghost } = useSchoolStyles();
+  const tr = useTranslate();
   return (
     <div style={{ ...box, display: "flex", alignItems: "center", gap: "0.75rem" }}>
       <span
@@ -2742,12 +2767,12 @@ function RosterRow({ s, busy, onOpen }: { s: RosterStudent; busy: boolean; onOpe
           {s.firstName} {s.lastName}
         </div>
         <div style={{ opacity: 0.55, fontSize: "0.8rem" }}>
-          {s.statusLabel ?? "No data yet"} · last active {fmtDate(s.lastActiveAt)}
+          {s.statusLabel ?? tr("school.roster.noDataYet")} · {tr("school.roster.lastActive")} {fmtDate(s.lastActiveAt)}
         </div>
       </div>
       <span style={{ opacity: 0.7, fontSize: "0.85rem" }}>{pctOrDash(s.avgMastery)}</span>
       <button style={ghost} onClick={onOpen} disabled={busy}>
-        View
+        {tr("school.roster.view")}
       </button>
     </div>
   );
@@ -2755,6 +2780,7 @@ function RosterRow({ s, busy, onOpen }: { s: RosterStudent; busy: boolean; onOpe
 
 function LearningGraphView({ graph }: { graph: LearningGraph }) {
   const { box } = useSchoolStyles();
+  const tr = useTranslate();
   const W = 660;
   const layerGap = 92;
   const topPad = 30;
@@ -2777,20 +2803,19 @@ function LearningGraphView({ graph }: { graph: LearningGraph }) {
   const H = topPad * 2 + maxDepth * layerGap;
 
   const legend: [string, string][] = [
-    ["#22c55e", "Mastered"],
-    ["#f59e0b", "Partial"],
-    ["#ef4444", "Gap"],
-    ["#6b7794", "Not started"],
+    ["#22c55e", tr("school.graph.mastered")],
+    ["#f59e0b", tr("school.graph.partial")],
+    ["#ef4444", tr("school.graph.gap")],
+    ["#6b7794", tr("school.graph.notStarted")],
   ];
 
   return (
     <div style={box}>
       <div style={{ fontSize: "0.75rem", opacity: 0.5, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "0.5rem" }}>
-        Learning graph
+        {tr("school.graph.title")}
       </div>
       <p style={{ opacity: 0.55, fontSize: "0.8rem", margin: "0 0 0.75rem" }}>
-        Concepts of this student and the prerequisites they build on — a foundation
-        node in red is a gap holding back everything below it.
+        {tr("school.graph.intro")}
       </p>
       <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "0.5rem" }}>
         {legend.map(([c, l]) => (
@@ -2816,7 +2841,7 @@ function LearningGraphView({ graph }: { graph: LearningGraph }) {
             const short = n.label.length > 18 ? n.label.slice(0, 17) + "…" : n.label;
             return (
               <g key={n.id}>
-                <title>{`${n.label} — ${n.mastery == null ? "not started" : Math.round(n.mastery * 100) + "%"}`}</title>
+                <title>{`${n.label} — ${n.mastery == null ? tr("school.graph.nodeTooltipNotStarted") : Math.round(n.mastery * 100) + "%"}`}</title>
                 <circle cx={p.x} cy={p.y} r={r} fill={masteryColor(n.mastery)} stroke="#0b1020" strokeWidth={1.5} />
                 <text
                   x={p.x}
@@ -2847,11 +2872,12 @@ function StudentDetailView({
   classId?: string;
 }) {
   const { t, box, ghost } = useSchoolStyles();
+  const tr = useTranslate();
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
         <button style={ghost} onClick={onBack}>
-          ← Back to class
+          {tr("school.student.backToClass")}
         </button>
         {/* FERPA inspect-and-review: what a parent asks the school for. Downloads
             the education record — results, inferred understanding and staff
@@ -2860,9 +2886,9 @@ function StudentDetailView({
           <a
             href={`/api/school/student/record?classId=${classId}&userId=${detail.userId}`}
             style={{ ...ghost, textDecoration: "none", marginLeft: "auto" }}
-            title="Download this student's education record (for a parent request)"
+            title={tr("school.student.downloadRecordTitle")}
           >
-            Download record
+            {tr("school.student.downloadRecord")}
           </a>
         )}
       </div>
@@ -2889,10 +2915,10 @@ function StudentDetailView({
         </div>
         <div style={{ display: "flex", gap: "1.5rem", marginTop: "0.75rem", fontSize: "0.9rem" }}>
           {[
-            ["Avg mastery", pctOrDash(detail.avgMastery)],
-            ["Confidence", pctOrDash(detail.mindsetScore)],
-            ["Sessions (7d)", detail.sessionsLast7d ?? "—"],
-            ["Last active", fmtDate(detail.lastActiveAt)],
+            [tr("school.student.avgMastery"), pctOrDash(detail.avgMastery)],
+            [tr("school.student.confidence"), pctOrDash(detail.mindsetScore)],
+            [tr("school.student.sessions7d"), detail.sessionsLast7d ?? "—"],
+            [tr("school.student.lastActive"), fmtDate(detail.lastActiveAt)],
           ].map(([label, value]) => (
             <div key={String(label)}>
               <div style={{ fontWeight: 700 }}>{value}</div>
@@ -2902,7 +2928,7 @@ function StudentDetailView({
         </div>
         {detail.detectedMindset && (
           <p style={{ margin: "0.6rem 0 0", opacity: 0.7, fontSize: "0.85rem" }}>
-            Mindset: {detail.detectedMindset}
+            {tr("school.student.mindsetPrefix")} {detail.detectedMindset}
           </p>
         )}
       </div>
@@ -2910,7 +2936,7 @@ function StudentDetailView({
       {detail.insight && (
         <div style={{ ...box, borderColor: "#8b5cf655", background: t.cardBg }}>
           <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#a78bfa", marginBottom: "0.35rem" }}>
-            <RayaName /> analysis
+            <RayaName />{tr("school.student.rayaAnalysis")}
           </div>
           <p style={{ margin: 0, lineHeight: 1.55 }}>{detail.insight}</p>
         </div>
@@ -2920,11 +2946,11 @@ function StudentDetailView({
 
       <div style={box}>
         <div style={{ fontSize: "0.75rem", opacity: 0.5, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "0.75rem" }}>
-          Mastery by concept
+          {tr("school.student.masteryByConcept")}
         </div>
         {detail.kcs.length === 0 ? (
           <p style={{ margin: 0, opacity: 0.6 }}>
-            No cognitive data yet — it appears once this student works with <RayaName />.
+            {tr("school.student.noCognitiveDataA")} <RayaName />{tr("school.student.noCognitiveDataB")}
           </p>
         ) : (
           detail.kcs.map((kc, i) => (

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRef, useState } from "react";
+import { netFetch } from "@/lib/net/client-fetch";
 import SitePage from "@/components/site/SitePage";
 import RoadmapTimeline, { ROADMAP_UPDATED } from "@/components/site/RoadmapTimeline";
 import type { Theme } from "@/components/site/theme";
@@ -120,11 +121,15 @@ function NewsletterBox({ t }: { t: Theme }) {
   async function subscribe() {
     if (!email.includes("@") || state === "busy") return;
     setState("busy");
-    const res = await fetch("/api/content/subscribe", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, token: captchaToken }),
-    });
+    const res = await netFetch(
+      "/api/content/subscribe",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, token: captchaToken }),
+      },
+      { timeoutMs: 15_000 },
+    );
     turnstileRef.current?.reset();
     setCaptchaToken(null);
     setState(res.ok ? "done" : "error");
@@ -180,7 +185,8 @@ function ProposeForm({ t, onClose }: { t: Theme; onClose: () => void }) {
     Object.entries(form).forEach(([k, v]) => fd.append(k, v));
     fd.append("token", captchaToken ?? "");
     if (file) fd.append("file", file);
-    const res = await fetch("/api/content/contribute", { method: "POST", body: fd });
+    // May carry an attached file — more room than a plain JSON POST.
+    const res = await netFetch("/api/content/contribute", { method: "POST", body: fd }, { timeoutMs: 45_000 });
     turnstileRef.current?.reset();
     setCaptchaToken(null);
     setState(res.ok ? "done" : "error");

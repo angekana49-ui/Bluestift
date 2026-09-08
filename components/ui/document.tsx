@@ -4,6 +4,7 @@ import { useAppTheme } from "@/components/ui/theme";
 import { DocumentActions } from "@/components/ui/doc-actions";
 import type { BrandedDoc } from "@/lib/document";
 import { display, type AppTheme } from "@/components/ui/tokens";
+import { useTranslate } from "@/components/ui/locale";
 import {
   DOC_BRANDS,
   footerLine,
@@ -51,6 +52,7 @@ export function DocumentView({
   maxWidth?: number;
 }) {
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
   const b = DOC_BRANDS[brand];
   const blocks = parseDoc(body);
 
@@ -87,7 +89,7 @@ export function DocumentView({
             {onPdf && <DocButton t={t} onClick={onPdf} label="PDF" />}
           </>
         )}
-        {onClose && <DocButton t={t} onClick={onClose} label="✕" title="Close" />}
+        {onClose && <DocButton t={t} onClick={onClose} label="✕" title={tr("room.closeTitle")} />}
       </div>
 
       {/* Title + meta + accent rule */}

@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useAppTheme } from "@/components/ui/theme";
+import { netFetch, getJsonCached, invalidateCached } from "@/lib/net/client-fetch";
 import { SettingsCard } from "@/components/raya/raya-app";
+import { useTranslate } from "@/components/ui/locale";
 
 type Share = {
   token: string;
@@ -25,27 +27,24 @@ type Share = {
  */
 export function SettingsSharesCard() {
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
   const [shares, setShares] = useState<Share[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [revoking, setRevoking] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    try {
-      const res = await fetch("/api/share");
-      const data = (await res.json().catch(() => null)) as
-        | { shares?: Share[]; error?: string }
-        | null;
-      if (!res.ok) {
-        setErr(data?.error ?? "Could not load your shared links.");
-        setShares([]);
-        return;
-      }
-      setShares(data?.shares ?? []);
-    } catch {
-      setErr("Could not load your shared links.");
+    const { data } = await getJsonCached<{ shares?: Share[] }>("/api/share", {
+      cacheKey: "raya:shares",
+      onUpdate: (fresh) => setShares(fresh.shares ?? []),
+    });
+    if (!data) {
+      setErr(tr("raya.settings.shares.loadFailed"));
       setShares([]);
+      return;
     }
+    setShares(data.shares ?? []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -56,16 +55,21 @@ export function SettingsSharesCard() {
     setRevoking(token);
     setErr(null);
     try {
-      const res = await fetch(`/api/share?token=${encodeURIComponent(token)}`, { method: "DELETE" });
+      const res = await netFetch(
+        `/api/share?token=${encodeURIComponent(token)}`,
+        { method: "DELETE" },
+        { timeoutMs: 15_000 },
+      );
       if (!res.ok) {
-        setErr("Could not revoke that link. Try again.");
+        setErr(tr("raya.settings.shares.revokeFailedRetry"));
         return;
       }
       // Drop it locally rather than refetch: the row is gone from the live set,
       // and a refetch would blank the list for a beat on a slow connection.
       setShares((prev) => (prev ?? []).filter((s) => s.token !== token));
+      invalidateCached("raya:shares");
     } catch {
-      setErr("Could not revoke that link. Check your connection.");
+      setErr(tr("raya.settings.shares.revokeFailedConnection"));
     } finally {
       setRevoking(null);
     }
@@ -97,14 +101,13 @@ export function SettingsSharesCard() {
 
   return (
     <SettingsCard theme={t} id="shares">
-      <div style={{ fontSize: 16, fontWeight: 700, color: t.text }}>Shared links</div>
+      <div style={{ fontSize: 16, fontWeight: 700, color: t.text }}>{tr("raya.settings.shares.title")}</div>
       <div style={{ fontSize: 13, color: t.muted, marginTop: 2, marginBottom: 12, lineHeight: 1.6 }}>
-        Anyone with one of these links can read that document — they don&apos;t expire on their own.
-        Revoking one takes it offline immediately.
+        {tr("raya.settings.shares.desc")}
       </div>
 
       {shares === null ? (
-        <div style={{ fontSize: 14, color: t.muted }}>Loading…</div>
+        <div style={{ fontSize: 14, color: t.muted }}>{tr("school.loading")}</div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {shares.map((s) => (
@@ -132,14 +135,14 @@ export function SettingsSharesCard() {
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {s.title || "Untitled document"}
+                  {s.title || tr("raya.settings.shares.untitled")}
                 </div>
                 <div style={{ fontSize: 12, color: t.mutedLight, marginTop: 2 }}>
-                  Shared {new Date(s.createdAt).toLocaleDateString()}
+                  {tr("raya.settings.shares.sharedOn")} {new Date(s.createdAt).toLocaleDateString()}
                 </div>
               </div>
               <button type="button" style={pill} onClick={() => copy(s.url, s.token)}>
-                {copied === s.token ? "Copied ✓" : "Copy link"}
+                {copied === s.token ? tr("raya.settings.shares.copied") : tr("school.team.copyLink")}
               </button>
               <button
                 type="button"
@@ -147,7 +150,7 @@ export function SettingsSharesCard() {
                 onClick={() => revoke(s.token)}
                 disabled={revoking === s.token}
               >
-                {revoking === s.token ? "Revoking…" : "Revoke"}
+                {revoking === s.token ? tr("raya.settings.shares.revoking") : tr("raya.settings.shares.revoke")}
               </button>
             </div>
           ))}

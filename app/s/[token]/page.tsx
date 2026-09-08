@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { DOC_BRANDS, parseDoc, splitInline, footerLine, type DocBrand } from "@/lib/doc-format";
+import { getServerTranslate } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 // Link-shared, not for search engines.
@@ -23,6 +24,7 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
 
   if (!data || data.revoked_at) notFound();
 
+  const tr = await getServerTranslate();
   const brand = DOC_BRANDS[(data.brand as DocBrand) in DOC_BRANDS ? (data.brand as DocBrand) : "raya"];
   const blocks = parseDoc(data.body ?? "");
   const inline = (text: string) =>
@@ -53,7 +55,7 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={brand.logo} alt="" style={{ height: 24, width: "auto" }} />
           <span style={{ fontSize: 15, fontWeight: 700, color: brand.accent }}>{brand.name}</span>
-          <span style={{ marginLeft: "auto", fontSize: 13, color: "#8a97a8" }}>Shared · read-only</span>
+          <span style={{ marginLeft: "auto", fontSize: 13, color: "#8a97a8" }}>{tr("sharePage.sharedReadOnly")}</span>
         </header>
 
         <div style={{ padding: "20px 24px 4px" }}>

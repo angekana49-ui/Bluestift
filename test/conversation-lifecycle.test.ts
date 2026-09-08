@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { en } from "@/lib/i18n/en";
 
 /**
  * The three verbs, and the promise each one makes.
@@ -143,8 +144,12 @@ describe("memorize is anchored and visible", () => {
     // which stays true after the anchor is dropped.
     const payload = /\.update\(\{([^}]*)\}\)/.exec(forget)?.[1] ?? "";
     expect(payload.trim()).toBe("memorized_at: null");
-    // And the UI must not claim it unlearns anything.
-    expect(memory).toMatch(/does not unlearn it/);
+    // And the UI must not claim it unlearns anything. The copy itself now
+    // lives in the message catalogue (i18n), not this file — so the guarantee
+    // is split in two: the component still renders it through that key, and
+    // the English source of that key still makes the promise.
+    expect(memory).toMatch(/kernel\.memory\.confirmBody/);
+    expect(en["kernel.memory.confirmBody"]).toMatch(/does not unlearn it/);
   });
 });
 

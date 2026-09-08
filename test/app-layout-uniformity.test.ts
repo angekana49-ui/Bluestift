@@ -180,7 +180,7 @@ describe("no primary action is left stranded at the leading edge", () => {
     // `space-between`, and hence asserting the row and the button separately
     // rather than by their proximity in the source.
     expect(admin).toMatch(/\.\.\.formActions,\s*\n\s*justifyContent: "space-between"/);
-    expect(admin).toMatch(/style=\{btn\}[\s\S]{0,900}Regenerate code" : "\+ Generate code"/);
+    expect(admin).toMatch(/style=\{btn\}[\s\S]{0,900}school\.class\.regenerateCode"\) : tr\("school\.class\.generateCode"\)/);
   });
 
   it("a row of actions after a fixed-width label claims the slack", () => {

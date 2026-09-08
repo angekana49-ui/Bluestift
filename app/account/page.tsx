@@ -15,6 +15,7 @@ import { SettingsSharesCard } from "@/components/raya/settings-shares-card";
 import { StudentBillingCard } from "@/components/raya/settings-billing-card";
 import { initialsOf } from "@/lib/name";
 import { ageBand } from "@/lib/compliance/age";
+import { getServerTranslate } from "@/lib/i18n/server";
 
 export default async function AccountPage() {
   const supabase = await createClient();
@@ -49,6 +50,7 @@ export default async function AccountPage() {
   const realEmail = hasRealEmail(user.email);
   const studentName = profile?.display_name || profile?.username || "";
   const studentPlan = planLabel;
+  const tr = await getServerTranslate();
 
   return (
     <RayaScaffold active="settings" studentName={studentName} studentInitials={initialsOf(studentName)} studentAvatarUrl={profile?.profile_picture_url} studentPlan={studentPlan}>
@@ -56,7 +58,7 @@ export default async function AccountPage() {
           the shared measure rather than opening its own frame. */}
       <PageBody maxWidth={700}>
         <>
-          <SectionHeader title="Settings" />
+          <SectionHeader title={tr("nav.settings")} />
           <SettingsThemeCard />
           <SettingsLanguageCard />
           <AuthPanel

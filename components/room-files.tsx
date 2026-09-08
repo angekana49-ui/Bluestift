@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { netFetch } from "@/lib/net/client-fetch";
 import { FilePreview, type Attachment } from "@/components/attachment";
 import { useAppTheme } from "@/components/ui/theme";
 import { RayaName, RayaText } from "@/components/ui/brand";
 import { neutralButton } from "@/components/ui/forms";
 import { FilePicker } from "@/components/ui/file-picker";
+import { useTranslate } from "@/components/ui/locale";
 
 type RoomFile = Attachment & {
   file_type: string | null;
@@ -15,6 +17,7 @@ type RoomFile = Attachment & {
 
 export function RoomFiles({ roomId, readOnly = false }: { roomId: string; readOnly?: boolean }) {
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
   const box: React.CSSProperties = {
     background: t.cardBg2,
     border: `1px solid ${t.cardBorder}`,
@@ -48,21 +51,24 @@ export function RoomFiles({ roomId, readOnly = false }: { roomId: string; readOn
     if (!file) return;
     setBusy(true);
     setError(null);
-    setStatus("Envoi et lecture… (audio/PDF peuvent prendre un instant)");
+    setStatus(tr("room.files.uploadingStatus"));
     try {
       const fd = new FormData();
       fd.append("roomId", roomId);
       fd.append("file", file);
-      const res = await fetch("/api/rooms/files", { method: "POST", body: fd });
+      // Audio/PDF go through server-side extraction (maxDuration 60s) — a bare
+      // fetch never times out, but netFetch's 10s default would abort a
+      // legitimately-running transcription, so it's raised to match.
+      const res = await netFetch("/api/rooms/files", { method: "POST", body: fd }, { timeoutMs: 65_000 });
       const data = await res.json();
       if (!res.ok) {
-        setError(data?.error ?? "Upload failed.");
+        setError(data?.error ?? tr("room.files.uploadFailed"));
         return;
       }
-      setStatus(data.hasText ? "Added — Raya can use it as context ✓" : "Added ✓");
+      setStatus(data.hasText ? tr("room.files.addedWithContext") : tr("room.files.addedPlain"));
       await load();
     } catch {
-      setError("Upload failed.");
+      setError(tr("room.files.uploadFailed"));
     } finally {
       setBusy(false);
     }
@@ -71,11 +77,11 @@ export function RoomFiles({ roomId, readOnly = false }: { roomId: string; readOn
   return (
     <div style={box}>
       <p style={{ color: t.muted, marginTop: 0, fontSize: 15 }}>
-        Shared documents give the room its context — <RayaName /> reads them.
+        {tr("room.files.contextA")} <RayaName /> {tr("room.files.contextB")}
       </p>
       {readOnly ? (
         <p style={{ color: t.muted, fontSize: 14, margin: 0 }}>
-          🔒 This session has ended — no new documents can be shared.
+          {tr("room.files.readOnlyBanner")}
         </p>
       ) : (
         <FilePicker
@@ -85,7 +91,7 @@ export function RoomFiles({ roomId, readOnly = false }: { roomId: string; readOn
           // Uploads on pick and lists the result below, so it needs no filename
           // line — but a failed upload must be retryable with the same file.
           resetAfterPick
-          label={busy ? "Uploading…" : undefined}
+          label={busy ? tr("room.files.uploading") : undefined}
           buttonStyle={neutralButton(t)}
         />
       )}
@@ -93,7 +99,7 @@ export function RoomFiles({ roomId, readOnly = false }: { roomId: string; readOn
       {error && <p style={{ color: "#f87171", marginTop: 8, fontSize: 15 }}>{error}</p>}
 
       <div style={{ marginTop: 16 }}>
-        {files.length === 0 && <p style={{ color: t.muted, fontSize: 15 }}>No files yet.</p>}
+        {files.length === 0 && <p style={{ color: t.muted, fontSize: 15 }}>{tr("room.files.noFilesYet")}</p>}
         {files.map((f) => (
           <div
             key={f.id}
@@ -124,7 +130,7 @@ export function RoomFiles({ roomId, readOnly = false }: { roomId: string; readOn
                 fontWeight: 600,
               }}
             >
-              Open
+              {tr("room.files.openButton")}
             </button>
           </div>
         ))}

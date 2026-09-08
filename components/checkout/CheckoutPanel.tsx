@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { netFetch } from "@/lib/net/client-fetch";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
 
@@ -48,18 +49,22 @@ export function CheckoutPanel({
     setBusy(channel);
     setError(null);
     try {
-      const res = await fetch("/api/billing/checkout", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          planId,
-          channel,
-          audience,
-          months,
-          seats: seats ?? undefined,
-          ...(guardianRequired ? { guardian: true } : {}),
-        }),
-      });
+      const res = await netFetch(
+        "/api/billing/checkout",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            planId,
+            channel,
+            audience,
+            months,
+            seats: seats ?? undefined,
+            ...(guardianRequired ? { guardian: true } : {}),
+          }),
+        },
+        { timeoutMs: 20_000 }, // may round-trip a real payment aggregator
+      );
       const data = await res.json();
       if (!res.ok || !data.url) {
         setError(data.error ?? tr("checkout.err.startFailed"));

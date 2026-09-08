@@ -1,4 +1,5 @@
 import type { Attachment } from "@/components/attachment";
+import { netFetch } from "@/lib/net/client-fetch";
 
 /**
  * A message row as the chat surface renders it. `status` is client-only: an
@@ -130,7 +131,7 @@ export function titleFrom(text: string): string {
 export function fetchHooks(url: string): () => Promise<{ greeting?: string; suggestions?: string[] } | null> {
   return async () => {
     try {
-      const r = await fetch(url);
+      const r = await netFetch(url, {}, { timeoutMs: 8_000 });
       if (!r.ok) return null;
       const d = (await r.json()) as { greeting?: unknown; suggestions?: unknown };
       const greeting = typeof d?.greeting === "string" ? d.greeting : undefined;

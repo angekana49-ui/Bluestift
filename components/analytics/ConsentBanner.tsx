@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getConsent, setConsent } from "@/lib/analytics/consent";
 import { enableAnalytics, disableAnalytics } from "@/lib/analytics/posthog-lazy";
 import { createClient } from "@/lib/supabase/client";
+import { useTranslate } from "@/components/ui/locale";
 
 // The banner's own inset from the viewport edge (see `bottom` below) — read
 // back into the published height so a stacking neighbour clears the banner
@@ -18,6 +19,7 @@ const BOTTOM_INSET = 16;
  * both the day and night themes.
  */
 export function ConsentBanner() {
+  const tr = useTranslate();
   const [show, setShow] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
 
@@ -84,7 +86,7 @@ export function ConsentBanner() {
     <div
       ref={boxRef}
       role="dialog"
-      aria-label="Analytics consent"
+      aria-label={tr("consent.ariaLabel")}
       style={{
         position: "fixed",
         left: 16,
@@ -102,10 +104,9 @@ export function ConsentBanner() {
       }}
     >
       <p style={{ margin: "0 0 12px" }}>
-        We use privacy-friendly analytics to understand how Bluestift is used and make it better —
-        no ads, and we never sell your data. You can decline and keep using everything.{" "}
+        {tr("consent.notice")}{" "}
         <Link href="/privacy" style={{ color: "#8ab4ff", textDecoration: "underline" }}>
-          Privacy
+          {tr("site.nav.privacy")}
         </Link>
       </p>
       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
@@ -122,7 +123,7 @@ export function ConsentBanner() {
             cursor: "pointer",
           }}
         >
-          Decline
+          {tr("consent.decline")}
         </button>
         <button
           onClick={accept}
@@ -137,7 +138,7 @@ export function ConsentBanner() {
             cursor: "pointer",
           }}
         >
-          Accept
+          {tr("consent.accept")}
         </button>
       </div>
     </div>

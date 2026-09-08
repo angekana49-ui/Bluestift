@@ -11,7 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import type { Theme } from "./theme";
-import { RayaName } from "@/components/ui/brand";
+import { RayaName, RayaText } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
 // The app's own icons, not a second set drawn for the site. They take a `style`
@@ -1856,7 +1856,9 @@ export function SocraticShot({ theme: t }: { theme: Theme }) {
       }}
     >
       <Icon style={{ width: uw(12), height: uw(12) }} />
-      <span style={{ flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span>
+      <span style={{ flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        <RayaText>{label}</RayaText>
+      </span>
       {trailing}
     </div>
   );
@@ -1879,7 +1881,7 @@ export function SocraticShot({ theme: t }: { theme: Theme }) {
         background: pick ? t.chipBg : "transparent",
       }}
     >
-      {label}
+      {typeof label === "string" ? <RayaText>{label}</RayaText> : label}
     </span>
   );
 
@@ -2467,7 +2469,7 @@ export function RungShot({ theme: t, rung }: { theme: Theme; rung: number }) {
         background: pick ? t.chipBg : "transparent",
       }}
     >
-      {label}
+      <RayaText>{label}</RayaText>
     </span>
   );
 

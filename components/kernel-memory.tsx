@@ -3,11 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useAppTheme } from "@/components/ui/theme";
+import { netFetch } from "@/lib/net/client-fetch";
 import { panelCard, cardTitle, ghostButton } from "@/components/ui/forms";
 import { IconMemorize } from "@/components/ui/icons";
 import { ListNoMatch, ListToolbar, useListSearch } from "@/components/ui/list-filter";
 import { text } from "@/components/ui/tokens";
 import { RayaText } from "@/components/ui/brand";
+import { useTranslate } from "@/components/ui/locale";
 
 export type MemorizedConversation = {
   id: string;
@@ -30,6 +32,7 @@ export type MemorizedConversation = {
  */
 export function KernelMemory({ initial }: { initial: MemorizedConversation[] }) {
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
   const [items, setItems] = useState(initial);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -37,8 +40,8 @@ export function KernelMemory({ initial }: { initial: MemorizedConversation[] }) 
 
   // Untitled threads keep the label the list shows them under, so searching
   // "untitled" finds the ones with no title rather than nothing.
-  const search = useListSearch(items, (c) => [c.title ?? "Untitled conversation"], {
-    noun: "conversations",
+  const search = useListSearch(items, (c) => [c.title ?? tr("kernel.untitledConversation")], {
+    noun: tr("list.noun.conversations"),
   });
 
   async function forget(id: string) {
@@ -46,19 +49,23 @@ export function KernelMemory({ initial }: { initial: MemorizedConversation[] }) 
     setBusy(id);
     setError(null);
     try {
-      const res = await fetch("/api/raya/conversations", {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ conversationId: id, action: "forget" }),
-      });
+      const res = await netFetch(
+        "/api/raya/conversations",
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ conversationId: id, action: "forget" }),
+        },
+        { timeoutMs: 15_000 },
+      );
       if (!res.ok) {
-        setError("Couldn't update your memory. Try again in a moment.");
+        setError(tr("kernel.memory.updateFailed"));
         return;
       }
       setItems((list) => list.filter((c) => c.id !== id));
       setConfirming(null);
     } catch {
-      setError("Couldn't reach the server.");
+      setError(tr("kernel.memory.serverUnreachable"));
     } finally {
       setBusy(null);
     }
@@ -70,21 +77,15 @@ export function KernelMemory({ initial }: { initial: MemorizedConversation[] }) 
         <span style={{ display: "flex", color: t.link, flex: "none" }}>
           <IconMemorize size={17} />
         </span>
-        <h2 style={{ ...cardTitle(t), margin: 0 }}>Memory</h2>
+        <h2 style={{ ...cardTitle(t), margin: 0 }}>{tr("kernel.memory.heading")}</h2>
       </div>
       <p style={{ margin: "6px 0 16px", color: t.muted, fontSize: text.sm, lineHeight: 1.6 }}>
-        <RayaText>
-          The conversations you asked Raya to remember. Each one was read in full and folded into
-          your Kernel, and Raya can draw on it later.
-        </RayaText>
+        <RayaText>{tr("kernel.memory.intro")}</RayaText>
       </p>
 
       {items.length === 0 ? (
         <p style={{ margin: 0, color: t.mutedLight, fontSize: text.sm, lineHeight: 1.6 }}>
-          <RayaText>
-            Nothing memorized yet. Open the ⋯ menu on any conversation in your history and choose
-            Memorize — that is what puts it here.
-          </RayaText>
+          <RayaText>{tr("kernel.memory.empty")}</RayaText>
         </p>
       ) : (
         <>
@@ -114,7 +115,7 @@ export function KernelMemory({ initial }: { initial: MemorizedConversation[] }) 
                       textDecoration: "none",
                     }}
                   >
-                    {c.title ?? "Untitled conversation"}
+                    {c.title ?? tr("kernel.untitledConversation")}
                   </Link>
                   <span style={{ color: t.mutedLight, fontSize: text.xs, flex: "none" }}>
                     {new Date(c.memorized_at).toLocaleDateString()}
@@ -124,7 +125,7 @@ export function KernelMemory({ initial }: { initial: MemorizedConversation[] }) 
                     onClick={() => setConfirming(open ? null : c.id)}
                     style={{ ...ghostButton(t), flex: "none", padding: "6px 13px", fontSize: text.xs }}
                   >
-                    {open ? "Cancel" : "Remove"}
+                    {open ? tr("kernel.memory.cancel") : tr("kernel.memory.remove")}
                   </button>
                 </div>
 
@@ -135,12 +136,7 @@ export function KernelMemory({ initial }: { initial: MemorizedConversation[] }) 
                 {open && (
                   <div style={{ marginTop: 12, borderTop: `1px solid ${t.cardBorder}`, paddingTop: 12 }}>
                     <p style={{ margin: "0 0 12px", color: t.muted, fontSize: text.sm, lineHeight: 1.6 }}>
-                      <RayaText>
-                        This takes the conversation off the list, so it stops counting as one you
-                        asked Raya to build on. The conversation itself is kept, and the mastery
-                        your Kernel already derived from it stays in your profile — removing it
-                        here does not unlearn it.
-                      </RayaText>
+                      <RayaText>{tr("kernel.memory.confirmBody")}</RayaText>
                     </p>
                     <button
                       type="button"
@@ -153,7 +149,7 @@ export function KernelMemory({ initial }: { initial: MemorizedConversation[] }) 
                         opacity: busy === c.id ? 0.6 : 1,
                       }}
                     >
-                      {busy === c.id ? "Removing…" : "Remove from memory"}
+                      {busy === c.id ? tr("kernel.memory.removing") : tr("kernel.memory.removeFromMemory")}
                     </button>
                   </div>
                 )}

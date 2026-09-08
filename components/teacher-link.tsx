@@ -4,8 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAppTheme } from "@/components/ui/theme";
+import { netFetch } from "@/lib/net/client-fetch";
 import { panelCard, cardTitle, textInput, ctaButton, linkText, formActions } from "@/components/ui/forms";
 import { COUNTRIES } from "@/lib/school-constants";
+import { useTranslate } from "@/components/ui/locale";
 
 type Staff = { schoolName: string; role: string };
 
@@ -27,6 +29,7 @@ export function TeacherLink({
   hasEmail?: boolean;
 }) {
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
   const router = useRouter();
   const card = panelCard(t);
   const input = { ...textInput(t), letterSpacing: "0.05em" };
@@ -53,11 +56,15 @@ export function TeacherLink({
     setError(null);
     setMsg(null);
     try {
-      const res = await fetch("/api/school/join-team", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ code: code.trim() }),
-      });
+      const res = await netFetch(
+        "/api/school/join-team",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ code: code.trim() }),
+        },
+        { timeoutMs: 15_000 },
+      );
       const d = await res.json();
       if (!res.ok) {
         setError(d?.error ?? `Request failed (${res.status}).`);
@@ -66,13 +73,13 @@ export function TeacherLink({
       const where = d.schoolName ? ` ${d.schoolName}` : "";
       if (d.status === "requested") {
         setDone("requested");
-        setMsg(`Request sent to${where}. You'll get access as soon as an admin approves it.`);
+        setMsg(`${tr("teacherLink.requestSentA")}${where}${tr("teacherLink.requestSentB")}`);
       } else {
         setDone("joined");
-        setMsg(`You joined${where}.`);
+        setMsg(`${tr("teacherLink.joinedA")}${where}.`);
       }
     } catch {
-      setError("Couldn't reach the server.");
+      setError(tr("teacherLink.serverUnreachable"));
     } finally {
       setBusy(false);
     }
@@ -84,11 +91,15 @@ export function TeacherLink({
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/school/create", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), city: city.trim(), countryCode }),
-      });
+      const res = await netFetch(
+        "/api/school/create",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ name: name.trim(), city: city.trim(), countryCode }),
+        },
+        { timeoutMs: 15_000 },
+      );
       const d = await res.json().catch(() => null);
       if (!res.ok) {
         setError(d?.error ?? `Request failed (${res.status}).`);
@@ -101,7 +112,7 @@ export function TeacherLink({
       router.push("/school?tab=billing");
       router.refresh();
     } catch {
-      setError("Couldn't reach the server.");
+      setError(tr("teacherLink.serverUnreachable"));
       setBusy(false);
     }
   }
@@ -113,14 +124,13 @@ export function TeacherLink({
   if (!hasEmail && !initial) {
     return (
       <div style={card}>
-        <h2 style={cardTitle(t)}>Do you teach at — or run — a school?</h2>
+        <h2 style={cardTitle(t)}>{tr("teacherLink.headline")}</h2>
         <p style={{ margin: "0 0 14px", color: t.muted, fontSize: 15, lineHeight: 1.6 }}>
-          Teacher and admin accounts need a <strong style={{ color: t.text }}>verified email</strong> — it keeps
-          school data tied to a real, recoverable account. Anonymous accounts stay perfect for learning solo, but
-          to join or run a school, link your email first.
+          {tr("teacherLink.emailGateA")} <strong style={{ color: t.text }}>{tr("teacherLink.emailGateStrong")}</strong>{" "}
+          {tr("teacherLink.emailGateB")}
         </p>
         <Link href="/account" style={{ ...btn, display: "inline-block", textDecoration: "none" }}>
-          Add your email →
+          {tr("teacherLink.addEmailCta")}
         </Link>
       </div>
     );
@@ -130,22 +140,21 @@ export function TeacherLink({
   if (mode === "create") {
     return (
       <form style={card} onSubmit={createSchool}>
-        <h2 style={cardTitle(t)}>Create your school</h2>
+        <h2 style={cardTitle(t)}>{tr("teacherLink.createTitle")}</h2>
         <p style={{ margin: "0 0 14px", color: t.muted, fontSize: 14 }}>
-          You&apos;ll become its administrator — add classes, access codes and teachers from the
-          Schools dashboard.
+          {tr("teacherLink.createIntro")}
         </p>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
           <input
             style={{ ...textInput(t), flex: 1, minWidth: 200, width: "auto" }}
-            placeholder="School name"
+            placeholder={tr("teacherLink.schoolNamePlaceholder")}
             value={name}
             onChange={(e) => setName(e.target.value)}
             disabled={busy}
           />
           <input
             style={{ ...textInput(t), width: 150 }}
-            placeholder="City (optional)"
+            placeholder={tr("teacherLink.cityPlaceholder")}
             value={city}
             onChange={(e) => setCity(e.target.value)}
             disabled={busy}
@@ -157,7 +166,7 @@ export function TeacherLink({
           onChange={(e) => setCountryCode(e.target.value)}
           disabled={busy}
         >
-          <option value="">Country (optional)</option>
+          <option value="">{tr("teacherLink.countryPlaceholder")}</option>
           {COUNTRIES.map((c) => (
             <option key={c.code} value={c.code}>
               {c.name}
@@ -166,14 +175,14 @@ export function TeacherLink({
         </select>
         <div style={{ ...formActions, marginTop: 0 }}>
           <button type="submit" style={{ ...btn, opacity: busy || !name.trim() ? 0.6 : 1 }} disabled={busy || !name.trim()}>
-            {busy ? "Creating…" : "Create school"}
+            {busy ? tr("teacherLink.creating") : tr("teacherLink.createButton")}
           </button>
           <button
             type="button"
             onClick={() => { setMode("default"); setError(null); }}
             style={{ background: "none", border: "none", padding: 0, cursor: "pointer", ...link }}
           >
-            Cancel
+            {tr("teacherLink.cancel")}
           </button>
         </div>
         {error && <p style={{ color: "#f87171", margin: "12px 0 0", fontSize: 15 }}>{error}</p>}
@@ -185,21 +194,21 @@ export function TeacherLink({
   if (initial) {
     return (
       <div style={card}>
-        <h2 style={cardTitle(t)}>Your school (team)</h2>
+        <h2 style={cardTitle(t)}>{tr("teacherLink.teamTitle")}</h2>
         <p style={{ margin: "0 0 10px", color: t.text, fontSize: 15 }}>
-          You are {initial.role === "admin_master" ? "an administrator" : "a teacher"} at{" "}
+          {tr(initial.role === "admin_master" ? "teacherLink.youAreAdminPrefix" : "teacherLink.youAreTeacherPrefix")}{" "}
           <strong>{initial.schoolName}</strong>.
         </p>
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
           <Link href="/school" style={link}>
-            Open the Schools dashboard →
+            {tr("teacherLink.openDashboard")}
           </Link>
           <button
             type="button"
             onClick={() => setMode("create")}
             style={{ background: "none", border: "none", padding: 0, cursor: "pointer", ...link }}
           >
-            ＋ Create another school
+            {tr("teacherLink.createAnother")}
           </button>
         </div>
       </div>
@@ -210,11 +219,11 @@ export function TeacherLink({
   if (done) {
     return (
       <div style={card}>
-        <h2 style={cardTitle(t)}>Teach at a school</h2>
+        <h2 style={cardTitle(t)}>{tr("teacherLink.teachTitle")}</h2>
         <p style={{ margin: 0, color: "#22c55e", fontSize: 15 }}>{msg}</p>
         {done === "joined" && (
           <Link href="/school" style={{ ...link, display: "inline-block", marginTop: 10 }}>
-            Open the Schools dashboard →
+            {tr("teacherLink.openDashboard")}
           </Link>
         )}
       </div>
@@ -224,31 +233,31 @@ export function TeacherLink({
   // ---- Not staff yet: join by code, or create ----
   return (
     <form style={card} onSubmit={submit}>
-      <h2 style={cardTitle(t)}>Do you teach at — or run — a school?</h2>
+      <h2 style={cardTitle(t)}>{tr("teacherLink.headline")}</h2>
       <p style={{ margin: "0 0 14px", color: t.muted, fontSize: 14 }}>
-        Enter the invite code your school gave you to join the teaching team.
+        {tr("teacherLink.joinIntro2")}
       </p>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <input
           style={{ ...input, flex: 1, minWidth: 200, width: "auto" }}
-          placeholder="Invite code"
+          placeholder={tr("teacherLink.invitePlaceholder")}
           value={code}
           onChange={(e) => setCode(e.target.value.toUpperCase())}
           autoCapitalize="characters"
           disabled={busy}
         />
         <button type="submit" style={{ ...btn, opacity: busy ? 0.7 : 1 }} disabled={busy || !code.trim()}>
-          {busy ? "Joining…" : "Join"}
+          {busy ? tr("teacherLink.joining") : tr("teacherLink.joinButton")}
         </button>
       </div>
       <p style={{ margin: "14px 0 0", fontSize: 14, color: t.muted }}>
-        No code — running your own?{" "}
+        {tr("teacherLink.noCodeQuestion")}{" "}
         <button
           type="button"
           onClick={() => { setMode("create"); setError(null); }}
           style={{ background: "none", border: "none", padding: 0, cursor: "pointer", ...link }}
         >
-          Create a school
+          {tr("teacherLink.createSchoolLink")}
         </button>
       </p>
       {error && <p style={{ color: "#f87171", margin: "12px 0 0", fontSize: 15 }}>{error}</p>}

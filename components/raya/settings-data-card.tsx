@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAppTheme } from "@/components/ui/theme";
+import { netFetch } from "@/lib/net/client-fetch";
 import { SettingsCard } from "@/components/raya/raya-app";
 import { getConsent, setConsent } from "@/lib/analytics/consent";
 import { disableAnalytics, enableAnalytics } from "@/lib/analytics/posthog-lazy";
+import { useTranslate } from "@/components/ui/locale";
 
 /**
  * Settings "Your data" — the data-subject rights, exercised here instead of by
@@ -37,6 +39,7 @@ export function SettingsDataCard({
   schoolLinked: boolean;
 }) {
   const { theme: t } = useAppTheme();
+  const tr = useTranslate();
   const router = useRouter();
   const isMinor = band !== "adult";
 
@@ -62,19 +65,23 @@ export function SettingsDataCard({
     const previous = training;
     setTraining(next); // optimistic; reverted below if the server refuses
     try {
-      const res = await fetch("/api/account/training-consent", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ consent: next }),
-      });
+      const res = await netFetch(
+        "/api/account/training-consent",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ consent: next }),
+        },
+        { timeoutMs: 15_000 },
+      );
       if (!res.ok) {
         const d = (await res.json()) as { error?: string };
         setTraining(previous);
-        setError(d.error ?? "Couldn't save that.");
+        setError(d.error ?? tr("raya.settings.data.errCouldntSave"));
       }
     } catch {
       setTraining(previous);
-      setError("Couldn't reach the server.");
+      setError(tr("kernel.memory.serverUnreachable"));
     }
   }
 
@@ -84,21 +91,27 @@ export function SettingsDataCard({
     setError(null);
     setMsg(null);
     try {
-      const res = await fetch("/api/account/delete", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ confirm }),
-      });
+      // Erasing every table an account touches can take a moment — matched to
+      // the route's own 60s budget rather than the client default of 10s.
+      const res = await netFetch(
+        "/api/account/delete",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ confirm }),
+        },
+        { timeoutMs: 65_000 },
+      );
       const d = (await res.json()) as { error?: string };
       if (!res.ok) {
-        setError(d.error ?? "Deletion failed.");
+        setError(d.error ?? tr("raya.settings.data.errDeletionFailed"));
         return;
       }
       // The account no longer exists — leave for a page that doesn't need one.
       router.replace("/");
       router.refresh();
     } catch {
-      setError("Couldn't reach the server.");
+      setError(tr("kernel.memory.serverUnreachable"));
     } finally {
       setDeleting(false);
     }
@@ -124,14 +137,14 @@ export function SettingsDataCard({
   return (
     <SettingsCard theme={t} id="data">
       <div style={{ paddingBottom: 4 }}>
-        <div style={label}>Your data</div>
+        <div style={label}>{tr("raya.settings.data.title")}</div>
         <div style={desc}>
-          What we hold about you, and what you can do with it — right here, no request form.{" "}
+          {tr("raya.settings.data.desc")}{" "}
           {/* The app has no marketing footer, so until this link existed a student
               reading a row about their own data had no route to the document
               describing it. The controls are here; the reasoning is there. */}
           <Link href="/legal" style={legalLink}>
-            Read the full policy →
+            {tr("raya.settings.data.policyLink")}
           </Link>
         </div>
       </div>
@@ -139,11 +152,8 @@ export function SettingsDataCard({
       {/* ---------------------------------------------------------- export --- */}
       <div style={row}>
         <div>
-          <div style={{ ...label, fontSize: 15 }}>Download a copy</div>
-          <div style={desc}>
-            Everything on your account as a JSON file, including the model of your learning
-            that Raya keeps but never shows you.
-          </div>
+          <div style={{ ...label, fontSize: 15 }}>{tr("raya.settings.data.downloadTitle")}</div>
+          <div style={desc}>{tr("raya.settings.data.downloadDesc")}</div>
         </div>
         <a
           href="/api/account/export"
@@ -160,7 +170,7 @@ export function SettingsDataCard({
             whiteSpace: "nowrap",
           }}
         >
-          Download
+          {tr("attachment.download")}
         </a>
       </div>
 
@@ -168,45 +178,27 @@ export function SettingsDataCard({
       {isMinor ? (
         <div style={row}>
           <div>
-            <div style={{ ...label, fontSize: 15 }}>Analytics &amp; model improvement</div>
-            <div style={desc}>
-              Both are switched off on this account and can&apos;t be turned on. Accounts
-              belonging to under-18s aren&apos;t measured, and their work is never used to
-              improve our models.
-            </div>
+            <div style={{ ...label, fontSize: 15 }}>{tr("raya.settings.data.minorTitle")}</div>
+            <div style={desc}>{tr("raya.settings.data.minorDesc")}</div>
           </div>
         </div>
       ) : (
         <>
           <div style={row}>
             <div>
-              <div style={{ ...label, fontSize: 15 }}>Product analytics</div>
-              <div style={desc}>
-                Anonymous usage measurement so we can see which features actually help. You
-                can switch it off at any time, and nothing about the product changes.
-              </div>
+              <div style={{ ...label, fontSize: 15 }}>{tr("raya.settings.data.analyticsTitle")}</div>
+              <div style={desc}>{tr("raya.settings.data.analyticsDesc")}</div>
             </div>
             <Switch on={analytics === "granted"} onChange={toggleAnalytics} theme={t} />
           </div>
 
           <div style={row}>
             <div>
-              <div style={{ ...label, fontSize: 15 }}>Help improve Raya</div>
+              <div style={{ ...label, fontSize: 15 }}>{tr("raya.settings.data.trainingTitle")}</div>
               <div style={desc}>
-                {schoolLinked ? (
-                  <>
-                    Your conversations can help train the tutor other students get. Because
-                    your account is linked to a school, this stays off unless you switch it on
-                    yourself — and you can switch it back off at any time, with nothing else
-                    about the product changing.
-                  </>
-                ) : (
-                  <>
-                    Your conversations help train the tutor other students get. This is on by
-                    default — switch it off and your work stops being used, with nothing else
-                    about the product changing.
-                  </>
-                )}
+                {schoolLinked
+                  ? tr("raya.settings.data.trainingDescLinked")
+                  : tr("raya.settings.data.trainingDescUnlinked")}
               </div>
             </div>
             <Switch on={training} onChange={toggleTraining} theme={t} />
@@ -222,49 +214,48 @@ export function SettingsDataCard({
       <div style={row}>
         <div>
           <div style={{ ...label, fontSize: 15 }}>
-            {schoolLinked ? "What your school can see" : "Nobody else can see this"}
+            {schoolLinked
+              ? tr("raya.settings.data.visibilityTitleLinked")
+              : tr("raya.settings.data.visibilityTitleUnlinked")}
           </div>
           <div style={desc}>
-            {schoolLinked ? (
-              <>
-                You&apos;re linked to a school, so your teachers see how you&apos;re doing:
-                which concepts you&apos;ve mastered and where you&apos;re stuck, your results,
-                and the follow-up notes they write about you. They do not read your
-                conversations with Raya. Leaving the class stops this going forward.
-              </>
-            ) : (
-              <>
-                This account isn&apos;t linked to any school, so nothing about your learning
-                leaves it — no teacher, no institution, no class dashboard. If you ever join
-                a class with a code, your progress starts being visible to that school&apos;s
-                teachers, and we&apos;ll say so at that moment.
-              </>
-            )}
+            {schoolLinked
+              ? tr("raya.settings.data.visibilityDescLinked")
+              : tr("raya.settings.data.visibilityDescUnlinked")}
           </div>
         </div>
       </div>
 
       {/* ---------------------------------------------------------- delete --- */}
       <div style={{ ...row, display: "block" }}>
-        <div style={{ ...label, fontSize: 15, color: "#dc2626" }}>Delete this account</div>
+        <div style={{ ...label, fontSize: 15, color: "#dc2626" }}>{tr("raya.settings.data.deleteTitle")}</div>
         <div style={desc}>
-          Permanent. Your conversations, documents, results and cognitive profile are erased,
-          and nothing about them can be recovered afterwards.
-          {schoolLinked && (
-            <>
-              {" "}
-              You&apos;ll also be removed from your class. Your school keeps its own records
-              of your enrolment and results — ask them directly about those.
-            </>
-          )}{" "}
-          Payment receipts are kept, because accounting rules require it.
+          {schoolLinked
+            ? tr("raya.settings.data.deleteDescLinked")
+            : tr("raya.settings.data.deleteDescUnlinked")}
+        </div>
+        {/* The confirmation word is checked literally in code below (never
+            localized — see deleteAccount), so it has to survive on screen
+            exactly as typed even when the browser's own translate tool is
+            running over an already-translated page. `translate="no"` +
+            `notranslate` is belt-and-suspenders (either alone satisfies most
+            engines) and is applied to the word everywhere it's visible: here,
+            and on the input itself so its placeholder isn't rewritten either. */}
+        <div style={{ ...desc, marginTop: 8 }}>
+          {tr("raya.settings.data.deleteInstructionA")}{" "}
+          <span translate="no" className="notranslate" style={{ fontWeight: 700, color: t.text }}>
+            DELETE
+          </span>{" "}
+          {tr("raya.settings.data.deleteInstructionB")}
         </div>
         <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
           <input
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
-            placeholder="Type DELETE"
-            aria-label="Type DELETE to confirm"
+            placeholder={tr("raya.settings.data.deletePlaceholder")}
+            aria-label={tr("raya.settings.data.deleteAriaLabel")}
+            translate="no"
+            className="notranslate"
             style={{
               background: t.inputBg,
               border: `1px solid ${t.inputBorder}`,
@@ -291,7 +282,7 @@ export function SettingsDataCard({
               opacity: deleting || confirm.trim().toUpperCase() !== "DELETE" ? 0.5 : 1,
             }}
           >
-            {deleting ? "Deleting…" : "Delete permanently"}
+            {deleting ? tr("raya.settings.data.deleteButtonBusy") : tr("raya.settings.data.deleteButton")}
           </button>
         </div>
       </div>

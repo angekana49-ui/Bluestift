@@ -9,13 +9,16 @@ import React from "react";
  * all-caps sans, which matters for a student audience. "Schools" matches it so the
  * two products read as one family. Neither name is ever translated.
  *
- * "Raya" and "Bluestift" additionally carry `translate="no"` and the
- * `notranslate` class — belt and suspenders, since Google Translate honours
- * either on its own. Our own i18n catalogue already keeps both names literal
- * in every locale (see lib/i18n/en.ts's header comment); this is the second,
- * independent layer for a visitor who runs the browser's own Google Translate
- * over a page we've already translated, or over a locale we don't support —
- * that pass never sees these two names as translatable text at all.
+ * "Raya", "Bluestift", "Schools", "Rooms", "Tools" and "Kernel" all additionally
+ * carry `translate="no"` and the `notranslate` class wherever they render through
+ * one of the components below — belt and suspenders, since Google Translate (and
+ * Chrome's built-in page translate) honours either on its own. Our own i18n
+ * catalogue already keeps all six literal in every locale (see lib/i18n/en.ts's
+ * header comment and test/i18n.test.ts); this is the second, independent layer
+ * for a visitor who runs the browser's own translate tool over a page we've
+ * already translated, or over a locale we don't support — that pass never sees
+ * these words as translatable text at all, online or on localhost alike, since
+ * it's a property of the rendered DOM, not of which server sent it.
  */
 
 export const RAYA_FONT = "'Cambria Math', 'Cambria', 'Times New Roman', serif";
@@ -33,7 +36,36 @@ export function RayaName({ style }: { style?: React.CSSProperties }) {
 
 /** The Schools wordmark — same bold serif as Raya, so the two products match. */
 export function SchoolsName({ style }: { style?: React.CSSProperties }) {
-  return <span style={{ ...wordmarkStyle, ...style }}>Schools</span>;
+  return (
+    <span translate="no" className="notranslate" style={{ ...wordmarkStyle, ...style }}>
+      Schools
+    </span>
+  );
+}
+
+/**
+ * "Schools", "Rooms", "Tools" and "Kernel" name a specific part of the product
+ * but read as ordinary English words — lib/i18n keeps all four literal in every
+ * locale (see test/i18n.test.ts), so nothing ever translates them from inside
+ * the app. The browser's own translate tool doesn't know that: it rewrites
+ * whatever text it finds, so left alone these would still get relocalized
+ * out from under the app on a translated page. Shielded here, not restyled —
+ * unlike <SchoolsName/>'s deliberate serif treatment, auto-applying that
+ * wherever the bare word appears in prose would look wrong, which is exactly
+ * why call sites use <SchoolsName/> explicitly instead of relying on this.
+ */
+function ProtectedWord({ children }: { children: string }) {
+  return (
+    <span translate="no" className="notranslate">
+      {children}
+    </span>
+  );
+}
+
+function protectBrandWords(text: string): React.ReactNode {
+  const parts = text.split(/\b(Schools|Rooms|Tools|Kernel)\b/g);
+  if (parts.length === 1) return text;
+  return parts.map((part, i) => (i % 2 === 1 ? <ProtectedWord key={i}>{part}</ProtectedWord> : part));
 }
 
 /**
@@ -93,11 +125,15 @@ export function BluestiftName({ children = "Bluestift" }: { children?: string })
  */
 export function BluestiftText({ children }: { children: string }) {
   const parts = children.split(/\b(Bluestift|BlueStift)\b/g);
-  if (parts.length === 1) return <>{children}</>;
+  if (parts.length === 1) return <>{protectBrandWords(children)}</>;
   return (
     <>
       {parts.map((part, i) =>
-        i % 2 === 1 ? <BluestiftName key={i}>{part}</BluestiftName> : <React.Fragment key={i}>{part}</React.Fragment>,
+        i % 2 === 1 ? (
+          <BluestiftName key={i}>{part}</BluestiftName>
+        ) : (
+          <React.Fragment key={i}>{protectBrandWords(part)}</React.Fragment>
+        ),
       )}
     </>
   );
