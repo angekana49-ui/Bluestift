@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { netFetch } from "@/lib/net/client-fetch";
 import type { AnalyzeResponse } from "@/lib/kernel/types";
-import { downloadBrandedPdf, downloadBrandedText, type BrandedDoc } from "@/lib/document";
+import type { BrandedDoc } from "@/lib/document";
+import { DocumentActions } from "@/components/ui/doc-actions";
 import { useDarkMode, useAppTheme, AppThemeProvider } from "@/components/ui/theme";
 import { LocaleProvider, useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
@@ -288,8 +289,9 @@ function ChatBody({
         <div style={{ border: `1px solid ${t.cardBorder}`, borderRadius: 16, padding: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
             <span style={{ fontSize: 15, fontWeight: 700, color: t.text, flex: 1 }}>{tr("chatHome.kernelAnalysisTitle")}</span>
-            <span onClick={() => downloadBrandedText(analysisDoc(analysis))} style={pillBtn(t)}>TXT</span>
-            <span onClick={() => downloadBrandedPdf(analysisDoc(analysis))} style={pillBtn(t)}>PDF</span>
+            {/* One student's own analysis: never cached (see doc-actions.tsx's
+                `personal`), and not shareable — this stays theirs. */}
+            <DocumentActions doc={analysisDoc(analysis)} compact shareable={false} personal />
             <span onClick={() => setAnalysis(null)} title={tr("room.closeTitle")} style={pillBtn(t)}>✕</span>
           </div>
           <div style={{ fontSize: 14, color: t.text, marginBottom: 4 }}>
