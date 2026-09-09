@@ -8,6 +8,7 @@ import { checkStrictUserRateLimit } from "@/lib/rate-limit";
 import { reportError } from "@/lib/observability/report";
 import { persistAndGather, linkAttachments, replayReply } from "@/lib/raya/chat-context";
 import { FORMATTING_RULES } from "@/lib/raya/prompt";
+import { appGuideLayerForStaff } from "@/lib/raya/app-guide-layer";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -41,6 +42,8 @@ genuinely has parts. Honour any STANDING INSTRUCTIONS from the school. Reply in 
 Their students' conversations with Raya are not yours to relay and are not in the snapshot:
 what you have is what the school is entitled to see — progress, mastery, patterns — never the
 transcripts. If asked for those, say plainly that they stay with the student.
+
+${appGuideLayerForStaff()}
 
 ${FORMATTING_RULES}`;
 

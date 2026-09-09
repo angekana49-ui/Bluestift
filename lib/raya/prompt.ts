@@ -11,6 +11,7 @@ import type { ChatMsg } from "@/lib/raya/llm";
 import { audienceLines, resolveAudience } from "@/lib/raya/audience";
 import { DEFAULT_AI_MODE, type AiMode } from "@/lib/raya/modes";
 import type { ModelTier } from "@/lib/raya/routing";
+import { appGuideLayer } from "@/lib/raya/app-guide-layer";
 
 /**
  * Raya dual-layer prompt (Bluestift)
@@ -521,6 +522,7 @@ function staticLayer(mode: AiMode, tier: ModelTier): string {
     MODE_BLOCK[mode],
     turnBlock(tier),
     safetyLayer("solo"),
+    appGuideLayer(),
     FORMATTING_RULES,
   ].join("\n\n---\n\n");
 }

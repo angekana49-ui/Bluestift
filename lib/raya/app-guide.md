@@ -6,6 +6,13 @@ what a button does, or where a setting lives. Two audiences, two sections:
 because that's the common case; **For developers** is condensed on purpose —
 depth lives in `README.md` and `docs/`, not repeated here.
 
+**This is now actually wired in.** `lib/raya/app-guide-layer.ts` hand-condenses
+the "For everyday users" section below into what's injected into every Raya
+system prompt (solo, rooms, and Schools — see that file's own comment for why
+it's a second copy rather than this file read at request time). If the app's
+navigation, settings, or plans change, **update both files** — this one stays
+the fuller reference; the other is what the model actually sees.
+
 Written as of the account model current at the time this file was last
 updated. If something here ever disagrees with what the product actually
 does, what the product does is right — say so rather than insist on this

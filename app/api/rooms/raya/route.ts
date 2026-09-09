@@ -5,6 +5,7 @@ import { ageGateResponse } from "@/lib/compliance/api-gate";
 import { rayaComplete, type ChatMsg } from "@/lib/raya/llm";
 import { assertRoomOpen } from "@/lib/rooms";
 import { FORMATTING_RULES, safetyLayer } from "@/lib/raya/prompt";
+import { appGuideLayer } from "@/lib/raya/app-guide-layer";
 import { checkStrictUserRateLimit } from "@/lib/rate-limit";
 
 // Non-streamed LLM turn: allow the full reply to complete on Vercel.
@@ -19,6 +20,10 @@ Group specifics: address the room rather than one student, join their contributi
 ---
 
 ${safetyLayer("room")}
+
+---
+
+${appGuideLayer()}
 
 ---
 
