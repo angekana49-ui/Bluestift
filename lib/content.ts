@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { createContentAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -131,7 +132,12 @@ export async function getPublishedPosts(): Promise<PublicResearchPost[]> {
   });
 }
 
-export async function getPostBySlug(
+/**
+ * `cache()`d (React, not this file's own memo()) because generateMetadata and
+ * the page component both call this for the same request — without it,
+ * every /research/[slug] load ran the two queries below twice.
+ */
+export const getPostBySlug = cache(async function getPostBySlug(
   slug: string,
 ): Promise<(PublicResearchPost & { media: PublicMedia[] }) | null> {
   const admin = createContentAdminClient();
@@ -148,7 +154,7 @@ export async function getPostBySlug(
     .select("id, url, type, title")
     .eq("post_id", post.id);
   return { ...post, media: (media ?? []) as PublicMedia[] };
-}
+});
 
 export type WallPost = {
   id: string;

@@ -2,8 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import { DpaView } from "@/components/site/pages/DpaView";
 
 export const metadata = {
-  title: "BlueStift · Data processing addendum",
-  description: "How BlueStift handles school data: GDPR processor terms, the FERPA school-official commitments, and the COPPA school-consent basis.",
+  title: "Data processing addendum",
+  description: "How Bluestift handles school data: GDPR processor terms, the FERPA school-official commitments, and the COPPA school-consent basis.",
+  alternates: { canonical: "/dpa" },
 };
 
 export default async function DpaPage() {

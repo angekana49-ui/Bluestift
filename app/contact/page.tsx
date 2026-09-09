@@ -2,8 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import { ContactView } from "@/components/site/pages/ContactView";
 
 export const metadata = {
-  title: "BlueStift · Contact",
-  description: "Schools, researchers, press — write to the BlueStift team.",
+  title: "Contact",
+  description: "Schools, researchers, press — write to the Bluestift team.",
+  alternates: { canonical: "/contact" },
 };
 
 export default async function ContactPage() {

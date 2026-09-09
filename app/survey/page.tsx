@@ -3,8 +3,9 @@ import { getSurveyStats, listWallPosts } from "@/lib/content";
 import { SurveyView } from "@/components/site/pages/SurveyView";
 
 export const metadata = {
-  title: "BlueStift · Survey",
+  title: "Survey",
   description: "5 minutes to tell us what really gets in the way when you teach or learn.",
+  alternates: { canonical: "/survey" },
 };
 
 export default async function SurveyPage() {

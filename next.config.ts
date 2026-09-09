@@ -100,11 +100,40 @@ function productRedirects() {
   );
 }
 
+/**
+ * Next streams metadata by default: the initial response can go out before
+ * `generateMetadata` resolves, with the resolved `<head>` tags patched in once
+ * it does. Fine for a browser, which keeps reading; not fine for a crawler
+ * that does one plain fetch and never sees the patch — it gets a `<head>`
+ * with no title, no description, no OG tags.
+ *
+ * Next's own default list of bots that get a blocking (non-streamed) render
+ * already covers the classic link-preview crawlers (Slackbot, Twitterbot,
+ * Googlebot's variants, ...) — see html-bots.ts in the Next source. It does
+ * NOT cover the crawlers behind AI answer engines, because that default
+ * predates them. Setting this option REPLACES that list rather than adding to
+ * it, so it starts as a copy of Next's default, plus the ones an AEO push
+ * specifically cares about: OpenAI (GPTBot for training, OAI-SearchBot for
+ * ChatGPT search, ChatGPT-User for a live fetch during a chat), Anthropic
+ * (ClaudeBot, Claude-User, Claude-SearchBot, and the older anthropic-ai UA),
+ * Perplexity (PerplexityBot, Perplexity-User), Common Crawl (CCBot — what a
+ * lot of smaller models train on), and Meta's, Amazon's, ByteDance's and
+ * DuckDuckGo's answer/training crawlers. Google's own AI crawler
+ * (Google-Extended) already matches the `Google-[\w-]+` half of the default.
+ */
+const AI_ANSWER_ENGINE_BOTS =
+  "GPTBot|OAI-SearchBot|ChatGPT-User|ClaudeBot|Claude-User|Claude-SearchBot|anthropic-ai|PerplexityBot|Perplexity-User|CCBot|Meta-ExternalAgent|Meta-ExternalFetcher|Amazonbot|Bytespider|DuckAssistBot";
+const HTML_LIMITED_BOTS = new RegExp(
+  `[\\w-]+-Google|Google-[\\w-]+|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight|${AI_ANSWER_ENGINE_BOTS}`,
+  "i",
+);
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   turbopack: { root: rootDir },
   // Keep native doc parsers out of the bundle (run as Node modules at runtime).
   serverExternalPackages: ["mammoth", "xlsx"],
+  htmlLimitedBots: HTML_LIMITED_BOTS,
   async redirects() {
     return [
       // /homework became /assignments. Permanent, and unconditional: unlike the

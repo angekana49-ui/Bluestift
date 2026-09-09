@@ -2,8 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import { PrivacyView } from "@/components/site/pages/PrivacyView";
 
 export const metadata = {
-  title: "BlueStift · Privacy",
-  description: "How BlueStift handles your data — anonymous-first, opt-in analytics, no ads, no data selling.",
+  title: "Privacy",
+  description: "How Bluestift handles your data — anonymous-first, opt-in analytics, no ads, no data selling.",
+  alternates: { canonical: "/privacy" },
 };
 
 export default async function PrivacyPage() {

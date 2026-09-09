@@ -3,7 +3,7 @@ import { getPaymentById } from "@/lib/billing/payments-data";
 import { getServerTranslate } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n";
 
-export const metadata = { title: "BlueStift · Payment" };
+export const metadata = { title: "Payment", robots: { index: false, follow: false } };
 
 /**
  * Landing after the hosted checkout. Reads the payment's real status from our DB

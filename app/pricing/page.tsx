@@ -45,9 +45,15 @@ function withDerivedCopy(plans: BillingPlan[], audience: "b2c" | "b2b", tr: (key
 }
 
 export const metadata = {
-  title: "BlueStift · Pricing",
+  title: "Pricing",
   description:
     "Simple plans for solo learners and schools. Solo starts free; schools pay per enrolled student — their size, not per active user.",
+  alternates: { canonical: "/pricing" },
+  openGraph: {
+    title: "Pricing",
+    description:
+      "Simple plans for solo learners and schools. Solo starts free; schools pay per enrolled student — their size, not per active user.",
+  },
 };
 
 export default async function PricingPage({

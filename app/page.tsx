@@ -1,7 +1,19 @@
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { resolveHome } from "@/lib/routing";
 import { pricingEntry } from "@/lib/billing";
+import { SITE_DESCRIPTION } from "@/lib/seo";
 import LandingPage from "@/components/site/LandingPage";
+
+// The one page that didn't have its own metadata — every other route in
+// app/ overrides the root layout's generic title/description; this one was
+// silently relying on them instead, for the single page that most needs a
+// specific one.
+export const metadata: Metadata = {
+  title: { absolute: "Bluestift — an AI tutor that refuses to do the homework" },
+  description: SITE_DESCRIPTION,
+  alternates: { canonical: "/" },
+};
 
 export default async function Home() {
   const supabase = await createClient();

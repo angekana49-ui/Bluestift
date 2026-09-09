@@ -12,7 +12,10 @@ import { CheckoutPanel } from "@/components/checkout/CheckoutPanel";
 import { getServerTranslate } from "@/lib/i18n/server";
 import { ageBand, requiresGuardianToPay } from "@/lib/compliance/age";
 
-export const metadata = { title: "BlueStift · Checkout" };
+// "Checkout" alone, not "BlueStift · Checkout" — the root layout's title
+// template adds the site name. Transactional, no content of its own, and
+// excluded from crawling entirely (see app/robots.ts).
+export const metadata = { title: "Checkout", robots: { index: false, follow: false } };
 
 function clampInt(v: string | undefined): number | null {
   if (!v) return null;

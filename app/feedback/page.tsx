@@ -2,8 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import { FeedbackView } from "@/components/site/pages/FeedbackView";
 
 export const metadata = {
-  title: "BlueStift · Feedback",
+  title: "Feedback",
   description: "A bug, an idea, an opinion — tell us everything.",
+  alternates: { canonical: "/feedback" },
 };
 
 export default async function FeedbackPage() {

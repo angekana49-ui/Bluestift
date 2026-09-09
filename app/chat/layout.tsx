@@ -14,7 +14,10 @@ import { rayaStartupImages } from "@/lib/launch-screens";
  * untouched. The chat surface owns its own chrome.
  */
 export const metadata: Metadata = {
-  title: "Raya",
+  // `absolute` opts out of the root layout's "%s · Bluestift" title template —
+  // Raya is installed and branded as its own product (own manifest, own
+  // icons, right above), and its tab/home-screen title says so too.
+  title: { absolute: "Raya" },
   manifest: "/raya-manifest",
   icons: {
     icon: [

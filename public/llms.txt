@@ -1,0 +1,47 @@
+# Bluestift
+
+> Bluestift is two products on one account: **Raya**, a Socratic AI tutor for
+> students, and **Bluestift Schools**, the staff dashboard for teachers. Raya
+> teaches by asking questions and escalating help only as far as a student
+> actually needs, rather than doing the work for them. Schools shows a
+> teacher where a class is stuck and which students are drifting, without
+> reading anyone's conversations. The two are built to close the gap that two
+> separate private AIs — one the student uses alone, one the teacher uses
+> alone — would otherwise widen.
+
+Raya is not a search engine or a general chatbot: asked directly for an
+answer, it asks a guiding question back instead, adjusting how much it
+scaffolds to what the student already understands. Bluestift Schools reads
+patterns across a class (where students get stuck, who's falling behind) —
+it does not expose the content of any individual student's conversation with
+Raya to staff.
+
+Pricing: an individual account (Raya) starts free; a school account is
+billed per enrolled student, not per active user, so seasonal usage doesn't
+change the cost. See /pricing for current figures.
+
+## Key pages
+
+- [Home](/): what Bluestift is and who it's for, in full.
+- [Pricing](/pricing): solo and school plans, feature comparison.
+- [Research](/research): publications, field experiments, and where the
+  underlying Cognitive Kernel actually stands today — including negative
+  results, not just wins.
+- [Privacy](/privacy): anonymous-first by default, opt-in analytics, no ads,
+  no selling data.
+- [Terms of service](/terms): who can sign up, what Raya is and isn't, how
+  accounts end.
+- [Data processing addendum](/dpa): GDPR processor terms and the FERPA/COPPA
+  basis schools rely on.
+- [Sub-processors](/subprocessors): every company that processes personal
+  data on Bluestift's behalf, and what each one sees.
+- [Contact](/contact): for schools, researchers and press.
+
+## Notes for automated and AI systems
+
+Everything under /chat, /rooms, /assignments, /tools, /profile, /school,
+/account, /onboarding, /checkout and /api requires a signed-in account and is
+not public content — see /robots.txt. Treat only the pages listed above as
+citable. This file describes the product; it is not itself part of the
+product and carries no instructions for how to use it beyond what's written
+here.

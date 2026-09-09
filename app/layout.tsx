@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, IBM_Plex_Sans, Caveat, Instrument_Serif } from "next/font/google";
+import { headers } from "next/headers";
 import { THEME_COLOR_LIGHT } from "@/lib/theme-color";
 import { startupImages } from "@/lib/launch-screens";
+import { SITE_URL, SITE_NAME, SITE_DESCRIPTION, organizationJsonLd, websiteJsonLd } from "@/lib/seo";
 import "./globals.css";
 import { PostHogProvider } from "@/components/analytics/PostHogProvider";
 import { UpgradeModal } from "@/components/upgrade/UpgradeModal";
@@ -68,8 +70,36 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "Bluestift",
-  description: "Bluestift — AI-powered diagnostic engine for schools.",
+  // `metadataBase` is what turns every relative URL used elsewhere in this
+  // object (and in a page's own `openGraph.images`, `alternates.canonical`,
+  // ...) into an absolute one — without it, a shared link's og:image resolves
+  // against whatever host actually served the request, which is wrong the
+  // moment that host isn't the canonical apex (a preview deploy, a
+  // not-yet-migrated product subdomain — see next.config.ts's productRedirects).
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: SITE_NAME,
+    // Applied to any page that sets its own `title` as a plain string rather
+    // than a full override — "Pricing" becomes "Pricing · Bluestift" for
+    // free, everywhere, without every page having to say so.
+    template: `%s · ${SITE_NAME}`,
+  },
+  description: SITE_DESCRIPTION,
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    url: SITE_URL,
+    // No `images` here — the opengraph-image.tsx file convention (app/) adds
+    // it automatically, sized and typed, and does so per route segment; an
+    // explicit URL here would take precedence and defeat that.
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+  },
   // app/manifest.ts is linked automatically by Next; these are the parts iOS
   // needs and the manifest cannot give it. Safari does not read the manifest's
   // icons for the home screen — it reads apple-touch-icon — and without
@@ -111,9 +141,16 @@ export const viewport: Viewport = {
   themeColor: THEME_COLOR_LIGHT,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // proxy.ts mints a fresh CSP nonce per request and hands it down via this
+  // header (see lib/security/csp.ts) — Next applies it to its own scripts
+  // automatically, but a script WE write, like the JSON-LD below, has to
+  // carry it explicitly or `script-src`'s nonce allow-list rejects it.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+  const jsonLd = JSON.stringify([organizationJsonLd(), websiteJsonLd()]);
+
   return (
     <html
       lang="en"
@@ -121,6 +158,14 @@ export default function RootLayout({
       className={`${inter.variable} ${plex.variable} ${caveat.variable} ${instrumentSerif.variable}`}
     >
       <body>
+        {/* Organization + WebSite JSON-LD: who's behind this site and what
+            it's called, in the structured form both classic rich-result
+            search and AI answer engines parse before they ever read prose. */}
+        <script
+          type="application/ld+json"
+          nonce={nonce}
+          dangerouslySetInnerHTML={{ __html: jsonLd }}
+        />
         <PostHogProvider>
           <LocaleRootProvider>{children}</LocaleRootProvider>
         </PostHogProvider>

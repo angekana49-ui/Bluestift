@@ -5,8 +5,13 @@ import { ENTITLEMENTS_ENFORCE } from "@/lib/entitlements";
 import { ResearchView } from "@/components/site/pages/ResearchView";
 
 export const metadata = {
-  title: "BlueStift · Research",
+  title: "Research",
   description: "Publications, field experiments, advances in the Cognitive Kernel — and where the product actually stands.",
+  alternates: { canonical: "/research" },
+  openGraph: {
+    title: "Research",
+    description: "Publications, field experiments, advances in the Cognitive Kernel — and where the product actually stands.",
+  },
 };
 
 export default async function ResearchPage({
