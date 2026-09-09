@@ -13,6 +13,7 @@
     "gen:types": "node scripts/gen-types.mjs"
   },
   "dependencies": {
+    "@google-cloud/translate": "^10.1.0",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.4",
     "jspdf": "^4.2.1",
