@@ -3,7 +3,7 @@
 // the brand logo, the document title, and a footer attribution + site link.
 // PDF via jsPDF (dynamically imported so a missing package never breaks the build).
 
-import { DOC_BRANDS, footerLine, parseDoc, stripInline, type DocBrand } from "@/lib/doc-format";
+import { DOC_BRANDS, footerLine, parseDoc, stripInline, mapInlineMath, latexToUnicode, type DocBrand } from "@/lib/doc-format";
 import { getClientEntitlements } from "@/lib/entitlements-client";
 
 /**
@@ -109,6 +109,72 @@ async function loadLogo(src: string): Promise<{ dataUrl: string; w: number; h: n
   }
 }
 
+/** A prose block's text, PDF-ready: bold markers dropped (as before), and any
+ *  inline `$…$` formula approximated to Unicode (lib/doc-format.ts's
+ *  `latexToUnicode`) rather than left as raw LaTeX source. jsPDF draws plain
+ *  text runs — it has no notion of a formula embedded mid-sentence the way a
+ *  DISPLAY equation gets one below (its own rasterized, actually-typeset
+ *  image, since that one already sits on its own line with no wrapping to
+ *  fight). */
+function proseForPdf(text: string): string {
+  return stripInline(mapInlineMath(text, latexToUnicode));
+}
+
+/** 1 CSS px, at the 96-DPI the browser and html2canvas both assume, in the pt unit jsPDF is configured with (72 pt/in ÷ 96 px/in). */
+const PX_TO_PT = 0.75;
+/** Rasterization scale for the hidden math node — sharper than 1:1 so the embedded PDF image doesn't look soft. */
+const MATH_RASTER_SCALE = 3;
+
+/**
+ * Render one LaTeX formula off-screen with KaTeX, then rasterize it with
+ * html2canvas — the practical way to get an actually-typeset formula (proper
+ * stacked fractions, raised exponents, root radicals) into a PDF that jsPDF
+ * draws with plain text calls. Both libraries are dynamically imported so a
+ * document with no math never pays for either, and a document WITH math still
+ * exports if the rasterizer throws for any reason (a font not finishing its
+ * load, a canvas-tainting quirk) — this returns null rather than the caller
+ * failing the whole PDF over one formula.
+ */
+async function rasterizeMath(tex: string, displayMode: boolean): Promise<{ dataUrl: string; w: number; h: number } | null> {
+  if (typeof window === "undefined") return null;
+  try {
+    const [{ renderMathHtml }, html2canvasMod] = await Promise.all([
+      import("@/lib/katex-render"),
+      import("html2canvas"),
+    ]);
+    const html2canvas = html2canvasMod.default;
+    const host = document.createElement("div");
+    host.style.position = "fixed";
+    host.style.left = "-99999px";
+    host.style.top = "0";
+    host.style.background = "#ffffff";
+    host.style.color = "#18202e";
+    host.style.padding = "2px 4px";
+    host.style.fontSize = "22px";
+    host.innerHTML = renderMathHtml(tex, displayMode);
+    document.body.appendChild(host);
+    try {
+      // Best-effort: the KaTeX faces are usually already warm (the document was
+      // almost certainly viewed on screen — where the same formula already
+      // rendered — before anyone clicked Download), but a font that finishes
+      // loading mid-rasterization would bake in the fallback glyphs.
+      if (document.fonts?.ready) {
+        try {
+          await document.fonts.ready;
+        } catch {
+          // Unsupported or rejected — rasterize with whatever's loaded.
+        }
+      }
+      const canvas = await html2canvas(host, { backgroundColor: "#ffffff", scale: MATH_RASTER_SCALE });
+      return { dataUrl: canvas.toDataURL("image/png"), w: canvas.width / MATH_RASTER_SCALE, h: canvas.height / MATH_RASTER_SCALE };
+    } finally {
+      document.body.removeChild(host);
+    }
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Branded PDF export: brand logo + title header, a themed body rendered from the
  * document's Markdown (headings/lists/paragraphs), and a footer on every page
@@ -195,7 +261,36 @@ export async function downloadBrandedPdf(doc: BrandedDoc) {
   };
 
   for (const b of parseDoc(doc.body)) {
-    const text = stripInline(b.text);
+    if (b.type === "math") {
+      const raster = await rasterizeMath(b.text, true);
+      y += 10;
+      if (raster && raster.w > 0) {
+        // Scale to fit the content width — a formula wider than the page
+        // shrinks to fit rather than running off the margin; one that's
+        // already narrower is drawn at its natural (sharp) size.
+        const scale = Math.min(1, width / (raster.w * PX_TO_PT));
+        const wPt = raster.w * PX_TO_PT * scale;
+        const hPt = raster.h * PX_TO_PT * scale;
+        ensureRoom(hPt);
+        pdf.addImage(raster.dataUrl, "PNG", margin + (width - wPt) / 2, y, wPt, hPt);
+        y += hPt + 10;
+      } else {
+        // Rasterizing failed — fall back to the same Unicode approximation an
+        // inline formula gets, centred, rather than losing the formula outright.
+        block(11, "italic", ink, 0, 4);
+        const approx = latexToUnicode(b.text);
+        const lines = pdf.splitTextToSize(approx, width);
+        for (const line of lines) {
+          ensureRoom(15);
+          pdf.text(line, margin + (width - pdf.getTextWidth(line)) / 2, y);
+          y += 15;
+        }
+        y += 4;
+      }
+      continue;
+    }
+
+    const text = proseForPdf(b.text);
     const cfg =
       b.type === "h1"
         ? block(15, "bold", ink, 12, 6)

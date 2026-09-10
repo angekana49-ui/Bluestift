@@ -5,6 +5,7 @@ import { DocumentActions } from "@/components/ui/doc-actions";
 import type { BrandedDoc } from "@/lib/document";
 import { display, type AppTheme } from "@/components/ui/tokens";
 import { useTranslate } from "@/components/ui/locale";
+import { renderMathHtml } from "@/lib/katex-render";
 import {
   DOC_BRANDS,
   footerLine,
@@ -131,9 +132,24 @@ export function DocumentView({
 }
 
 function Block({ block, t, accent }: { block: DocBlock; t: AppTheme; accent: string }) {
+  // A display formula IS the block — block.text is its raw LaTeX, not prose to
+  // split into bold/plain runs. overflow-x: auto rather than shrinking it: a
+  // wide equation stays legible and scrolls on a narrow screen instead of
+  // being squeezed unreadable.
+  if (block.type === "math") {
+    return (
+      <div
+        style={{ margin: "12px 0", overflowX: "auto", color: t.text }}
+        dangerouslySetInnerHTML={{ __html: renderMathHtml(block.text, true) }}
+      />
+    );
+  }
+
   const spans = splitInline(block.text);
   const content = spans.map((s, i) =>
-    s.bold ? (
+    s.math ? (
+      <span key={i} dangerouslySetInnerHTML={{ __html: renderMathHtml(s.text, false) }} />
+    ) : s.bold ? (
       <strong key={i} style={{ fontWeight: 700 }}>
         {s.text}
       </strong>

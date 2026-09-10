@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as
 import { useAppTheme } from "@/components/ui/theme";
 import { display, status as statusColors, type AppTheme } from "@/components/ui/tokens";
 import { useTranslate } from "@/components/ui/locale";
+import { splitInline, type DocBlock } from "@/lib/doc-format";
+import { renderMathHtml } from "@/lib/katex-render";
 
 /**
  * Full-screen focused study players for the Tools studio: one thing at a time —
@@ -711,7 +713,27 @@ export function FlashcardsPlayer({ title, cards, onExit, actions }: { title: str
 
 // ── Reader (summary / mind map) ───────────────────────────────────────────
 
-type ReaderBlock = { type: "h1" | "h2" | "h3" | "p" | "li"; text: string };
+/** Same shape doc-format.ts's parseDoc produces — this view is fed straight
+ *  from it (tools.tsx, solo-challenge.tsx, room-challenges.tsx). */
+type ReaderBlock = DocBlock;
+
+/** Bold spans and inline LaTeX ($…$), rendered the same way the branded
+ *  document view (components/ui/document.tsx) does — this is the other place
+ *  a generated summary is actually read, and a formula or a **bold** run
+ *  should not look different depending on which of the two shows it. */
+function readerInline(text: string): ReactNode[] {
+  return splitInline(text).map((s, i) =>
+    s.math ? (
+      <span key={i} dangerouslySetInnerHTML={{ __html: renderMathHtml(s.text, false) }} />
+    ) : s.bold ? (
+      <strong key={i} style={{ fontWeight: 700 }}>
+        {s.text}
+      </strong>
+    ) : (
+      <span key={i}>{s.text}</span>
+    ),
+  );
+}
 
 export function ReaderView({
   title,
@@ -732,17 +754,25 @@ export function ReaderView({
     <FocusOverlay theme={t} title={title} subtitle={subtitle} onClose={onExit} actions={actions}>
       <article style={{ paddingBottom: 40 }}>
         {rendered.map((b, i) => {
-          if (b.type === "h1") return <h1 key={i} style={{ fontSize: 25, fontWeight: 800, fontFamily: display, color: t.text, margin: "22px 0 10px" }}>{b.text}</h1>;
-          if (b.type === "h2") return <h2 key={i} style={{ fontSize: 20, fontWeight: 700, color: statusColors.aiIndigo, margin: "20px 0 8px" }}>{b.text}</h2>;
-          if (b.type === "h3") return <h3 key={i} style={{ fontSize: 17, fontWeight: 700, color: t.text, margin: "16px 0 6px" }}>{b.text}</h3>;
+          if (b.type === "math")
+            return (
+              <div
+                key={i}
+                style={{ margin: "14px 0", overflowX: "auto", color: t.text }}
+                dangerouslySetInnerHTML={{ __html: renderMathHtml(b.text, true) }}
+              />
+            );
+          if (b.type === "h1") return <h1 key={i} style={{ fontSize: 25, fontWeight: 800, fontFamily: display, color: t.text, margin: "22px 0 10px" }}>{readerInline(b.text)}</h1>;
+          if (b.type === "h2") return <h2 key={i} style={{ fontSize: 20, fontWeight: 700, color: statusColors.aiIndigo, margin: "20px 0 8px" }}>{readerInline(b.text)}</h2>;
+          if (b.type === "h3") return <h3 key={i} style={{ fontSize: 17, fontWeight: 700, color: t.text, margin: "16px 0 6px" }}>{readerInline(b.text)}</h3>;
           if (b.type === "li")
             return (
               <div key={i} style={{ display: "flex", gap: 10, margin: "6px 0", fontSize: 17, lineHeight: 1.6, color: t.text }}>
                 <span style={{ color: statusColors.aiIndigo, flex: "none" }}>•</span>
-                <span>{b.text}</span>
+                <span>{readerInline(b.text)}</span>
               </div>
             );
-          return <p key={i} style={{ fontSize: 17, lineHeight: 1.7, color: t.text, margin: "10px 0" }}>{b.text}</p>;
+          return <p key={i} style={{ fontSize: 17, lineHeight: 1.7, color: t.text, margin: "10px 0" }}>{readerInline(b.text)}</p>;
         })}
       </article>
     </FocusOverlay>

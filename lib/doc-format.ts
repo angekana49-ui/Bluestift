@@ -2,6 +2,11 @@
 // document châssis (`components/ui/document.tsx`) and the branded exporters
 // (`lib/document.ts`), so a generated report reads the same on screen and in the
 // downloaded PDF/TXT. Pure functions only — safe to import anywhere.
+//
+// (The one exception: katex, imported lazily by the two renderers that actually
+// draw math — components/ui/document.tsx on screen, lib/document.ts for the PDF
+// image. This file stays dependency-free itself: it only recognises LaTeX
+// source and, for the PDF's plain-text fallback, approximates it in Unicode.)
 
 export type DocBrand = "bluestift" | "raya";
 
@@ -24,19 +29,44 @@ export const DOC_BRANDS: Record<DocBrand, BrandInfo> = {
   raya: { name: "Raya", logo: "/raya-mark.png", accent: "#0248d1", url: "thebluestift.com" },
 };
 
-export type DocBlockType = "h1" | "h2" | "h3" | "p" | "li";
+export type DocBlockType = "h1" | "h2" | "h3" | "p" | "li" | "math";
+/** For a "math" block, `text` is the raw LaTeX (display mode), not prose. */
 export type DocBlock = { type: DocBlockType; text: string };
 
 /**
  * Minimal Markdown → block list. Reports come back as Markdown (`# Overview`,
- * `## Highlights`, `- item`, `**bold**`); we only need headings, list items and
- * paragraphs, so a per-line parser is enough — no dependency, no HTML.
+ * `## Highlights`, `- item`, `**bold**`) plus, where the material calls for it,
+ * LaTeX math: `$$...$$` on its own line(s) for a display equation, `$...$`
+ * inline within prose (handled in `splitInline`, not here — it stays inside its
+ * paragraph). We only need headings, list items, paragraphs and display math,
+ * so a per-line parser is enough — no dependency, no HTML.
  */
 export function parseDoc(md: string): DocBlock[] {
   const blocks: DocBlock[] = [];
-  for (const raw of md.replace(/\r\n/g, "\n").split("\n")) {
+  const lines = md.replace(/\r\n/g, "\n").split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i];
     const t = raw.trim();
     if (!t || t === "---" || t === "***") continue;
+
+    // Fenced display math: a line that is exactly $$, collected up to the next
+    // lone $$. A model that never closes the fence runs to the end of the
+    // document rather than swallowing every later heading — better to render
+    // an over-long formula than to silently drop the rest of the report.
+    if (t === "$$") {
+      const start = i + 1;
+      let end = start;
+      while (end < lines.length && lines[end].trim() !== "$$") end++;
+      blocks.push({ type: "math", text: lines.slice(start, end).join("\n").trim() });
+      i = end; // the loop's i++ steps past the closing $$
+      continue;
+    }
+    // Single-line display math: $$...$$ entirely on one line.
+    if (t.startsWith("$$") && t.endsWith("$$") && t.length > 4) {
+      blocks.push({ type: "math", text: t.slice(2, -2).trim() });
+      continue;
+    }
+
     if (t.startsWith("### ")) blocks.push({ type: "h3", text: t.slice(4).trim() });
     else if (t.startsWith("## ")) blocks.push({ type: "h2", text: t.slice(3).trim() });
     else if (t.startsWith("# ")) blocks.push({ type: "h1", text: t.slice(2).trim() });
@@ -52,21 +82,78 @@ export function stripInline(text: string): string {
   return text.replace(/\*\*(.+?)\*\*/g, "$1").replace(/__(.+?)__/g, "$1").replace(/\*(.+?)\*/g, "$1");
 }
 
-export type InlineSpan = { text: string; bold: boolean };
+export type InlineSpan = { text: string; bold: boolean; math?: boolean };
 
-/** Split a line into bold/plain spans on `**…**` (for on-screen rendering). */
+/**
+ * Split a line on inline LaTeX math (`$...$`) first, then split whatever is
+ * left of each non-math piece on `**…**` — so a formula's own asterisks (if
+ * any) are never mistaken for bold markers, and bold prose around a formula
+ * still works.
+ *
+ * The `$…$` rule requires the content to touch neither delimiter with
+ * whitespace and to be non-empty and $-free — the standard Pandoc-style guard
+ * against "$50 to $100" in ordinary prose reading as a formula spanning
+ * "50 to ". A currency amount is exactly the collision this exists to avoid:
+ * schools reports quote fees and payments in the same documents that might
+ * carry a formula.
+ */
 export function splitInline(text: string): InlineSpan[] {
   const spans: InlineSpan[] = [];
-  const re = /\*\*(.+?)\*\*/g;
-  let last = 0;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(text))) {
-    if (m.index > last) spans.push({ text: text.slice(last, m.index), bold: false });
-    spans.push({ text: m[1], bold: true });
-    last = m.index + m[0].length;
+  for (const part of splitInlineMath(text)) {
+    if (part.math) {
+      spans.push({ text: part.text, bold: false, math: true });
+      continue;
+    }
+    const re = /\*\*(.+?)\*\*/g;
+    let last = 0;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(part.text))) {
+      if (m.index > last) spans.push({ text: part.text.slice(last, m.index), bold: false });
+      spans.push({ text: m[1], bold: true });
+      last = m.index + m[0].length;
+    }
+    if (last < part.text.length) spans.push({ text: part.text.slice(last), bold: false });
   }
-  if (last < text.length) spans.push({ text: text.slice(last), bold: false });
   return spans.length ? spans : [{ text, bold: false }];
+}
+
+/**
+ * Replace every inline `$…$` span the `splitInline`/`splitInlineMath` rule
+ * recognizes with `convert(rawLatex)`, leaving the rest of the line untouched.
+ * The one other consumer of that rule: lib/document.ts's PDF export, which
+ * can't embed a formula mid-line the way the on-screen view can (see its
+ * `proseForPdf`) and instead approximates it in place with `latexToUnicode`.
+ */
+export function mapInlineMath(text: string, convert: (tex: string) => string): string {
+  return splitInlineMath(text)
+    .map((p) => (p.math ? convert(p.text) : p.text))
+    .join("");
+}
+
+/** One line split into plain-text / inline-math runs, on the `$…$` rule described on `splitInline`. */
+function splitInlineMath(text: string): { text: string; math: boolean }[] {
+  const out: { text: string; math: boolean }[] = [];
+  let i = 0;
+  let last = 0;
+  while (i < text.length) {
+    if (text[i] === "$") {
+      let j = i + 1;
+      while (j < text.length && text[j] !== "$" && text[j] !== "\n") j++;
+      const inner = text.slice(i + 1, j);
+      const closed = text[j] === "$";
+      const clean = inner.length > 0 && !/^\s/.test(inner) && !/\s$/.test(inner);
+      if (closed && clean) {
+        if (i > last) out.push({ text: text.slice(last, i), math: false });
+        out.push({ text: inner, math: true });
+        i = j + 1;
+        last = i;
+        continue;
+      }
+    }
+    i++;
+  }
+  if (last < text.length) out.push({ text: text.slice(last), math: false });
+  return out.length ? out : [{ text, math: false }];
 }
 
 /**
@@ -78,4 +165,168 @@ export function footerLine(brand: DocBrand, audience?: string): string {
   const name = DOC_BRANDS[brand].name;
   const who = audience && audience.trim() ? ` for ${audience.trim()}` : "";
   return `Generated by ${name}${who} · © ${new Date().getFullYear()} Bluestift`;
+}
+
+// ---- LaTeX → Unicode approximation (for the PDF's inline-math fallback) ----
+//
+// jsPDF draws plain text runs; it has no notion of an embedded formula mid-line,
+// and word-wrapping a mixed text+image line correctly is a much bigger project
+// than this warrants. A DISPLAY formula ($$…$$) gets real, typeset rendering in
+// the PDF (rasterized KaTeX — see lib/document.ts): it already sits on its own
+// line, so there's no wrapping problem. An INLINE formula ($…$) inside a
+// sentence gets approximated to Unicode instead — "E=mc²", not "E=mc^2" and
+// nowhere near as broken as the raw LaTeX source would read.
+
+const GREEK: Record<string, string> = {
+  alpha: "α", beta: "β", gamma: "γ", delta: "δ", epsilon: "ε", varepsilon: "ε",
+  zeta: "ζ", eta: "η", theta: "θ", vartheta: "θ", iota: "ι", kappa: "κ",
+  lambda: "λ", mu: "μ", nu: "ν", xi: "ξ", pi: "π", rho: "ρ", sigma: "σ",
+  varsigma: "ς", tau: "τ", upsilon: "υ", phi: "φ", varphi: "φ", chi: "χ",
+  psi: "ψ", omega: "ω",
+  Gamma: "Γ", Delta: "Δ", Theta: "Θ", Lambda: "Λ", Xi: "Ξ", Pi: "Π",
+  Sigma: "Σ", Upsilon: "Υ", Phi: "Φ", Psi: "Ψ", Omega: "Ω",
+};
+
+/** Commands with no argument, replaced outright. */
+const SYMBOLS: Record<string, string> = {
+  times: "×", cdot: "·", div: "÷", pm: "±", mp: "∓",
+  leq: "≤", le: "≤", geq: "≥", ge: "≥", neq: "≠", ne: "≠",
+  approx: "≈", equiv: "≡", propto: "∝", sim: "∼",
+  infty: "∞", partial: "∂", nabla: "∇", degree: "°",
+  to: "→", rightarrow: "→", leftarrow: "←", Rightarrow: "⇒", Leftarrow: "⇐",
+  leftrightarrow: "↔", Leftrightarrow: "⇔",
+  in: "∈", notin: "∉", subset: "⊂", subseteq: "⊆", supset: "⊃", cup: "∪", cap: "∩",
+  forall: "∀", exists: "∃", emptyset: "∅", varnothing: "∅",
+  sum: "Σ", prod: "Π", int: "∫", oint: "∮",
+  cdots: "⋯", ldots: "…", dots: "…", vdots: "⋮", ddots: "⋱",
+  sqrt: "", // handled specially (takes an argument) — listed so it's recognised
+};
+
+const SUPERSCRIPT: Record<string, string> = {
+  "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷",
+  "8": "⁸", "9": "⁹", "+": "⁺", "-": "⁻", "=": "⁼", "(": "⁽", ")": "⁾",
+  n: "ⁿ", i: "ⁱ",
+};
+const SUBSCRIPT: Record<string, string> = {
+  "0": "₀", "1": "₁", "2": "₂", "3": "₃", "4": "₄", "5": "₅", "6": "₆", "7": "₇",
+  "8": "₈", "9": "₉", "+": "₊", "-": "₋", "=": "₌", "(": "₍", ")": "₎",
+  a: "ₐ", e: "ₑ", o: "ₒ", x: "ₓ",
+};
+
+/** Every character has a mapping, or null (the caller falls back to a plain rendering). */
+function toScript(s: string, map: Record<string, string>): string | null {
+  let out = "";
+  for (const ch of s) {
+    const m = map[ch];
+    if (!m) return null;
+    out += m;
+  }
+  return out;
+}
+
+/** Read one LaTeX "argument" at `i`: a balanced {…} group, or a single token. Returns [content, nextIndex]. */
+function readArg(s: string, i: number): [string, number] {
+  while (i < s.length && /\s/.test(s[i])) i++;
+  if (s[i] === "{") {
+    let depth = 1;
+    let j = i + 1;
+    while (j < s.length && depth > 0) {
+      if (s[j] === "{") depth++;
+      else if (s[j] === "}") depth--;
+      j++;
+    }
+    return [s.slice(i + 1, j - 1), j];
+  }
+  if (i < s.length) return [s[i], i + 1];
+  return ["", i];
+}
+
+/**
+ * Approximate one span of LaTeX as plain Unicode text. Best-effort by design —
+ * an unrecognised command degrades to its bare name rather than vanishing or
+ * throwing, so a formula this can't fully render still reads as "roughly what
+ * it said" instead of silently losing a piece.
+ */
+export function latexToUnicode(src: string): string {
+  let out = "";
+  let i = 0;
+  while (i < src.length) {
+    const ch = src[i];
+
+    if (ch === "\\") {
+      const m = /^[A-Za-z]+/.exec(src.slice(i + 1));
+      if (m) {
+        const cmd = m[0];
+        i += 1 + cmd.length;
+        if (cmd === "frac") {
+          const [num, j1] = readArg(src, i);
+          const [den, j2] = readArg(src, j1);
+          i = j2;
+          out += `(${latexToUnicode(num)})/(${latexToUnicode(den)})`;
+        } else if (cmd === "sqrt") {
+          // \sqrt[n]{x} (nth root) or \sqrt{x}.
+          let root = "";
+          if (src[i] === "[") {
+            const close = src.indexOf("]", i);
+            if (close !== -1) {
+              root = src.slice(i + 1, close);
+              i = close + 1;
+            }
+          }
+          const [arg, j] = readArg(src, i);
+          i = j;
+          out += (root ? `${root}√` : "√") + `(${latexToUnicode(arg)})`;
+        } else if (cmd === "text" || cmd === "mathrm" || cmd === "mathbf" || cmd === "mathit") {
+          const [arg, j] = readArg(src, i);
+          i = j;
+          out += latexToUnicode(arg);
+        } else if (cmd === "left" || cmd === "right") {
+          // \left( \right] etc. — the delimiter itself prints; the command doesn't.
+          while (i < src.length && /\s/.test(src[i])) i++;
+          if (src[i] === "\\") {
+            const dm = /^[A-Za-z]+/.exec(src.slice(i + 1));
+            if (dm) i += 1 + dm[0].length;
+          } else if (i < src.length) i++;
+        } else if (GREEK[cmd]) {
+          out += GREEK[cmd];
+        } else if (cmd in SYMBOLS && cmd !== "sqrt") {
+          out += SYMBOLS[cmd];
+        } else if (cmd === "quad" || cmd === "qquad") {
+          out += "  ";
+        } else {
+          // Unrecognised command: keep its name, not the backslash — a
+          // reader sees "cmd", which is a better clue than a stray glyph.
+          out += cmd;
+        }
+        continue;
+      }
+      // \, \; \! \% \& etc. — a backslash before punctuation is spacing/escaping.
+      const next = src[i + 1];
+      out += /[,;!]/.test(next ?? "") ? " " : (next ?? "");
+      i += 2;
+      continue;
+    }
+
+    if (ch === "^" || ch === "_") {
+      const map = ch === "^" ? SUPERSCRIPT : SUBSCRIPT;
+      const [arg, j] = readArg(src, i + 1);
+      const scripted = toScript(arg, map);
+      // No Unicode glyph for this argument (e.g. it's more than a bare
+      // digit/letter, or itself contains a command like \text{...}) — fall
+      // back to ^(...) / _(...), but still expand what's INSIDE it, or a
+      // subscripted \text{max} would print its raw backslash and braces.
+      out += scripted ?? (ch === "^" ? `^(${latexToUnicode(arg)})` : `_(${latexToUnicode(arg)})`);
+      i = j;
+      continue;
+    }
+
+    if (ch === "{" || ch === "}") {
+      i++; // grouping only — braces with no preceding command carry no glyph
+      continue;
+    }
+
+    out += ch;
+    i++;
+  }
+  return out;
 }

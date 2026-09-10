@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { DOC_BRANDS, parseDoc, splitInline, footerLine, type DocBrand } from "@/lib/doc-format";
+import { renderMathHtml } from "@/lib/katex-render";
 import { getServerTranslate } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +29,15 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
   const brand = DOC_BRANDS[(data.brand as DocBrand) in DOC_BRANDS ? (data.brand as DocBrand) : "raya"];
   const blocks = parseDoc(data.body ?? "");
   const inline = (text: string) =>
-    splitInline(text).map((s, i) => (s.bold ? <strong key={i}>{s.text}</strong> : <span key={i}>{s.text}</span>));
+    splitInline(text).map((s, i) =>
+      s.math ? (
+        <span key={i} dangerouslySetInnerHTML={{ __html: renderMathHtml(s.text, false) }} />
+      ) : s.bold ? (
+        <strong key={i}>{s.text}</strong>
+      ) : (
+        <span key={i}>{s.text}</span>
+      ),
+    );
 
   return (
     <main
@@ -65,6 +74,14 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
 
         <div style={{ padding: "6px 24px 8px", color: "#0b1220" }}>
           {blocks.map((b, i) => {
+            if (b.type === "math")
+              return (
+                <div
+                  key={i}
+                  style={{ margin: "14px 0", overflowX: "auto" }}
+                  dangerouslySetInnerHTML={{ __html: renderMathHtml(b.text, true) }}
+                />
+              );
             if (b.type === "h1") return <h2 key={i} style={{ fontSize: 21, fontWeight: 800, margin: "18px 0 8px" }}>{inline(b.text)}</h2>;
             if (b.type === "h2") return <h3 key={i} style={{ fontSize: 17, fontWeight: 700, color: brand.accent, margin: "16px 0 6px" }}>{inline(b.text)}</h3>;
             if (b.type === "h3") return <h4 key={i} style={{ fontSize: 16, fontWeight: 700, margin: "12px 0 5px" }}>{inline(b.text)}</h4>;

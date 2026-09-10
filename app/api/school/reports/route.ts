@@ -21,7 +21,12 @@ students, classes, or numbers. Use this Markdown structure:
 ## Highlights
 ## Students needing attention  (name + why, from the data)
 ## Recommendations  (2-4 concrete, specific actions)
-If a section has no supporting data, write "No data yet." Keep it tight.`;
+If a section has no supporting data, write "No data yet." Keep it tight.
+If you cite a formula or mathematical notation (rare here, but possible — e.g. how a
+score or rate is computed), write it in LaTeX: inline as $...$, standalone on its own
+line as $$...$$. Never as plain ASCII (no 'x/y', no 'x^2'). Do not use $ for anything
+else, including plain currency amounts — those are ordinary text (e.g. "50000 XAF"),
+not math.`;
 
 type ReportRow = { id: string; scope: string | null; parameters: unknown; created_at: string; archived_at: string | null };
 

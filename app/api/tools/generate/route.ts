@@ -177,7 +177,8 @@ export async function POST(request: Request) {
         {
           role: "system",
           content:
-            "You are a study assistant. Write a clear, well-structured summary of the material in ITS OWN language. Start with a one-line overview, then key points as bullet points (use '- '), then a short 'Key takeaways' section. Do not invent facts absent from the source.",
+            "You are a study assistant. Write a clear, well-structured summary of the material in ITS OWN language. Start with a one-line overview, then key points as bullet points (use '- '), then a short 'Key takeaways' section. Do not invent facts absent from the source. " +
+              "Any equation, formula or mathematical/scientific notation (maths, physics, chemistry — variables, exponents, fractions, units, chemical formulas) MUST be written in LaTeX: wrap a short expression inline as $...$ (e.g. $E=mc^2$, $H_2O$), and put a standalone equation on its own line as $$...$$. Never write it as plain ASCII (no 'x^2', no 'a/b', no 'H2O') when a document with no math needs none of this.",
         },
         { role: "user", content: source },
       ]);

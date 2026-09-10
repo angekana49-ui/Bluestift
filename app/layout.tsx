@@ -5,6 +5,11 @@ import { THEME_COLOR_LIGHT } from "@/lib/theme-color";
 import { startupImages } from "@/lib/launch-screens";
 import { SITE_URL, SITE_NAME, SITE_DESCRIPTION, organizationJsonLd, websiteJsonLd } from "@/lib/seo";
 import "./globals.css";
+// KaTeX's own stylesheet — loaded once, globally, for every generated document
+// that renders a formula (components/ui/document.tsx). Next only allows a
+// plain third-party CSS import from the root layout; anywhere else it errors
+// at build time.
+import "katex/dist/katex.min.css";
 import { PostHogProvider } from "@/components/analytics/PostHogProvider";
 import { UpgradeModal } from "@/components/upgrade/UpgradeModal";
 import { ServiceWorkerRegistrar } from "@/components/service-worker";
