@@ -9,16 +9,26 @@ import { createPortal } from "react-dom";
  * trapped by a transformed ancestor — which is why an in-tree modal can render
  * "inline" instead of centred). Dimmed backdrop, scrollable, centred column.
  * Closes on backdrop click or Escape; locks body scroll while open.
+ *
+ * Vertically top-aligned by default (`center: false`) — right for a document
+ * viewer or a settings sheet, whose height varies with content and can run
+ * taller than the viewport; vertically centring one of those risks its header
+ * scrolling out of view above the fold. A small, fixed-height action card —
+ * the archive/delete confirm dialogs — reads better centred, so those pass
+ * `center`.
  */
 export function Modal({
   onClose,
   label,
   maxWidth = 900,
+  center = false,
   children,
 }: {
   onClose: () => void;
   label?: string;
   maxWidth?: number;
+  /** Vertically centre instead of the default top alignment. */
+  center?: boolean;
   children: ReactNode;
 }) {
   const [mounted, setMounted] = useState(false);
@@ -54,7 +64,7 @@ export function Modal({
         overflowY: "auto",
         padding: "40px 16px",
         display: "flex",
-        alignItems: "flex-start",
+        alignItems: center ? "center" : "flex-start",
         justifyContent: "center",
       }}
     >

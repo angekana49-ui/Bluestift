@@ -7,6 +7,7 @@ import { netFetch, getJsonCached, invalidateCached } from "@/lib/net/client-fetc
 import { DocumentView } from "@/components/ui/document";
 import { Modal } from "@/components/ui/modal";
 import { ArtifactMenu } from "@/components/ui/artifact-menu";
+import { ArchivedDisclosure } from "@/components/ui/archived-section";
 import { panelCard, textInput, ctaButton, ghostButton } from "@/components/ui/forms";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
@@ -201,44 +202,41 @@ export function SchoolReports({
         </Modal>
       )}
 
-      {reports.length > 0 && (
-        <div style={box}>
-          <h3 style={{ marginTop: 0 }}>{tr("school.reports.pastReports")}</h3>
-          {reports.map((r, i) => {
-            const archived = !!r.archivedAt;
-            return (
-              <div
-                key={r.id ?? i}
-                style={{ display: "flex", gap: "0.5rem", alignItems: "center", padding: "0.35rem 0", opacity: archived ? 0.62 : 1 }}
-              >
-                <span style={{ flex: 1 }}>
-                  {r.title}
-                  {archived && (
-                    <span style={{ opacity: 0.7, fontSize: "0.78rem" }}> · {tr("hist.archivedSection")}</span>
-                  )}
-                </span>
-                <span style={{ opacity: 0.5, fontSize: "0.8rem" }}>{new Date(r.createdAt).toLocaleDateString()}</span>
-                <button style={ghost} onClick={() => setCurrent(r)}>
-                  {tr("school.roster.view")}
-                </button>
-                {r.id != null && (
-                  <ArtifactMenu
-                    theme={t}
-                    itemLabel={r.title}
-                    archived={archived}
-                    // No hard delete for a report — see app/api/school/reports
-                    // PATCH's doc comment: every report feeds the school's
-                    // year-end archive purely by date, regardless of scope.
-                    canDelete={false}
-                    onArchive={(next) => archiveReport(r.id as string, next)}
-                    onDelete={() => Promise.reject(new Error("reports cannot be deleted"))}
-                  />
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {reports.length > 0 && (() => {
+        const liveReports = reports.filter((r) => !r.archivedAt);
+        const archivedReports = reports.filter((r) => !!r.archivedAt);
+        const row = (r: ReportItem, i: number) => (
+          <div key={r.id ?? i} style={{ display: "flex", gap: "0.5rem", alignItems: "center", padding: "0.35rem 0", opacity: r.archivedAt ? 0.62 : 1 }}>
+            <span style={{ flex: 1 }}>{r.title}</span>
+            <span style={{ opacity: 0.5, fontSize: "0.8rem" }}>{new Date(r.createdAt).toLocaleDateString()}</span>
+            <button style={ghost} onClick={() => setCurrent(r)}>
+              {tr("school.roster.view")}
+            </button>
+            {r.id != null && (
+              <ArtifactMenu
+                theme={t}
+                itemLabel={r.title}
+                archived={!!r.archivedAt}
+                // No hard delete for a report — see app/api/school/reports
+                // PATCH's doc comment: every report feeds the school's
+                // year-end archive purely by date, regardless of scope.
+                canDelete={false}
+                onArchive={(next) => archiveReport(r.id as string, next)}
+                onDelete={() => Promise.reject(new Error("reports cannot be deleted"))}
+              />
+            )}
+          </div>
+        );
+        return (
+          <div style={box}>
+            <h3 style={{ marginTop: 0 }}>{tr("school.reports.pastReports")}</h3>
+            {liveReports.map(row)}
+            <ArchivedDisclosure theme={t} count={archivedReports.length}>
+              {archivedReports.map(row)}
+            </ArchivedDisclosure>
+          </div>
+        );
+      })()}
     </div>
   );
 }

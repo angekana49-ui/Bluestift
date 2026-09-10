@@ -138,7 +138,7 @@ export function ArtifactMenu({
       {menuAt && <RowMenu theme={t} x={menuAt.x} y={menuAt.y} items={items} onClose={() => setMenuAt(null)} />}
 
       {pending && (
-        <Modal onClose={() => { setPending(null); setError(null); }} label={tr(k("title"))} maxWidth={460}>
+        <Modal onClose={() => { setPending(null); setError(null); }} label={tr(k("title"))} maxWidth={460} center>
           <div
             style={{
               background: t.cardBg,

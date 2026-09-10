@@ -481,7 +481,7 @@ function ConfirmAction({
   }
 
   return (
-    <Modal onClose={onClose} label={tr(k("title"))} maxWidth={460}>
+    <Modal onClose={onClose} label={tr(k("title"))} maxWidth={460} center>
       <div
         style={{
           background: t.cardBg,

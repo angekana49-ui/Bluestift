@@ -7,6 +7,7 @@ import { parseDoc } from "@/lib/doc-format";
 import { QuizPlayer, FlashcardsPlayer, ReaderView, MindMapView } from "@/components/study/focus-player";
 import { DocumentActions } from "@/components/ui/doc-actions";
 import { ArtifactMenu } from "@/components/ui/artifact-menu";
+import { ArchivedDisclosure } from "@/components/ui/archived-section";
 import { useAppTheme } from "@/components/ui/theme";
 import { status as statusColors, type AppTheme } from "@/components/ui/tokens";
 import { IconQuiz, IconFlashcards, IconSummary } from "@/components/ui/icons";
@@ -473,40 +474,45 @@ export function Tools({
               })}
             </div>
           )}
-          {outputItems.length > 0 && (
-            <div style={panel(t)}>
-              <LibraryHeader theme={t} title={tr("tools.generated")} count={outputItems.length} hint={tr("tools.generatedHint")} />
-              {outputItems.map((o) => {
-                const label = PRETTY_TOOL_KEY[o.tool_type] ? tr(PRETTY_TOOL_KEY[o.tool_type]) : o.tool_type;
-                const archived = !!o.archived_at;
-                return (
-                  <LibraryRow
-                    key={o.id}
-                    theme={t}
-                    label={label}
-                    meta={
-                      (o.status === "done" ? new Date(o.created_at).toLocaleDateString() : o.status) +
-                      (archived ? ` · ${tr("hist.archivedSection")}` : "")
-                    }
-                    dimmed={archived}
-                    action={tr("tools.study")}
-                    disabled={o.status !== "done"}
-                    onAction={() => openOutput(o)}
-                    menu={
-                      <ArtifactMenu
-                        theme={t}
-                        itemLabel={label}
-                        archived={archived}
-                        deleteCaveatKey="artifact.delete.caveat.toolOutput"
-                        onArchive={(next) => archiveOutput(o.id, next)}
-                        onDelete={() => deleteOutput(o.id)}
-                      />
-                    }
-                  />
-                );
-              })}
-            </div>
-          )}
+          {outputItems.length > 0 && (() => {
+            const liveOutputs = outputItems.filter((o) => !o.archived_at);
+            const archivedOutputs = outputItems.filter((o) => !!o.archived_at);
+            const row = (o: Output) => {
+              const label = PRETTY_TOOL_KEY[o.tool_type] ? tr(PRETTY_TOOL_KEY[o.tool_type]) : o.tool_type;
+              const archived = !!o.archived_at;
+              return (
+                <LibraryRow
+                  key={o.id}
+                  theme={t}
+                  label={label}
+                  meta={o.status === "done" ? new Date(o.created_at).toLocaleDateString() : o.status}
+                  dimmed={archived}
+                  action={tr("tools.study")}
+                  disabled={o.status !== "done"}
+                  onAction={() => openOutput(o)}
+                  menu={
+                    <ArtifactMenu
+                      theme={t}
+                      itemLabel={label}
+                      archived={archived}
+                      deleteCaveatKey="artifact.delete.caveat.toolOutput"
+                      onArchive={(next) => archiveOutput(o.id, next)}
+                      onDelete={() => deleteOutput(o.id)}
+                    />
+                  }
+                />
+              );
+            };
+            return (
+              <div style={panel(t)}>
+                <LibraryHeader theme={t} title={tr("tools.generated")} count={liveOutputs.length} hint={tr("tools.generatedHint")} />
+                {liveOutputs.map(row)}
+                <ArchivedDisclosure theme={t} count={archivedOutputs.length}>
+                  {archivedOutputs.map(row)}
+                </ArchivedDisclosure>
+              </div>
+            );
+          })()}
           {selfTests.length > 0 && (
             <div style={panel(t)}>
               <LibraryHeader theme={t} title={tr("tools.selfTests")} count={selfTests.length} hint={tr("tools.selfTestsHint")} />

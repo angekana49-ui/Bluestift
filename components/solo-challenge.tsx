@@ -8,6 +8,7 @@ import { TestPlayer, ReaderView, type TestAnswer, type TestQuestion, type TestRe
 import { ShareLinkButton } from "@/components/study/share-button";
 import { DocumentActions } from "@/components/ui/doc-actions";
 import { ArtifactMenu } from "@/components/ui/artifact-menu";
+import { ArchivedDisclosure } from "@/components/ui/archived-section";
 import { parseDoc } from "@/lib/doc-format";
 import { useAppTheme } from "@/components/ui/theme";
 import { type AppTheme } from "@/components/ui/tokens";
@@ -465,50 +466,61 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
           )}
         </div>
         {items.length === 0 && <p style={{ color: t.muted, marginTop: 8, fontSize: 15 }}>{tr("tools.selfTest.noneYet")}</p>}
-        {items.map((it) => {
-          const label = it.title ?? tr("tools.selfTest.fallbackTitle");
-          const archived = !!it.archived_at;
-          return (
-            <div
-              key={it.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                background: t.cardBg2,
-                border: `1px solid ${t.cardBorder}`,
-                borderRadius: 14,
-                padding: "12px 16px",
-                marginTop: 8,
-                opacity: archived ? 0.62 : 1,
-              }}
-            >
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, color: t.text, fontSize: 15 }}>{label}</div>
-                <div style={{ fontSize: 13, color: t.mutedLight }}>
-                  {it.question_count ?? 0} {tr("tools.selfTest.questionsWord")}
-                  {it.score != null && ` · ${tr("tools.selfTest.lastScore")} ${Math.round(it.score * 100)}%`}
-                  {archived && ` · ${tr("hist.archivedSection")}`}
+        {(() => {
+          const liveItems = items.filter((it) => !it.archived_at);
+          const archivedItems = items.filter((it) => !!it.archived_at);
+          const row = (it: SoloItem) => {
+            const label = it.title ?? tr("tools.selfTest.fallbackTitle");
+            const archived = !!it.archived_at;
+            return (
+              <div
+                key={it.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  background: t.cardBg2,
+                  border: `1px solid ${t.cardBorder}`,
+                  borderRadius: 14,
+                  padding: "12px 16px",
+                  marginTop: 8,
+                  opacity: archived ? 0.62 : 1,
+                }}
+              >
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, color: t.text, fontSize: 15 }}>{label}</div>
+                  <div style={{ fontSize: 13, color: t.mutedLight }}>
+                    {it.question_count ?? 0} {tr("tools.selfTest.questionsWord")}
+                    {it.score != null && ` · ${tr("tools.selfTest.lastScore")} ${Math.round(it.score * 100)}%`}
+                  </div>
                 </div>
+                <button style={{ ...cta(t), opacity: busy ? 0.5 : 1 }} onClick={() => open(it)} disabled={busy}>
+                  {it.score != null ? tr("tools.selfTest.retryButton") : tr("tools.selfTest.startButton")}
+                </button>
+                <ArtifactMenu
+                  theme={t}
+                  itemLabel={label}
+                  archived={archived}
+                  // A Schools "Prepare" assignment materializes as one of these
+                  // too (scope "assignment") — it's a class's homework record,
+                  // not a personal test, so only archiving is offered for it.
+                  canDelete={it.scope !== "assignment"}
+                  deleteCaveatKey="artifact.delete.caveat.selfTest"
+                  onArchive={(next) => archiveItem(it.id, next)}
+                  onDelete={() => deleteItem(it.id)}
+                />
               </div>
-              <button style={{ ...cta(t), opacity: busy ? 0.5 : 1 }} onClick={() => open(it)} disabled={busy}>
-                {it.score != null ? tr("tools.selfTest.retryButton") : tr("tools.selfTest.startButton")}
-              </button>
-              <ArtifactMenu
-                theme={t}
-                itemLabel={label}
-                archived={archived}
-                // A Schools "Prepare" assignment materializes as one of these
-                // too (scope "assignment") — it's a class's homework record,
-                // not a personal test, so only archiving is offered for it.
-                canDelete={it.scope !== "assignment"}
-                deleteCaveatKey="artifact.delete.caveat.selfTest"
-                onArchive={(next) => archiveItem(it.id, next)}
-                onDelete={() => deleteItem(it.id)}
-              />
-            </div>
+            );
+          };
+          return (
+            <>
+              {liveItems.map(row)}
+              <ArchivedDisclosure theme={t} count={archivedItems.length}>
+                {archivedItems.map(row)}
+              </ArchivedDisclosure>
+            </>
           );
-        })}
+        })()}
       </div>
     </div>
   );

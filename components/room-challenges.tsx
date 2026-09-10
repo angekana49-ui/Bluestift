@@ -10,6 +10,7 @@ import { downloadBrandedPdf, type BrandedDoc } from "@/lib/document";
 import { TestPlayer, ReaderView, type TestAnswer, type TestQuestion, type TestResult } from "@/components/study/focus-player";
 import { ShareLinkButton } from "@/components/study/share-button";
 import { ArtifactMenu } from "@/components/ui/artifact-menu";
+import { ArchivedDisclosure } from "@/components/ui/archived-section";
 import { parseDoc } from "@/lib/doc-format";
 import { FilePicker } from "@/components/ui/file-picker";
 import { neutralButton, formActions } from "@/components/ui/forms";
@@ -489,49 +490,60 @@ export function RoomChallenges({
 
       <div style={{ marginTop: 16 }}>
         {challenges.length === 0 && <p style={{ color: t.muted, fontSize: 15 }}>{tr("room.challenges.noChallengesYet")}</p>}
-        {challenges.map((ch) => {
-          const label = ch.title ?? tr("room.challenges.fallbackTitle");
-          const archived = !!ch.archived_at;
-          const canManage = ch.created_by === myUserId || isRoomOwner;
-          return (
-            <div
-              key={ch.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                background: t.cardBg2,
-                border: `1px solid ${t.cardBorder}`,
-                borderRadius: 14,
-                padding: "12px 16px",
-                marginTop: 8,
-                opacity: archived ? 0.62 : 1,
-              }}
-            >
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, color: t.text, fontSize: 15 }}>{label}</div>
-                {ch.description && <div style={{ fontSize: 14, color: t.muted }}>{ch.description}</div>}
-                <div style={{ fontSize: 13, color: t.mutedLight }}>
-                  {ch.question_count ?? 0} {tr("tools.selfTest.questionsWord")} · {kindLabel(ch.format, tr)} · {ch.status}
-                  {archived && ` · ${tr("hist.archivedSection")}`}
+        {(() => {
+          const liveChallenges = challenges.filter((c) => !c.archived_at);
+          const archivedChallenges = challenges.filter((c) => !!c.archived_at);
+          const row = (ch: Challenge) => {
+            const label = ch.title ?? tr("room.challenges.fallbackTitle");
+            const archived = !!ch.archived_at;
+            const canManage = ch.created_by === myUserId || isRoomOwner;
+            return (
+              <div
+                key={ch.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  background: t.cardBg2,
+                  border: `1px solid ${t.cardBorder}`,
+                  borderRadius: 14,
+                  padding: "12px 16px",
+                  marginTop: 8,
+                  opacity: archived ? 0.62 : 1,
+                }}
+              >
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, color: t.text, fontSize: 15 }}>{label}</div>
+                  {ch.description && <div style={{ fontSize: 14, color: t.muted }}>{ch.description}</div>}
+                  <div style={{ fontSize: 13, color: t.mutedLight }}>
+                    {ch.question_count ?? 0} {tr("tools.selfTest.questionsWord")} · {kindLabel(ch.format, tr)} · {ch.status}
+                  </div>
                 </div>
+                <button style={{ ...btn, opacity: busy || readOnly ? 0.5 : 1 }} onClick={() => open(ch)} disabled={busy || readOnly}>
+                  {tr("room.challenges.playButton")}
+                </button>
+                {canManage && (
+                  <ArtifactMenu
+                    theme={t}
+                    itemLabel={label}
+                    archived={archived}
+                    deleteCaveatKey="artifact.delete.caveat.roomChallenge"
+                    onArchive={(next) => archiveChallenge(ch.id, next)}
+                    onDelete={() => deleteChallenge(ch.id)}
+                  />
+                )}
               </div>
-              <button style={{ ...btn, opacity: busy || readOnly ? 0.5 : 1 }} onClick={() => open(ch)} disabled={busy || readOnly}>
-                {tr("room.challenges.playButton")}
-              </button>
-              {canManage && (
-                <ArtifactMenu
-                  theme={t}
-                  itemLabel={label}
-                  archived={archived}
-                  deleteCaveatKey="artifact.delete.caveat.roomChallenge"
-                  onArchive={(next) => archiveChallenge(ch.id, next)}
-                  onDelete={() => deleteChallenge(ch.id)}
-                />
-              )}
-            </div>
+            );
+          };
+          return (
+            <>
+              {liveChallenges.map(row)}
+              <ArchivedDisclosure theme={t} count={archivedChallenges.length}>
+                {archivedChallenges.map(row)}
+              </ArchivedDisclosure>
+            </>
           );
-        })}
+        })()}
       </div>
     </div>
   );

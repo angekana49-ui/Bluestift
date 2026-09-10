@@ -6,6 +6,7 @@ import { panelCard, textInput, ctaButton, ghostButton, formActions } from "@/com
 import { DocumentView } from "@/components/ui/document";
 import { Modal } from "@/components/ui/modal";
 import { ArtifactMenu } from "@/components/ui/artifact-menu";
+import { ArchivedDisclosure } from "@/components/ui/archived-section";
 import { type BrandedDoc } from "@/lib/document";
 import { RayaName } from "@/components/ui/brand";
 import { netFetch, getJsonCached, invalidateCached } from "@/lib/net/client-fetch";
@@ -277,17 +278,34 @@ export function PrepareView({
       {library.length > 0 && (
         <div style={box}>
           <h3 style={{ marginTop: 0 }}>{tr("school.prepare.yourLibrary")}</h3>
-          {library.map((r, i) => (
-            <LibraryRow
-              key={r.id ?? i}
-              r={r}
-              classes={classes}
-              onView={() => setCurrent(r)}
-              onAssigned={loadAssignments}
-              onArchive={archiveResource}
-              onDelete={deleteResource}
-            />
-          ))}
+          {library
+            .filter((r) => !r.archivedAt)
+            .map((r, i) => (
+              <LibraryRow
+                key={r.id ?? i}
+                r={r}
+                classes={classes}
+                onView={() => setCurrent(r)}
+                onAssigned={loadAssignments}
+                onArchive={archiveResource}
+                onDelete={deleteResource}
+              />
+            ))}
+          <ArchivedDisclosure theme={t} count={library.filter((r) => !!r.archivedAt).length}>
+            {library
+              .filter((r) => !!r.archivedAt)
+              .map((r, i) => (
+                <LibraryRow
+                  key={r.id ?? i}
+                  r={r}
+                  classes={classes}
+                  onView={() => setCurrent(r)}
+                  onAssigned={loadAssignments}
+                  onArchive={archiveResource}
+                  onDelete={deleteResource}
+                />
+              ))}
+          </ArchivedDisclosure>
         </div>
       )}
 
@@ -372,7 +390,6 @@ function LibraryRow({
             {" "}
             · {KIND_LABEL_KEY[r.kind] ? tr(KIND_LABEL_KEY[r.kind]) : r.kind}
             {r.className ? ` · ${r.className}` : ""}
-            {archived ? ` · ${tr("hist.archivedSection")}` : ""}
           </span>
         </span>
         <span style={{ opacity: 0.5, fontSize: "0.8rem" }}>{new Date(r.createdAt).toLocaleDateString()}</span>
