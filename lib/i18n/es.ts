@@ -2575,6 +2575,7 @@ export const es: Partial<Messages> = {
   "school.billing.pilotAccessB": "— plazas ilimitadas durante el piloto.",
   "school.billing.renewsExpires": "Renueva / expira",
   "school.billing.activateBelow": "Activa un plan abajo para habilitar las plazas de todo el centro.",
+  "school.billing.freePilotNoCap": "Estás en nuestro piloto gratuito — todo está desbloqueado, sin límite de plazas, sin tarjeta necesaria. Activa un plan abajo cuando quieras formalizarlo.",
   "school.billing.seatsUsed": "Plazas usadas",
   "school.billing.unlimitedSuffix": "/ ilimitado",
   "school.billing.seatLimitReached": "Límite de plazas alcanzado — los nuevos alumnos no pueden unirse hasta que añadas plazas o mejores el plan.",

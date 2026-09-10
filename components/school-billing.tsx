@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useAppTheme } from "@/components/ui/theme";
 import { netFetch, getJsonCached, invalidateCached } from "@/lib/net/client-fetch";
 import { panelCard, cardTitle, textInput, ctaButton } from "@/components/ui/forms";
@@ -137,7 +138,11 @@ export function SchoolBilling() {
             ? `${tr("school.billing.pilotAccessA")} ${fmtDate(billing.pilotUntil)} ${tr("school.billing.pilotAccessB")}`
             : billing.expiresAt
               ? `${tr("school.billing.renewsExpires")} ${fmtDate(billing.expiresAt)}`
-              : tr("school.billing.activateBelow")}
+              : // No dated pilot and no subscription: resolveSeatGate's
+                // "no_subscription" branch already leaves the school fully
+                // ungated (unlimited seats, nothing to pay) — this is that
+                // state, said plainly, not a "you must act now" nag.
+                tr("school.billing.freePilotNoCap")}
         </div>
 
         {/* Seat meter */}
@@ -268,6 +273,11 @@ function PlanCard({
   const input = textInput(t);
   const btn = ctaButton(t);
   const isPerSeat = plan.priceUnit === "per_seat";
+  // A bespoke/devis plan has no fixed price to record a payment against — the
+  // "activate" form below asks for an amount that doesn't exist yet. Same rule
+  // as the public /pricing page (components/site/pages/PricingView.tsx): quoted,
+  // not self-serve, so this goes to the team instead of the payment form.
+  const bespoke = plan.tier === "custom";
 
   const [open, setOpen] = useState(false);
   const [method, setMethod] = useState("transfer");
@@ -358,6 +368,10 @@ function PlanCard({
 
       {current ? (
         <div style={{ fontSize: 13, fontWeight: 700, color: "#22c55e", textAlign: "center" }}>{tr("school.billing.currentPlan")}</div>
+      ) : bespoke ? (
+        <Link href="/contact" style={{ ...btn, width: "100%", textAlign: "center", textDecoration: "none", display: "block", boxSizing: "border-box" }}>
+          {tr("site.finalCta.ctaSecondary")}
+        </Link>
       ) : !open ? (
         <button style={{ ...btn, width: "100%" }} onClick={() => setOpen(true)}>
           {tr("school.billing.activateButton")}

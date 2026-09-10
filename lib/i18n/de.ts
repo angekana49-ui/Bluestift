@@ -2576,6 +2576,7 @@ export const de: Partial<Messages> = {
   "school.billing.pilotAccessB": "— Plätze unbegrenzt während des Pilotprojekts.",
   "school.billing.renewsExpires": "Verlängert sich / läuft ab",
   "school.billing.activateBelow": "Aktiviere unten einen Plan, um schulweite Plätze freizuschalten.",
+  "school.billing.freePilotNoCap": "Du bist auf unserem kostenlosen Pilotprogramm — alles ist freigeschaltet, kein Platzlimit, keine Karte nötig. Aktiviere unten einen Plan, sobald du bereit bist, ihn zu formalisieren.",
   "school.billing.seatsUsed": "Genutzte Plätze",
   "school.billing.unlimitedSuffix": "/ unbegrenzt",
   "school.billing.seatLimitReached": "Platzlimit erreicht — neue Schüler können erst beitreten, wenn du Plätze hinzufügst oder upgradest.",

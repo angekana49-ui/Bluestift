@@ -2836,6 +2836,7 @@ export const en = {
   "school.billing.pilotAccessB": "— seats unlimited during the pilot.",
   "school.billing.renewsExpires": "Renews / expires",
   "school.billing.activateBelow": "Activate a plan below to enable school-wide seats.",
+  "school.billing.freePilotNoCap": "You're on our free pilot — everything is unlocked, no seat limit, no card needed. Activate a plan below whenever you're ready to formalize it.",
   "school.billing.seatsUsed": "Seats used",
   "school.billing.unlimitedSuffix": "/ unlimited",
   "school.billing.seatLimitReached": "Seat limit reached — new students can't join until you add seats or upgrade.",
