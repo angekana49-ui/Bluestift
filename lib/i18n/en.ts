@@ -833,6 +833,45 @@ export const en = {
   // ── Legal pages shell (components/site/pages/legal-chrome.tsx) ────
   "legal.lastUpdated": "Last updated",
 
+  // ── Legal index (components/site/pages/LegalIndexView.tsx) — the four
+  // legal DOCUMENTS themselves (privacy/terms/dpa/subprocessors) stay
+  // single-language on purpose; this index page around them doesn't.
+  "legal.index.title": "Legal",
+  "legal.index.accent": "in full",
+  "legal.index.intro":
+    "Four documents, no summaries. Each one is written to be read on its own, and this page exists only so you can find the right one quickly.",
+  "legal.index.doc.privacy.title": "Privacy",
+  "legal.index.doc.privacy.blurb":
+    "What we collect, why, how long we keep it, and who else ever sees it. The one to read if you want a single answer about your own data.",
+  "legal.index.doc.terms.title": "Terms of service",
+  "legal.index.doc.terms.blurb":
+    "Who may open an account, what Raya is and — as importantly — is not, and how an account ends.",
+  "legal.index.doc.dpa.title": "Schools DPA",
+  "legal.index.doc.dpa.blurb":
+    "The data-processing agreement a school signs. Written for the person at the school who has to sign it, not for a student.",
+  "legal.index.doc.subprocessors.title": "Sub-processors",
+  "legal.index.doc.subprocessors.blurb":
+    "Every third party that touches your data, what each one does, and where it runs. Named, not summarised.",
+  "legal.index.doingHeading": "Doing something about it",
+  "legal.index.doingIntro":
+    "Reading a policy and acting on it are different things, and the second one should not require writing to anybody. Everything below is a control in your own account settings, not a request form:",
+  "legal.index.li.download.lead": "Download everything we hold",
+  "legal.index.li.download.rest":
+    " as a JSON file — including the model of your learning that Raya keeps but never shows you.",
+  "legal.index.li.analytics.lead": "Switch off product analytics",
+  "legal.index.li.analytics.rest":
+    ", and switch off whether your work is used to improve Raya. Both take effect immediately, and nothing about the product changes when you do.",
+  "legal.index.li.delete.lead": "Delete the account",
+  "legal.index.li.delete.rest": " outright, with a typed confirmation and no undo.",
+  "legal.index.openControls": "Open your data controls →",
+  "legal.index.signInControls": "Sign in to open your data controls →",
+  "legal.index.under18Heading": "If you are under 18",
+  "legal.index.under18Body.a":
+    "Neither of those two switches applies to you, and not because we forgot them. Accounts belonging to under-18s are not measured by analytics and their work is never used to improve our models — that is enforced above the setting rather than by it, so there is no state of the account in which it can be turned on. The",
+  "legal.index.under18Body.linkText": "privacy policy",
+  "legal.index.under18Body.b":
+    "says how that is decided. Nothing can be bought from an account belonging to an under-18 unless the person paying confirms they are a parent or guardian, and under 13 the account is held to the strict minimum described there.",
+
   // ── Contact page (components/site/pages/ContactView.tsx) ──────────
   "contact.title.a": "Talk to",
   "contact.title.em": "the team.",

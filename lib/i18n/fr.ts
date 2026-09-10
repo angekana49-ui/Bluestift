@@ -666,6 +666,45 @@ export const fr: Partial<Messages> = {
   // ── Habillage des pages légales ──────────────────────────────────
   "legal.lastUpdated": "Dernière mise à jour",
 
+  // ── Index légal (components/site/pages/LegalIndexView.tsx) — les quatre
+  // documents légaux eux-mêmes (confidentialité/CGU/DPA/sous-traitants)
+  // restent volontairement dans une seule langue ; cette page d'index non.
+  "legal.index.title": "Mentions légales",
+  "legal.index.accent": "en détail",
+  "legal.index.intro":
+    "Quatre documents, aucun résumé. Chacun est écrit pour être lu seul, et cette page n'existe que pour vous aider à trouver le bon rapidement.",
+  "legal.index.doc.privacy.title": "Confidentialité",
+  "legal.index.doc.privacy.blurb":
+    "Ce que nous collectons, pourquoi, combien de temps nous le gardons, et qui d'autre le voit jamais. Celui à lire si vous voulez une réponse unique sur vos propres données.",
+  "legal.index.doc.terms.title": "Conditions d'utilisation",
+  "legal.index.doc.terms.blurb":
+    "Qui peut ouvrir un compte, ce qu'est Raya et — tout aussi important — ce qu'elle n'est pas, et comment un compte se termine.",
+  "legal.index.doc.dpa.title": "DPA pour les écoles",
+  "legal.index.doc.dpa.blurb":
+    "L'accord de traitement des données qu'une école signe. Écrit pour la personne de l'école qui doit le signer, pas pour un élève.",
+  "legal.index.doc.subprocessors.title": "Sous-traitants",
+  "legal.index.doc.subprocessors.blurb":
+    "Chaque tiers qui touche à vos données, ce que chacun fait, et où il opère. Nommés, pas résumés.",
+  "legal.index.doingHeading": "Agir concrètement",
+  "legal.index.doingIntro":
+    "Lire une politique et agir dessus sont deux choses différentes, et la seconde ne devrait exiger d'écrire à personne. Tout ce qui suit est un réglage dans vos propres paramètres de compte, pas un formulaire de demande :",
+  "legal.index.li.download.lead": "Téléchargez tout ce que nous détenons",
+  "legal.index.li.download.rest":
+    " sous forme de fichier JSON — y compris le modèle de votre apprentissage que Raya conserve mais ne vous montre jamais.",
+  "legal.index.li.analytics.lead": "Désactivez les statistiques produit",
+  "legal.index.li.analytics.rest":
+    ", et désactivez si votre travail sert à améliorer Raya. Les deux prennent effet immédiatement, et rien dans le produit ne change quand vous le faites.",
+  "legal.index.li.delete.lead": "Supprimez le compte",
+  "legal.index.li.delete.rest": " définitivement, avec une confirmation tapée et sans retour en arrière.",
+  "legal.index.openControls": "Ouvrir vos réglages de données →",
+  "legal.index.signInControls": "Connectez-vous pour ouvrir vos réglages de données →",
+  "legal.index.under18Heading": "Si vous avez moins de 18 ans",
+  "legal.index.under18Body.a":
+    "Aucun de ces deux réglages ne s'applique à vous, et pas parce que nous les avons oubliés. Les comptes appartenant à des moins de 18 ans ne sont pas mesurés par les statistiques et leur travail ne sert jamais à améliorer nos modèles — c'est imposé au-dessus du réglage plutôt que par lui, donc il n'existe aucun état du compte où ça pourrait être activé. La",
+  "legal.index.under18Body.linkText": "politique de confidentialité",
+  "legal.index.under18Body.b":
+    "explique comment c'est décidé. Rien ne peut être acheté depuis un compte appartenant à un moins de 18 ans sauf si la personne qui paie confirme être un parent ou tuteur, et en dessous de 13 ans le compte est limité au strict minimum décrit là-bas.",
+
   // ── Page Contact ──────────────────────────────────────────────────
   "contact.title.a": "Parlez à",
   "contact.title.em": "l'équipe.",

@@ -3,6 +3,8 @@
 import Link from "next/link";
 import type { Theme } from "@/components/site/theme";
 import { LegalShell, h2, li, link, p, ul } from "./legal-chrome";
+import { useTranslate } from "@/components/ui/locale";
+import type { MessageKey } from "@/lib/i18n";
 
 /**
  * /legal — one door to the four documents.
@@ -16,51 +18,33 @@ import { LegalShell, h2, li, link, p, ul } from "./legal-chrome";
  * Deliberately an index and not a fifth document. Adding a summary of four legal
  * texts creates a fifth statement that can drift out of agreement with them, and
  * when it does it is the one people will have read.
+ *
+ * The index itself is translated (this file); the four documents it links to
+ * are not — a legal text drifting between four independently-worded copies is
+ * a worse outcome than making a visitor read the authoritative one.
  */
 
-const DOCS: { href: string; title: string; blurb: string }[] = [
-  {
-    href: "/privacy",
-    title: "Privacy",
-    blurb:
-      "What we collect, why, how long we keep it, and who else ever sees it. The one to read if you want a single answer about your own data.",
-  },
-  {
-    href: "/terms",
-    title: "Terms of service",
-    blurb:
-      "Who may open an account, what Raya is and — as importantly — is not, and how an account ends.",
-  },
-  {
-    href: "/dpa",
-    title: "Schools DPA",
-    blurb:
-      "The data-processing agreement a school signs. Written for the person at the school who has to sign it, not for a student.",
-  },
-  {
-    href: "/subprocessors",
-    title: "Sub-processors",
-    blurb:
-      "Every third party that touches your data, what each one does, and where it runs. Named, not summarised.",
-  },
+const DOCS: { href: string; titleKey: MessageKey; blurbKey: MessageKey }[] = [
+  { href: "/privacy", titleKey: "legal.index.doc.privacy.title", blurbKey: "legal.index.doc.privacy.blurb" },
+  { href: "/terms", titleKey: "legal.index.doc.terms.title", blurbKey: "legal.index.doc.terms.blurb" },
+  { href: "/dpa", titleKey: "legal.index.doc.dpa.title", blurbKey: "legal.index.doc.dpa.blurb" },
+  { href: "/subprocessors", titleKey: "legal.index.doc.subprocessors.title", blurbKey: "legal.index.doc.subprocessors.blurb" },
 ];
 
 export function LegalIndexView({ signedIn }: { signedIn: boolean }) {
+  const tr = useTranslate();
   return (
     <LegalShell
       active="Privacy"
       section="Legal"
       signedIn={signedIn}
-      title="Legal"
-      accent="in full"
+      title={tr("legal.index.title")}
+      accent={tr("legal.index.accent")}
       updated="6 September 2026"
     >
       {(t: Theme) => (
         <>
-          <p style={p(t)}>
-            Four documents, no summaries. Each one is written to be read on its own, and this
-            page exists only so you can find the right one quickly.
-          </p>
+          <p style={p(t)}>{tr("legal.index.intro")}</p>
 
           <div style={{ display: "grid", gap: 12, margin: "28px 0 0" }}>
             {DOCS.map((d) => (
@@ -85,57 +69,48 @@ export function LegalIndexView({ signedIn }: { signedIn: boolean }) {
                     marginBottom: 4,
                   }}
                 >
-                  {d.title} →
+                  {tr(d.titleKey)} →
                 </div>
-                <div style={{ fontSize: 14, color: t.muted, lineHeight: 1.65 }}>{d.blurb}</div>
+                <div style={{ fontSize: 14, color: t.muted, lineHeight: 1.65 }}>{tr(d.blurbKey)}</div>
               </Link>
             ))}
           </div>
 
-          <h2 style={h2(t)}>Doing something about it</h2>
-          <p style={p(t)}>
-            Reading a policy and acting on it are different things, and the second one should not
-            require writing to anybody. Everything below is a control in your own account
-            settings, not a request form:
-          </p>
+          <h2 style={h2(t)}>{tr("legal.index.doingHeading")}</h2>
+          <p style={p(t)}>{tr("legal.index.doingIntro")}</p>
           <ul style={ul}>
             <li style={li(t)}>
-              <strong>Download everything we hold</strong> as a JSON file — including the model of
-              your learning that Raya keeps but never shows you.
+              <strong>{tr("legal.index.li.download.lead")}</strong>
+              {tr("legal.index.li.download.rest")}
             </li>
             <li style={li(t)}>
-              <strong>Switch off product analytics</strong>, and switch off whether your work is
-              used to improve Raya. Both take effect immediately, and nothing about the product
-              changes when you do.
+              <strong>{tr("legal.index.li.analytics.lead")}</strong>
+              {tr("legal.index.li.analytics.rest")}
             </li>
             <li style={li(t)}>
-              <strong>Delete the account</strong> outright, with a typed confirmation and no undo.
+              <strong>{tr("legal.index.li.delete.lead")}</strong>
+              {tr("legal.index.li.delete.rest")}
             </li>
           </ul>
           <p style={p(t)}>
             {signedIn ? (
               <Link href="/account#data" style={link(t)}>
-                Open your data controls →
+                {tr("legal.index.openControls")}
               </Link>
             ) : (
               <Link href="/login" style={link(t)}>
-                Sign in to open your data controls →
+                {tr("legal.index.signInControls")}
               </Link>
             )}
           </p>
 
-          <h2 style={h2(t)}>If you are under 18</h2>
+          <h2 style={h2(t)}>{tr("legal.index.under18Heading")}</h2>
           <p style={p(t)}>
-            Neither of those two switches applies to you, and not because we forgot them. Accounts
-            belonging to under-18s are not measured by analytics and their work is never used to
-            improve our models — that is enforced above the setting rather than by it, so there is
-            no state of the account in which it can be turned on. The{" "}
+            {tr("legal.index.under18Body.a")}{" "}
             <Link href="/privacy" style={link(t)}>
-              privacy policy
+              {tr("legal.index.under18Body.linkText")}
             </Link>{" "}
-            says how that is decided. Nothing can be bought from an account belonging to an
-            under-18 unless the person paying confirms they are a parent or guardian, and under 13
-            the account is held to the strict minimum described there.
+            {tr("legal.index.under18Body.b")}
           </p>
         </>
       )}

@@ -666,6 +666,45 @@ export const de: Partial<Messages> = {
   // ── Rahmen der rechtlichen Seiten ─────────────────────────────────
   "legal.lastUpdated": "Zuletzt aktualisiert",
 
+  // ── Rechtliches-Index (components/site/pages/LegalIndexView.tsx) — die
+  // vier Rechtsdokumente selbst (Datenschutz/AGB/AVV/Unterauftragsverarbeiter)
+  // bleiben bewusst einsprachig; diese Übersichtsseite nicht.
+  "legal.index.title": "Rechtliches",
+  "legal.index.accent": "im Detail",
+  "legal.index.intro":
+    "Vier Dokumente, keine Zusammenfassungen. Jedes ist so geschrieben, dass es für sich allein gelesen werden kann, und diese Seite existiert nur, damit du schnell das richtige findest.",
+  "legal.index.doc.privacy.title": "Datenschutz",
+  "legal.index.doc.privacy.blurb":
+    "Was wir erfassen, warum, wie lange wir es aufbewahren und wer es sonst noch sieht. Das richtige, wenn du eine einzige Antwort zu deinen eigenen Daten suchst.",
+  "legal.index.doc.terms.title": "Nutzungsbedingungen",
+  "legal.index.doc.terms.blurb":
+    "Wer ein Konto eröffnen darf, was Raya ist und — genauso wichtig — was nicht, und wie ein Konto endet.",
+  "legal.index.doc.dpa.title": "AVV für Schulen",
+  "legal.index.doc.dpa.blurb":
+    "Die Auftragsverarbeitungsvereinbarung, die eine Schule unterschreibt. Geschrieben für die Person an der Schule, die sie unterschreiben muss, nicht für Schüler.",
+  "legal.index.doc.subprocessors.title": "Unterauftragsverarbeiter",
+  "legal.index.doc.subprocessors.blurb":
+    "Jeder Dritte, der deine Daten berührt, was er jeweils tut, und wo er tätig ist. Namentlich genannt, nicht zusammengefasst.",
+  "legal.index.doingHeading": "Konkret handeln",
+  "legal.index.doingIntro":
+    "Eine Richtlinie zu lesen und danach zu handeln sind zwei verschiedene Dinge, und Zweiteres sollte niemandem ein Schreiben abverlangen. Alles Folgende ist eine Einstellung in deinem eigenen Konto, kein Antragsformular:",
+  "legal.index.li.download.lead": "Lade alles herunter, was wir speichern",
+  "legal.index.li.download.rest":
+    " als JSON-Datei — einschließlich des Modells deines Lernens, das Raya führt, dir aber nie zeigt.",
+  "legal.index.li.analytics.lead": "Schalte Produktanalyse aus",
+  "legal.index.li.analytics.rest":
+    ", und schalte aus, ob deine Arbeit zur Verbesserung von Raya genutzt wird. Beides wirkt sofort, und nichts am Produkt ändert sich dadurch.",
+  "legal.index.li.delete.lead": "Lösche das Konto",
+  "legal.index.li.delete.rest": " vollständig, mit einer eingetippten Bestätigung und ohne Rückgängig.",
+  "legal.index.openControls": "Deine Datenkontrollen öffnen →",
+  "legal.index.signInControls": "Anmelden, um deine Datenkontrollen zu öffnen →",
+  "legal.index.under18Heading": "Wenn du unter 18 bist",
+  "legal.index.under18Body.a":
+    "Keiner dieser beiden Schalter gilt für dich, und nicht weil wir sie vergessen hätten. Konten von Unter-18-Jährigen werden nicht per Analyse erfasst, und ihre Arbeit wird nie zur Verbesserung unserer Modelle genutzt — das wird oberhalb der Einstellung erzwungen, nicht durch sie, sodass es keinen Kontozustand gibt, in dem es aktiviert werden könnte. Die",
+  "legal.index.under18Body.linkText": "Datenschutzrichtlinie",
+  "legal.index.under18Body.b":
+    "erklärt, wie das entschieden wird. Von einem Konto einer Person unter 18 kann nichts gekauft werden, außer die zahlende Person bestätigt, Elternteil oder Erziehungsberechtigte(r) zu sein, und unter 13 ist das Konto auf das dort beschriebene strikte Minimum beschränkt.",
+
   // ── Kontaktseite ─────────────────────────────────────────────────
   "contact.title.a": "Sprich mit",
   "contact.title.em": "dem Team.",
