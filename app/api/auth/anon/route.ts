@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, adminRpc } from "@/lib/supabase/admin";
 import { ensureRecoverable } from "@/lib/auth";
 import { clientIp } from "@/lib/request-ip";
-import { verifyTurnstile } from "@/lib/turnstile";
 
 /**
  * Per-IP anti-burst on account creation. NOT a lifetime cap — a rolling window,
@@ -32,12 +31,28 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "invalid json" }, { status: 400 });
   }
-  if (!(await verifyTurnstile(body.captchaToken))) {
+  // NO verifyTurnstile() here, and that is deliberate: a Turnstile token is
+  // SINGLE-USE. Verifying it ourselves redeems it at Cloudflare, and the
+  // signInAnonymously below hands the same token to Supabase, which redeems it
+  // a second time — Cloudflare answers `timeout-or-duplicate` and the sign-in
+  // fails. The bug was invisible for as long as TURNSTILE_SECRET_KEY was unset
+  // in production (verifyTurnstile then returned false without ever calling
+  // Cloudflare, so the token survived to Supabase and only OUR check failed);
+  // setting the secret correctly is what surfaced it.
+  //
+  // So Supabase is the single redeemer on this path. The captcha still gates
+  // the thing that matters — no account is created without it, because it is
+  // signInAnonymously itself that validates the token.
+  if (!body.captchaToken) {
     return NextResponse.json({ error: "captcha_failed" }, { status: 403 });
   }
 
   // 0) Per-IP anti-burst (atomic in the DB). An unidentifiable IP ("") is not
   //    blocked here — captcha remains the gate in that case.
+  //    This now runs BEFORE the captcha is validated (Supabase validates it one
+  //    step below), so a request with a junk token can still tick this counter.
+  //    Accepted: it is a cheap DB call and is itself the rate limiter, while the
+  //    account creation behind it stays captcha-gated.
   const ip = clientIp(request);
   const admin = createAdminClient();
   const { data: allowed, error: ipErr } = await adminRpc<boolean>(admin, "check_signup_ip", {

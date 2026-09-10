@@ -42,7 +42,15 @@ export async function POST(request: Request) {
   if (!isValidRecoveryKey(code)) {
     return NextResponse.json({ status: "invalid" });
   }
-  if (!(await verifyTurnstile(body.captchaToken))) {
+  // The token is NOT verified here, because which side may redeem it depends on
+  // the branch below and a Turnstile token is SINGLE-USE:
+  //   real email      -> handed to Supabase with signInWithOtp, which redeems it.
+  //                      Verifying it here first would consume it and leave
+  //                      Supabase with `timeout-or-duplicate`.
+  //   synthetic (anon) -> nothing downstream ever sees the token, so this route
+  //                      is the only thing that can enforce it. Verified there.
+  // Absence is still refused up front — that costs no redemption.
+  if (!body.captchaToken) {
     return NextResponse.json({ error: "captcha_failed" }, { status: 403 });
   }
   if (!(await checkStrictRateLimit("auth_recovery", clientIp(request), 10, "15 minutes"))) {
@@ -101,6 +109,15 @@ export async function POST(request: Request) {
   // re-verify a password would only work because the key USED to be that
   // password, which is precisely the coupling this design removes. Session
   // cookies land on this response via the SSR client.
+  //
+  // This branch hands the token to nobody, so it is the only place that can
+  // spend it — and it must, or an email-less account could be recovered with no
+  // captcha at all. Safe to redeem here: the magic-link branch above has
+  // already returned.
+  if (!(await verifyTurnstile(body.captchaToken))) {
+    return NextResponse.json({ error: "captcha_failed" }, { status: 403 });
+  }
+
   const supabase = await createClient();
   const minted = await mintSessionFor(supabase, email);
   if (!minted) return NextResponse.json({ status: "invalid" });
