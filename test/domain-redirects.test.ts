@@ -136,3 +136,61 @@ describe("apex redirects", () => {
     }
   });
 });
+
+/**
+ * The bare root of a product origin (raya./schools.), found live to be
+ * serving the marketing landing page instead of that product — because `/`
+ * is the same route on every origin, and nothing sent the bare root anywhere
+ * product-specific. These rules have a RELATIVE destination (`/chat`,
+ * `/school`), so they never show up in `redirectsWith`'s cross-origin filter
+ * above — asserted with `allRedirectsWith` instead, same as the /homework
+ * rename.
+ */
+describe("product home redirects (bare root of a product origin)", () => {
+  it("emits nothing while the product origins are unconfigured", async () => {
+    const all = await allRedirectsWith({ NEXT_PUBLIC_SITE_URL: SITE });
+    expect(all.some((r) => r.source === "/" && r.destination === "/chat")).toBe(false);
+    expect(all.some((r) => r.source === "/" && r.destination === "/school")).toBe(false);
+  });
+
+  it("sends each product's bare root to that product's home, conditioned on ITS OWN host", async () => {
+    const all = await allRedirectsWith({
+      NEXT_PUBLIC_SITE_URL: SITE,
+      NEXT_PUBLIC_RAYA_URL: RAYA,
+      NEXT_PUBLIC_SCHOOLS_URL: SCHOOLS,
+    });
+    expect(all).toContainEqual(
+      expect.objectContaining({
+        source: "/",
+        destination: "/chat",
+        permanent: false,
+        has: [{ type: "host", value: "raya.thebluestift.com" }],
+      }),
+    );
+    expect(all).toContainEqual(
+      expect.objectContaining({
+        source: "/",
+        destination: "/school",
+        permanent: false,
+        has: [{ type: "host", value: "schools.thebluestift.com" }],
+      }),
+    );
+  });
+
+  it("switches on per product, independently of the other", async () => {
+    const all = await allRedirectsWith({ NEXT_PUBLIC_SITE_URL: SITE, NEXT_PUBLIC_RAYA_URL: RAYA });
+    expect(all.some((r) => r.source === "/" && r.destination === "/chat")).toBe(true);
+    expect(all.some((r) => r.source === "/" && r.destination === "/school")).toBe(false);
+  });
+
+  it("is temporary (307), not permanent — a browser must not cache it past a future fix", async () => {
+    const all = await allRedirectsWith({
+      NEXT_PUBLIC_SITE_URL: SITE,
+      NEXT_PUBLIC_RAYA_URL: RAYA,
+      NEXT_PUBLIC_SCHOOLS_URL: SCHOOLS,
+    });
+    const home = all.filter((r) => r.source === "/" && (r.destination === "/chat" || r.destination === "/school"));
+    expect(home.length).toBe(2);
+    expect(home.every((r) => r.permanent === false)).toBe(true);
+  });
+});

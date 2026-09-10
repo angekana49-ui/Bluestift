@@ -101,6 +101,39 @@ function productRedirects() {
 }
 
 /**
+ * The bare root of a product origin, sent to that product's own home instead
+ * of falling through to `/` — which is the marketing landing page on EVERY
+ * origin, because it's the same deployment answering all of them. Found live:
+ * schools.thebluestift.com/ was serving the landing page instead of Schools,
+ * while schools.thebluestift.com/school worked fine (it bounces an
+ * unauthenticated visitor to /login itself, same as it does on the apex) —
+ * nothing was wrong with the app, there was just no rule sending the bare
+ * root anywhere product-specific. Someone who types raya.thebluestift.com or
+ * schools.thebluestift.com directly — a bookmark, a returning visitor, a
+ * guess — should land in that product (which itself decides login vs. home),
+ * not read a pitch for it.
+ *
+ * NOT permanent: this is a per-origin UX default that could reasonably change
+ * later, not a canonical content move like productRedirects() above — and a
+ * permanent (308) redirect here would get cached by the browser past the
+ * point a fix could reach it.
+ */
+function productHomeRedirects() {
+  const targets = [
+    { host: hostOf(process.env.NEXT_PUBLIC_RAYA_URL), destination: "/chat" },
+    { host: hostOf(process.env.NEXT_PUBLIC_SCHOOLS_URL), destination: "/school" },
+  ];
+  return targets
+    .filter(({ host }) => !!host)
+    .map(({ host, destination }) => ({
+      source: "/",
+      destination,
+      permanent: false,
+      has: [{ type: "host" as const, value: host }],
+    }));
+}
+
+/**
  * Next streams metadata by default: the initial response can go out before
  * `generateMetadata` resolves, with the resolved `<head>` tags patched in once
  * it does. Fine for a browser, which keeps reading; not fine for a crawler
@@ -144,6 +177,7 @@ const nextConfig: NextConfig = {
       { source: "/homework", destination: "/assignments", permanent: true },
       { source: "/homework/:rest*", destination: "/assignments/:rest*", permanent: true },
       ...(await productRedirects()),
+      ...productHomeRedirects(),
     ];
   },
   async headers() {
