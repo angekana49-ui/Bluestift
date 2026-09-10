@@ -31,6 +31,18 @@ import { useAppLocale, useTranslate } from "@/components/ui/locale";
  * cached on the document's content, so a class summarising the same lesson pays
  * for one translation between them (lib/documents/translate.ts).
  */
+
+/**
+ * TEMPORARILY OFF. The per-document LLM translation (lib/documents/translate.ts,
+ * `/api/documents/translate`) tested inconsistent on generated artifacts, so the
+ * language picker is hidden and `resolve()` below skips the call entirely —
+ * TXT/PDF/share always hand back the document exactly as generated, in
+ * whatever language that was. The LLM call itself and the i18n catalogue are
+ * both untouched; this is a UI-only switch. Revisit — fix the translation
+ * quality, then flip this back on — in a future update.
+ */
+const TRANSLATION_ENABLED = false;
+
 export function DocumentActions({
   doc,
   compact = false,
@@ -102,6 +114,12 @@ export function DocumentActions({
    * they came for.
    */
   async function resolve(): Promise<BrandedDoc> {
+    // See TRANSLATION_ENABLED above — the picker that would set `lang` away
+    // from the source is hidden while this is off, but resolve() stays the
+    // one place that decides what actually gets downloaded, so it's the gate
+    // too: no network call, no LLM call, the document as generated.
+    if (!TRANSLATION_ENABLED) return doc;
+
     const hit = cacheRef.current.get(lang);
     if (hit) return hit;
 
@@ -155,6 +173,7 @@ export function DocumentActions({
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+      {TRANSLATION_ENABLED && (
       <div ref={rootRef} style={{ position: "relative" }}>
         <button
           type="button"
@@ -228,6 +247,7 @@ export function DocumentActions({
           </div>
         )}
       </div>
+      )}
 
       <button type="button" style={{ ...btn, opacity: busy ? 0.6 : 1 }} onClick={() => void save("txt")} disabled={busy}>
         {busy ? "…" : "TXT"}

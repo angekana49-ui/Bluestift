@@ -6,11 +6,19 @@ import { useAppTheme } from "@/components/ui/theme";
 import { netFetch, getJsonCached, invalidateCached } from "@/lib/net/client-fetch";
 import { DocumentView } from "@/components/ui/document";
 import { Modal } from "@/components/ui/modal";
+import { ArtifactMenu } from "@/components/ui/artifact-menu";
 import { panelCard, textInput, ctaButton, ghostButton } from "@/components/ui/forms";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
 
-type ReportItem = { id: string | null; title: string; scope: string | null; content: string; createdAt: string };
+type ReportItem = {
+  id: string | null;
+  title: string;
+  scope: string | null;
+  content: string;
+  createdAt: string;
+  archivedAt?: string | null;
+};
 type ClassOpt = { id: string; name: string };
 type SubjectOpt = { id: string; name: string; code: string | null };
 type Scope = "subject" | "class" | "school";
@@ -115,6 +123,20 @@ export function SchoolReports({
     }
   }
 
+  async function archiveReport(id: string, archived: boolean) {
+    const res = await netFetch("/api/school/reports", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id, action: archived ? "archive" : "unarchive" }),
+    });
+    const d = await res.json();
+    // ArtifactMenu keeps its confirm dialog open and shows this rather than
+    // silently doing nothing when the server refuses the action.
+    if (!res.ok) throw new Error(d?.error);
+    setReports((v) => v.map((r) => (r.id === id ? { ...r, archivedAt: d.archivedAt ?? null } : r)));
+    invalidateCached("school:reports");
+  }
+
   // Every generated report renders — and downloads — through the shared branded
   // document châssis (Bluestift logo + title + footer attribution). The report
   // body is Markdown, so DocumentView typesets it instead of dumping raw `#`.
@@ -182,15 +204,39 @@ export function SchoolReports({
       {reports.length > 0 && (
         <div style={box}>
           <h3 style={{ marginTop: 0 }}>{tr("school.reports.pastReports")}</h3>
-          {reports.map((r, i) => (
-            <div key={r.id ?? i} style={{ display: "flex", gap: "0.5rem", alignItems: "center", padding: "0.35rem 0" }}>
-              <span style={{ flex: 1 }}>{r.title}</span>
-              <span style={{ opacity: 0.5, fontSize: "0.8rem" }}>{new Date(r.createdAt).toLocaleDateString()}</span>
-              <button style={ghost} onClick={() => setCurrent(r)}>
-                {tr("school.roster.view")}
-              </button>
-            </div>
-          ))}
+          {reports.map((r, i) => {
+            const archived = !!r.archivedAt;
+            return (
+              <div
+                key={r.id ?? i}
+                style={{ display: "flex", gap: "0.5rem", alignItems: "center", padding: "0.35rem 0", opacity: archived ? 0.62 : 1 }}
+              >
+                <span style={{ flex: 1 }}>
+                  {r.title}
+                  {archived && (
+                    <span style={{ opacity: 0.7, fontSize: "0.78rem" }}> · {tr("hist.archivedSection")}</span>
+                  )}
+                </span>
+                <span style={{ opacity: 0.5, fontSize: "0.8rem" }}>{new Date(r.createdAt).toLocaleDateString()}</span>
+                <button style={ghost} onClick={() => setCurrent(r)}>
+                  {tr("school.roster.view")}
+                </button>
+                {r.id != null && (
+                  <ArtifactMenu
+                    theme={t}
+                    itemLabel={r.title}
+                    archived={archived}
+                    // No hard delete for a report — see app/api/school/reports
+                    // PATCH's doc comment: every report feeds the school's
+                    // year-end archive purely by date, regardless of scope.
+                    canDelete={false}
+                    onArchive={(next) => archiveReport(r.id as string, next)}
+                    onDelete={() => Promise.reject(new Error("reports cannot be deleted"))}
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

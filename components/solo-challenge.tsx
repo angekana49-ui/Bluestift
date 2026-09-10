@@ -175,11 +175,23 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
         setError(data?.error ?? tr("tools.selfTest.createFailed"));
         return;
       }
+      // Straight into the player — a generated test used to just land back in
+      // the list, so starting it was a second deliberate click away from what
+      // was just asked for.
+      const newItem: SoloItem = {
+        id: data.id,
+        // Mirrors the server's own title fallback (app/api/challenges/create).
+        title: (name || topic || goal || "Challenge").slice(0, 80),
+        description: goal || null,
+        question_count: data.questionCount ?? null,
+        score: null,
+      };
       setName("");
       setTopic("");
       setGoal("");
       setFile(null);
       await load();
+      await open(newItem);
     } catch {
       setError(tr("tools.selfTest.createFailed"));
     } finally {

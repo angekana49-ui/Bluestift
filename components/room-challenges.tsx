@@ -200,10 +200,23 @@ export function RoomChallenges({
         setError(data?.error ?? tr("room.challenges.createFailed"));
         return;
       }
+      // Straight into the player — a generated challenge used to just land
+      // back in the list, so starting it was a second deliberate click away
+      // from what was just asked for.
+      const newChallenge: Challenge = {
+        id: data.id,
+        // Mirrors the server's own title fallback (app/api/challenges/create).
+        title: (name || topic || goal || "Challenge").slice(0, 80),
+        description: goal || null,
+        status: "active",
+        question_count: data.questionCount ?? null,
+        format: kind === "skills" ? "open" : kind === "exam" ? "exam" : "mcq",
+      };
       setName("");
       setGoal("");
       setSourceFile(null);
       await loadChallenges();
+      await open(newChallenge);
     } catch {
       setError(tr("room.challenges.createFailed"));
     } finally {

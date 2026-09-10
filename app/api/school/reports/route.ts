@@ -23,7 +23,7 @@ students, classes, or numbers. Use this Markdown structure:
 ## Recommendations  (2-4 concrete, specific actions)
 If a section has no supporting data, write "No data yet." Keep it tight.`;
 
-type ReportRow = { id: string; scope: string | null; parameters: unknown; created_at: string };
+type ReportRow = { id: string; scope: string | null; parameters: unknown; created_at: string; archived_at: string | null };
 
 /** List past reports for the admin's school (best-effort). */
 export async function GET() {
@@ -42,7 +42,7 @@ export async function GET() {
     const schools = createSchoolsAdminClient();
     let listQuery = schools
       .from("reports")
-      .select("id, scope, parameters, created_at")
+      .select("id, scope, parameters, created_at, archived_at")
       .eq("school_id", membership.schoolId);
     // A prof only lists the reports they authored (class-scoped); an admin sees all.
     if (membership.role !== "admin_master") listQuery = listQuery.eq("created_by", membership.adminId);
@@ -52,7 +52,14 @@ export async function GET() {
     const rows = (data as ReportRow[] | null) ?? [];
     const reports = rows.map((r) => {
       const p = (r.parameters ?? {}) as { title?: string; content?: string };
-      return { id: r.id, scope: r.scope, title: p.title ?? "Report", content: p.content ?? "", createdAt: r.created_at };
+      return {
+        id: r.id,
+        scope: r.scope,
+        title: p.title ?? "Report",
+        content: p.content ?? "",
+        createdAt: r.created_at,
+        archivedAt: r.archived_at,
+      };
     });
     const subjects = await getSchoolSubjects(user.id);
     return NextResponse.json({ reports, subjects });
@@ -176,5 +183,58 @@ export async function POST(request: Request) {
     console.warn(`[reports] persistence threw (usage under-counted): ${e instanceof Error ? e.message : e}`);
   }
 
-  return NextResponse.json({ id: reportId, title, content, scope, createdAt: new Date().toISOString() });
+  return NextResponse.json({ id: reportId, title, content, scope, createdAt: new Date().toISOString(), archivedAt: null });
+}
+
+/**
+ * Archive / restore one report. Author or admin_master only — same tier as
+ * Prepare. No DELETE here: every report counts toward getYearArchive's
+ * "reports" section purely by created_at falling in the school year's date
+ * range (lib/school-admin.ts), with no class-less escape hatch the way
+ * teacher_resources has — so the app never offers a hard delete for one,
+ * only filing it out of the tab.
+ */
+export async function PATCH(request: Request) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const membership = await getAdminMembership(user.id);
+  if (!membership) return NextResponse.json({ error: "School staff only." }, { status: 403 });
+
+  let body: { id?: string; action?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "invalid json" }, { status: 400 });
+  }
+  const id = body.id;
+  if (!id) return NextResponse.json({ error: "missing id" }, { status: 400 });
+  if (body.action !== "archive" && body.action !== "unarchive") {
+    return NextResponse.json({ error: "unknown action" }, { status: 400 });
+  }
+
+  const schools = createSchoolsAdminClient();
+  const { data: report } = await schools
+    .from("reports")
+    .select("id, school_id, created_by")
+    .eq("id", id)
+    .maybeSingle();
+  const row = report as { school_id: string; created_by: string } | null;
+  if (!row || row.school_id !== membership.schoolId) {
+    return NextResponse.json({ error: "not found" }, { status: 404 });
+  }
+  // created_by is the school_admins row id (membership.adminId), not the auth
+  // user id — same gotcha as app/api/school/prepare.
+  if (row.created_by !== membership.adminId && membership.role !== "admin_master") {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+
+  const archived_at = body.action === "archive" ? new Date().toISOString() : null;
+  const { error: updErr } = await schools.from("reports").update({ archived_at }).eq("id", id);
+  if (updErr) return NextResponse.json({ error: clientError(updErr) }, { status: 500 });
+
+  return NextResponse.json({ ok: true, archivedAt: archived_at });
 }
