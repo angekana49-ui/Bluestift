@@ -3199,8 +3199,8 @@ export const en = {
 
   // ── Settings: billing (components/raya/settings-billing-card.tsx) ──
   "raya.settings.billing.comparePlans": "Compare plans →",
-  "raya.settings.billing.notOpenNoticeBold": "Paid plans aren't open yet.",
-  "raya.settings.billing.notOpenNoticeRest": "We're finishing the payment integration. Your free plan is unaffected and nothing is owed — the prices below are what they will be when it opens.",
+  "raya.settings.billing.notOpenNoticeBold": "Every plan's limits are off, for now.",
+  "raya.settings.billing.notOpenNoticeRest": "You're shown as Free below, but nothing is actually capped while we're pre-launch — full access, no card needed. Paid plans (and Free's normal limits) begin once our payment integration is ready; the prices below are what they will be then.",
   "raya.settings.billing.loadFailedA": "Couldn't load the plan list just now. You're on the free plan, and",
   "raya.settings.billing.loadFailedLink": "the pricing page",
   "raya.settings.billing.loadFailedB": "has the full comparison.",

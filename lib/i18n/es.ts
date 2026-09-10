@@ -2923,8 +2923,8 @@ export const es: Partial<Messages> = {
   "docActions.alreadyThatLanguage": "Ya está en ese idioma — se descargará tal cual.",
 
   "raya.settings.billing.comparePlans": "Comparar planes →",
-  "raya.settings.billing.notOpenNoticeBold": "Los planes de pago aún no están disponibles.",
-  "raya.settings.billing.notOpenNoticeRest": "Estamos terminando la integración de pagos. Tu plan gratuito no se ve afectado y no debes nada — los precios de abajo son los que regirán cuando se abra.",
+  "raya.settings.billing.notOpenNoticeBold": "Los límites de todos los planes están desactivados, por ahora.",
+  "raya.settings.billing.notOpenNoticeRest": "Apareces como Gratis abajo, pero nada está realmente limitado mientras estamos en fase previa al lanzamiento — acceso completo, sin tarjeta. Los planes de pago (y los límites normales del plan Gratis) empiezan cuando nuestra integración de pagos esté lista; los precios de abajo son los que regirán entonces.",
   "raya.settings.billing.loadFailedA": "No se pudo cargar la lista de planes en este momento. Estás en el plan gratuito, y",
   "raya.settings.billing.loadFailedLink": "la página de precios",
   "raya.settings.billing.loadFailedB": "tiene la comparación completa.",

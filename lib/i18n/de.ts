@@ -2924,8 +2924,8 @@ export const de: Partial<Messages> = {
   "docActions.alreadyThatLanguage": "Das ist schon in dieser Sprache — wird unverändert heruntergeladen.",
 
   "raya.settings.billing.comparePlans": "Tarife vergleichen →",
-  "raya.settings.billing.notOpenNoticeBold": "Kostenpflichtige Tarife sind noch nicht verfügbar.",
-  "raya.settings.billing.notOpenNoticeRest": "Wir schließen gerade die Zahlungsintegration ab. Dein kostenloser Tarif ist davon nicht betroffen, und es entstehen keine Kosten — die Preise unten gelten ab der Öffnung.",
+  "raya.settings.billing.notOpenNoticeBold": "Die Limits aller Tarife sind vorerst deaktiviert.",
+  "raya.settings.billing.notOpenNoticeRest": "Du wirst unten als Kostenlos angezeigt, aber solange wir vor dem Launch stehen, ist nichts wirklich begrenzt — voller Zugriff, keine Karte nötig. Kostenpflichtige Tarife (und die normalen Limits von Kostenlos) starten, sobald unsere Zahlungsintegration bereit ist; die Preise unten gelten dann.",
   "raya.settings.billing.loadFailedA": "Die Tarifliste konnte gerade nicht geladen werden. Du bist im kostenlosen Tarif, und",
   "raya.settings.billing.loadFailedLink": "die Preisseite",
   "raya.settings.billing.loadFailedB": "zeigt den vollständigen Vergleich.",

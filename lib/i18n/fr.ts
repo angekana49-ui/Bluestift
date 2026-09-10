@@ -2923,8 +2923,8 @@ export const fr: Partial<Messages> = {
   "docActions.alreadyThatLanguage": "C'est déjà dans cette langue — téléchargement tel quel.",
 
   "raya.settings.billing.comparePlans": "Comparer les forfaits →",
-  "raya.settings.billing.notOpenNoticeBold": "Les forfaits payants ne sont pas encore ouverts.",
-  "raya.settings.billing.notOpenNoticeRest": "Nous finalisons l'intégration des paiements. Votre forfait gratuit n'est pas affecté et rien n'est dû — les prix ci-dessous sont ceux qui s'appliqueront à l'ouverture.",
+  "raya.settings.billing.notOpenNoticeBold": "Les limites de tous les forfaits sont désactivées, pour l'instant.",
+  "raya.settings.billing.notOpenNoticeRest": "Vous êtes affiché comme Gratuit ci-dessous, mais rien n'est réellement plafonné tant que nous sommes en pré-lancement — accès complet, aucune carte requise. Les forfaits payants (et les limites normales du forfait Gratuit) démarrent une fois notre intégration de paiement prête ; les prix ci-dessous sont ceux qui s'appliqueront alors.",
   "raya.settings.billing.loadFailedA": "Impossible de charger la liste des forfaits pour le moment. Vous êtes sur le forfait gratuit, et",
   "raya.settings.billing.loadFailedLink": "la page des tarifs",
   "raya.settings.billing.loadFailedB": "propose la comparaison complète.",
