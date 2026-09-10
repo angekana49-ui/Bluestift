@@ -31,7 +31,12 @@ export function Logo({ size = 30 }: { size?: number }) {
     <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/bluestift-mark.png" alt="BlueStift" style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-      <span style={{ fontSize: size * 0.5, fontWeight: 800, letterSpacing: "-0.02em", fontFamily: HEAD_FONT }}>
+      {/* translate="no" on the WRAPPER, not the halves: the two-colour lockup
+          splits the name into "Blue" + "Stift", so a machine translator sees a
+          perfectly ordinary adjective and returns "Bleu"/"Azul"/"Blau". That
+          split is also why the wordmark sweep never caught this — it searched
+          for the literal word "Bluestift", which appears nowhere here. */}
+      <span translate="no" className="notranslate" style={{ fontSize: size * 0.5, fontWeight: 800, letterSpacing: "-0.02em", fontFamily: HEAD_FONT }}>
         <span style={{ color: WORDMARK_A }}>Blue</span>
         <span style={{ color: WORDMARK_B }}>Stift</span>
       </span>

@@ -63,7 +63,11 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
         <header style={{ display: "flex", alignItems: "center", gap: 10, padding: "16px 22px", borderBottom: "1px solid rgba(15,23,42,0.08)", background: "#f6f9fd" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={brand.logo} alt="" style={{ height: 24, width: "auto" }} />
-          <span style={{ fontSize: 15, fontWeight: 700, color: brand.accent }}>{brand.name}</span>
+          {/* Same protection as <BluestiftName>/<RayaName> (components/ui/brand.tsx),
+              applied by hand: this reads the name off DOC_BRANDS rather than writing
+              the literal word in JSX, so the wordmark-sweep's plain-text search never
+              found it — the browser's own Google Translate was still rewriting it. */}
+          <span translate="no" className="notranslate" style={{ fontSize: 15, fontWeight: 700, color: brand.accent }}>{brand.name}</span>
           <span style={{ marginLeft: "auto", fontSize: 13, color: "#8a97a8" }}>{tr("sharePage.sharedReadOnly")}</span>
         </header>
 
@@ -98,7 +102,11 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
 
         <footer style={{ padding: "14px 24px 18px", marginTop: 8, borderTop: "1px solid rgba(15,23,42,0.08)", fontSize: 13, color: "#8a97a8", display: "flex", gap: 6, flexWrap: "wrap" }}>
           <span>{footerLine((data.brand as DocBrand) in DOC_BRANDS ? (data.brand as DocBrand) : "raya")} ·</span>
-          <a href={`https://${brand.url}`} style={{ color: brand.accent, textDecoration: "none" }}>{brand.url}</a>
+          {/* Opens in a new tab, matching the branded document viewer's own
+              footer link (components/ui/document.tsx) — it leaves the document
+              someone is reading (here, the whole page) for the marketing site,
+              which shouldn't cost them their place. */}
+          <a href={`https://${brand.url}`} target="_blank" rel="noopener noreferrer" style={{ color: brand.accent, textDecoration: "none" }}>{brand.url}</a>
         </footer>
       </article>
     </main>

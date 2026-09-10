@@ -80,7 +80,11 @@ export function DocumentView({
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={b.logo} alt="" style={{ height: 22, width: "auto", flex: "none" }} />
-        <span style={{ fontSize: 14, fontWeight: 700, color: b.accent, letterSpacing: "0.01em" }}>{b.name}</span>
+        {/* Same protection as <BluestiftName>/<RayaName> (components/ui/brand.tsx),
+            applied by hand: this reads the name off DOC_BRANDS rather than writing
+            the literal word in JSX, so the wordmark-sweep's plain-text search never
+            found it — the browser's own Google Translate was still rewriting it. */}
+        <span translate="no" className="notranslate" style={{ fontSize: 14, fontWeight: 700, color: b.accent, letterSpacing: "0.01em" }}>{b.name}</span>
         <span style={{ flex: 1 }} />
         {doc ? (
           <DocumentActions doc={doc} compact shareable={false} />

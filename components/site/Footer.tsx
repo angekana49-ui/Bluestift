@@ -101,7 +101,10 @@ export default function Footer({ theme: t, variant = "full" }: { theme: Theme; v
               {/* Light mark in both themes — see the note in Navbar.tsx. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/bluestift-mark.png" alt="BlueStift" style={{ width: 26, height: 26, borderRadius: 7, objectFit: "cover" }} />
-              <span style={{ fontSize: 15, fontWeight: 800 }}>
+              {/* See auth-chrome.tsx's Logo: the two-colour lockup splits the
+                  name, so "Blue" reads as an ordinary adjective to a machine
+                  translator. Protected on the wrapper, once, for both halves. */}
+              <span translate="no" className="notranslate" style={{ fontSize: 15, fontWeight: 800 }}>
                 <span style={{ color: t.wordmarkA }}>Blue</span>
                 <span style={{ color: t.wordmarkB }}>Stift</span>
               </span>

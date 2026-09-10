@@ -169,7 +169,21 @@ export default function Navbar({
   };
 
   return (
-    <div style={{ position: "sticky", top: 12, zIndex: 50, padding: "0 16px", marginBottom: -56 }}>
+    /*
+     * The WHOLE header opts out of machine translation, deliberately.
+     *
+     * Everything in it is already localised by our own catalogue (the five nav
+     * labels through `tr()`), or is a name that must never be translated at
+     * all — the BlueStift wordmark, and the CTA the owner fixed to English on
+     * purpose (see the note on it below). Letting the browser's Google
+     * Translate pass over it again can only produce a second, worse rendering
+     * of copy we already ship in four languages — and it was actively breaking
+     * the wordmark, whose two-colour split reads as the adjective "Blue".
+     *
+     * Marked on the sticky wrapper rather than the bar so the dropdown menu,
+     * which hangs off it, is covered by the same guard.
+     */
+    <div translate="no" className="notranslate" style={{ position: "sticky", top: 12, zIndex: 50, padding: "0 16px", marginBottom: -56 }}>
       {/* The pill and its dropdown share one positioned box, so the panel hangs
           off the bar rather than off the page and travels with it as it sticks.
           The measure moved here from the pill for the same reason. */}
@@ -227,7 +241,11 @@ export default function Navbar({
               floating pill had to grow to hold a sentence nobody reads twice.
               The hero states the same claim, in full, one scroll below. The bar
               only has to say which site you are on. */}
-          <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: "-0.02em", fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif" }}>
+          {/* Marked here as well as on the whole bar below — belt and suspenders,
+              the same reasoning components/ui/brand.tsx gives for its own pair of
+              guards. The bar's guard is the one that covers the nav copy; this one
+              survives a refactor that moves the wordmark out of the bar. */}
+          <div translate="no" className="notranslate" style={{ fontSize: 15, fontWeight: 800, letterSpacing: "-0.02em", fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif" }}>
             <span style={{ color: t.wordmarkA }}>Blue</span>
             <span style={{ color: t.wordmarkB }}>Stift</span>
             {/* Dropped on the narrowest screens (globals.css): it is the widest

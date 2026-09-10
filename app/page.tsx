@@ -10,7 +10,11 @@ import LandingPage from "@/components/site/LandingPage";
 // silently relying on them instead, for the single page that most needs a
 // specific one.
 export const metadata: Metadata = {
-  title: { absolute: "Bluestift — an AI tutor that refuses to do the homework" },
+  // Same claim the hero's own chip makes ("site.hero.eyebrow"), so the tab and
+  // the first thing on the page say one thing rather than two. Kept `absolute`
+  // (no "· Bluestift" template suffix) with the brand spelled out in front —
+  // a landing page's tab has to carry the name.
+  title: { absolute: "Bluestift — The collaborative AI for education" },
   description: SITE_DESCRIPTION,
   alternates: { canonical: "/" },
 };
