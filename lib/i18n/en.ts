@@ -530,6 +530,30 @@ export const en = {
     "What the Kernel already learned from it stays in your learning profile — deleting the thread does not unlearn it. To remove that too, use Settings › Your data.",
   "hist.delete.confirm": "Delete permanently",
 
+  // ── Generated-artifact menu (components/ui/artifact-menu.tsx) — the same
+  // archive/delete pattern as the conversation history above (menu labels and
+  // buttons are shared via the hist.* keys), reused on every list of generated
+  // work: Tools outputs, self-tests, room challenges, Schools Prepare resources.
+  // Title/body stay generic ("this" rather than "this quiz") because the
+  // dialog already shows the specific item's title right below them.
+  "artifact.archive.title": "Archive this?",
+  "artifact.archive.body":
+    "It leaves your generated list but stays saved exactly as it is — you'll find it marked Archived, and you can restore it at any time.",
+  "artifact.archive.confirm": "Archive it",
+  "artifact.unarchive.title": "Restore this?",
+  "artifact.unarchive.body": "It goes back into your generated list. Nothing else changes.",
+  "artifact.unarchive.confirm": "Restore it",
+  "artifact.delete.title": "Delete this?",
+  "artifact.delete.body": "It is permanently erased. There is no undo.",
+  "artifact.delete.confirm": "Delete permanently",
+  "artifact.actionFailed": "That didn't go through. Please try again.",
+  "artifact.delete.caveat.toolOutput": "This cannot be undone.",
+  "artifact.delete.caveat.selfTest": "This also deletes your past attempts and scores for this test.",
+  "artifact.delete.caveat.roomChallenge":
+    "This also deletes the room's shared attempts and leaderboard scores for this challenge, for everyone.",
+  "artifact.delete.caveat.teacherResource":
+    "This only removes it from your Prepare library — classes it was already assigned to keep their results.",
+
   // ── Onboarding (post-signup account setup, components/onboarding-form.tsx) ─
   // No interpolation helper exists in this catalogue, so anywhere the English
   // sentence needs a dynamic value (a step count, a percentage, a name, a status
@@ -3121,6 +3145,7 @@ export const en = {
   "room.challenges.goalPlaceholder": "Goal — what should this challenge test? (e.g. exam application problems)",
   "room.challenges.typeOfChallengeLabel": "Type of challenge",
   "room.challenges.sourceFileLabel": "Source file (optional)",
+  "room.challenges.useRoomChatLabel": "Base it on our recent chat in this room",
   "room.challenges.generating": "Generating…",
   "room.challenges.generateButton": "Generate the challenge",
   "room.challenges.noChallengesYet": "No challenges — create one.",

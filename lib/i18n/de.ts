@@ -381,6 +381,25 @@ export const de: Partial<Messages> = {
     "Was der Kernel bereits daraus gelernt hat, bleibt in deinem Lernprofil — den Verlauf zu löschen verlernt es nicht. Um auch das zu entfernen, geh zu Einstellungen › Deine Daten.",
   "hist.delete.confirm": "Endgültig löschen",
 
+  // ── Menü für generierte Artefakte (components/ui/artifact-menu.tsx) ──
+  "artifact.archive.title": "Das archivieren?",
+  "artifact.archive.body":
+    "Verschwindet aus deiner Liste generierter Inhalte, bleibt aber genau so gespeichert — du findest es als Archiviert markiert und kannst es jederzeit wiederherstellen.",
+  "artifact.archive.confirm": "Archivieren",
+  "artifact.unarchive.title": "Das wiederherstellen?",
+  "artifact.unarchive.body": "Kommt zurück in deine Liste generierter Inhalte. Sonst ändert sich nichts.",
+  "artifact.unarchive.confirm": "Wiederherstellen",
+  "artifact.delete.title": "Das löschen?",
+  "artifact.delete.body": "Wird endgültig gelöscht. Es gibt kein Zurück.",
+  "artifact.delete.confirm": "Endgültig löschen",
+  "artifact.actionFailed": "Das hat nicht geklappt. Bitte versuch es noch einmal.",
+  "artifact.delete.caveat.toolOutput": "Das kann nicht rückgängig gemacht werden.",
+  "artifact.delete.caveat.selfTest": "Damit werden auch deine bisherigen Versuche und Ergebnisse zu diesem Test gelöscht.",
+  "artifact.delete.caveat.roomChallenge":
+    "Damit werden auch die gemeinsamen Versuche und Rangliste-Ergebnisse der Room zu dieser Challenge gelöscht — für alle.",
+  "artifact.delete.caveat.teacherResource":
+    "Das entfernt es nur aus deiner Prepare-Bibliothek — Klassen, denen es bereits zugewiesen wurde, behalten ihre Ergebnisse.",
+
   // ── Onboarding (Kontoeinrichtung nach der Registrierung) ───────────
   "onb.stepLabel": "Schritt",
   "onb.of": "von",
@@ -2853,6 +2872,7 @@ export const de: Partial<Messages> = {
   "room.challenges.goalPlaceholder": "Ziel — was soll diese Aufgabe testen? (z. B. Anwendungsaufgaben wie in einer Prüfung)",
   "room.challenges.typeOfChallengeLabel": "Art der Aufgabe",
   "room.challenges.sourceFileLabel": "Quelldatei (optional)",
+  "room.challenges.useRoomChatLabel": "Auf unserem letzten Chat in dieser Room aufbauen",
   "room.challenges.generating": "Wird erstellt…",
   "room.challenges.generateButton": "Aufgabe erstellen",
   "room.challenges.noChallengesYet": "Keine Aufgaben — erstelle eine.",

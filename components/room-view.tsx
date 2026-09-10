@@ -903,7 +903,7 @@ function RoomViewBody({
     channelBody = (
       <PageBody maxWidth={900}>
         {channel === "challenge" ? (
-          <RoomChallenges roomId={roomId} roomName={roomName} subject={subject} myUserId={myUserId} readOnly={expired} />
+          <RoomChallenges roomId={roomId} roomName={roomName} subject={subject} myUserId={myUserId} isRoomOwner={isOwner} readOnly={expired} />
         ) : channel === "files" ? (
           <RoomFiles roomId={roomId} readOnly={expired} />
         ) : (

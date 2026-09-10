@@ -2388,6 +2388,11 @@ export type TeacherResource = {
   className: string | null;
   subjectId: string | null;
   createdAt: string;
+  archivedAt: string | null;
+  /** True when the caller may archive/delete it: its author, or an
+   *  admin_master of the school. Computed server-side so the client never
+   *  needs its own copy of the caller's adminId to decide. */
+  canManage: boolean;
 };
 
 /**
@@ -2403,7 +2408,7 @@ export async function getTeacherResources(userId: string): Promise<TeacherResour
   const [{ data }, { data: classData }] = await Promise.all([
     schools
       .from("teacher_resources")
-      .select("id, kind, title, content, questions, class_id, subject_id, created_by, created_at")
+      .select("id, kind, title, content, questions, class_id, subject_id, created_by, created_at, archived_at")
       .eq("school_id", m.schoolId)
       .order("created_at", { ascending: false })
       .limit(60),
@@ -2420,6 +2425,7 @@ export async function getTeacherResources(userId: string): Promise<TeacherResour
       subject_id: string | null;
       created_by: string | null;
       created_at: string;
+      archived_at: string | null;
     }[] | null) ?? [];
 
   if (m.role !== "admin_master") {
@@ -2438,6 +2444,8 @@ export async function getTeacherResources(userId: string): Promise<TeacherResour
     className: r.class_id ? classById.get(r.class_id) ?? null : null,
     subjectId: r.subject_id,
     createdAt: r.created_at,
+    archivedAt: r.archived_at,
+    canManage: r.created_by === m.adminId || m.role === "admin_master",
   }));
 }
 

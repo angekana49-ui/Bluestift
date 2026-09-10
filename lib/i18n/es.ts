@@ -381,6 +381,25 @@ export const es: Partial<Messages> = {
     "Lo que el Kernel ya aprendió de ella permanece en tu perfil de aprendizaje: borrar el hilo no lo desaprende. Para quitar también eso, ve a Ajustes › Tus datos.",
   "hist.delete.confirm": "Eliminar definitivamente",
 
+  // ── Menú de artefactos generados (components/ui/artifact-menu.tsx) ──
+  "artifact.archive.title": "¿Archivar esto?",
+  "artifact.archive.body":
+    "Sale de tu lista de generaciones pero se guarda tal cual — lo encontrarás marcado como Archivado, y puedes restaurarlo cuando quieras.",
+  "artifact.archive.confirm": "Archivar",
+  "artifact.unarchive.title": "¿Restaurar esto?",
+  "artifact.unarchive.body": "Vuelve a tu lista de generaciones. Nada más cambia.",
+  "artifact.unarchive.confirm": "Restaurar",
+  "artifact.delete.title": "¿Eliminar esto?",
+  "artifact.delete.body": "Se borra de forma permanente. No hay vuelta atrás.",
+  "artifact.delete.confirm": "Eliminar definitivamente",
+  "artifact.actionFailed": "Eso no se pudo completar. Inténtalo de nuevo.",
+  "artifact.delete.caveat.toolOutput": "Esta acción no se puede deshacer.",
+  "artifact.delete.caveat.selfTest": "Esto también elimina tus intentos y puntuaciones anteriores de este test.",
+  "artifact.delete.caveat.roomChallenge":
+    "Esto también elimina los intentos y las puntuaciones de la clasificación de la room para este desafío, para todos.",
+  "artifact.delete.caveat.teacherResource":
+    "Esto solo lo elimina de tu biblioteca Prepare — las clases a las que ya se había asignado conservan sus resultados.",
+
   // ── Onboarding (configuración de la cuenta tras el registro) ──────
   "onb.stepLabel": "Paso",
   "onb.of": "de",
@@ -2852,6 +2871,7 @@ export const es: Partial<Messages> = {
   "room.challenges.goalPlaceholder": "Objetivo — ¿qué debe evaluar este desafío? (ej. problemas de aplicación tipo examen)",
   "room.challenges.typeOfChallengeLabel": "Tipo de desafío",
   "room.challenges.sourceFileLabel": "Archivo de origen (opcional)",
+  "room.challenges.useRoomChatLabel": "Basarlo en nuestra conversación reciente en esta room",
   "room.challenges.generating": "Generando…",
   "room.challenges.generateButton": "Generar el desafío",
   "room.challenges.noChallengesYet": "Sin desafíos — crea uno.",

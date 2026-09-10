@@ -673,6 +673,7 @@ export type Database = {
       }
       challenges: {
         Row: {
+          archived_at: string | null
           created_at: string
           created_by: string | null
           deadline_at: string | null
@@ -690,6 +691,7 @@ export type Database = {
           title: string | null
         }
         Insert: {
+          archived_at?: string | null
           created_at?: string
           created_by?: string | null
           deadline_at?: string | null
@@ -707,6 +709,7 @@ export type Database = {
           title?: string | null
         }
         Update: {
+          archived_at?: string | null
           created_at?: string
           created_by?: string | null
           deadline_at?: string | null
@@ -1573,6 +1576,7 @@ export type Database = {
       }
       tool_outputs: {
         Row: {
+          archived_at: string | null
           concept_ids: string[] | null
           conversation_id: string | null
           created_at: string
@@ -1588,6 +1592,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          archived_at?: string | null
           concept_ids?: string[] | null
           conversation_id?: string | null
           created_at?: string
@@ -1603,6 +1608,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          archived_at?: string | null
           concept_ids?: string[] | null
           conversation_id?: string | null
           created_at?: string

@@ -181,6 +181,9 @@ export async function POST(request: Request) {
     classId,
     subjectId,
     createdAt: new Date().toISOString(),
+    archivedAt: null,
+    // Whoever just generated it is always its author.
+    canManage: true,
   });
 }
 
@@ -232,4 +235,96 @@ async function authStaff() {
   const membership = await getAdminMembership(user.id);
   if (!membership) return { error: NextResponse.json({ error: "School staff only." }, { status: 403 }) } as const;
   return { user, membership, error: null } as const;
+}
+
+/**
+ * Archive / delete for one Prepare resource. Its author, or an admin_master of
+ * the same school, may act on it — same tier as the rest of school-admin.ts
+ * (an admin_master can already see and reassign every prof's resources).
+ *
+ * Deleting only removes the template from the library: any class it was
+ * already assigned to (schools.resource_assignments -> its own
+ * learning.challenges row) is untouched, so nobody's in-progress or graded
+ * work disappears with it.
+ *
+ * PATCH  { id, action: "archive" | "unarchive" } -> flip archived_at
+ * DELETE ?id=<id>                                 -> remove the resource
+ */
+export async function PATCH(request: Request) {
+  const { membership, error } = await authStaff();
+  if (error) return error;
+
+  let body: { id?: string; action?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "invalid json" }, { status: 400 });
+  }
+  const id = body.id;
+  if (!id) return NextResponse.json({ error: "missing id" }, { status: 400 });
+  if (body.action !== "archive" && body.action !== "unarchive") {
+    return NextResponse.json({ error: "unknown action" }, { status: 400 });
+  }
+
+  const schools = createSchoolsAdminClient();
+  const { data: resource } = await schools
+    .from("teacher_resources")
+    .select("id, school_id, created_by")
+    .eq("id", id)
+    .maybeSingle();
+  const row = resource as { school_id: string; created_by: string } | null;
+  if (!row || row.school_id !== membership.schoolId) {
+    return NextResponse.json({ error: "not found" }, { status: 404 });
+  }
+  // created_by is the school_admins row id (membership.adminId), NOT the auth
+  // user id — same identifier the insert in POST above writes.
+  if (row.created_by !== membership.adminId && membership.role !== "admin_master") {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+
+  const archived_at = body.action === "archive" ? new Date().toISOString() : null;
+  const { error: updErr } = await schools.from("teacher_resources").update({ archived_at }).eq("id", id);
+  if (updErr) return NextResponse.json({ error: clientError(updErr) }, { status: 500 });
+
+  return NextResponse.json({ ok: true, archivedAt: archived_at });
+}
+
+export async function DELETE(request: Request) {
+  const { membership, error } = await authStaff();
+  if (error) return error;
+
+  const id = new URL(request.url).searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "missing id" }, { status: 400 });
+
+  const schools = createSchoolsAdminClient();
+  const { data: resource } = await schools
+    .from("teacher_resources")
+    .select("id, school_id, created_by, class_id")
+    .eq("id", id)
+    .maybeSingle();
+  const row = resource as { school_id: string; created_by: string; class_id: string | null } | null;
+  if (!row || row.school_id !== membership.schoolId) {
+    return NextResponse.json({ error: "not found" }, { status: 404 });
+  }
+  if (row.created_by !== membership.adminId && membership.role !== "admin_master") {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+  // getYearArchive (lib/school-admin.ts) reads teacher_resources straight by
+  // class_id to build the school's official year-end record — an admin_master
+  // reads that later expecting it to be complete ("what did we do in maths in
+  // 3e B last year"). A class-linked resource is part of that record, so a
+  // hard delete here would silently thin it out from under them. Archiving
+  // gets it out of the Prepare library without touching the row at all, which
+  // is why only class-less (general/ungrouped) resources are deletable.
+  if (row.class_id) {
+    return NextResponse.json(
+      { error: "This resource is tied to a class and part of the year record — archive it instead of deleting it." },
+      { status: 409 },
+    );
+  }
+
+  const { error: delErr } = await schools.from("teacher_resources").delete().eq("id", id);
+  if (delErr) return NextResponse.json({ error: clientError(delErr) }, { status: 500 });
+
+  return NextResponse.json({ ok: true });
 }

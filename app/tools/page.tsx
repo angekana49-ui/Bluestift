@@ -42,7 +42,7 @@ export default async function ToolsPage() {
       supabase
         .schema("learning")
         .from("tool_outputs")
-        .select("id, tool_type, status, output_content, created_at")
+        .select("id, tool_type, status, output_content, created_at, archived_at")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(20),

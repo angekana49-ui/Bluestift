@@ -7,6 +7,7 @@ import { type BrandedDoc } from "@/lib/document";
 import { TestPlayer, ReaderView, type TestAnswer, type TestQuestion, type TestResult } from "@/components/study/focus-player";
 import { ShareLinkButton } from "@/components/study/share-button";
 import { DocumentActions } from "@/components/ui/doc-actions";
+import { ArtifactMenu } from "@/components/ui/artifact-menu";
 import { parseDoc } from "@/lib/doc-format";
 import { useAppTheme } from "@/components/ui/theme";
 import { type AppTheme } from "@/components/ui/tokens";
@@ -29,6 +30,8 @@ type SoloItem = {
   description: string | null;
   question_count: number | null;
   score: number | null;
+  archived_at?: string | null;
+  scope?: string | null;
 };
 
 const panel = (t: AppTheme): React.CSSProperties => ({
@@ -72,9 +75,10 @@ const chip = (t: AppTheme, on: boolean): React.CSSProperties => ({
   cursor: "pointer",
 });
 
-// Smart defaults: one-tap common topics + a pre-filled goal so the form is never
-// blank (decision-fatigue killer). The user overrides either at will. Same six
-// subjects as rooms-list.tsx and student-simulation.tsx.
+// One-tap common topics — a real, specific signal a click away, cheaper than
+// typing. (The goal field used to also carry a pre-filled default sentence for
+// the same decision-fatigue reason; that one backfired — see the `goal` state
+// below.) Same six subjects as rooms-list.tsx and student-simulation.tsx.
 const TOPIC_KEYS: MessageKey[] = [
   "subject.maths",
   "subject.physics",
@@ -92,7 +96,14 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
   const [items, setItems] = useState<SoloItem[]>([]);
   const [name, setName] = useState("");
   const [topic, setTopic] = useState("");
-  const [goal, setGoal] = useState(() => tr("tools.selfTest.defaultGoal"));
+  // Empty by default — not pre-filled with a generic sentence. A boilerplate
+  // "review the key ideas" goal used to sit here and count as real input, so a
+  // learner who only typed a name/topic (or nothing at all) could still hit
+  // Create with zero actual grounding: the LLM got the boilerplate and
+  // invented a topic out of thin air. Now the field's hint text carries that
+  // suggestion instead of a value, so `goal` only ever holds what the learner
+  // actually typed.
+  const [goal, setGoal] = useState("");
   const [kind, setKind] = useState("quiz");
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
@@ -109,7 +120,7 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
       supabase
         .schema("learning")
         .from("challenges")
-        .select("id, title, description, question_count")
+        .select("id, title, description, question_count, archived_at, scope")
         .is("room_id", null)
         .order("created_at", { ascending: false })
         .limit(30),
@@ -146,7 +157,7 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
   }, [items]);
 
   async function create() {
-    if ((!topic.trim() && !goal.trim() && !file) || busy) return;
+    if ((!name.trim() && !topic.trim() && !goal.trim() && !file) || busy) return;
     setBusy(true);
     setError(null);
     try {
@@ -166,7 +177,7 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
       }
       setName("");
       setTopic("");
-      setGoal(tr("tools.selfTest.defaultGoal"));
+      setGoal("");
       setFile(null);
       await load();
     } catch {
@@ -174,6 +185,28 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
     } finally {
       setBusy(false);
     }
+  }
+
+  async function archiveItem(id: string, archived: boolean) {
+    const res = await netFetch("/api/challenges", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id, action: archived ? "archive" : "unarchive" }),
+    });
+    const d = await res.json();
+    // ArtifactMenu keeps its confirm dialog open and shows this rather than
+    // silently doing nothing when the server refuses the action.
+    if (!res.ok) throw new Error(d?.error);
+    setItems((v) => v.map((i) => (i.id === id ? { ...i, archived_at: d.archived_at ?? null } : i)));
+  }
+
+  async function deleteItem(id: string) {
+    const res = await netFetch(`/api/challenges?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+    if (!res.ok) {
+      const d = await res.json().catch(() => null);
+      throw new Error(d?.error);
+    }
+    setItems((v) => v.filter((i) => i.id !== id));
   }
 
   async function open(it: SoloItem) {
@@ -399,7 +432,11 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
           />
         </div>
         <div style={formActions}>
-          <button style={{ ...cta(t), opacity: busy || (!topic.trim() && !goal.trim() && !file) ? 0.5 : 1 }} onClick={create} disabled={busy || (!topic.trim() && !goal.trim() && !file)}>
+          <button
+            style={{ ...cta(t), opacity: busy || (!name.trim() && !topic.trim() && !goal.trim() && !file) ? 0.5 : 1 }}
+            onClick={create}
+            disabled={busy || (!name.trim() && !topic.trim() && !goal.trim() && !file)}
+          >
             {busy ? tr("tools.generating") : tr("tools.selfTest.createButton")}
           </button>
         </div>
@@ -416,32 +453,50 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
           )}
         </div>
         {items.length === 0 && <p style={{ color: t.muted, marginTop: 8, fontSize: 15 }}>{tr("tools.selfTest.noneYet")}</p>}
-        {items.map((it) => (
-          <div
-            key={it.id}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              background: t.cardBg2,
-              border: `1px solid ${t.cardBorder}`,
-              borderRadius: 14,
-              padding: "12px 16px",
-              marginTop: 8,
-            }}
-          >
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600, color: t.text, fontSize: 15 }}>{it.title ?? tr("tools.selfTest.fallbackTitle")}</div>
-              <div style={{ fontSize: 13, color: t.mutedLight }}>
-                {it.question_count ?? 0} {tr("tools.selfTest.questionsWord")}
-                {it.score != null && ` · ${tr("tools.selfTest.lastScore")} ${Math.round(it.score * 100)}%`}
+        {items.map((it) => {
+          const label = it.title ?? tr("tools.selfTest.fallbackTitle");
+          const archived = !!it.archived_at;
+          return (
+            <div
+              key={it.id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                background: t.cardBg2,
+                border: `1px solid ${t.cardBorder}`,
+                borderRadius: 14,
+                padding: "12px 16px",
+                marginTop: 8,
+                opacity: archived ? 0.62 : 1,
+              }}
+            >
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 600, color: t.text, fontSize: 15 }}>{label}</div>
+                <div style={{ fontSize: 13, color: t.mutedLight }}>
+                  {it.question_count ?? 0} {tr("tools.selfTest.questionsWord")}
+                  {it.score != null && ` · ${tr("tools.selfTest.lastScore")} ${Math.round(it.score * 100)}%`}
+                  {archived && ` · ${tr("hist.archivedSection")}`}
+                </div>
               </div>
+              <button style={{ ...cta(t), opacity: busy ? 0.5 : 1 }} onClick={() => open(it)} disabled={busy}>
+                {it.score != null ? tr("tools.selfTest.retryButton") : tr("tools.selfTest.startButton")}
+              </button>
+              <ArtifactMenu
+                theme={t}
+                itemLabel={label}
+                archived={archived}
+                // A Schools "Prepare" assignment materializes as one of these
+                // too (scope "assignment") — it's a class's homework record,
+                // not a personal test, so only archiving is offered for it.
+                canDelete={it.scope !== "assignment"}
+                deleteCaveatKey="artifact.delete.caveat.selfTest"
+                onArchive={(next) => archiveItem(it.id, next)}
+                onDelete={() => deleteItem(it.id)}
+              />
             </div>
-            <button style={{ ...cta(t), opacity: busy ? 0.5 : 1 }} onClick={() => open(it)} disabled={busy}>
-              {it.score != null ? tr("tools.selfTest.retryButton") : tr("tools.selfTest.startButton")}
-            </button>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

@@ -71,6 +71,10 @@ export async function POST(request: Request) {
   const name = ((form.get("name") as string | null) ?? "").trim().slice(0, 80);
   const topic = ((form.get("topic") as string | null) ?? "").trim().slice(0, 500);
   const goal = ((form.get("goal") as string | null) ?? "").trim().slice(0, 1000);
+  // Room only: ground the questions in the room's recent shared chat instead
+  // of (or alongside) a static topic/goal — for when the discussion has
+  // drifted onto something the room's fixed subject no longer names.
+  const useRoomChat = (form.get("useRoomChat") as string | null) === "true";
   const file = form.get("file");
   // Test kind — chosen at creation in both rooms and solo: a quick MCQ quiz, a
   // full mixed exam (MCQ + open), or an open competency test. The leaderboard
@@ -89,15 +93,25 @@ export async function POST(request: Request) {
       // ignore unreadable file — fall back to topic/goal
     }
   }
-  if (!goal && !topic && !source) {
+  // A name alone is a real, specific signal ("Quiz on quantum physics") and
+  // used to be silently dropped — nothing below ever read `name` again once
+  // it was used for the title, so a learner who only typed a name (leaving
+  // topic/goal blank) got a set of questions grounded in nothing at all. It
+  // now counts here and is passed to the model below. useRoomChat is the one
+  // case where there's legitimately no name/topic/goal/source YET — the room's
+  // chat is the content, fetched after the membership check below — so it
+  // alone is enough to pass this gate; if that chat turns out to be empty too,
+  // the check right before generation catches it.
+  if (!name && !goal && !topic && !source && !(roomId && useRoomChat)) {
     return NextResponse.json(
-      { error: "Provide a goal, a topic, or a source file." },
+      { error: "Provide a name, a goal, a topic, or a source file." },
       { status: 400 },
     );
   }
 
   // Authorize: for a room challenge the caller must be a member. Solo
   // challenges (no roomId) need no room membership.
+  let roomChatContext = "";
   if (roomId) {
     const { data: membership } = await supabase
       .schema("learning")
@@ -113,6 +127,29 @@ export async function POST(request: Request) {
     const { open } = await assertRoomOpen(supabase, roomId);
     if (!open) {
       return NextResponse.json({ error: "This room has ended — it's now read-only." }, { status: 403 });
+    }
+
+    // Opt-in: ground the questions in what the room has actually been
+    // discussing, not just its fixed subject field, which a live conversation
+    // can easily drift away from. room_messages is the room's SHARED group
+    // chat (as opposed to each member's private Raya channel), so it's read
+    // with the caller's own token — RLS already scopes it to members, same as
+    // the room page's own read of this table.
+    if (useRoomChat) {
+      const { data: roomMsgs } = await supabase
+        .schema("learning")
+        .from("room_messages")
+        .select("role, content")
+        .eq("room_id", roomId)
+        .order("created_at", { ascending: false })
+        .limit(40);
+      const transcript = (roomMsgs ?? [])
+        .slice()
+        .reverse()
+        .map((m) => `${m.role === "assistant" ? "Raya" : "Student"}: ${(m.content ?? "").slice(0, 500)}`)
+        .join("\n")
+        .slice(0, 4000);
+      if (transcript) roomChatContext = transcript;
     }
     // Free rooms allow a single challenge per room; the cap is set by the room
     // owner's plan, not the member creating the challenge. Solo self-tests
@@ -143,12 +180,22 @@ export async function POST(request: Request) {
   }
 
   const userContent = [
+    name && `Title: ${name}`,
     goal && `Objective: ${goal}`,
     topic && `Topic: ${topic}`,
+    roomChatContext && `Recent room discussion (use this to tell what the group is actually working on):\n${roomChatContext}`,
     source && `Source material:\n${source}`,
   ]
     .filter(Boolean)
     .join("\n\n");
+  if (!userContent) {
+    // Only reachable when useRoomChat was the sole signal and the room chat
+    // turned out empty — everything else was already rejected by the gate above.
+    return NextResponse.json(
+      { error: "The room has no recent discussion to build from yet — add a topic, a goal, or a source file." },
+      { status: 400 },
+    );
+  }
 
   let questions: StoredQ[];
   try {

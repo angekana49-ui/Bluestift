@@ -5,6 +5,7 @@ import { useAppTheme } from "@/components/ui/theme";
 import { panelCard, textInput, ctaButton, ghostButton, formActions } from "@/components/ui/forms";
 import { DocumentView } from "@/components/ui/document";
 import { Modal } from "@/components/ui/modal";
+import { ArtifactMenu } from "@/components/ui/artifact-menu";
 import { type BrandedDoc } from "@/lib/document";
 import { RayaName } from "@/components/ui/brand";
 import { netFetch, getJsonCached, invalidateCached } from "@/lib/net/client-fetch";
@@ -25,6 +26,9 @@ type Resource = {
   className?: string | null;
   subjectId: string | null;
   createdAt: string;
+  archivedAt?: string | null;
+  /** Whether the caller may archive/delete it — its author, or an admin_master. */
+  canManage?: boolean;
 };
 
 type Assignment = {
@@ -166,6 +170,30 @@ export function PrepareView({
     }
   }
 
+  async function archiveResource(id: string, archived: boolean) {
+    const res = await netFetch("/api/school/prepare", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id, action: archived ? "archive" : "unarchive" }),
+    });
+    const d = await res.json();
+    // ArtifactMenu keeps its confirm dialog open and shows this rather than
+    // silently doing nothing when the server refuses the action.
+    if (!res.ok) throw new Error(d?.error);
+    setLibrary((v) => v.map((r) => (r.id === id ? { ...r, archivedAt: d.archivedAt ?? null } : r)));
+    invalidateCached("school:prepare");
+  }
+
+  async function deleteResource(id: string) {
+    const res = await netFetch(`/api/school/prepare?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+    if (!res.ok) {
+      const d = await res.json().catch(() => null);
+      throw new Error(d?.error);
+    }
+    setLibrary((v) => v.filter((r) => r.id !== id));
+    invalidateCached("school:prepare");
+  }
+
   const docFor = (r: Resource): BrandedDoc => ({
     brand: "bluestift",
     title: r.title,
@@ -256,6 +284,8 @@ export function PrepareView({
               classes={classes}
               onView={() => setCurrent(r)}
               onAssigned={loadAssignments}
+              onArchive={archiveResource}
+              onDelete={deleteResource}
             />
           ))}
         </div>
@@ -279,11 +309,15 @@ function LibraryRow({
   classes,
   onView,
   onAssigned,
+  onArchive,
+  onDelete,
 }: {
   r: Resource;
   classes: ClassOpt[];
   onView: () => void;
   onAssigned: () => void;
+  onArchive: (id: string, archived: boolean) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
 }) {
   const { theme: t } = useAppTheme();
   const tr = useTranslate();
@@ -299,6 +333,8 @@ function LibraryRow({
   const [error, setError] = useState<string | null>(null);
 
   const assignable = r.id != null && Array.isArray(r.questions) && r.questions.length > 0;
+  const archived = !!r.archivedAt;
+  const canManage = r.id != null && r.canManage !== false;
 
   async function assign() {
     if (busy || !classId) return;
@@ -328,7 +364,7 @@ function LibraryRow({
   }
 
   return (
-    <div style={{ padding: "0.4rem 0", borderTop: `1px solid ${t.cardBorder}` }}>
+    <div style={{ padding: "0.4rem 0", borderTop: `1px solid ${t.cardBorder}`, opacity: archived ? 0.62 : 1 }}>
       <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
         <span style={{ flex: 1, minWidth: 0 }}>
           {r.title}
@@ -336,6 +372,7 @@ function LibraryRow({
             {" "}
             · {KIND_LABEL_KEY[r.kind] ? tr(KIND_LABEL_KEY[r.kind]) : r.kind}
             {r.className ? ` · ${r.className}` : ""}
+            {archived ? ` · ${tr("hist.archivedSection")}` : ""}
           </span>
         </span>
         <span style={{ opacity: 0.5, fontSize: "0.8rem" }}>{new Date(r.createdAt).toLocaleDateString()}</span>
@@ -346,6 +383,21 @@ function LibraryRow({
           <button style={ghost} onClick={() => setOpen((v) => !v)}>
             {open ? tr("school.class.cancel") : tr("school.team.assignButton")}
           </button>
+        )}
+        {canManage && (
+          <ArtifactMenu
+            theme={t}
+            itemLabel={r.title}
+            archived={archived}
+            // A resource tied to a class is part of the school's year-end
+            // record (getYearArchive reads teacher_resources by class_id) —
+            // archiving is always offered, but deleting only for a
+            // class-less (general) resource. See app/api/school/prepare DELETE.
+            canDelete={!r.classId}
+            deleteCaveatKey="artifact.delete.caveat.teacherResource"
+            onArchive={(next) => onArchive(r.id as string, next)}
+            onDelete={() => onDelete(r.id as string)}
+          />
         )}
       </div>
       {msg && <p style={{ color: "#22c55e", fontSize: "0.8rem", margin: "0.3rem 0 0" }}>{msg}</p>}

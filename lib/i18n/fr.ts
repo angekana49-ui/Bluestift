@@ -381,6 +381,25 @@ export const fr: Partial<Messages> = {
     "Ce que le Kernel en a déjà appris reste dans votre profil d'apprentissage — supprimer le fil ne le désapprend pas. Pour retirer cela aussi, passez par Réglages › Vos données.",
   "hist.delete.confirm": "Supprimer définitivement",
 
+  // ── Menu des artefacts générés (components/ui/artifact-menu.tsx) ──
+  "artifact.archive.title": "Archiver ceci ?",
+  "artifact.archive.body":
+    "Ça quitte votre liste de générations mais reste sauvegardé tel quel — vous le retrouverez marqué Archivé, et vous pourrez le restaurer à tout moment.",
+  "artifact.archive.confirm": "Archiver",
+  "artifact.unarchive.title": "Restaurer ceci ?",
+  "artifact.unarchive.body": "Ça revient dans votre liste de générations. Rien d'autre ne change.",
+  "artifact.unarchive.confirm": "Restaurer",
+  "artifact.delete.title": "Supprimer ceci ?",
+  "artifact.delete.body": "C'est effacé définitivement. Il n'y a pas de retour en arrière.",
+  "artifact.delete.confirm": "Supprimer définitivement",
+  "artifact.actionFailed": "Ça n'est pas passé. Réessayez.",
+  "artifact.delete.caveat.toolOutput": "Cette action est irréversible.",
+  "artifact.delete.caveat.selfTest": "Ça supprime aussi vos tentatives et scores passés pour ce test.",
+  "artifact.delete.caveat.roomChallenge":
+    "Ça supprime aussi les tentatives et les scores du classement de la room pour ce challenge, pour tout le monde.",
+  "artifact.delete.caveat.teacherResource":
+    "Ça le retire seulement de votre bibliothèque Prepare — les classes à qui il avait déjà été assigné gardent leurs résultats.",
+
   // ── Onboarding (configuration du compte après inscription) ────────
   "onb.stepLabel": "Étape",
   "onb.of": "sur",
@@ -2852,6 +2871,7 @@ export const fr: Partial<Messages> = {
   "room.challenges.goalPlaceholder": "Objectif — que doit tester ce défi ? (ex. problèmes d'application type examen)",
   "room.challenges.typeOfChallengeLabel": "Type de défi",
   "room.challenges.sourceFileLabel": "Fichier source (optionnel)",
+  "room.challenges.useRoomChatLabel": "Se baser sur notre discussion récente dans cette room",
   "room.challenges.generating": "Génération…",
   "room.challenges.generateButton": "Générer le défi",
   "room.challenges.noChallengesYet": "Aucun défi — créez-en un.",

@@ -6,6 +6,7 @@ import { type BrandedDoc } from "@/lib/document";
 import { parseDoc } from "@/lib/doc-format";
 import { QuizPlayer, FlashcardsPlayer, ReaderView, MindMapView } from "@/components/study/focus-player";
 import { DocumentActions } from "@/components/ui/doc-actions";
+import { ArtifactMenu } from "@/components/ui/artifact-menu";
 import { useAppTheme } from "@/components/ui/theme";
 import { status as statusColors, type AppTheme } from "@/components/ui/tokens";
 import { IconQuiz, IconFlashcards, IconSummary } from "@/components/ui/icons";
@@ -37,6 +38,7 @@ type Output = {
   status: string;
   output_content: unknown;
   created_at: string;
+  archived_at?: string | null;
 };
 type SelfTest = { id: string; title: string | null; score: number | null };
 
@@ -135,6 +137,31 @@ export function Tools({
   const [player, setPlayer] = useState<ActivePlayer | null>(null);
   /** Files are being dragged over the dropzone — highlights it. */
   const [dragging, setDragging] = useState(false);
+  // Local copy of the generated-outputs library so archive/delete can update
+  // the list in place without a refetch.
+  const [outputItems, setOutputItems] = useState<Output[]>(outputs);
+
+  async function archiveOutput(id: string, archived: boolean) {
+    const res = await netFetch("/api/tools/outputs", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id, action: archived ? "archive" : "unarchive" }),
+    });
+    const d = await res.json();
+    // ArtifactMenu keeps its confirm dialog open and shows this rather than
+    // silently doing nothing when the server refuses the action.
+    if (!res.ok) throw new Error(d?.error);
+    setOutputItems((v) => v.map((o) => (o.id === id ? { ...o, archived_at: d.archived_at ?? null } : o)));
+  }
+
+  async function deleteOutput(id: string) {
+    const res = await netFetch(`/api/tools/outputs?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+    if (!res.ok) {
+      const d = await res.json().catch(() => null);
+      throw new Error(d?.error);
+    }
+    setOutputItems((v) => v.filter((o) => o.id !== id));
+  }
 
   const baseName = (sources[0]?.name ?? "raya").replace(/\.[^.]+$/, "");
   const packetBytes = sources.reduce((s, x) => s + (x.bytes ?? 0), 0);
@@ -423,7 +450,7 @@ export function Tools({
       </div>
       {error && <p style={{ color: "#f87171", marginTop: 12, fontSize: 15 }}>{error}</p>}
 
-      {(uploads.length > 0 || outputs.length > 0 || selfTests.length > 0) && (
+      {(uploads.length > 0 || outputItems.length > 0 || selfTests.length > 0) && (
         <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 14 }}>
           {uploads.length > 0 && (
             <div style={panel(t)}>
@@ -446,20 +473,38 @@ export function Tools({
               })}
             </div>
           )}
-          {outputs.length > 0 && (
+          {outputItems.length > 0 && (
             <div style={panel(t)}>
-              <LibraryHeader theme={t} title={tr("tools.generated")} count={outputs.length} hint={tr("tools.generatedHint")} />
-              {outputs.map((o) => (
-                <LibraryRow
-                  key={o.id}
-                  theme={t}
-                  label={PRETTY_TOOL_KEY[o.tool_type] ? tr(PRETTY_TOOL_KEY[o.tool_type]) : o.tool_type}
-                  meta={o.status === "done" ? new Date(o.created_at).toLocaleDateString() : o.status}
-                  action={tr("tools.study")}
-                  disabled={o.status !== "done"}
-                  onAction={() => openOutput(o)}
-                />
-              ))}
+              <LibraryHeader theme={t} title={tr("tools.generated")} count={outputItems.length} hint={tr("tools.generatedHint")} />
+              {outputItems.map((o) => {
+                const label = PRETTY_TOOL_KEY[o.tool_type] ? tr(PRETTY_TOOL_KEY[o.tool_type]) : o.tool_type;
+                const archived = !!o.archived_at;
+                return (
+                  <LibraryRow
+                    key={o.id}
+                    theme={t}
+                    label={label}
+                    meta={
+                      (o.status === "done" ? new Date(o.created_at).toLocaleDateString() : o.status) +
+                      (archived ? ` · ${tr("hist.archivedSection")}` : "")
+                    }
+                    dimmed={archived}
+                    action={tr("tools.study")}
+                    disabled={o.status !== "done"}
+                    onAction={() => openOutput(o)}
+                    menu={
+                      <ArtifactMenu
+                        theme={t}
+                        itemLabel={label}
+                        archived={archived}
+                        deleteCaveatKey="artifact.delete.caveat.toolOutput"
+                        onArchive={(next) => archiveOutput(o.id, next)}
+                        onDelete={() => deleteOutput(o.id)}
+                      />
+                    }
+                  />
+                );
+              })}
             </div>
           )}
           {selfTests.length > 0 && (
@@ -552,6 +597,8 @@ function LibraryRow({
   onAction,
   action2,
   onAction2,
+  menu,
+  dimmed,
 }: {
   theme: AppTheme;
   label: string;
@@ -561,9 +608,13 @@ function LibraryRow({
   onAction: () => void;
   action2?: string;
   onAction2?: () => void;
+  /** Row-level overflow menu (archive/delete) — omitted where the row has none. */
+  menu?: React.ReactNode;
+  /** Visually files this row away, e.g. once it's archived. */
+  dimmed?: boolean;
 }) {
   return (
-    <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "8px 0", borderTop: `1px solid ${t.cardBorder}` }}>
+    <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "8px 0", borderTop: `1px solid ${t.cardBorder}`, opacity: dimmed ? 0.62 : 1 }}>
       <span style={{ flex: 1, fontSize: 15, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
       {meta && <span style={{ color: t.mutedLight, fontSize: 13, flex: "none" }}>{meta}</span>}
       {action2 && onAction2 && (
@@ -574,6 +625,7 @@ function LibraryRow({
       <button style={{ ...ghost(t), opacity: disabled ? 0.4 : 1 }} onClick={onAction} disabled={disabled}>
         {action}
       </button>
+      {menu}
     </div>
   );
 }

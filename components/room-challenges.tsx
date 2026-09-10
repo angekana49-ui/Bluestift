@@ -9,6 +9,7 @@ import { type AppTheme } from "@/components/ui/tokens";
 import { downloadBrandedPdf, type BrandedDoc } from "@/lib/document";
 import { TestPlayer, ReaderView, type TestAnswer, type TestQuestion, type TestResult } from "@/components/study/focus-player";
 import { ShareLinkButton } from "@/components/study/share-button";
+import { ArtifactMenu } from "@/components/ui/artifact-menu";
 import { parseDoc } from "@/lib/doc-format";
 import { FilePicker } from "@/components/ui/file-picker";
 import { neutralButton, formActions } from "@/components/ui/forms";
@@ -22,6 +23,8 @@ type Challenge = {
   status: string;
   question_count: number | null;
   format?: string | null;
+  created_by?: string | null;
+  archived_at?: string | null;
 };
 type Question = { id: string; type: "mcq" | "open"; content: string | null; options: string[] };
 type LeaderRow = {
@@ -96,12 +99,16 @@ export function RoomChallenges({
   roomName,
   subject,
   myUserId,
+  isRoomOwner = false,
   readOnly = false,
 }: {
   roomId: string;
   roomName: string;
   subject: string | null;
   myUserId: string;
+  /** The room's creator may archive/delete any member's challenge, same as
+   *  they already moderate the room's visibility. */
+  isRoomOwner?: boolean;
   /** When the room's timer has ended: no new challenges, no new attempts. */
   readOnly?: boolean;
 }) {
@@ -119,6 +126,10 @@ export function RoomChallenges({
   const [goal, setGoal] = useState("");
   const [kind, setKind] = useState("quiz");
   const [sourceFile, setSourceFile] = useState<File | null>(null);
+  // Opt-in: ground the questions in the room's recent shared chat instead of
+  // (or alongside) a typed topic/goal — for when the live discussion has
+  // moved on from the room's fixed subject.
+  const [useRoomChat, setUseRoomChat] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -133,10 +144,32 @@ export function RoomChallenges({
     const { data } = await supabase
       .schema("learning")
       .from("challenges")
-      .select("id, title, description, status, question_count, format")
+      .select("id, title, description, status, question_count, format, created_by, archived_at")
       .eq("room_id", roomId)
       .order("created_at", { ascending: false });
     setChallenges(data ?? []);
+  }
+
+  async function archiveChallenge(id: string, archived: boolean) {
+    const res = await netFetch("/api/challenges", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id, action: archived ? "archive" : "unarchive" }),
+    });
+    const d = await res.json();
+    // ArtifactMenu keeps its confirm dialog open and shows this rather than
+    // silently doing nothing when the server refuses the action.
+    if (!res.ok) throw new Error(d?.error);
+    setChallenges((v) => v.map((c) => (c.id === id ? { ...c, archived_at: d.archived_at ?? null } : c)));
+  }
+
+  async function deleteChallenge(id: string) {
+    const res = await netFetch(`/api/challenges?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+    if (!res.ok) {
+      const d = await res.json().catch(() => null);
+      throw new Error(d?.error);
+    }
+    setChallenges((v) => v.filter((c) => c.id !== id));
   }
 
   useEffect(() => {
@@ -145,7 +178,7 @@ export function RoomChallenges({
   }, [roomId]);
 
   async function create() {
-    if ((!topic.trim() && !goal.trim() && !sourceFile) || busy) return;
+    if ((!name.trim() && !topic.trim() && !goal.trim() && !sourceFile && !useRoomChat) || busy) return;
     setBusy(true);
     setError(null);
     try {
@@ -155,6 +188,7 @@ export function RoomChallenges({
       fd.append("topic", topic);
       fd.append("goal", goal);
       fd.append("kind", kind);
+      fd.append("useRoomChat", String(useRoomChat));
       if (sourceFile) fd.append("file", sourceFile);
       // The route generates the question set with the LLM (maxDuration 60s on
       // the server) — a bare fetch never times out on its own, but netFetch's
@@ -420,8 +454,19 @@ export function RoomChallenges({
             hintStyle={{ color: t.muted }}
           />
         </div>
+        {/* No document, and the room's fixed subject may no longer be what the
+            group is actually discussing — this opts the generation into the
+            room's own recent chat instead. */}
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: t.muted, marginBottom: 12, cursor: "pointer" }}>
+          <input type="checkbox" checked={useRoomChat} onChange={(e) => setUseRoomChat(e.target.checked)} />
+          {tr("room.challenges.useRoomChatLabel")}
+        </label>
         <div style={formActions}>
-          <button style={{ ...btn, opacity: busy || (!topic.trim() && !goal.trim() && !sourceFile) ? 0.5 : 1 }} onClick={create} disabled={busy || (!topic.trim() && !goal.trim() && !sourceFile)}>
+          <button
+            style={{ ...btn, opacity: busy || (!name.trim() && !topic.trim() && !goal.trim() && !sourceFile && !useRoomChat) ? 0.5 : 1 }}
+            onClick={create}
+            disabled={busy || (!name.trim() && !topic.trim() && !goal.trim() && !sourceFile && !useRoomChat)}
+          >
             {busy ? tr("room.challenges.generating") : tr("room.challenges.generateButton")}
           </button>
         </div>
@@ -431,32 +476,49 @@ export function RoomChallenges({
 
       <div style={{ marginTop: 16 }}>
         {challenges.length === 0 && <p style={{ color: t.muted, fontSize: 15 }}>{tr("room.challenges.noChallengesYet")}</p>}
-        {challenges.map((ch) => (
-          <div
-            key={ch.id}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              background: t.cardBg2,
-              border: `1px solid ${t.cardBorder}`,
-              borderRadius: 14,
-              padding: "12px 16px",
-              marginTop: 8,
-            }}
-          >
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600, color: t.text, fontSize: 15 }}>{ch.title ?? tr("room.challenges.fallbackTitle")}</div>
-              {ch.description && <div style={{ fontSize: 14, color: t.muted }}>{ch.description}</div>}
-              <div style={{ fontSize: 13, color: t.mutedLight }}>
-                {ch.question_count ?? 0} {tr("tools.selfTest.questionsWord")} · {kindLabel(ch.format, tr)} · {ch.status}
+        {challenges.map((ch) => {
+          const label = ch.title ?? tr("room.challenges.fallbackTitle");
+          const archived = !!ch.archived_at;
+          const canManage = ch.created_by === myUserId || isRoomOwner;
+          return (
+            <div
+              key={ch.id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                background: t.cardBg2,
+                border: `1px solid ${t.cardBorder}`,
+                borderRadius: 14,
+                padding: "12px 16px",
+                marginTop: 8,
+                opacity: archived ? 0.62 : 1,
+              }}
+            >
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 600, color: t.text, fontSize: 15 }}>{label}</div>
+                {ch.description && <div style={{ fontSize: 14, color: t.muted }}>{ch.description}</div>}
+                <div style={{ fontSize: 13, color: t.mutedLight }}>
+                  {ch.question_count ?? 0} {tr("tools.selfTest.questionsWord")} · {kindLabel(ch.format, tr)} · {ch.status}
+                  {archived && ` · ${tr("hist.archivedSection")}`}
+                </div>
               </div>
+              <button style={{ ...btn, opacity: busy || readOnly ? 0.5 : 1 }} onClick={() => open(ch)} disabled={busy || readOnly}>
+                {tr("room.challenges.playButton")}
+              </button>
+              {canManage && (
+                <ArtifactMenu
+                  theme={t}
+                  itemLabel={label}
+                  archived={archived}
+                  deleteCaveatKey="artifact.delete.caveat.roomChallenge"
+                  onArchive={(next) => archiveChallenge(ch.id, next)}
+                  onDelete={() => deleteChallenge(ch.id)}
+                />
+              )}
             </div>
-            <button style={{ ...btn, opacity: busy || readOnly ? 0.5 : 1 }} onClick={() => open(ch)} disabled={busy || readOnly}>
-              {tr("room.challenges.playButton")}
-            </button>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
