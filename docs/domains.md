@@ -41,6 +41,45 @@ origine coûterait :
 Les sous-domaines sont réservés aux **produits installables**. C'est aussi ce qui
 justifie leur existence : un produit a une identité PWA, un site n'en a pas.
 
+### Ce que le tableau ne dit pas : rien n'est cloisonné
+
+Le tableau ci-dessus décrit **où chaque chose est censée vivre**, pas ce que
+chaque origine accepte de servir. Un seul déploiement répond aux trois, donc
+**chaque origine sert l'application entière**. Vérifié en direct le 2026-09-11 :
+`schools.thebluestift.com/tools` et `www.raya.thebluestift.com/school` répondent
+tous les deux normalement, sans redirection croisée.
+
+Ce qui est réellement appliqué :
+
+| Règle | Portée | Où |
+|---|---|---|
+| apex → produit | les chemins produit listés plus haut, **depuis l'apex uniquement** | `productRedirects()` |
+| racine d'un produit → son app | `raya./` → `/chat`, `schools./` → `/school` | `productHomeRedirects()` |
+| produit → produit | **rien** | — |
+| produit → apex | **rien** | — |
+
+Conséquence concrète : les liens internes de l'app sont relatifs, donc un prof
+sur `schools.` qui ouvre `/profile` **reste sur `schools.`** et y obtient la
+page Raya ; la règle de l'apex ne se déclenche pas puisque l'hôte n'est pas
+l'apex. Idem pour `/login`, servi par les trois origines — un lien magique
+demandé depuis `schools.` y revient, parce que `/auth/callback` construit sa
+redirection depuis l'origine appelante. L'intention « l'authentification vit sur
+l'apex » n'est donc pas tenue en pratique.
+
+Ce n'est pas cassé — même app, même session (cookie sur le domaine parent), et
+les routes produit sont déjà en `noindex` et interdites dans `robots.txt`, donc
+aucun dégât SEO. Ce que ça coûte est la **canonicité** : la même page existe à
+deux ou trois adresses, et une URL copiée depuis la barre d'adresse peut porter
+la mauvaise marque.
+
+Fermer ça demanderait des redirections symétriques (sur l'hôte raya, `/school` →
+schools ; sur l'hôte schools, les chemins Raya → raya ; sur les deux, les pages
+du site → apex), avec deux pièges à respecter : `/s/<token>` et `/checkout`
+doivent rester sur l'apex (le webhook de l'agrégateur exige une origine stable),
+et déplacer `/login` / `/auth/callback` touche au flux d'authentification. À
+faire comme un changement délibéré avec ses propres tests, pas dans la foulée
+d'une migration DNS.
+
 ---
 
 ## Ce que le découpage casse
@@ -253,3 +292,29 @@ remplace quelque chose qui sert déjà du public — d'où l'ordre.
 
 `thebluestift.com` sert aujourd'hui la V1, que le projet ne montre ni ne vend
 plus. Voir `docs/project-status.md` sur son statut.
+
+---
+
+## Sur le terrain (migration du 2026-09-11)
+
+Ce qui a réellement coûté du temps le jour où les domaines ont été branchés, et
+qu'aucune des sections ci-dessus n'annonçait :
+
+- **`NEXT_PUBLIC_*` sont figées au build.** Changer `NEXT_PUBLIC_RAYA_URL` dans
+  Vercel ne suffit pas : il faut **reconstruire**, pas seulement redéployer.
+  Les variables serveur (`TURNSTILE_SECRET_KEY`, `KERNEL_API_*`) sont lues à
+  l'exécution et n'ont pas cette contrainte — deux comportements différents dans
+  la même page de réglages.
+- **La variable doit nommer l'hôte réel, exactement.** Le DNS nu `raya.` n'a pas
+  pris chez le registrar et le sous-domaine a fini en `www.raya.` — tant que
+  `NEXT_PUBLIC_RAYA_URL` disait `raya.`, **toutes** les règles conditionnées sur
+  cet hôte (`has: [{ type: "host" }]`) ne matchaient jamais et tombaient
+  silencieusement à rien. Une redirection conditionnée sur un hôte ne prévient
+  pas quand l'hôte n'existe pas : elle ne fait simplement rien.
+- **Le widget Turnstile a sa propre liste de domaines**, et chaque nouvel hôte
+  doit y figurer — sinon la connexion échoue sur ce sous-domaine uniquement.
+  Voir `docs/auth-email-setup.md` §4, qui décrit aussi les trois endroits où la
+  clé secrète doit concorder.
+- **Un `getaddrinfo ETIMEOUT` n'est pas « la propagation est lente ».** Vercel
+  dit lui-même, dans *Settings → Domains*, si l'enregistrement est valide ou
+  non ; tant qu'il affiche « Invalid Configuration », attendre ne sert à rien.
