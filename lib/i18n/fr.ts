@@ -128,7 +128,7 @@ export const fr: Partial<Messages> = {
   "site.ladder.title.a": "Une échelle à gravir, pas un",
   "site.ladder.title.em": "distributeur de réponses.",
   "site.ladder.sub":
-    "Raya monte un barreau à la fois et ne commence jamais par le haut. L’objectif n’est pas la bonne réponse dans les trente secondes — c’est un élève capable de refaire seul la semaine suivante.",
+    "Être perdu, ce n’est pas manquer de capacités. C’est une étape qui manque. Alors Raya monte un barreau à la fois et ne commence jamais par le haut — l’objectif n’est pas la bonne réponse dans les trente secondes, c’est un élève capable de refaire seul la semaine suivante.",
   "site.ladder.r1.name": "Amorce",
   "site.ladder.r1.title": "Faire remonter ce qui est déjà là",
   "site.ladder.r1.body":

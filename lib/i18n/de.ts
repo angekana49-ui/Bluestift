@@ -128,7 +128,7 @@ export const de: Partial<Messages> = {
   "site.ladder.title.a": "Eine Leiter zum Steigen, kein",
   "site.ladder.title.em": "Antwortautomat.",
   "site.ladder.sub":
-    "Raya steigt Sprosse für Sprosse und beginnt nie oben. Das Ziel ist nicht die richtige Antwort in dreißig Sekunden, sondern eine Lernende oder ein Lernender, die es nächste Woche allein wieder kann.",
+    "Nicht weiterzukommen ist kein Mangel an Begabung. Es ist ein fehlender Schritt. Deshalb steigt Raya Sprosse für Sprosse und beginnt nie oben — das Ziel ist nicht die richtige Antwort in dreißig Sekunden, sondern jemand, der es nächste Woche allein wieder kann.",
   "site.ladder.r1.name": "Anstoß",
   "site.ladder.r1.title": "Hervorholen, was schon da ist",
   "site.ladder.r1.body":

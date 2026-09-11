@@ -131,7 +131,7 @@ export const es: Partial<Messages> = {
   "site.ladder.title.a": "Una escalera que se sube, no un",
   "site.ladder.title.em": "dispensador de respuestas.",
   "site.ladder.sub":
-    "Raya sube un peldaño cada vez y nunca empieza por arriba. El objetivo no es la respuesta correcta en treinta segundos: es un alumno capaz de repetirlo solo la semana siguiente.",
+    "Estar perdido no es falta de capacidad. Es un paso que falta. Por eso Raya sube un peldaño cada vez y nunca empieza por arriba: el objetivo no es la respuesta correcta en treinta segundos, es un alumno capaz de repetirlo solo la semana siguiente.",
   "site.ladder.r1.name": "Impulso",
   "site.ladder.r1.title": "Sacar a la luz lo que ya está ahí",
   "site.ladder.r1.body":

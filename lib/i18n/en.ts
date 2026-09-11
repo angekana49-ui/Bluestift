@@ -231,8 +231,25 @@ export const en = {
   "site.ladder.eyebrow": "Pedagogical model",
   "site.ladder.title.a": "A climbing ladder, not an",
   "site.ladder.title.em": "answer engine.",
+  /*
+   * Opens on the belief, which is the premise the four rungs are the answer to.
+   *
+   * The first two sentences were the hero's lead until the headline stopped
+   * being about a mechanism (see site.hero.sub). They were never really the
+   * hero's: they state a pedagogy, and this is the band that implements it —
+   * lib/raya/prompt.ts aims every piece of feedback at the method and never at
+   * the person (site.ladder.note, and Dweck), and the ladder's whole escalation
+   * policy exists because being stuck is a step, not a deficiency. Read in that
+   * order the paragraph earns its "so": premise, then consequence.
+   *
+   * The clause that did not come with them — "and Raya walks back until it
+   * finds it" — is the KERNEL's walk-back, not the ladder's, and the Kernel
+   * band already says it better: "The failure was in physics. The cause was in
+   * maths." Moving a line is not a reason to move the half of it that belongs
+   * to a different section.
+   */
   "site.ladder.sub":
-    "Raya climbs one rung at a time and never starts at the top. The goal isn’t a correct answer in the next thirty seconds — it’s a student who can do it again next week, alone.",
+    "Being lost isn’t a lack of ability. It’s a missing step. So Raya climbs one rung at a time and never starts at the top — the goal isn’t a correct answer in the next thirty seconds, it’s a student who can do it again next week, alone.",
   "site.ladder.r1.name": "Pump",
   "site.ladder.r1.title": "Surface what’s already there",
   "site.ladder.r1.body":
