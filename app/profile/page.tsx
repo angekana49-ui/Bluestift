@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { needsAgeGate } from "@/lib/compliance/guard";
@@ -17,6 +18,9 @@ import { PageBody } from "@/components/ui/shell";
 import { SectionHeader } from "@/components/raya/section-header";
 import { initialsOf } from "@/lib/name";
 import { getServerTranslate } from "@/lib/i18n/server";
+
+// A surface of Raya — "My Kernel" in the nav, same words here.
+export const metadata: Metadata = { title: { absolute: "My Kernel · Raya" } };
 
 export default async function ProfilePage({
   searchParams,

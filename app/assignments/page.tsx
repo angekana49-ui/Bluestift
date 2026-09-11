@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { needsAgeGate } from "@/lib/compliance/guard";
@@ -7,6 +8,9 @@ import { AssignmentsView } from "@/components/assignments-view";
 import { getPlanLabel } from "@/lib/billing";
 import { softValue } from "@/lib/page-data";
 import { initialsOf } from "@/lib/name";
+
+// A surface of Raya: homework set by a school, done in the student's own space.
+export const metadata: Metadata = { title: { absolute: "Assignments · Raya" } };
 
 export default async function AssignmentsPage() {
   const supabase = await createClient();

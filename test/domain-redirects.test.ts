@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import type { Redirect } from "next/dist/lib/load-custom-routes";
 
 /**
@@ -204,27 +206,64 @@ describe("product home redirects (bare root of a product origin)", () => {
  * opened a tab reading "Bluestift", the same string the marketing site shows,
  * on the one origin whose entire purpose is the staff product.
  */
-describe("each product origin's home names its own product", () => {
-  it("titles /chat and /school absolutely, not through the shared template", async () => {
-    const chat = (await import("@/app/chat/layout")).metadata;
-    const school = (await import("@/app/school/layout")).metadata;
-    // A plain string would come out "Raya · Bluestift" / "Schools · Bluestift"
-    // via the root layout's template. These are product names, not pages
-    // inside something else.
-    expect(chat.title).toEqual({ absolute: "Raya" });
-    expect(school.title).toEqual({ absolute: "Bluestift Schools" });
+describe("each origin's surfaces name the space they belong to", () => {
+  /**
+   * Three spaces, and every signed-in route is inside exactly one of them:
+   *
+   *   Bluestift — the landing, on the apex. The umbrella, not an ecosystem.
+   *   Raya      — the B2C space. Chat, Tools, Rooms, My Kernel, Assignments,
+   *               Settings: surfaces OF Raya, not products beside it.
+   *   Schools   — the B2B space, and everything inside /school with it.
+   *
+   * Read from source rather than by importing the modules: a route module pulls
+   * its entire component graph, and what is being checked is one string
+   * literal. `absolute` throughout, because the root layout's "%s · Bluestift"
+   * template names the LANDING — appending it to a Raya surface would say the
+   * page belongs to the marketing site.
+   */
+  const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8");
+
+  const SURFACES: [file: string, title: string][] = [
+    ["app/chat/layout.tsx", "Raya"],
+    ["app/tools/page.tsx", "Tools · Raya"],
+    ["app/rooms/layout.tsx", "Rooms · Raya"],
+    ["app/profile/page.tsx", "My Kernel · Raya"],
+    ["app/assignments/page.tsx", "Assignments · Raya"],
+    ["app/account/page.tsx", "Settings · Raya"],
+    ["app/school/layout.tsx", "Bluestift Schools"],
+  ];
+
+  it.each(SURFACES)("%s titles itself %s", (file, title) => {
+    expect(read(file)).toContain(`title: { absolute: "${title}" }`);
   });
 
-  it("gives Schools a title without giving it a second install identity", async () => {
+  it("never leaves a surface on the bare umbrella name", () => {
+    // The bug this whole block exists for: schools.thebluestift.com opened a
+    // tab reading "Bluestift", indistinguishable from the marketing site.
+    for (const [, title] of SURFACES) expect(title).not.toBe("Bluestift");
+    // And every one of them says which space it is in.
+    for (const [file, title] of SURFACES) {
+      expect(/Raya|Schools/.test(title), file).toBe(true);
+    }
+  });
+
+  it("covers /rooms/[id] too, which is why Rooms uses a layout", () => {
+    // A title on app/rooms/page.tsx would cover the list and leave every actual
+    // room — the tab held open longest — falling back to the umbrella.
+    expect(existsSync(join(process.cwd(), "app/rooms/[id]/page.tsx"))).toBe(true);
+    expect(existsSync(join(process.cwd(), "app/rooms/layout.tsx"))).toBe(true);
+  });
+
+  it("gives Schools a name without giving it a second install identity", () => {
     // Raya overrides manifest/icons/appleWebApp because it IS a separate
     // installable app. Schools is not: lib/manifest.ts states the split as "a
     // student installs Raya; a school installs Bluestift", and
-    // lib/launch-screens.ts names the Bluestift bird as Schools' artwork.
-    // Adding a third identity on the same icon set would contradict both — and
+    // lib/launch-screens.ts names the Bluestift bird as Schools' own artwork.
+    // A third identity on the same icon set would contradict both — and
     // test/pwa-manifest.test.ts pins that no two apps share an icon set.
-    const school = (await import("@/app/school/layout")).metadata;
-    expect(school.manifest).toBeUndefined();
-    expect(school.icons).toBeUndefined();
-    expect(school.appleWebApp).toBeUndefined();
+    const school = read("app/school/layout.tsx");
+    for (const field of ["manifest:", "icons:", "appleWebApp:"]) {
+      expect(school, `Schools declares ${field}`).not.toContain(field);
+    }
   });
 });

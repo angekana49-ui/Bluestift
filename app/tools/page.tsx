@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { needsAgeGate } from "@/lib/compliance/guard";
@@ -8,6 +9,12 @@ import { PageBody } from "@/components/ui/shell";
 import { getPlanLabel } from "@/lib/billing";
 import { softValue } from "@/lib/page-data";
 import { initialsOf } from "@/lib/name";
+
+// A surface of Raya, not a product of its own — see app/chat/layout.tsx for the
+// shape and app/school/layout.tsx for the other side of the split. `absolute`
+// because the root template would append "· Bluestift", which names the landing
+// site rather than the ecosystem this page belongs to.
+export const metadata: Metadata = { title: { absolute: "Tools · Raya" } };
 
 export default async function ToolsPage() {
   const supabase = await createClient();

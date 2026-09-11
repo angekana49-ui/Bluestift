@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { needsAgeGate } from "@/lib/compliance/guard";
@@ -16,6 +17,10 @@ import { StudentBillingCard } from "@/components/raya/settings-billing-card";
 import { initialsOf } from "@/lib/name";
 import { ageBand } from "@/lib/compliance/age";
 import { getServerTranslate } from "@/lib/i18n/server";
+
+// Raya's, not the umbrella's: this page renders inside RayaScaffold, and no
+// Schools surface links to it — staff settings live in /school's own tab.
+export const metadata: Metadata = { title: { absolute: "Settings · Raya" } };
 
 export default async function AccountPage() {
   const supabase = await createClient();
