@@ -29,6 +29,9 @@ import {
   secondaryBtn,
 } from "@/components/ui/auth-chrome";
 import { useTranslate } from "@/components/ui/locale";
+import { LinkSentDialog } from "@/components/ui/link-sent-dialog";
+import { PasswordField } from "@/components/ui/password-field";
+import { passwordProblem } from "@/lib/password";
 import type { MessageKey } from "@/lib/i18n";
 
 /**
@@ -117,7 +120,10 @@ export function OnboardingForm({
   const [focus, setFocus] = useState("");
 
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [emailSent, setEmailSent] = useState(false);
+  /** The "check your inbox" popup, open while the confirmation link is out. */
+  const [linkDialog, setLinkDialog] = useState(false);
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -288,9 +294,21 @@ export function OnboardingForm({
     setPhase(isAnonymous ? "email" : "welcome");
   }
 
+  /**
+   * Turn the anonymous account into a real one: an address, and — if they want
+   * one — a password, set in the same call so there is no second trip.
+   *
+   * The password is OPTIONAL here on purpose. This screen already hands over a
+   * recovery key and asks the person to prove they wrote it down; making them
+   * invent a password too, at the end of a six-step setup, is where people
+   * abandon. Whoever wants one now can have it, and /account has the same field
+   * for everyone else later.
+   */
   async function linkEmail() {
     const e = email.trim();
     if (!e || busy) return;
+    const pwProblem = password ? passwordProblem(password, e) : null;
+    if (pwProblem) return setError(tr(pwProblem));
     setBusy(true);
     setError(null);
     // Route the confirmation link through /auth/callback (like every other email
@@ -300,10 +318,14 @@ export function OnboardingForm({
     // Supabase's Site URL and the redirect (and verification) is lost.
     const emailRedirectTo =
       typeof window !== "undefined" ? `${window.location.origin}/auth/callback?next=/account` : undefined;
-    const { error: linkErr } = await supabase.auth.updateUser({ email: e }, { emailRedirectTo });
+    const { error: linkErr } = await supabase.auth.updateUser(
+      password ? { email: e, password } : { email: e },
+      { emailRedirectTo },
+    );
     setBusy(false);
     if (linkErr) return setError(linkErr.message);
     setEmailSent(true);
+    setLinkDialog(true);
   }
 
   function enterApp() {
@@ -408,6 +430,8 @@ export function OnboardingForm({
           recoveryCode={recoveryCode}
           email={email}
           setEmail={setEmail}
+          password={password}
+          setPassword={setPassword}
           emailSent={emailSent}
           busy={busy}
           onLink={linkEmail}
@@ -601,6 +625,19 @@ export function OnboardingForm({
       )}
 
       {error && <p style={{ color: "#dc2626", textAlign: "center", marginTop: 16, fontSize: 14 }}>{error}</p>}
+
+      {/* The one place the popup must NOT take the window anywhere: the person
+          is six steps into a setup they still have to finish, and the link only
+          confirms an address. It says so, and closes. */}
+      {linkDialog && (
+        <LinkSentDialog
+          supabase={supabase}
+          email={email.trim()}
+          confirmedKey="auth.linkSent.confirmedHere"
+          onClose={() => setLinkDialog(false)}
+          onConfirmed={() => setLinkDialog(false)}
+        />
+      )}
     </AuthSplit>
   );
 }
@@ -612,6 +649,8 @@ function EmailStep({
   recoveryCode,
   email,
   setEmail,
+  password,
+  setPassword,
   emailSent,
   busy,
   onLink,
@@ -621,6 +660,8 @@ function EmailStep({
   recoveryCode: string | null;
   email: string;
   setEmail: (v: string) => void;
+  password: string;
+  setPassword: (v: string) => void;
   emailSent: boolean;
   busy: boolean;
   onLink: () => void;
@@ -639,6 +680,7 @@ function EmailStep({
   // really left the screen. If the key failed to generate we have nothing to
   // prove, so don't trap the user behind a check they cannot pass.
   const tailOk = !recoveryCode || normalizeRecoveryKey(tail) === expectedTail;
+  const pwProblem = password ? passwordProblem(password, email) : null;
 
   async function copy() {
     if (!recoveryCode) return;
@@ -665,23 +707,38 @@ function EmailStep({
       <p style={sub}>{tr("onb.email.sub")}</p>
 
       <label style={fieldLabel}>{tr("onb.email.label")}</label>
-      <div style={{ display: "flex", gap: 8 }}>
-        <input
-          style={{ ...fieldInput, marginBottom: 0, flex: 1 }}
-          type="email"
-          placeholder={tr("onb.email.placeholder")}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          disabled={busy || emailSent}
-        />
-        <button
-          onClick={onLink}
-          disabled={busy || emailSent || !email.trim()}
-          style={{ ...secondaryBtn, padding: "12px 16px", opacity: busy || emailSent || !email.trim() ? 0.6 : 1 }}
-        >
-          {emailSent ? tr("onb.email.sentBtn") : tr("onb.email.linkBtn")}
-        </button>
-      </div>
+      <input
+        style={{ ...fieldInput, marginBottom: 14 }}
+        type="email"
+        autoComplete="email"
+        placeholder={tr("onb.email.placeholder")}
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        disabled={busy || emailSent}
+      />
+
+      {/* Optional, and labelled as such. The recovery key below is this
+          account's guaranteed way back; a password is the convenient one, and
+          nobody should be stopped here for declining it. */}
+      <PasswordField
+        value={password}
+        onChange={setPassword}
+        label={tr("onb.email.pwLabel")}
+        placeholder={tr("pw.placeholder")}
+        autoComplete="new-password"
+        hint={tr("onb.email.pwHint")}
+        problem={pwProblem ? tr(pwProblem) : null}
+        disabled={busy || emailSent}
+        onEnter={onLink}
+      />
+
+      <button
+        onClick={onLink}
+        disabled={busy || emailSent || !email.trim()}
+        style={{ ...secondaryBtn, width: "100%", marginTop: 12, opacity: busy || emailSent || !email.trim() ? 0.6 : 1 }}
+      >
+        {emailSent ? tr("onb.email.sentBtn") : tr("onb.email.linkBtn")}
+      </button>
       {emailSent && (
         <p style={{ fontSize: 14, color: "#047857", margin: "8px 0 0", lineHeight: 1.5 }}>
           {tr("onb.email.checkInbox")}

@@ -10,6 +10,9 @@ import { useResolvedTheme } from "@/components/ui/theme";
 import { useTranslate } from "@/components/ui/locale";
 import { panelCard, cardTitle, textInput, ctaButton, neutralButton } from "@/components/ui/forms";
 import { FilePicker } from "@/components/ui/file-picker";
+import { LinkSentDialog } from "@/components/ui/link-sent-dialog";
+import { PasswordField } from "@/components/ui/password-field";
+import { passwordProblem } from "@/lib/password";
 import { status } from "@/components/ui/tokens";
 import { avatarInitials } from "@/lib/name";
 import {
@@ -62,6 +65,9 @@ export function AuthPanel({
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  /** A sign-in link is out there, waiting to be opened — see the dialog's own
+   *  note. `null` = none pending; `""` = pending, address not ours to show. */
+  const [linkSentTo, setLinkSentTo] = useState<string | null>(null);
 
   const emailRedirectTo =
     typeof window !== "undefined"
@@ -118,7 +124,7 @@ export function AuthPanel({
     setBusy(false);
     resetCaptcha();
     if (error) return setMsg(error.message);
-    setMsg(`${tr("auth.msg.linkSent.a")} ${email}. ${tr("auth.msg.linkSent.b")}`);
+    setLinkSentTo(email);
   }
 
   async function recoverWithKey() {
@@ -154,8 +160,7 @@ export function AuthPanel({
         return;
       }
       resetCaptcha();
-      if (data.status === "sent")
-        setMsg(tr("auth.msg.keySent"));
+      if (data.status === "sent") setLinkSentTo("");
       else setMsg(tr("auth.err.keyInvalid"));
     } catch {
       setMsg(tr("auth.err.network"));
@@ -205,6 +210,32 @@ export function AuthPanel({
       setMsg(tr("auth.err.uploadFailed"));
     }
   }
+
+  /**
+   * The two surfaces wait for the same event and want opposite things from it.
+   *
+   * Signed out (/login), the link IS the way in, so this tab follows it — a
+   * full navigation, because every cached payload on the page predates the
+   * session that just appeared from outside it.
+   *
+   * Signed in (/account), the link only confirms a new address on an account
+   * that is already here. Sending them "home" would throw away the settings
+   * screen they were on to no purpose, so the page just re-reads itself: the
+   * email row fills in and the "this account is unsafe" panel goes away.
+   */
+  const linkDialog = linkSentTo !== null && (
+    <LinkSentDialog
+      supabase={supabase}
+      email={linkSentTo || undefined}
+      theme={t}
+      onClose={() => setLinkSentTo(null)}
+      onConfirmed={() => {
+        if (!user) return window.location.assign("/auth/continue");
+        setLinkSentTo(null);
+        router.refresh();
+      }}
+    />
+  );
 
   const infoRow = (label: string, value: React.ReactNode) => (
     <div style={{ borderTop: `1px solid ${t.cardBorder}`, paddingTop: 12 }}>
@@ -258,6 +289,7 @@ export function AuthPanel({
         </button>
 
         {msg && <p style={{ marginTop: 12, color: t.muted, fontSize: 15 }}>{msg}</p>}
+        {linkDialog}
       </div>
     );
   }
@@ -322,6 +354,7 @@ export function AuthPanel({
           </>,
         )}
         {infoRow(tr("auth.account.typeLabel"), <code>{profile?.account_type ?? "?"}</code>)}
+        <PasswordCard email={user.email} canSet={!user.isAnonymous} />
         <RecoveryKeyCard hasKey={recoveryKey.hasKey} issuedAt={recoveryKey.issuedAt} hasKeyword={recoveryKey.hasKeyword} />
 
 
@@ -372,6 +405,113 @@ export function AuthPanel({
       </div>
 
       {msg && <p style={{ marginTop: 12, color: t.muted, fontSize: 15 }}>{msg}</p>}
+      {linkDialog}
+    </div>
+  );
+}
+
+/**
+ * Set (or replace) the account password.
+ *
+ * No "current password" field, and that is deliberate rather than lax: most
+ * accounts here arrive with no password at all — anonymous first, or magic-link
+ * only — so asking for the old one would lock the majority out of ever getting
+ * a new one. The session is the credential, exactly as it is on /reset.
+ *
+ * It also does not claim to know whether a password already exists. Supabase
+ * exposes no such flag, and guessing wrong ("you have a password") to someone
+ * who does not is worse than saying nothing: they go looking for one to type.
+ * So the copy describes what setting one BUYS, and works either way.
+ */
+function PasswordCard({ email, canSet }: { email: string | null; canSet: boolean }) {
+  const { theme: t } = useResolvedTheme();
+  const tr = useTranslate();
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const supabase = createClient();
+
+  const problem = password ? passwordProblem(password, email ?? undefined) : null;
+  const ready = Boolean(password) && !problem;
+
+  async function save() {
+    if (!ready || busy) return;
+    setBusy(true);
+    setErr(null);
+    setNote(null);
+    const { error } = await supabase.auth.updateUser({ password });
+    setBusy(false);
+    if (error) return setErr(error.message);
+    setPassword("");
+    setNote(tr("auth.pw.saved"));
+  }
+
+  return (
+    <div
+      style={{
+        borderRadius: 14,
+        border: `1px solid ${t.cardBorder}`,
+        background: t.cardBg2,
+        padding: 16,
+        marginTop: 2,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+        <span style={{ fontSize: 17 }} aria-hidden>
+          🔒
+        </span>
+        <div style={{ fontSize: 15, fontWeight: 700, color: t.text, flex: 1 }}>{tr("auth.pw.title")}</div>
+      </div>
+
+      {canSet ? (
+        <>
+          <p style={{ fontSize: 14, color: t.muted, lineHeight: 1.6, margin: "0 0 12px" }}>
+            {tr("auth.pw.body")}
+          </p>
+          <div style={{ maxWidth: 320 }}>
+            <PasswordField
+              value={password}
+              onChange={setPassword}
+              label={tr("auth.pw.newLabel")}
+              placeholder={tr("pw.placeholder")}
+              autoComplete="new-password"
+              hint={tr("pw.hint")}
+              problem={problem ? tr(problem) : null}
+              disabled={busy}
+              theme={t}
+              onEnter={save}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={save}
+            disabled={busy || !ready}
+            style={{
+              marginTop: 12,
+              background: t.cardBg,
+              color: t.text,
+              border: `1px solid ${t.cardBorder}`,
+              borderRadius: 99,
+              padding: "8px 16px",
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+              opacity: busy || !ready ? 0.5 : 1,
+            }}
+          >
+            {busy ? tr("auth.pw.saving") : tr("auth.pw.save")}
+          </button>
+        </>
+      ) : (
+        // An anonymous account has only the synthetic address (lib/auth.ts),
+        // which its owner can neither see nor type — so a password on it would
+        // authenticate nothing. The email comes first.
+        <p style={{ fontSize: 14, color: t.muted, lineHeight: 1.6, margin: 0 }}>{tr("auth.pw.needEmail")}</p>
+      )}
+
+      {note && <p style={{ fontSize: 13, color: t.muted, margin: "10px 0 0" }}>{note}</p>}
+      {err && <p style={{ fontSize: 13, color: status.danger, margin: "10px 0 0" }}>{err}</p>}
     </div>
   );
 }

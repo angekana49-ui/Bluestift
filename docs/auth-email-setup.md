@@ -98,11 +98,45 @@ link with the versions below (English, token-hash flow).
 <p><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email_change&next=/">Confirm change</a></p>
 ```
 
-### Reset Password (only if password auth is enabled later)
+### Reset Password — **required**, password sign-in is live
 ```html
 <h2>Reset your password</h2>
 <p><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset">Reset password</a></p>
 ```
+
+`next=/reset` is not cosmetic: `app/reset/page.tsx` is where the new password is
+chosen, and it refuses to render without the session the link just created. A
+recovery link that lands anywhere else signs the person in with their **old**
+password still in place and no screen offering to change it.
+
+## 3b. The four ways in
+
+`/login` now offers all four, and they are not interchangeable. Nothing needs
+enabling for them beyond §2 and §3 — but knowing which is which saves a
+misdiagnosis:
+
+| Route in | Needs | Fails as |
+|---|---|---|
+| email + password | Email provider on (default) | `Invalid login credentials` — which Supabase also returns for an address that has **no** password, the common case here |
+| magic link | §2 + §3 templates | link points at the wrong host |
+| recovery key | `/api/auth/recover` + service role | `keyInvalid` |
+| anonymous | Anonymous sign-in enabled in the dashboard | `startFailed` |
+
+Most accounts on this product start anonymous or magic-link only, so
+"invalid credentials" usually means *there is no password on this account yet*,
+not *you typed it wrong*. `components/login-view.tsx` says both in one sentence,
+because Supabase deliberately does not distinguish them (user enumeration).
+
+Where a password gets set: onboarding's email step (optional, beside the
+recovery key), Settings → Password, and `/reset`. All three go through
+`updateUser({ password })` with the session as the credential — there is no
+"current password" field anywhere, because an account that never had one could
+not fill it in.
+
+> **Secure password change** (Supabase → Authentication → Providers → Email)
+> requires a recent re-authentication for `updateUser({ password })`. Leaving it
+> **off** is what lets Settings and `/reset` work as described. If it is turned
+> on later, both surfaces need a `reauthenticate()` step first.
 
 ## 4. CAPTCHA (Turnstile)
 

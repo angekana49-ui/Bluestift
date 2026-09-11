@@ -664,7 +664,9 @@ export const en = {
     "You're signed in anonymously. Add an email so you never lose access — or keep just your recovery key.",
   "onb.email.label": "Email (recommended)",
   "onb.email.placeholder": "you@example.com",
-  "onb.email.linkBtn": "Link",
+  "onb.email.pwLabel": "Password (optional)",
+  "onb.email.pwHint": "Set one now and you can sign back in with your email and password. You can also add it later in Settings.",
+  "onb.email.linkBtn": "Link this email",
   "onb.email.sentBtn": "Sent ✓",
   "onb.email.checkInbox": "Check your inbox to confirm — you can finish setting up now.",
   "onb.email.recoveryTitle": "Your recovery key",
@@ -695,7 +697,48 @@ export const en = {
   "auth.err.network": "Couldn't reach the server.",
   "auth.err.startFailed": "Couldn't start. Try again.",
   "auth.msg.linkSent.a": "Link sent to",
-  "auth.msg.linkSent.b": "Check your inbox.",
+  // The "we emailed you a link" popup (components/ui/link-sent-dialog.tsx).
+  // `.waiting` is load-bearing, not reassurance: this window really does watch
+  // for the link being opened elsewhere, and the person has to leave it open
+  // for that to be worth anything.
+  "auth.linkSent.title": "Check your inbox",
+  "auth.linkSent.waiting": "Keep this window open — it comes with you the moment you open the link.",
+  "auth.linkSent.confirmed": "Signed in. Taking you through…",
+  "auth.linkSent.spam": "Nothing after a minute? Check your spam folder.",
+  "auth.linkSent.close": "Close",
+  "auth.linkSent.continue": "Continue",
+  // Onboarding's variant: the link confirms an address, it does not move the
+  // page — the person is mid-setup and staying exactly where they are.
+  "auth.linkSent.confirmedHere": "Email confirmed. Carry on here.",
+
+  // ── Passwords (lib/password.ts, ui/password-field.tsx, /reset) ──
+  "pw.label": "Password",
+  "pw.placeholder": "At least 8 characters",
+  "pw.hint": "Eight characters or more. No symbol quota — length is what counts.",
+  "pw.show": "Show",
+  "pw.hide": "Hide",
+  "pw.err.short": "Use at least 8 characters.",
+  "pw.err.common": "That one is guessed early. Pick something less obvious.",
+  "pw.err.sameAsEmail": "Your password can't be your email address.",
+
+  "auth.pw.title": "Password",
+  "auth.pw.body":
+    "Set one and you can sign in with your email and password — no waiting for a link, on any machine.",
+  "auth.pw.newLabel": "New password",
+  "auth.pw.save": "Save password",
+  "auth.pw.saving": "Saving…",
+  "auth.pw.saved": "Password updated.",
+  "auth.pw.needEmail": "Link an email above first — a password needs an address to sign in with.",
+
+  "reset.heading": "Choose a new password",
+  "reset.sub": "The link checked out. Pick a new password and you're back in.",
+  "reset.subFor": "The link checked out. Setting a new password for",
+  "reset.newLabel": "New password",
+  "reset.confirmLabel": "Type it again",
+  "reset.err.mismatch": "These two don't match.",
+  "reset.save": "Save and sign in",
+  "reset.saved": "Saved — taking you in…",
+  "reset.backToLogin": "Back to sign-in",
   "auth.err.keyLength": "A recovery key is 16 characters. Check for a missing one.",
   "auth.err.recoveryFailed": "Recovery failed.",
   "auth.msg.recovered": "Good to see you again — signing in…",
@@ -770,13 +813,24 @@ export const en = {
   "login.msg.signedOut": "Signed out. Pick how you'd like to continue.",
   "login.backToSite": "← Back to bluestift.com",
   "login.heading": "Sign in to",
-  "login.sub": "Continue with email, a recovery key, or start anonymously — one account for everything.",
+  "login.sub": "A password, an email link, a recovery key — or no account at all. One account covers everything.",
   "login.pending.note":
     "You have an unfinished setup on this device. Pick up where you left off, or sign out and choose a different way in.",
   "login.pending.continue": "Continue setup",
   "login.pending.switchMethod": "Use a different method",
-  "login.emailLabel": "Have an account? Sign in by email",
-  "login.sendLink": "Send link",
+  "login.tab.signIn": "Sign in",
+  "login.tab.signUp": "Create an account",
+  "login.emailField": "Email",
+  "login.signInBtn": "Sign in",
+  "login.signUpBtn": "Create the account",
+  "login.magicInstead": "Email me a link instead",
+  "login.forgot": "Forgot your password?",
+  // Supabase answers "Invalid login credentials" both to a wrong password and
+  // to an address that has no password at all — and on this product the second
+  // is the common case, because accounts start anonymous or magic-link only.
+  "login.err.badCredentials":
+    "That email and password don't match. If you've never set a password, use the email link or your recovery key.",
+  "login.err.emailFirst": "Type your email address first.",
   "login.recoveryPlaceholder": "Recovery key",
   "login.newHereDivider": "New here",
   "login.startAnonymous": "Start anonymously — no email needed",

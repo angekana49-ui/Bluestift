@@ -135,6 +135,42 @@ Les deux leçons, réutilisables :
   voir : c'est une vérification à faire à la main quand une clé « pourtant
   bonne » ne passe pas.
 
+### La fenêtre restée en arrière (2026-09-11)
+
+Pas une erreur : **aucun** message, nulle part. C'est précisément ce qui la rend
+longue à voir.
+
+Symptôme rapporté : « on atterrit sur une autre fenêtre et l'ancienne reste
+comme ça ». Le lien de connexion s'ouvre où le client mail décide — nouvel
+onglet, autre navigateur, téléphone. L'onglet qui a **demandé** le lien ne
+participe pas à l'échange : il reste sur « vérifiez votre boîte », déjà
+périmé, pendant que l'app est ouverte deux fois dans deux états différents.
+
+Le réflexe qui ne marche pas ici : écouter l'événement `storage`. La session
+vit dans des **cookies** (`lib/supabase/client.ts`), et une écriture de cookie
+n'émet aucun événement. D'où un sondage (`components/ui/link-sent-dialog.tsx`,
+`useIdentityChange`) : lecture locale de `document.cookie` via le client déjà
+présent, toutes les 2,5 s, plus une relecture immédiate au retour sur l'onglet.
+
+Deux détails qui ont l'air optionnels et ne le sont pas :
+
+- **Comparer une identité, pas la présence d'une session.** Sur `/account` la
+  session existe déjà (compte anonyme qui lie une adresse) : elle garde son
+  `user.id` et gagne un e-mail. « Y a-t-il une session » est vrai avant comme
+  après et ne détecte rien. L'empreinte comparée est
+  `id | email | is_anonymous`.
+- **La destination dépend du flux.** Un lien de connexion veut dire « entre » ;
+  un lien de réinitialisation veut dire « viens finir de choisir ton mot de
+  passe ». Suivre la première pour la seconde renvoie la personne à l'accueil
+  avec le mot de passe à moitié changé dans l'autre fenêtre. D'où
+  `/auth/continue` (qui délègue à `resolvePostAuth`, comme `/auth/callback`)
+  d'un côté, `/reset` de l'autre.
+
+Leçon réutilisable : **un état partagé entre onglets se propage par le canal
+qu'on a choisi pour le stocker.** Cookie → sondage. `localStorage` →
+événement `storage`. Se tromper de canal ne produit aucune erreur, juste une
+interface qui ne bouge jamais.
+
 ## Ce que ça ne couvre pas
 
 - **Les erreurs client.** Un composant qui plante dans le navigateur n'atteint
