@@ -13,10 +13,28 @@ import { RIGHT_PANEL_OVERLAY_QUERY } from "@/components/ui/use-right-panel";
  * render, and do something.
  */
 
-const css = readFileSync(join(process.cwd(), "app/globals.css"), "utf8");
-const shellSrc = readFileSync(join(process.cwd(), "components/ui/shell.tsx"), "utf8");
-const raya = readFileSync(join(process.cwd(), "components/raya/raya-shell.tsx"), "utf8");
-const schools = readFileSync(join(process.cwd(), "components/school/schools-shell.tsx"), "utf8");
+/**
+ * Read a source file with its line endings normalised to \n.
+ *
+ * Every assertion below matches source text, and several of them spell out a
+ * newline, spelled out inside a template string. On a Windows checkout
+ * with `core.autocrlf=true` (the default there, and what this repo runs with:
+ * LF in the object store, CRLF in the working tree) that string is not in the
+ * file, `indexOf` returns -1, and the test does not fail on the -1. It fails
+ * several lines later on whatever `slice(0, -1)` happened to leave behind —
+ * which is how this read as "the room chrome folds at the wrong breakpoint"
+ * when the stylesheet was correct and only the reader was wrong.
+ *
+ * Normalising here rather than at each call site because the next multi-line
+ * assertion someone adds should not have to know any of this.
+ */
+const read = (rel: string) =>
+  readFileSync(join(process.cwd(), rel), "utf8").split("\r\n").join("\n");
+
+const css = read("app/globals.css");
+const shellSrc = read("components/ui/shell.tsx");
+const raya = read("components/raya/raya-shell.tsx");
+const schools = read("components/school/schools-shell.tsx");
 
 describe("the mobile header's buttons toggle", () => {
   it("does not wire the burger to a one-way open", () => {
