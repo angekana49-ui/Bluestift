@@ -605,6 +605,7 @@ export const THREAD_MAX_W = 760;
 export function RightPanel({
   theme: t,
   width = 270,
+  wideWidth,
   padding = 18,
   open = true,
   title,
@@ -613,6 +614,19 @@ export function RightPanel({
 }: {
   theme: AppTheme;
   width?: number;
+  /**
+   * A larger width to take from 1200px up, for a panel that genuinely carries
+   * more than the others (the room's: an invite link, notifications, documents,
+   * the roster, the settings). Below 1200 the base `width` stands, because
+   * between two inline rails the content column is the thing under pressure —
+   * at 900px it is already down to ~384px, and every pixel this panel gains
+   * there comes out of the conversation.
+   *
+   * Two custom properties rather than a media query per call site: panel widths
+   * are already handed to the stylesheet this way so CSS can decide them per
+   * tier (see the shell-layout comment in globals.css).
+   */
+  wideWidth?: number;
   padding?: number;
   /** Defaults to true because every call site already unmounts this panel when
    *  it's hidden — mounted means open. Pass false only to animate it out. */
@@ -626,6 +640,7 @@ export function RightPanel({
       className={`app-right${open ? " is-open" : ""}`}
       style={{
         ["--app-right-w" as string]: `${width}px`,
+        ...(wideWidth != null ? { ["--app-right-w-wide" as string]: `${wideWidth}px` } : null),
         background: t.rightBg,
         borderLeft: `1px solid ${t.rightBorder}`,
         transition: "background .4s ease,border-color .4s ease",

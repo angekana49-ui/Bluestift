@@ -2284,7 +2284,6 @@ export const en = {
   "room.panelMembers": "Members",
   "room.panelSettings": "Room settings",
   "room.notifSessionEnded": "Session ended",
-  "room.notifReadOnly": "The room is now read-only.",
   "room.notifEndingSoon": "Ending soon",
   "room.notifLeftInSession": "left in this session.",
   "room.notifInProgress": "Session in progress",

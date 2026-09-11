@@ -830,12 +830,23 @@ function RoomViewBody({
 
       {joined && (
         <>
+          {/* The session-ended notice, ONLY where the right panel is a drawer.
+              Where that panel is a column it carries this instead (see
+              `room-ended-panel` further down) — a two-line permanent alert on
+              top of a header that already holds the name, the clock, the
+              visibility switch, the docs popover and five channel tabs is the
+              single tallest thing on the page, and it is tallest exactly when
+              the room has nothing left to do.
+
+              NO inline `display`: the stylesheet picks between this and the
+              panel block on the one tier that decides column-vs-drawer, so
+              there is always one of them and never two, and an inline display
+              would beat the class that folds this away — the fourth time that
+              trap has been hit in this file's stylesheet. */}
           {expired && (
             <div
+              className="room-ended-notice"
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
                 marginTop: 12,
                 fontSize: 15,
                 color: t.text,
@@ -1002,13 +1013,19 @@ function RoomViewBody({
   const memberTotal = Object.keys(roster).length || memberCount;
 
   // A light, derived notifications feed — no table, just the room's live signals.
+  //
+  // An ended room says nothing here: it gets the alert block at the top of the
+  // panel instead, which is the same sentence the chrome used to carry. Both
+  // would be that sentence twice in one narrow column, a few hundred pixels
+  // apart. The clock entries below are the LIVE ones, and an ended room has no
+  // live clock left to report.
   const notifications: { id: string; tone: "risk" | "warn" | "info"; title: string; detail: string }[] = [];
-  if (expired) {
-    notifications.push({ id: "ended", tone: "risk", title: tr("room.notifSessionEnded"), detail: tr("room.notifReadOnly") });
-  } else if (remainingMs != null && remainingMs <= 120_000) {
-    notifications.push({ id: "soon", tone: "warn", title: tr("room.notifEndingSoon"), detail: `${fmtRemaining(remainingMs)} ${tr("room.notifLeftInSession")}` });
-  } else if (remainingMs != null) {
-    notifications.push({ id: "running", tone: "info", title: tr("room.notifInProgress"), detail: `${fmtRemaining(remainingMs)} ${tr("room.notifLeftPeriod")}` });
+  if (!expired && remainingMs != null) {
+    notifications.push(
+      remainingMs <= 120_000
+        ? { id: "soon", tone: "warn", title: tr("room.notifEndingSoon"), detail: `${fmtRemaining(remainingMs)} ${tr("room.notifLeftInSession")}` }
+        : { id: "running", tone: "info", title: tr("room.notifInProgress"), detail: `${fmtRemaining(remainingMs)} ${tr("room.notifLeftPeriod")}` },
+    );
   }
   notifications.push({
     id: "presence",
@@ -1035,7 +1052,48 @@ function RoomViewBody({
   };
 
   const roomPanel = joined ? (
-    <RightPanel theme={t} width={300} title={roomName} onCollapse={() => setRightOpen(false)}>
+    <RightPanel
+      theme={t}
+      width={300}
+      // The room asks for more than any other panel in the app, and has the
+      // most in it: an invite block with a copyable link, the notifications,
+      // the shared documents, the roster and the settings — plus the ended-
+      // session alert the chrome hands over here. At 300 the link wrapped and
+      // member names ellipsised early. Only from 1200px (see --app-right-w-wide
+      // in globals.css), because below that the extra width would come out of
+      // the conversation rather than out of slack.
+      wideWidth={348}
+      title={roomName}
+      onCollapse={() => setRightOpen(false)}
+    >
+      {/* Session ended. This is the notice the room chrome used to carry, moved
+          to the column that exists to hold the room's state — and rendered only
+          where that column IS a column; on a drawer tier the chrome keeps it,
+          since a notice behind a scrim is a notice nobody reads. */}
+      {expired && (
+        <div
+          className="room-ended-panel"
+          style={{
+            background: "rgba(239,68,68,0.1)",
+            border: "1px solid rgba(239,68,68,0.35)",
+            borderRadius: 12,
+            padding: "10px 12px",
+          }}
+        >
+          {/* Same weight and size as a notification row's title — this block is
+              an alert, not a section of its own, and should read as the most
+              serious entry in the column rather than a second heading style. */}
+          <div style={{ fontSize: 15, fontWeight: 700, color: t.text }}>
+            <span aria-hidden style={{ marginRight: 6 }}>🔒</span>
+            {tr("room.notifSessionEnded")}
+          </div>
+          <div style={{ fontSize: 14, lineHeight: 1.45, color: t.muted, marginTop: 3 }}>
+            {tr("room.expiredBannerA")} <strong>{tr("room.expiredBannerStrong")}</strong>
+            {tr("room.expiredBannerB")}
+          </div>
+        </div>
+      )}
+
       {/* Channels — PHONE ONLY, and the only channel switcher there: the tab
           strip lives on the room chrome, which is folded away at this tier.
           A full-width list rather than a row of pills, because this is now a

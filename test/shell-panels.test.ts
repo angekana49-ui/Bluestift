@@ -124,6 +124,63 @@ describe("the room's chrome and composer", () => {
     expect(tabsAt).toBeGreaterThan(branchEnd);
   });
 
+  it("announces an ended session exactly once, in a place that is on screen", () => {
+    /*
+     * Three bands, because the two things that could hold the notice appear at
+     * different widths: the room chrome exists from 700px up, the right panel
+     * is a column from 900px up. So >=900 the panel carries it, 700-899 the
+     * chrome does (the panel is a drawer behind a scrim there), and <700 the
+     * panel again — the chrome is folded away entirely at that tier.
+     *
+     * Both failure modes are silent in a type check and invisible unless you
+     * happen to resize a room that has actually run out: the notice shown
+     * twice a few hundred pixels apart, or a closed room that never says so.
+     */
+    expect(room).toMatch(/className="room-ended-notice"/);
+    expect(room).toMatch(/className="room-ended-panel"/);
+    // Defaults = the outer bands. The panel is the fallback, so a future tier
+    // edit can at worst duplicate the notice, never lose it.
+    expect(css).toMatch(/\.room-ended-notice \{\s*display: none/);
+    expect(css).toMatch(/\.room-ended-panel \{\s*display: block/);
+    // The middle band is the only one written out, and it must be the drawer
+    // tier intersected with "the chrome is on screen" — both halves of the
+    // `.app-right` overlay condition need the 700px floor, or a room between
+    // 700 and 899 shows it twice and a phone shows it not at all.
+    const swap = /@media \(min-width: 700px\) and \(max-width: 899px\),\s*\n?\s*\(min-width: 700px\) and \(max-width: 1366px\) and \(pointer: coarse\) \{([\s\S]*?)\n\}/.exec(css);
+    expect(swap).not.toBeNull();
+    expect(swap?.[1]).toMatch(/\.room-ended-notice \{\s*display: flex/);
+    expect(swap?.[1]).toMatch(/\.room-ended-panel \{\s*display: none/);
+    // The notice must not carry an inline `display` — it would outrank the
+    // class that folds it away, which this file's stylesheet has now lost to
+    // three separate times.
+    const notice = room.slice(room.indexOf('className="room-ended-notice"'));
+    expect(notice.slice(0, 400)).not.toMatch(/display: "flex"/);
+    // And the notifications feed must not repeat it: an ended room reports no
+    // live clock, so the whole branch is gated on `!expired`.
+    expect(room).toMatch(/if \(!expired && remainingMs != null\)/);
+    expect(room).not.toMatch(/id: "ended"/);
+  });
+
+  it("gives the room's panel its extra width only where there is room for it", () => {
+    // The room's panel holds more than any other (invite link, notifications,
+    // documents, roster, settings, and now the ended-session alert). It may
+    // take the extra width from 1200px up — NOT from 900px, where the panel
+    // becomes a column but the conversation between two rails is already the
+    // narrow thing.
+    expect(room).toMatch(/wideWidth=\{\d+\}/);
+    const shell = read("components/ui/shell.tsx");
+    expect(shell).toMatch(/--app-right-w-wide/);
+    expect(css).toMatch(
+      /@media \(min-width: 1200px\) \{\s*\.app-right \{\s*width: var\(--app-right-w-wide, var\(--app-right-w, 270px\)\)/,
+    );
+    // Opt-in: a panel that never asks falls back to its base width.
+    expect(shell).toMatch(/wideWidth != null \?/);
+    // And the drawer tier must still clamp to the BASE width — an overlay that
+    // took `wideWidth` would be wider than the panel the person can see.
+    const drawer = css.slice(css.indexOf('@media (max-width: 899px), (max-width: 1366px) and (pointer: coarse)'));
+    expect(drawer.slice(0, 600)).toMatch(/width: min\(var\(--app-right-w, 270px\), 86vw\)/);
+  });
+
   it("keeps one header on a phone, with nothing on the folded one lost", () => {
     // The chrome goes at the phone tier (stylesheet, not a JS branch: the
     // viewport is not knowable while rendering on the server)…

@@ -2049,7 +2049,6 @@ export const fr: Partial<Messages> = {
   "room.panelMembers": "Membres",
   "room.panelSettings": "Paramètres de la salle",
   "room.notifSessionEnded": "Session terminée",
-  "room.notifReadOnly": "La salle est désormais en lecture seule.",
   "room.notifEndingSoon": "Bientôt terminée",
   "room.notifLeftInSession": "restant dans cette session.",
   "room.notifInProgress": "Session en cours",

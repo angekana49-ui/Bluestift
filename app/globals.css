@@ -2354,6 +2354,47 @@ a {
   }
 }
 
+/* ---- "This session has ended" — said once, and in the place you can see ----
+
+   A closed room has one thing to announce and three possible places to put it,
+   because the two things that could hold it appear and disappear at DIFFERENT
+   widths: the room chrome exists from 700px up (the rule above), and the right
+   panel is a column from 900px up (`.app-right`, Tier 2). That leaves three
+   bands, and the notice belongs somewhere different in each:
+
+     >= 900px      the panel is a column beside the room -> the panel
+     700-899px     the panel is a drawer behind a scrim  -> the chrome
+     < 700px       the chrome is folded away entirely    -> the panel (drawer)
+
+   So the middle band is the exception, and it is the only one written out. The
+   two defaults cover the outer bands, which is also what makes the pair safe:
+   whatever a future tier change does, the fallback is that the panel carries
+   it, never that nothing does.
+
+   What this buys, and why it moved at all: at the top band the notice was a
+   permanent two-line alert stacked onto a header that already carries the room
+   name, the countdown, the visibility switch, the documents popover and five
+   channel tabs. It made the header tallest at the moment the room had least
+   left to do, and it pushed the conversation down to say something that does
+   not change again. The panel is where the room's state already lives. */
+.room-ended-notice {
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+.room-ended-panel {
+  display: block;
+}
+@media (min-width: 700px) and (max-width: 899px),
+  (min-width: 700px) and (max-width: 1366px) and (pointer: coarse) {
+  .room-ended-notice {
+    display: flex;
+  }
+  .room-ended-panel {
+    display: none;
+  }
+}
+
 /* ---- The 320px class ----
    Swapping the theme pill for the icon clears the bar at 360px and up. At 320
    (iPhone SE 1st gen, a fold's cover screen) it is still 32px over: 262px of
@@ -2568,6 +2609,18 @@ a {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+/* A panel that carries more than the others may ask for more room — but only
+   where the room exists. `--app-right-w-wide` is opt-in (RightPanel sets it
+   solely when a call site passes `wideWidth`), and it starts at 1200px rather
+   than at the 900px where this panel becomes a column: between two inline
+   rails the content is what is short of width, not the panel, and at 900px the
+   conversation is already down to ~384px. Above 1200 the difference comes out
+   of slack instead. */
+@media (min-width: 1200px) {
+  .app-right {
+    width: var(--app-right-w-wide, var(--app-right-w, 270px));
+  }
 }
 
 /* Shown only in the smallest tier — carries a drawer toggle on each side. */
