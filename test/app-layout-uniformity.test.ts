@@ -88,6 +88,17 @@ describe("no screen re-invents the page frame", () => {
   });
 });
 
+describe("a list row keeps its name legible on a phone", () => {
+  it("the name flexes and the secondary detail yields below the phone tier", () => {
+    const tools = read("components/tools.tsx");
+    const css = read("app/globals.css");
+    // `name · detail · button · button`, where only the name is flexible: at
+    // 375px that put "Chapit…" next to a full "application/pdf".
+    expect(tools).toMatch(/className="app-row-meta"/);
+    expect(css).toMatch(/@media \(max-width: 560px\) \{\s*\.app-row-meta \{\s*display: none/);
+  });
+});
+
 describe("the chat's three subtrees share one column", () => {
   const surface = read("components/chat/chat-surface.tsx");
   const composer = read("components/chat/chat-composer.tsx");

@@ -2609,6 +2609,18 @@ a {
   }
 }
 
+/* -- Secondary row detail, on a phone ------------------------------ */
+/* A list row is `name · detail · button · button`, and only the name is
+   flexible — so the detail (a MIME type, a date) and the buttons keep their
+   full width while the name, the one thing that identifies the row, is
+   squeezed to a few characters and an ellipsis. Below the phone tier the
+   detail yields: it is the only item on the row nobody came to read. */
+@media (max-width: 560px) {
+  .app-row-meta {
+    display: none;
+  }
+}
+
 /* Drawer dimmer — active whenever a panel is an overlay: < 900px, or any
    touch-primary screen up to 1366px (see the Tier 2 note above), covering
    the tablet/big-phone right-drawer and the phone sidebar+right drawers.

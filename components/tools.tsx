@@ -621,8 +621,13 @@ function LibraryRow({
 }) {
   return (
     <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "8px 0", borderTop: `1px solid ${t.cardBorder}`, opacity: dimmed ? 0.62 : 1 }}>
-      <span style={{ flex: 1, fontSize: 15, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
-      {meta && <span style={{ color: t.mutedLight, fontSize: 13, flex: "none" }}>{meta}</span>}
+      <span style={{ flex: 1, minWidth: 0, fontSize: 15, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+      {/* The type or the date, and the first thing to go on a phone: it is
+          `flex: none` next to two buttons that are also `flex: none`, so on a
+          375px row it was taking 92px off the one item that says WHICH file
+          this is — "Chapitre 7 — Les fonctions affines.pdf" rendered as
+          "Chapit…" beside a perfectly legible "application/pdf". */}
+      {meta && <span className="app-row-meta" style={{ color: t.mutedLight, fontSize: 13, flex: "none" }}>{meta}</span>}
       {action2 && onAction2 && (
         <button style={ghost(t)} onClick={onAction2}>
           {action2}
