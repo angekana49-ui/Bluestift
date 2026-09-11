@@ -60,6 +60,12 @@ export const COMPOSER_ACCEPT =
  * inline error line. `centered` places it under the welcome greeting; otherwise it
  * pins to the bottom edge with a top border. `extraAction` slots a surface-specific
  * control (e.g. the room's "Ask Raya") just before the send button.
+ *
+ * Its SHAPE is the stylesheet's call, not this file's: below 900px every surface
+ * gets two tiers — the growing text box on a full-width row, every control on a
+ * second row under it — and from 900px up it flattens back to the single row.
+ * See `.chat-composer` in globals.css, and `stacked` below for the room's
+ * exception.
  */
 /**
  * How many messages left before the composer starts saying so. Flat rather
@@ -107,14 +113,16 @@ export function ChatComposer({
   /** `config.aiModeSwitcher` from the surface — off for Raya-for-Schools. */
   showAiMode?: boolean;
   /**
-   * Two tiers instead of one: the text box gets a full-width row of its own and
-   * every control drops to a second row beneath it.
+   * Pin the two tiers at EVERY width — the text box on a full-width row of its
+   * own with every control beneath it.
    *
-   * The room's group chat asks for this because it carries one control the other
-   * surfaces do not — "Ask Raya" — and a labelled button next to voice, attach,
-   * the mode pill and send left the text box a narrow slot in the middle of its
-   * own composer. Opt-in rather than the default: the solo and Schools chats
-   * have no such button and their single row is not under pressure.
+   * The two-tier shape is no longer opt-in: below 900px every surface wears it
+   * (see `.chat-composer` in globals.css), because a phone cannot give a usable
+   * text box AND four round buttons one row. What this flag buys is the same
+   * shape on a WIDE screen, and only the room's group chat wants that: it is the
+   * one composer carrying a labelled button — "Ask Raya" — next to the round
+   * ones, which left the field a narrow slot in the middle of its own composer
+   * even on a desktop.
    */
   stacked?: boolean;
 }) {
@@ -265,9 +273,13 @@ export function ChatComposer({
             placeholder={placeholder}
             rows={1}
             // `no-scrollbar-arrows` hides the native scrollbar (Firefox +
-            // WebKit) so a long message has no chrome — the caret and drag still
-            // scroll it. See globals.css.
-            className="no-scrollbar-arrows"
+            // WebKit) so a long message has no chrome — the caret and drag
+            // still scroll it. The field's BOX — fill, border, radius, padding,
+            // and whether it is a tier of its own or a cell in a row — is
+            // `.chat-composer-field` in globals.css, because that is the half
+            // of it that changes with the viewport. What is width-independent
+            // stays here.
+            className="no-scrollbar-arrows chat-composer-field"
             style={{
               minWidth: 100,
               resize: "none",
@@ -278,25 +290,6 @@ export function ChatComposer({
               fontFamily: "inherit",
               color: t.text,
               outline: "none",
-              // Stacked, the field is the top half of ONE bounded surface, so it
-              // drops its own border, radius and fill — the shell below carries
-              // them. Left alone it would read as a pill sitting on a card.
-              ...(stacked
-                ? {
-                    width: "100%",
-                    boxSizing: "border-box" as const,
-                    background: "transparent",
-                    border: "none",
-                    borderRadius: 0,
-                    padding: "2px 6px 2px 4px",
-                  }
-                : {
-                    flex: 1,
-                    background: t.inputBg,
-                    border: `1px solid ${t.inputBorder}`,
-                    borderRadius: 20,
-                    padding: "10px 18px",
-                  }),
             }}
           />
           );
@@ -328,6 +321,7 @@ export function ChatComposer({
           const sendBtn = (
             <span
               role="button"
+              className="chat-composer-send"
               onClick={() => onSend()}
               style={{
                 width: 38,
@@ -349,58 +343,58 @@ export function ChatComposer({
           );
           const modeBtn = showAiMode ? <AiModePicker theme={t} state={aiMode} /> : null;
 
-          if (stacked) {
-            return (
-              <div style={{ padding: floating ? "2px 0 10px" : "16px 0" }}>
-                {/* ONE surface, two tiers — not a field with buttons loose under
-                    it. The border, fill and radius live here so the whole thing
-                    reads as a single object, and `.chat-composer-box` in
-                    globals.css lights the same border on focus-within, which is
-                    the affordance the textarea gave up when it went transparent.
-
-                    The fill is opaque (`cardBg`, not the field's own tint) so the
-                    thread cannot show through the thing floating over it. */}
-                <div
-                  className="chat-composer-box"
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 6,
-                    background: floating ? t.cardBg : t.inputBg,
-                    border: `1px solid ${t.inputBorder}`,
-                    borderRadius: 22,
-                    padding: "9px 10px 8px 14px",
-                    boxShadow: floating
-                      ? t.dark
-                        ? "0 6px 22px rgba(0,0,0,0.42)"
-                        : "0 6px 22px rgba(15,23,42,0.13)"
-                      : undefined,
-                  }}
-                >
-                  {textBox}
-                  {/* Send stays hard right — the same corner it occupies in a
-                      single row, so the muscle memory survives the new shape. */}
-                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    {voiceBtn}
+          /*
+           * ONE tree, both shapes.
+           *
+           * The composer used to render two different subtrees — a flex row, or
+           * a bounded two-tier box — chosen in JS. That was fine while the choice
+           * was per-surface and fixed. It is not fine now that the choice is the
+           * VIEWPORT's: deciding it here would mean measuring the window during
+           * render, which the server cannot do, so every phone would paint the
+           * desktop row for a frame and then jump.
+           *
+           * So the markup below is always the two-tier shape and the stylesheet
+           * flattens it back into a single row at 900px and up (unless `stacked`
+           * pins it). `.chat-composer-lead` / `-tail` are `display: contents`
+           * wrappers: they exist to carry the flex `order` that the flattened row
+           * needs — voice ahead of the field, everything else behind it — without
+           * putting a box of their own between the buttons and their flex line.
+           */
+          return (
+            <div
+              className={
+                "chat-composer" + (stacked ? " is-stacked" : "") + (floating ? " is-floating" : "")
+              }
+              style={{
+                // Theme first, layout second: the stylesheet owns which of these
+                // apply at a given width, but only the theme knows the colours.
+                ["--composer-box-bg" as string]: floating ? t.cardBg : t.inputBg,
+                ["--composer-field-bg" as string]: t.inputBg,
+                ["--composer-border" as string]: t.inputBorder,
+                ["--composer-shadow" as string]: t.dark
+                  ? "0 6px 22px rgba(0,0,0,0.42)"
+                  : "0 6px 22px rgba(15,23,42,0.13)",
+              }}
+            >
+              {/* Two tiers, ONE surface — not a field with buttons loose under
+                  it. The border, fill and radius live on this box, and
+                  `.chat-composer-box:focus-within` lights the border, which is
+                  the affordance the textarea gives up when it goes transparent. */}
+              <div className="chat-composer-box">
+                {textBox}
+                {/* Send stays hard right — the same corner it occupies in the
+                    single row, so the muscle memory survives the new shape. */}
+                <div className="chat-composer-actions">
+                  <span className="chat-composer-lead">{voiceBtn}</span>
+                  <span className="chat-composer-tail">
                     {uploadBtn}
                     {modeBtn}
                     {extraAction}
-                    <span style={{ flex: 1 }} />
-                    {sendBtn}
-                  </div>
+                  </span>
+                  <span className="chat-composer-spacer" />
+                  {sendBtn}
                 </div>
               </div>
-            );
-          }
-
-          return (
-            <div style={{ padding: "16px 0", display: "flex", gap: 8, alignItems: "flex-end" }}>
-              {voiceBtn}
-              {textBox}
-              {uploadBtn}
-              {modeBtn}
-              {extraAction}
-              {sendBtn}
             </div>
           );
         })()}

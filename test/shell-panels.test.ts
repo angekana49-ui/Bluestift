@@ -106,11 +106,27 @@ describe("the room's chrome and composer", () => {
     expect(tabsAt).toBeGreaterThan(branchEnd);
   });
 
-  it("stacks only the room's composer, not every surface", () => {
+  it("pins the room's composer to two tiers at every width", () => {
     // `\r?` because this repo checks out CRLF on Windows.
     expect(group).toMatch(/\r?\n\s*stacked\s*\r?\n/);
-    // The shared default stays one row for the solo and Schools chats.
+    // Everywhere else the flag is off, which now means "two tiers below the
+    // desktop tier, one row above it" rather than "one row always".
     expect(composer).toMatch(/stacked = false/);
+  });
+
+  it("gives every surface the two-tier composer on a small screen", () => {
+    // The shape is the stylesheet's call, not the component's: one markup tree
+    // is rendered at all widths and flattened back to a row from 900px up. A JS
+    // breakpoint here would paint the desktop row on a phone for a frame.
+    expect(composer).not.toMatch(/if \(stacked\) \{/);
+    expect(composer).toMatch(/className="chat-composer-actions"/);
+    const wide = /@media \(min-width: 900px\) \{([\s\S]*?)\n\}/.exec(
+      css.slice(css.indexOf(".chat-composer {")),
+    )?.[1] ?? "";
+    // The flattened row is what the wide tier opts into, and `is-stacked` opts
+    // back out of it — so the default below 900px is the two-tier box.
+    expect(wide).toMatch(/\.chat-composer:not\(\.is-stacked\) \.chat-composer-box \{/);
+    expect(wide).toMatch(/flex-direction: row/);
   });
 
   it("gives the stacked box a focus ring, since the field gave up its own", () => {
