@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, IBM_Plex_Sans, Caveat, Instrument_Serif } from "next/font/google";
+import { Inter, Space_Grotesk, IBM_Plex_Sans, Caveat, Instrument_Serif } from "next/font/google";
 import { headers } from "next/headers";
 import { THEME_COLOR_LIGHT } from "@/lib/theme-color";
 import { startupImages } from "@/lib/launch-screens";
@@ -35,15 +35,18 @@ export const dynamic = "force-dynamic";
  * One source of truth for the product typeface (roles live in globals.css
  * `:root` and components/ui/tokens.ts).
  *
- * Inter now carries BOTH body and display, which is the arrangement Resend
- * runs its own product on — their handbook lists Inter as the "Product" face,
- * with ABC Favorit reserved for display and Domaine Display for editorial.
- * Those two are licensed retail faces; we name them first in the stack and
- * ship neither, so buying a licence is a drop-in and nothing here is pirated.
+ * TWO faces, which is Resend's own arrangement read off their live CSS rather
+ * than guessed at: `html` resolves to --font-sans -> Inter, and only
+ * `.font-display` resolves to --font-display -> ABC Favorit. So body text is
+ * Inter — the same characters we already shipped — and the titles are a
+ * different face entirely. That split is the whole of the difference, and
+ * setting Inter tighter was never going to close it: same shapes, same look.
  *
- * What replaced IBM Plex Sans as the display face is therefore not another
- * file but Inter set the way a display face is set — 600 weight at -0.045em
- * rather than 800 at -0.01em (see `displayType` in tokens.ts).
+ * Inter therefore keeps the body, and Space Grotesk takes the titles. ABC
+ * Favorit is Dinamo's retail face and stays named-but-never-shipped (see
+ * globals.css); Space Grotesk is the free grotesque that gets closest to its
+ * squared-off, slightly odd character, and unlike Inter it is visibly NOT the
+ * body face — which is the point of a display face.
  */
 const inter = Inter({
   subsets: ["latin"],
@@ -64,6 +67,22 @@ const inter = Inter({
  * appears on two cards has no business in the critical path of the tutor. Same
  * reasoning as Caveat and Instrument Serif below.
  */
+/*
+ * The display face: titles, nav, page headings — everything `displayType()`
+ * touches. Preloaded, unlike the three accent faces below, because the app
+ * chrome shows it on first paint of every single page.
+ *
+ * Three weights, no more. 500 is the resting weight (Resend sets display type
+ * at 500), 600 the default `displayType` hands out, 700 for a heading that has
+ * to out-rank another heading. Space Grotesk has no 800 and wants none — the
+ * old 800-everywhere setting is exactly what we left behind.
+ */
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-space-grotesk",
+  display: "swap",
+});
 const plex = IBM_Plex_Sans({
   subsets: ["latin"],
   weight: ["500", "600", "700"],
@@ -184,7 +203,7 @@ export default async function RootLayout({
     <html
       lang="en"
       data-theme="day"
-      className={`${inter.variable} ${plex.variable} ${caveat.variable} ${instrumentSerif.variable}`}
+      className={`${inter.variable} ${spaceGrotesk.variable} ${plex.variable} ${caveat.variable} ${instrumentSerif.variable}`}
     >
       <body>
         {/* Organization + WebSite JSON-LD: who's behind this site and what

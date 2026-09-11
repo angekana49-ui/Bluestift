@@ -45,22 +45,35 @@
      licence, drop the files in, @font-face them under these exact names, and
      every heading in the product picks them up with no code change.
 
-     Until then the stack resolves to Inter, which is not a consolation prize:
-     Inter IS what Resend runs its own product UI on, and it is already the face
-     we ship. What carries the personality in the meantime is the TUNING below,
-     not the file — Resend sets display type at 500 weight with -0.045em of
-     tracking where we were setting 800 with -0.01em. Lighter and much tighter
-     is most of the distance between their chrome and generic dashboard type. */
-  --font-display: "ABC Favorit", var(--font-inter), "Inter", ui-sans-serif,
-    system-ui, sans-serif;
+     Behind ABC Favorit sits SPACE GROTESK, and the reason it is not Inter is
+     worth writing down, because Inter was tried first and was wrong.
+
+     Resend's live CSS resolves `html` to --font-sans -> Inter and only
+     `.font-display` to --font-display -> ABC Favorit. Inter therefore IS their
+     body face — and ours — so setting our titles in Inter, however tightly
+     tracked, produced titles made of the same characters as the paragraph
+     under them. Which is precisely what a reader sees and calls "no
+     personality": not a wrong font, an absent distinction. A display face has
+     to differ from the body face or it is not doing the one job it has.
+
+     Space Grotesk is the free grotesque closest to ABC Favorit's character —
+     squared-off terminals, tight apertures, a little odd on purpose — and it
+     is unmistakably not Inter at a glance, which is the actual requirement. */
+  --font-display: "ABC Favorit", var(--font-space-grotesk), "Space Grotesk",
+    ui-sans-serif, system-ui, sans-serif;
   /* The editorial accent — Resend's Domaine Display slot. Instrument Serif is
      already loaded for the Raya wordmark and fills the same role. */
   --font-editorial: "Domaine Display", var(--font-instrument-serif),
     "Instrument Serif", Georgia, serif;
-  /* Display tracking is tight enough that it has to scale WITH the type:
-     -0.045em is right on a 34px heading and welds a 13px label shut, so the
-     micro end takes --track-tight instead. */
-  --track-display: -0.045em;
+  /* Display tracking scales WITH the type: what is right on a 34px heading
+     welds a 13px label shut, so the micro end takes --track-tight instead.
+
+     -0.035em, not Resend's -0.045em, and the difference is the face. Their
+     number is tuned for ABC Favorit, which is narrow with tight apertures and
+     can take it. Space Grotesk is wider and rounder; at -0.045em its large
+     headings start closing up around the round letters. Copying the number
+     without the metrics it was measured against is how tracking goes wrong. */
+  --track-display: -0.035em;
   --track-tight: -0.02em;
 }
 
@@ -78,6 +91,26 @@
   height: 0;
 }
 
+/* THE PRODUCT FACE, AND THE BUG THAT HID FOR MONTHS.
+   This used to be a bare system stack — ui-sans-serif, system-ui, "Segoe UI",
+   Roboto. Which means the connected app was NOT rendering in Inter, or in any
+   face this repo ships: it rendered in whatever the operating system hands out.
+   Segoe UI on Windows, Roboto on Android, San Francisco on a Mac.
+
+   Nothing pointed at it. Inter was loaded, `--font-inter` was defined, a `sans`
+   token sat in components/ui/tokens.ts — and not one file imported it. The app
+   styles inline with `fontFamily: "inherit"` almost everywhere, so every one of
+   those inherited from this rule, and this rule named the OS.
+
+   That is the real answer to "the interface has no personality": it was wearing
+   the host operating system's own UI font, which is the most familiar and least
+   distinctive typeface on any given machine by construction. Restyling headings
+   could never fix it — headings are a rounding error next to every label,
+   message, button and table cell in the product.
+
+   One line now decides it for both apps. `--font-display` is Space Grotesk (see
+   the note in :root); the billing cards override it back, and nothing else
+   should. */
 html,
 body {
   max-width: 100vw;
@@ -85,9 +118,7 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family:
-    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica,
-    Arial, sans-serif;
+  font-family: var(--font-display);
 }
 
 a {
@@ -3074,6 +3105,27 @@ a {
 }
 .navitem:hover {
   background: var(--app-hover-bg);
+}
+/* Nav icons are drawn heavier than icons elsewhere, and the current one
+   heavier still.
+
+   Every icon in the set is a 1.7–2.2 stroke (components/ui/icons.tsx), tuned
+   to sit quietly beside body text. In the nav rail they are not beside body
+   text — they ARE the row at the collapsed tier, and they are the only thing
+   distinguishing five otherwise identical rows. A hairline there reads as
+   decoration; weight reads as a control.
+
+   Doing it in CSS rather than per call site means the rail's icons cannot
+   drift from each other, and an icon added to a nav row next month is heavy
+   without anyone remembering to make it so. */
+.navitem svg {
+  stroke-width: 2.1;
+  transition: stroke-width 0.2s ease;
+}
+/* The active row gets the extra half-step. Colour alone was carrying "you are
+   here" — and colour is the one channel a colour-blind user may not have. */
+.navitem[data-active="true"] svg {
+  stroke-width: 2.6;
 }
 
 /* ============================================================

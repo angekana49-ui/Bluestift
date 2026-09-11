@@ -60,8 +60,31 @@ describe("the display face is named once", () => {
   it("is declared as a role, not as a family, in the stylesheet", () => {
     expect(css).toMatch(/--font-display:/);
     expect(css).toMatch(/--font-editorial:/);
-    // The tracking that makes display type look set rather than defaulted.
-    expect(css).toMatch(/--track-display: -0\.045em/);
+    // Tracking exists and is negative — the number itself belongs to whichever
+    // face is in the stack (ABC Favorit takes -0.045em, Space Grotesk wants
+    // less), so pinning the exact value here would only fight the next person
+    // who changes the face properly.
+    expect(css).toMatch(/--track-display: -0\.0\d+em/);
+  });
+
+  it("is not the body face — which is the entire job of a display face", () => {
+    /*
+     * The rule this test exists for. An earlier pass set the display face to
+     * Inter, which was already the body face: titles then had the same shapes
+     * as the paragraph under them, and the result read as having no
+     * personality at all rather than as a typographic choice. It is a mistake
+     * that type-checks, builds, and looks fine in a diff.
+     *
+     * Resend keeps the two apart in their own CSS (`html` -> Inter,
+     * `.font-display` -> ABC Favorit) and so do we.
+     */
+    const sans = /export const sans = "([^"]+)"/.exec(tokens)?.[1] ?? "";
+    const disp = /export const display =\s+"([^"]+)"/.exec(tokens)?.[1] ?? "";
+    expect(sans).toContain("--font-inter");
+    expect(
+      disp,
+      "the display face resolves to the body face — titles will look like body copy",
+    ).not.toContain("--font-inter");
   });
 
   it("agrees with the token that mirrors it for inline styles", () => {
@@ -93,6 +116,36 @@ describe("the display face is named once", () => {
     for (const paid of ["ABC_Favorit", "Domaine_Display"]) {
       expect(layout, `${paid} must not be loaded as a file`).not.toContain(paid);
     }
+  });
+});
+
+describe("the app wears a face this repo actually ships", () => {
+  it("does not hand the whole product back to the operating system", () => {
+    /*
+     * THE BUG THIS EXISTS FOR, which shipped and went unnoticed for months.
+     *
+     * `html, body` named a bare system stack — ui-sans-serif, system-ui,
+     * "Segoe UI", Roboto — so the connected app rendered in whatever font the
+     * visitor's OS supplies. Inter was downloaded on every page load and
+     * applied to nothing. The app styles inline with `fontFamily: "inherit"`
+     * almost everywhere, so every label, message, button and cell inherited
+     * the OS font.
+     *
+     * Nothing catches this. It type-checks, it builds, it renders, and on a
+     * developer's machine it looks like a deliberate and perfectly reasonable
+     * neutral sans — because the OS UI font is, by design, the most normal
+     * typeface on that machine. It only reads as wrong in the aggregate, as
+     * "the product has no personality", which is not a bug report anyone can
+     * act on.
+     */
+    const body = /html,\s*body \{([^}]*)\}/.exec(css)?.[1];
+    expect(body, "no `html, body` rule found in globals.css").toBeDefined();
+    expect(body).toMatch(/font-family:/);
+    expect(
+      body,
+      "html/body must resolve to a --font-* role this repo loads, not to the " +
+        "visitor's operating system font",
+    ).toMatch(/font-family:\s*var\(--font-[a-z-]+\)/);
   });
 });
 

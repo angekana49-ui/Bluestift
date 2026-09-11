@@ -226,19 +226,36 @@ export function getTheme(isDark: boolean): AppTheme {
  *
  * The faces themselves are loaded once, by app/layout.tsx.
  */
+/**
+ * Inter — the long-form reading face, and NOT what the app is set in.
+ *
+ * The product's face is declared once, on `html, body` in globals.css, and is
+ * the display face. This token exists for the opposite case: a surface with
+ * paragraphs to be read rather than chrome to be recognised. Nothing imports
+ * it today, which is deliberate and worth knowing — it was previously unused
+ * by ACCIDENT, while body text quietly rendered in the operating system's own
+ * UI font. Reach for it if a reading surface ever needs a neutral face back.
+ */
 export const sans = "var(--font-inter),'Inter',ui-sans-serif,system-ui,sans-serif";
 /**
  * The display face — headings, nav, page titles, anything that sets a tone
  * rather than being read in bulk.
  *
+ * It must NOT be the body face. That is the whole job, and it is the thing an
+ * earlier pass got wrong: it set the titles in Inter, tracked hard, next to
+ * body copy also in Inter. Tight Inter over Inter is still one voice, and a
+ * reader registers that as having no personality rather than as a font choice.
+ * Resend's own CSS keeps the two apart — Inter on `html`, ABC Favorit on
+ * `.font-display` — and the gap between them is the effect.
+ *
  * "ABC Favorit" leads the stack and is shipped by nobody: it is Dinamo's retail
  * face, the one Resend actually uses, and naming it costs nothing while making
  * a purchased licence a drop-in (add the @font-face, the whole product moves).
- * Behind it is Inter — which is not a fallback so much as the right answer,
- * since Inter is the face Resend runs its own product UI on.
+ * Behind it, Space Grotesk — free, and the closest thing to Favorit's
+ * squared-off character that we can legally serve.
  */
 export const display =
-  "'ABC Favorit',var(--font-inter),'Inter',ui-sans-serif,system-ui,sans-serif";
+  "'ABC Favorit',var(--font-space-grotesk),'Space Grotesk',ui-sans-serif,system-ui,sans-serif";
 /** Editorial accent — the Domaine Display slot, standing on Instrument Serif. */
 export const editorial =
   "'Domaine Display',var(--font-instrument-serif),'Instrument Serif',Georgia,serif";
@@ -262,11 +279,15 @@ export const hand = "var(--font-caveat),'Caveat',cursive";
  * Display type reads as designed rather than defaulted when it is set tight,
  * and Resend sets it VERY tight — -0.045em at 500 weight. We were setting
  * -0.01em at 800: heavy and loose, which is the house style of every dashboard
- * generated in an afternoon. The scale below is per-size because -0.045em is
- * correct on a 34px heading and illegible on a 13px label.
+ * generated in an afternoon. The scale below is per-size because what is
+ * correct on a 34px heading is illegible on a 13px label.
+ *
+ * Ours stops at -0.035em rather than copying Resend's -0.045em: their number
+ * was measured against ABC Favorit, which is narrower and tighter-apertured
+ * than Space Grotesk. A tracking value belongs to a face, not to a brand.
  */
 export const tracking = {
-  display: "-0.045em", // 24px and up — page titles, hero numerals
+  display: "-0.035em", // 24px and up — page titles, hero numerals
   tight: "-0.02em", // 17–23px — card and section headings
   snug: "-0.01em", // 15–16px — nav, chips, dense headers
   normal: "0",
@@ -304,9 +325,15 @@ export function displayType(size: number, weight: number = 600) {
  * re-scaled from one place.
  */
 export const text = {
-  xs: 13, // micro-labels, status, timestamps — the floor
-  sm: 15, // secondary text, chips, captions, inline errors
-  base: 16, // body copy, message bubbles, inputs — the web-standard body size
+  // The reading band moved up one step with the 541 inline sizes beside it
+  // (same pass, same reason): 222 places in the app rendered at 13px, which is
+  // small for anyone and small twice over for the children this teaches. The
+  // token and the literals have to agree or the scale means nothing.
+  xs: 14, // micro-labels, status, timestamps — the floor
+  sm: 16, // secondary text, chips, captions, inline errors
+  base: 17, // body copy, message bubbles, inputs
+  // Display sizes are unchanged. They were retuned in this same release with
+  // their own tracking (`displayType`), and growing them again would undo it.
   lg: 20, // emphasis, sub-headings
   xl: 26, // card/section headings, KPI values
   "2xl": 34, // page headings

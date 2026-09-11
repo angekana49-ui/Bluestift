@@ -368,6 +368,9 @@ export function NavItem({
   return (
     <div
       className="navitem app-rail-center"
+      /* Read by the stylesheet, which draws the current row's icon heavier —
+         see the `.navitem svg` rules in globals.css. */
+      data-active={active}
       onClick={(e) => {
         e.stopPropagation();
         onClick();
@@ -456,7 +459,7 @@ export function SidebarProfile({
           overflow: "hidden",
           background: avatarUrl ? "transparent" : avatarBg,
           color: "#fff",
-          fontSize: 13,
+          fontSize: 14,
           fontWeight: 700,
           display: "flex",
           alignItems: "center",
@@ -479,7 +482,7 @@ export function SidebarProfile({
         <span className="app-rail-hide" style={{ display: "flex", flexDirection: "column", minWidth: 0, lineHeight: 1.25 }}>
           <span
             style={{
-              fontSize: 14,
+              fontSize: 15,
               color: t.sidebarText,
               fontWeight: subtitle ? 600 : 400,
               overflow: "hidden",
@@ -492,7 +495,7 @@ export function SidebarProfile({
           {subtitle && (
             <span
               style={{
-                fontSize: 13,
+                fontSize: 14,
                 color: t.sidebarMuted,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
