@@ -13,7 +13,7 @@ import { useRightPanel } from "@/components/ui/use-right-panel";
 import { useLocale } from "@/lib/use-locale";
 import { RayaShell } from "@/components/raya/raya-shell";
 import { RightPanel } from "@/components/ui/shell";
-import { IconKernel, IconSummary } from "@/components/ui/icons";
+import { IconFile, IconKernel, IconSummary } from "@/components/ui/icons";
 import { type AppTheme } from "@/components/ui/tokens";
 import { initialsOf, avatarInitials } from "@/lib/name";
 import { useChatEngine } from "@/components/chat/use-chat-engine";
@@ -284,6 +284,58 @@ function ChatBody({
 
   const rightPanel = rightOpen ? (
     <RightPanel theme={t} width={300} title={tr("chatHome.forYou")} onCollapse={() => setRightOpen(false)}>
+      {/* PHONE ONLY — what the session header carries at every other width.
+          It is folded away below 700px (`.chat-session-header.is-foldable`),
+          where the shell's header already names the conversation, so the two
+          controls on it that have nowhere else to go come here. The Kernel
+          pill does not: "My Kernel" is a nav item three inches to the left. */}
+      <div className="app-only-phone">
+        <div style={panelSectionTitle(t)}>{tr("chatHome.sessionTitle")}</div>
+        <button
+          type="button"
+          onClick={() => !busy && messages.length > 0 && onAnalyze()}
+          disabled={busy || messages.length === 0}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            width: "100%",
+            textAlign: "left",
+            background: "transparent",
+            border: `1px solid ${t.cardBorder}`,
+            borderRadius: 10,
+            padding: "10px 12px",
+            fontSize: 14,
+            fontWeight: 600,
+            fontFamily: "inherit",
+            color: t.text,
+            cursor: busy || messages.length === 0 ? "default" : "pointer",
+            opacity: busy || messages.length === 0 ? 0.45 : 1,
+          }}
+        >
+          <IconSummary size={15} />
+          {tr("chatHome.analyze")}
+        </button>
+        <div style={{ ...panelSectionTitle(t), marginTop: 14 }}>{tr("chat.sessionDocuments")}</div>
+        {engine.sessionFiles.length === 0 ? (
+          <div style={{ fontSize: 13, color: t.muted }}>{tr("chat.noDocuments")}</div>
+        ) : (
+          engine.sessionFiles.map((f) => (
+            <div
+              key={f.id}
+              onClick={() => engine.setPreview(f)}
+              title={f.file_name ?? undefined}
+              style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 4px", borderRadius: 9, cursor: "pointer" }}
+            >
+              <IconFile size={13} style={{ color: t.muted }} />
+              <span style={{ minWidth: 0, flex: 1, fontSize: 13, fontWeight: 600, color: t.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {f.file_name}
+              </span>
+            </div>
+          ))
+        )}
+      </div>
+
       <div>
         {recommendations.length === 0 && (
           <div style={{ fontSize: 13, color: t.muted }}>{tr("chatHome.noRecommendationsYet")}</div>
@@ -330,6 +382,9 @@ function ChatBody({
       chatHistory={chatHistory}
       rightPanel={rightPanel}
       onToggleRight={() => setRightOpen((o) => !o)}
+      // The phone has one header, and it is this one — so it names the
+      // conversation rather than repeating the word the sidebar already shows.
+      mobileTitle={engine.activeTitle}
     >
       <ChatSurface
         theme={t}
@@ -337,6 +392,7 @@ function ChatBody({
         config={RAYA_CONFIG}
         greetingName={greetingName}
         headerActions={headerActions}
+        foldHeaderOnPhone
         onToggleRight={() => setRightOpen((o) => !o)}
         rightOpen={rightOpen}
         userInitials={avatarInitials(studentName)}
@@ -345,6 +401,17 @@ function ChatBody({
     </RayaShell>
   );
 }
+
+/** Same section label the room's panel uses — these two panels sit in the same
+ *  app and should not each invent their own heading. */
+const panelSectionTitle = (t: AppTheme): React.CSSProperties => ({
+  fontSize: 13,
+  fontWeight: 700,
+  letterSpacing: 0.3,
+  textTransform: "uppercase",
+  color: t.mutedLight,
+  margin: "0 0 8px",
+});
 
 const pillBtn = (t: AppTheme): React.CSSProperties => ({
   fontSize: 13,

@@ -49,6 +49,7 @@ export function ChatSurface({
   onToggleRight,
   rightOpen,
   hideHeader = false,
+  foldHeaderOnPhone = false,
   extraComposerAction,
   userInitials = "ME",
   userAvatarUrl,
@@ -63,6 +64,18 @@ export function ChatSurface({
   /** Embedded surfaces (e.g. the private-room channel) hide the session header
    *  because their host already provides one. */
   hideHeader?: boolean;
+  /**
+   * Fold the session header away on a phone, where the shell already draws one.
+   *
+   * Opt-in per surface, because it is only safe where everything on that header
+   * has another home at that tier: the solo Raya chat passes it (the title goes
+   * up to the shell header, Analyze and the session documents go into the right
+   * panel, and the Kernel link is a nav item), while Raya-for-Schools does not —
+   * its header carries the conversation-history control and nothing else holds
+   * that. Same 699px tier as the room's chrome, and for the same reason: that
+   * is the width at which `.app-mobile-header` exists to take over.
+   */
+  foldHeaderOnPhone?: boolean;
   /** Surface-specific composer control slotted before the send button. */
   extraComposerAction?: ReactNode;
   /** Avatar shown on the current user's bubbles (Raya's own is always its logo). */
@@ -194,9 +207,13 @@ export function ChatSurface({
         {/* header */}
         {!hideHeader && (
         <div
+          className={foldHeaderOnPhone ? "chat-session-header is-foldable" : "chat-session-header"}
+          // NO `display` here: `.chat-session-header` sets it, both ways. An
+          // inline one outranks the class that folds this away on a phone, and
+          // the header simply ignores the rule — the third time this file's
+          // stylesheet has been beaten by an inline display.
           style={{
             position: "relative",
-            display: "flex",
             alignItems: "center",
             gap: 10,
             padding: RETRACT_HEADER_PAD,

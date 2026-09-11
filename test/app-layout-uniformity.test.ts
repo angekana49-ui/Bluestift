@@ -125,7 +125,10 @@ describe("the chat's three subtrees share one column", () => {
 
   it(".chat-col puts the gutter inside its max-width", () => {
     const css = read("app/globals.css");
-    const block = /\.chat-col\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
+    // Anchored at the start of a line: `.chat-col` also appears as the tail of
+    // descendant selectors (the composer strip sets its top padding), and an
+    // unanchored match picks whichever of those comes first in the file.
+    const block = /^\.chat-col\s*\{([^}]*)\}/m.exec(css)?.[1] ?? "";
     expect(block).toMatch(/max-width:\s*calc\(/);
     expect(block).toMatch(/padding-inline/);
     // Without this the padding would be added OUTSIDE the max-width and the

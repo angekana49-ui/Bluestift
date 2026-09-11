@@ -2820,6 +2820,7 @@ export const de: Partial<Messages> = {
   "chatHome.couldNotReachKernel": "Die Kernel-API war nicht erreichbar.",
   "chatHome.viewKernelProfile": "Kernel-Profil ansehen",
   "chatHome.analyzeSessionTitle": "Sitzung analysieren (Kernel)",
+  "chatHome.sessionTitle": "Diese Sitzung",
   "chatHome.analyze": "Analysieren",
   "chatHome.forYou": "Für dich",
   "chatHome.noRecommendationsYet": "Noch keine Empfehlungen.",

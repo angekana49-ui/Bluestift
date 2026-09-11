@@ -198,14 +198,27 @@ describe("the room's chrome and composer", () => {
     expect(composer).not.toMatch(/if \(stacked\) \{/);
     expect(composer).toMatch(/className="chat-composer-actions"/);
     const flatten = /@media \(min-width: 900px\)([^{]*)\{([\s\S]*?)\n\}/.exec(
-      css.slice(css.indexOf(".chat-composer {")),
+      css.slice(css.indexOf(".chat-composer-strip {")),
     );
     const conditions = flatten?.[1] ?? "";
     const rules = flatten?.[2] ?? "";
-    // The flattened row is what the wide tier opts into, and `is-stacked` opts
+    // The flattened row is what the wide tier opts into, and `is-pinned` opts
     // back out of it — so the default below 900px is the two-tier box.
-    expect(rules).toMatch(/\.chat-composer:not\(\.is-stacked\) \.chat-composer-box \{/);
+    expect(rules).toMatch(/\.chat-composer-strip:not\(\.is-pinned\) \.chat-composer-box \{/);
     expect(rules).toMatch(/flex-direction: row/);
+    /*
+     * The SHAPE and the TREATMENT are one condition, not two.
+     *
+     * Detached — no top border, no fill across the width, a shadow under the
+     * box — is the default, and this same query is what puts the bar back.
+     * Written the other way round (a strip by default, detached under a second
+     * query) the two could disagree, and a two-tier box inside a full-bleed
+     * band is exactly the slab of chrome this is meant to avoid.
+     */
+    expect(rules).toMatch(/border-top: 1px solid var\(--composer-strip-border\)/);
+    const base = css.slice(css.indexOf(".chat-composer-strip {"), css.indexOf("@media (min-width: 900px)", css.indexOf(".chat-composer-strip {")));
+    expect(base).toMatch(/\.chat-composer-strip \{\s*background: transparent/);
+    expect(base).toMatch(/box-shadow: var\(--composer-shadow\)/);
     // Width is not the only way to run out of room: a phone held sideways is
     // 812x375, where two tiers is a composer taking a third of the screen —
     // all of it once the keyboard is up. Same flattening, second condition.

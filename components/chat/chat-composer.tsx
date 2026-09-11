@@ -152,34 +152,46 @@ export function ChatComposer({
    * Pinned to the bottom, but reading as an object that floats over the thread
    * rather than a bar bolted to its edge.
    *
-   * The default composer is a full-bleed strip: a top border and a solid fill
-   * across the whole width. That is right when the field is one line. Stacked it
-   * is two, and the same strip treatment turned the bottom of a room into a
-   * heavy block of chrome. So the strip goes: no border, no fill of its own, and
-   * the rounded box inside carries a shadow so it lifts off the conversation.
+   * The old default was a full-bleed strip: a top border and a solid fill right
+   * across the width. That is right for a field that is ONE line. Two tiers in
+   * the same treatment is a slab of chrome at the bottom of a phone — which is
+   * what the room's composer opted out of, and what every surface now does
+   * wherever it wears the two-tier shape: no border, no fill of its own, and
+   * the rounded box inside carrying a shadow so it lifts off the conversation.
+   *
+   * Which of the two it is, is `.chat-composer-strip` in globals.css, keyed on
+   * the same media condition that decides the shape — detached where the box is
+   * two tiers, a bar where it flattens back to a row. Same reason as everything
+   * else here: the viewport is not knowable while rendering on the server.
    *
    * It stays a flex sibling of the thread rather than an absolute overlay — the
    * thread must never scroll its last message underneath a floating panel it
    * cannot push past.
    */
-  const floating = stacked && !centered;
-
   return (
     <div
-      style={
-        centered
-          ? { width: "100%" }
-          : floating
-            ? { background: "transparent" }
-            : { borderTop: `1px solid ${t.cardBorder}`, background: t.cardBg }
+      className={
+        "chat-composer-strip" + (centered ? " is-centered" : "") + (stacked ? " is-pinned" : "")
       }
-      data-centered={centered || undefined}
+      style={{
+        // Theme first, layout second: the stylesheet owns which of these apply
+        // at a given width, but only the theme knows the colours.
+        ["--composer-strip-bg" as string]: t.cardBg,
+        ["--composer-strip-border" as string]: t.cardBorder,
+        ["--composer-float-bg" as string]: t.cardBg,
+        ["--composer-box-bg" as string]: t.inputBg,
+        ["--composer-field-bg" as string]: t.inputBg,
+        ["--composer-border" as string]: t.inputBorder,
+        ["--composer-shadow" as string]: t.dark
+          ? "0 6px 22px rgba(0,0,0,0.42)"
+          : "0 6px 22px rgba(15,23,42,0.13)",
+      }}
     >
       {/* `.chat-col` — the one box the thread and the banner also use. The
           gutter is INSIDE its max-width, which is the whole point: the field
           and the message bubbles above it now resolve to the same left edge
           instead of sitting 24px apart. */}
-      <div className="chat-col" style={{ paddingTop: centered ? 0 : floating ? 4 : 12 }}>
+      <div className="chat-col">
         {/* pending attachments */}
         {(pending.length > 0 || uploading) && (
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.4rem", padding: "0 0 8px" }}>
@@ -361,21 +373,7 @@ export function ChatComposer({
            * putting a box of their own between the buttons and their flex line.
            */
           return (
-            <div
-              className={
-                "chat-composer" + (stacked ? " is-stacked" : "") + (floating ? " is-floating" : "")
-              }
-              style={{
-                // Theme first, layout second: the stylesheet owns which of these
-                // apply at a given width, but only the theme knows the colours.
-                ["--composer-box-bg" as string]: floating ? t.cardBg : t.inputBg,
-                ["--composer-field-bg" as string]: t.inputBg,
-                ["--composer-border" as string]: t.inputBorder,
-                ["--composer-shadow" as string]: t.dark
-                  ? "0 6px 22px rgba(0,0,0,0.42)"
-                  : "0 6px 22px rgba(15,23,42,0.13)",
-              }}
-            >
+            <div className="chat-composer">
               {/* Two tiers, ONE surface — not a field with buttons loose under
                   it. The border, fill and radius live on this box, and
                   `.chat-composer-box:focus-within` lights the border, which is

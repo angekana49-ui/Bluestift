@@ -3097,6 +3097,7 @@ export const en = {
   "chatHome.couldNotReachKernel": "Could not reach the Kernel API.",
   "chatHome.viewKernelProfile": "View kernel profile",
   "chatHome.analyzeSessionTitle": "Analyze the session (Kernel)",
+  "chatHome.sessionTitle": "This session",
   "chatHome.analyze": "Analyze",
   "chatHome.forYou": "For you",
   "chatHome.noRecommendationsYet": "No recommendations yet.",
