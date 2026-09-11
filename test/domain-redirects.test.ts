@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import type { Redirect } from "next/dist/lib/load-custom-routes";
+import type { Redirect, Rewrite } from "next/dist/lib/load-custom-routes";
+import { SCHOOL_TABS, SCHOOLS_APP_NAME, isSchoolTab, schoolTabTitle } from "@/lib/school-tabs";
 
 /**
  * The apex → product-origin 308s (docs/domains.md). Two properties matter more
@@ -36,6 +37,17 @@ async function allRedirectsWith(env: Record<string, string>): Promise<Redirect[]
  */
 async function redirectsWith(env: Record<string, string>): Promise<Redirect[]> {
   return (await allRedirectsWith(env)).filter((r) => /^https?:\/\//.test(r.destination));
+}
+
+async function rewritesWith(env: Record<string, string>): Promise<Rewrite[]> {
+  for (const k of ["NEXT_PUBLIC_SITE_URL", "NEXT_PUBLIC_RAYA_URL", "NEXT_PUBLIC_SCHOOLS_URL"]) {
+    vi.stubEnv(k, env[k] ?? "");
+  }
+  vi.resetModules();
+  const config = (await import("@/next.config")).default;
+  const out = await config.rewrites?.();
+  // A plain array is Next's `afterFiles` form, which is the one this config uses.
+  return (Array.isArray(out) ? out : []) as Rewrite[];
 }
 
 afterEach(() => vi.unstubAllEnvs());
@@ -206,6 +218,77 @@ describe("product home redirects (bare root of a product origin)", () => {
  * opened a tab reading "Bluestift", the same string the marketing site shows,
  * on the one origin whose entire purpose is the staff product.
  */
+/**
+ * The Schools dashboard's tabs, as addresses (lib/school-tabs.ts).
+ *
+ * Twelve very generic words — /team, /billing, /settings — turned into routable
+ * paths. Everything here is about keeping that contained: to one origin, to
+ * paths no real page wants, and off entirely until the origin exists.
+ */
+describe("Schools tab rewrites", () => {
+  it("emits nothing while the Schools origin is unconfigured", async () => {
+    // Today's state, and every preview deploy. Without this guard /billing and
+    // /settings would become live paths on the single current origin.
+    expect(await rewritesWith({ NEXT_PUBLIC_SITE_URL: SITE })).toEqual([]);
+    expect(await rewritesWith({ NEXT_PUBLIC_SITE_URL: SITE, NEXT_PUBLIC_RAYA_URL: RAYA })).toEqual([]);
+  });
+
+  it("maps every tab to the dashboard, conditioned on the Schools host alone", async () => {
+    const all = await rewritesWith({ NEXT_PUBLIC_SITE_URL: SITE, NEXT_PUBLIC_SCHOOLS_URL: SCHOOLS });
+    expect(all.length).toBe(SCHOOL_TABS.length);
+    for (const tab of SCHOOL_TABS) {
+      expect(all).toContainEqual({
+        source: `/${tab}`,
+        destination: `/school?tab=${tab}`,
+        has: [{ type: "host", value: "schools.thebluestift.com" }],
+      });
+    }
+  });
+
+  it("rewrites rather than redirects — the address bar is the whole point", async () => {
+    const all = await rewritesWith({ NEXT_PUBLIC_SITE_URL: SITE, NEXT_PUBLIC_SCHOOLS_URL: SCHOOLS });
+    // A redirect would put /school back in the address bar, which is the thing
+    // being fixed. Rewrites carry no `permanent`/`statusCode`.
+    for (const r of all) expect(r).not.toHaveProperty("permanent");
+    const redirects = await allRedirectsWith({ NEXT_PUBLIC_SITE_URL: SITE, NEXT_PUBLIC_SCHOOLS_URL: SCHOOLS });
+    expect(redirects.some((r) => SCHOOL_TABS.some((t) => r.source === `/${t}`))).toBe(false);
+  });
+
+  it("claims no path an actual route wants", () => {
+    /**
+     * These are `afterFiles` rewrites, so a real page at /settings would win and
+     * the tab would simply stop resolving — no error, just a Schools tab that
+     * 404s for staff and nobody else. Cheaper to fail here, when the route is
+     * added, than to find it on the one origin that uses these paths.
+     */
+    const routes = readdirSync(join(process.cwd(), "app"), { withFileTypes: true })
+      .filter((e) => e.isDirectory() && !e.name.startsWith("_") && !e.name.startsWith("("))
+      .map((e) => e.name);
+    const clashes = SCHOOL_TABS.filter((t) => routes.includes(t));
+    expect(clashes, `slug also exists as app/<name>: ${clashes.join(", ")}`).toEqual([]);
+  });
+
+  it("covers both roles' tabs, since one rewrite serves admin and teacher alike", () => {
+    const src = readFileSync(join(process.cwd(), "components/school-admin.tsx"), "utf8");
+    // Pulled from the two unions in the component. A tab added there without a
+    // slug here would work by click and 404 on reload — the worst shape, since
+    // it only appears once someone shares the link.
+    const declared = (name: string) =>
+      (src.match(new RegExp(`const ${name}[^=]*=\\s*\\[([^\\]]*)\\]`, "s"))?.[1] ?? "")
+        .split(",")
+        .map((s) => s.trim().replace(/^["']|["']$/g, ""))
+        .filter(Boolean);
+
+    for (const list of ["DASH_TABS", "PROF_TABS"]) {
+      const tabs = declared(list);
+      expect(tabs.length, `${list} not found`).toBeGreaterThan(3);
+      for (const tab of tabs) {
+        expect(SCHOOL_TABS as readonly string[], `${list} has "${tab}"`).toContain(tab);
+      }
+    }
+  });
+});
+
 describe("each origin's surfaces name the space they belong to", () => {
   /**
    * Three spaces, and every signed-in route is inside exactly one of them:
@@ -252,6 +335,26 @@ describe("each origin's surfaces name the space they belong to", () => {
     // room — the tab held open longest — falling back to the umbrella.
     expect(existsSync(join(process.cwd(), "app/rooms/[id]/page.tsx"))).toBe(true);
     expect(existsSync(join(process.cwd(), "app/rooms/layout.tsx"))).toBe(true);
+  });
+
+  it("titles a Schools tab by name, and falls back to the space", () => {
+    // What a bookmark of /billing renders server-side, and what the dashboard
+    // writes client-side on a tab switch — one function, so they cannot drift.
+    expect(schoolTabTitle("billing")).toBe(`Billing · ${SCHOOLS_APP_NAME}`);
+    expect(schoolTabTitle("team")).toBe(`Team · ${SCHOOLS_APP_NAME}`);
+    // "Settings" is the collision that made this worth doing: Raya has one too,
+    // and it is a student's own account rather than a school's configuration.
+    expect(schoolTabTitle("settings")).toBe(`Settings · ${SCHOOLS_APP_NAME}`);
+    expect(schoolTabTitle("settings")).not.toBe("Settings · Raya");
+    // A bare /school, or junk in ?tab=, names the space rather than inventing.
+    expect(schoolTabTitle(null)).toBe(SCHOOLS_APP_NAME);
+    expect(schoolTabTitle("../etc/passwd")).toBe(SCHOOLS_APP_NAME);
+    expect(isSchoolTab("nope")).toBe(false);
+  });
+
+  it("keeps the layout's fallback title and the tab titles' suffix in step", () => {
+    expect(SCHOOLS_APP_NAME).toBe("Bluestift Schools");
+    expect(read("app/school/layout.tsx")).toContain(`title: { absolute: "${SCHOOLS_APP_NAME}" }`);
   });
 
   it("gives Schools a name without giving it a second install identity", () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useTransition } from "react";
+import { createContext, useContext, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { setActiveSchool } from "@/app/school/actions";
@@ -24,6 +24,7 @@ import { ProfOverviewView } from "@/components/school/prof-overview";
 import { PrepareView } from "@/components/school/prof-prepare";
 import { type BrandedDoc } from "@/lib/document";
 import { COUNTRIES, SCHOOL_TYPES } from "@/lib/school-constants";
+import { schoolTabPath, schoolTabTitle } from "@/lib/school-tabs";
 import { useDarkMode, useAppTheme, AppThemeProvider } from "@/components/ui/theme";
 import { LocaleProvider, useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
@@ -279,7 +280,7 @@ export function SchoolAdmin({
       ) : role === "prof" && needsReconfirmation ? (
         <RenewYear schoolName={profSchoolName} yearLabel={currentYearLabel} />
       ) : role === "prof" ? (
-        <ProfView classes={profClasses} teacherName={teacherName} planLabel={planLabel} subjects={profSubjects} schoolName={profSchoolName} schoolLogoUrl={profSchoolLogoUrl} account={account} />
+        <ProfView classes={profClasses} teacherName={teacherName} planLabel={planLabel} subjects={profSubjects} schoolName={profSchoolName} schoolLogoUrl={profSchoolLogoUrl} account={account} initialTab={initialTab} />
       ) : (
         <Dashboard dash={dash as SchoolDashboard} setDash={setDash} adminName={userName} planLabel={planLabel} initialTab={initialTab} />
       )}
@@ -768,6 +769,39 @@ function AddSchoolByCode() {
   );
 }
 
+/**
+ * Put the open tab in the address bar, and in the tab title.
+ *
+ * An effect on the value rather than a call in each handler: between the two
+ * roles there are a dozen `setTab` call sites, including indirect ones (a
+ * student row jumping to Focus, the empty state jumping to Overview), and any
+ * of them added later would silently not update the URL.
+ *
+ * `replaceState`, not `pushState`: Back should still leave the dashboard, the
+ * way it does today. Making Back walk the tab history is a real improvement and
+ * a different one — it needs a `popstate` listener to put the state back, and
+ * getting that half-right leaves the URL and the screen disagreeing.
+ *
+ * The first run is skipped on purpose. It is mount, where the URL is already
+ * whatever brought us here — often carrying `?join=<code>`, which the dashboard
+ * reads and which rewriting the address would throw away.
+ */
+function useTabInUrl(tab: string) {
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    // Next supports history.replaceState for exactly this — a URL change with
+    // no navigation, so the server page is not re-run for a tab switch.
+    window.history.replaceState(null, "", schoolTabPath(tab));
+    // The <title> was rendered on the server and a replaceState does not
+    // re-render it, so it is set here or it stays on the tab we arrived on.
+    document.title = schoolTabTitle(tab);
+  }, [tab]);
+}
+
 type ProfTab =
   | "overview"
   | "classes"
@@ -777,6 +811,19 @@ type ProfTab =
   | "reports"
   | "raya"
   | "settings";
+
+/** The same list as a value, so an incoming `?tab=` can be validated against
+ *  it — a teacher must not be able to seed an admin-only tab key. */
+const PROF_TABS: readonly ProfTab[] = [
+  "overview",
+  "classes",
+  "focus",
+  "prepare",
+  "insights",
+  "reports",
+  "raya",
+  "settings",
+];
 
 type ProfNav =
   | { mode: "list" }
@@ -791,7 +838,9 @@ function ProfView({
   schoolName,
   schoolLogoUrl = null,
   account = null,
+  initialTab = null,
 }: {
+  initialTab?: string | null;
   classes: AdminClass[];
   teacherName: string;
   planLabel?: string | null;
@@ -803,7 +852,12 @@ function ProfView({
   const { t, box, ghost } = useSchoolStyles();
   const { memberships, activeSchoolId } = useSchoolUser();
   const tr = useTranslate();
-  const [tab, setTab] = useState<ProfTab>("overview");
+  // Seeded from the URL like the admin dashboard's, so a teacher's bookmark of
+  // /reports opens Reports rather than dropping them on Overview.
+  const [tab, setTab] = useState<ProfTab>(
+    (PROF_TABS as readonly string[]).includes(initialTab ?? "") ? (initialTab as ProfTab) : "overview",
+  );
+  useTabInUrl(tab);
   const [directives, setDirectives] = useState<{ id: string; content: string }[]>([]);
   const [nav, setNav] = useState<ProfNav>({ mode: "list" });
   const [busy, setBusy] = useState(false);
@@ -1789,6 +1843,7 @@ function Dashboard({
   const [tab, setTab] = useState<DashTab>(
     (DASH_TABS as string[]).includes(initialTab ?? "") ? (initialTab as DashTab) : "overview",
   );
+  useTabInUrl(tab);
   const [overview, setOverview] = useState<SchoolOverview | null>(null);
   const [overviewBusy, setOverviewBusy] = useState(false);
 

@@ -1,5 +1,7 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { schoolTabTitle } from "@/lib/school-tabs";
 import { needsAgeGate } from "@/lib/compliance/guard";
 import {
   ensureCurrentSchoolYear,
@@ -16,6 +18,25 @@ import { recoveryKeyState, hasRealEmail } from "@/lib/auth";
 import type { AdminClass, ProfContext, SchoolDashboard } from "@/lib/school-admin";
 import { SchoolAdmin } from "@/components/school-admin";
 import { getServerTranslate } from "@/lib/i18n/server";
+
+/**
+ * The tab in the title, for the load that arrives with one — a bookmark of
+ * /billing, a link pasted to a colleague, a reload. Both reach this page through
+ * next.config.ts's host-conditioned rewrite, which turns the slug back into
+ * `?tab=`; from there the dashboard keeps the title in step client-side, since a
+ * tab switch deliberately does not re-run this page (lib/school-tabs.ts).
+ *
+ * `absolute` for the same reason as the layout's: the root template appends
+ * "· Bluestift", which names the landing site rather than this product.
+ */
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}): Promise<Metadata> {
+  const { tab } = await searchParams;
+  return { title: { absolute: schoolTabTitle(tab) } };
+}
 
 export default async function SchoolPage({
   searchParams,

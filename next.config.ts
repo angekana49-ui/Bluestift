@@ -1,16 +1,30 @@
 import type { NextConfig } from "next";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+// Relative, not the "@/" alias: this file is evaluated by Node before the
+// tsconfig paths are in play.
+import { SCHOOL_TABS } from "./lib/school-tabs";
 
 // Pin the workspace root so Turbopack doesn't infer a parent directory
 // (which caused "couldn't find next/package.json" + panics).
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
-/** Host (with port, without scheme) of a configured URL, or "" if unset/invalid. */
+/**
+ * Hostname of a configured URL, or "" if unset/invalid — for the `has` host
+ * conditions below.
+ *
+ * `.hostname`, not `.host`: Next matches a `{ type: "host" }` condition against
+ * the request's hostname with the port already stripped, so a configured URL
+ * carrying one (`http://localhost:3101`, any preview served on a port) produced
+ * a value that could never match anything. Silently — a host condition that
+ * matches nothing does not warn, the rule simply never fires. Production hosts
+ * have no port, so this was invisible there and only ever bit locally, which is
+ * exactly where the rules get verified.
+ */
 function hostOf(url: string | undefined): string {
   if (!url) return "";
   try {
-    return new URL(url).host;
+    return new URL(url).hostname;
   } catch {
     return "";
   }
@@ -167,6 +181,28 @@ const nextConfig: NextConfig = {
   // Keep native doc parsers out of the bundle (run as Node modules at runtime).
   serverExternalPackages: ["mammoth", "xlsx"],
   htmlLimitedBots: HTML_LIMITED_BOTS,
+  /**
+   * The Schools dashboard's tabs, as addresses (lib/school-tabs.ts).
+   *
+   * A rewrite, not a redirect: the point is that the address bar KEEPS saying
+   * /billing while the page served is the dashboard. Host-conditioned, so these
+   * twelve very generic words are Schools addresses and nothing at all on the
+   * apex or on Raya — and emitted only once the Schools origin is configured,
+   * the same guard the redirects use.
+   *
+   * Returned as a plain array, i.e. `afterFiles`: filesystem routes win, so a
+   * real page added at one of these paths later would shadow the rewrite rather
+   * than be shadowed by it.
+   */
+  async rewrites() {
+    const host = hostOf(process.env.NEXT_PUBLIC_SCHOOLS_URL);
+    if (!host) return [];
+    return SCHOOL_TABS.map((tab) => ({
+      source: `/${tab}`,
+      destination: `/school?tab=${tab}`,
+      has: [{ type: "host" as const, value: host }],
+    }));
+  },
   async redirects() {
     return [
       // /homework became /assignments. Permanent, and unconditional: unlike the
