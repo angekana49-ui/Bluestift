@@ -52,10 +52,23 @@ export async function buildBrandOgImage() {
         }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element -- ImageResponse (Satori) needs a plain <img>, not next/image */}
-        <img src={mark} width={140} height={140} style={{ marginBottom: 40 }} alt="" />
-        <div style={{ display: "flex", fontSize: 88, fontWeight: 700, color: "#ffffff", letterSpacing: -2 }}>
-          Bluestift
+        <img src={mark} width={156} height={156} style={{ marginBottom: 36 }} alt="" />
+        {/*
+         * The wordmark is TWO-COLOUR here, like it is everywhere else in the
+         * product (components/site/Navbar.tsx, Footer.tsx, ui/auth-chrome.tsx).
+         * It rendered flat white on this card alone — which is the one surface
+         * a stranger meets before they have ever seen the real one, so the
+         * inconsistency landed exactly where it could not be corrected by
+         * context. Colours are the DARK theme's pair (components/site/theme.ts),
+         * because this card is always on the dark gradient.
+         */}
+        <div style={{ display: "flex", fontSize: 88, fontWeight: 700, letterSpacing: -2 }}>
+          <div style={{ display: "flex", color: "#8fb8f0" }}>Blue</div>
+          <div style={{ display: "flex", color: "#4e9bf5" }}>Stift</div>
         </div>
+        {/* The accent rule the generated documents already use in their own
+            header (components/ui/document.tsx) — same motif, same proportions. */}
+        <div style={{ display: "flex", width: 72, height: 5, borderRadius: 3, background: "#4e9bf5", marginTop: 28 }} />
         {/* 34 rather than 30: the tagline used to be a full sentence that
             needed to wrap small. It is one short line now, so it can carry
             its own weight under the wordmark instead of reading as a caption. */}
