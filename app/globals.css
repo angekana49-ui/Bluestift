@@ -2132,7 +2132,10 @@ a {
   flex: 1;
 }
 
-@media (min-width: 900px) {
+/* Wide, OR short-and-not-narrow: a phone held sideways is 812x375, and there
+   two tiers is a composer taking a third of the screen — with the keyboard up,
+   all of it. Width is not the only way to run out of room. */
+@media (min-width: 900px), (max-height: 480px) and (min-width: 480px) {
   .chat-composer:not(.is-stacked) .chat-composer-box {
     flex-direction: row;
     align-items: flex-end;
@@ -2190,8 +2193,18 @@ a {
    for both, and the panel is a column rather than a drawer.
 
    Kept as a stylesheet rule, not a JS branch, for the same reason as the
-   composer: the viewport is not knowable while rendering on the server. */
-@media (max-width: 899px) {
+   composer: the viewport is not knowable while rendering on the server.
+
+   THE TIER HERE IS 699px, NOT 899px, and it has to be: `.app-mobile-header`
+   is the thing that takes over the room's name, its clock and the way into
+   the right panel, and that header only exists below 700px (Tier 4 above —
+   the tier where the sidebar folds into a burger drawer). Hiding the chrome
+   at 899 handed all three to a header that is not rendered between 700 and
+   899, which on an iPad portrait, a small window, or a phone held sideways
+   left a room with no name, no countdown, no channel switcher and no way to
+   open the panel that holds them. Whatever folds this chrome away must be a
+   tier that puts something else in its place. */
+@media (max-width: 699px) {
   .room-chrome {
     display: none;
   }
@@ -2199,11 +2212,13 @@ a {
 
 /* The counterpart: content that exists ONLY at that tier, because something
    else carries it above. Its one use today is the right panel's channel list,
-   which stands in for the tab strip the rule above folds away. */
+   which stands in for the tab strip the rule above folds away — so it must
+   appear at exactly the width that rule disappears at, or the room has two
+   channel switchers, or none. */
 .app-only-phone {
   display: none;
 }
-@media (max-width: 899px) {
+@media (max-width: 699px) {
   .app-only-phone {
     display: block;
   }

@@ -163,6 +163,14 @@ function InviteControls({
 /**
  * The push: a room with one member in it is a room that has not been shared.
  * Shown until somebody joins, or until it is dismissed for this visit.
+ *
+ * ONE ROW, not the full block below it. This sits between the header and the
+ * conversation and takes its height from the conversation, which on a 320px
+ * phone is the whole argument: the block version left 73px of thread — a
+ * banner about an empty room, filling the room. A line and a button is a push;
+ * a quarter of the screen is a wall. The link itself, the copy button and the
+ * privacy note live one tap away in the panel, which is where someone who
+ * wants to read a URL before sending it goes.
  */
 export function RoomInviteBanner({
   theme: t,
@@ -176,52 +184,67 @@ export function RoomInviteBanner({
   onDismiss: () => void;
 }) {
   const tr = useTranslate();
+  const { copied, share } = useRoomInvite(roomId, roomName);
   return (
-    <div style={{ flex: "none", padding: "12px 24px 0" }}>
+    <div style={{ flex: "none", padding: "10px 24px 0" }}>
       <div
         style={{
           background: t.cardBg2,
           border: `1px solid ${t.cardBorder}`,
-          borderRadius: 16,
-          padding: 14,
+          borderRadius: 14,
+          padding: "10px 10px 10px 14px",
           display: "flex",
-          flexDirection: "column",
+          alignItems: "center",
+          flexWrap: "wrap",
           gap: 10,
           maxWidth: 620,
           marginInline: "auto",
         }}
       >
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: t.text }}>{tr("room.invite.aloneTitle")}</div>
-            <div style={{ fontSize: 14, color: t.muted, marginTop: 2, lineHeight: 1.5 }}>
-              {tr("room.invite.aloneBody")}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onDismiss}
-            title={tr("room.invite.dismiss")}
-            aria-label={tr("room.invite.dismiss")}
-            style={{
-              flex: "none",
-              width: 30,
-              height: 30,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: 8,
-              border: "none",
-              background: "transparent",
-              color: t.mutedLight,
-              fontSize: 15,
-              cursor: "pointer",
-            }}
-          >
-            ✕
-          </button>
+        <div style={{ flex: 1, minWidth: 150, fontSize: 14, color: t.text, lineHeight: 1.4 }}>
+          <strong style={{ fontWeight: 700 }}>{tr("room.invite.aloneTitle")}</strong>{" "}
+          <span style={{ color: t.muted }}>{tr("room.invite.aloneBody")}</span>
         </div>
-        <InviteControls theme={t} roomId={roomId} roomName={roomName} />
+        <button
+          type="button"
+          onClick={() => void share()}
+          style={{
+            flex: "none",
+            background: t.ctaBg,
+            color: t.ctaText,
+            border: "none",
+            borderRadius: 99,
+            padding: "9px 16px",
+            fontSize: 14,
+            fontWeight: 700,
+            fontFamily: "inherit",
+            cursor: "pointer",
+          }}
+        >
+          {copied ? tr("room.invite.copied") : tr("room.invite.share")}
+        </button>
+        <button
+          type="button"
+          onClick={onDismiss}
+          title={tr("room.invite.dismiss")}
+          aria-label={tr("room.invite.dismiss")}
+          style={{
+            flex: "none",
+            width: 30,
+            height: 30,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: 8,
+            border: "none",
+            background: "transparent",
+            color: t.mutedLight,
+            fontSize: 15,
+            cursor: "pointer",
+          }}
+        >
+          ✕
+        </button>
       </div>
     </div>
   );

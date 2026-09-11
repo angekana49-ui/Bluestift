@@ -203,6 +203,18 @@ function RoomViewBody({
    *  a room you have just walked into should say whose it is and how long is
    *  left before it starts saving you space. */
   const [chromeOpen, setChromeOpen] = useState(true);
+  /*
+   * Except on a screen with no height to spend. A phone held sideways is 375px
+   * tall: the header open, the tabs, the composer and the invite line left 56px
+   * of conversation — a room you cannot read. So the FIRST resolution folds it,
+   * and only the first: once the chevron has been touched the header is theirs,
+   * and a rotation must not reopen what they closed. Same shape as
+   * useRightPanel, and for the same reason — the server cannot measure a
+   * viewport, so the honest answer lands one frame in.
+   */
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.innerHeight < 480) setChromeOpen(false);
+  }, []);
   const greetingName = studentName.trim().split(/\s+/)[0] || "";
   const myInitials = avatarInitials(studentName);
 

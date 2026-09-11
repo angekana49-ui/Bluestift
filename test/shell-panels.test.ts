@@ -110,7 +110,28 @@ describe("the room's chrome and composer", () => {
     // The chrome goes at the phone tier (stylesheet, not a JS branch: the
     // viewport is not knowable while rendering on the server)…
     expect(room).toMatch(/className="room-chrome"/);
-    expect(css).toMatch(/@media \(max-width: 899px\) \{\s*\.room-chrome \{\s*display: none/);
+    /*
+     * …and at EXACTLY the tier that puts something else in its place.
+     *
+     * This first shipped hiding the chrome below 899px while
+     * `.app-mobile-header` — the thing that takes over the room's name, its
+     * clock and the way into the right panel — only exists below 700px. Every
+     * width in between (an iPad portrait, a half-screen window, a phone held
+     * sideways) got a room with no header at all: no name, no countdown, no
+     * channel switcher, and no way to open the panel holding them. The two
+     * numbers are read out of the stylesheet and compared rather than both
+     * being spelled out here, so they cannot drift apart again.
+     */
+    const chromeTier = /@media \(max-width: (\d+)px\) \{\s*\.room-chrome \{\s*display: none/.exec(css)?.[1];
+    const headerAt = css.indexOf(".app-mobile-header {\n    display: flex");
+    const headerTier = [...css.slice(0, headerAt).matchAll(/@media \(max-width: (\d+)px\)/g)].pop()?.[1];
+    expect(chromeTier).toBeDefined();
+    expect(headerTier).toBeDefined();
+    expect(chromeTier).toBe(headerTier);
+    // The panel's channel list stands in for the tab strip, so it has to
+    // appear at the very width the strip disappears at — no gap, no overlap.
+    const onlyPhoneTier = /@media \(max-width: (\d+)px\) \{\s*\.app-only-phone \{\s*display: block/.exec(css)?.[1];
+    expect(onlyPhoneTier).toBe(chromeTier);
     // …so the name and the clock move up into the shell's own header…
     expect(room).toMatch(/mobileTitle=\{roomName\}/);
     expect(room).toMatch(/mobileTrailing=\{timerPill\(true\)\}/);
@@ -176,13 +197,19 @@ describe("the room's chrome and composer", () => {
     // breakpoint here would paint the desktop row on a phone for a frame.
     expect(composer).not.toMatch(/if \(stacked\) \{/);
     expect(composer).toMatch(/className="chat-composer-actions"/);
-    const wide = /@media \(min-width: 900px\) \{([\s\S]*?)\n\}/.exec(
+    const flatten = /@media \(min-width: 900px\)([^{]*)\{([\s\S]*?)\n\}/.exec(
       css.slice(css.indexOf(".chat-composer {")),
-    )?.[1] ?? "";
+    );
+    const conditions = flatten?.[1] ?? "";
+    const rules = flatten?.[2] ?? "";
     // The flattened row is what the wide tier opts into, and `is-stacked` opts
     // back out of it — so the default below 900px is the two-tier box.
-    expect(wide).toMatch(/\.chat-composer:not\(\.is-stacked\) \.chat-composer-box \{/);
-    expect(wide).toMatch(/flex-direction: row/);
+    expect(rules).toMatch(/\.chat-composer:not\(\.is-stacked\) \.chat-composer-box \{/);
+    expect(rules).toMatch(/flex-direction: row/);
+    // Width is not the only way to run out of room: a phone held sideways is
+    // 812x375, where two tiers is a composer taking a third of the screen —
+    // all of it once the keyboard is up. Same flattening, second condition.
+    expect(conditions).toMatch(/max-height: 480px/);
   });
 
   it("gives the stacked box a focus ring, since the field gave up its own", () => {

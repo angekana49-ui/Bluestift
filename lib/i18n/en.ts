@@ -2302,7 +2302,7 @@ export const en = {
   "room.settingsVisibility": "Visibility ·",
   "room.settingsSession": "Session ·",
   "room.noTimeLimit": "No time limit",
-  "room.invite.aloneTitle": "You're the only one in this room",
+  "room.invite.aloneTitle": "You're the only one here.",
   "room.invite.aloneBody": "Send the link to your group — anyone who has it can join.",
   "room.invite.share": "Share the link",
   "room.invite.copy": "Copy",

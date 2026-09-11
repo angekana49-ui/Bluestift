@@ -2067,7 +2067,7 @@ export const es: Partial<Messages> = {
   "room.settingsVisibility": "Visibilidad ·",
   "room.settingsSession": "Sesión ·",
   "room.noTimeLimit": "Sin límite de tiempo",
-  "room.invite.aloneTitle": "Eres la única persona en esta sala",
+  "room.invite.aloneTitle": "Estás solo aquí.",
   "room.invite.aloneBody": "Envía el enlace a tu grupo: basta con tenerlo para entrar.",
   "room.invite.share": "Compartir el enlace",
   "room.invite.copy": "Copiar",
