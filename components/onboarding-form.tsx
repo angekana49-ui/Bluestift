@@ -4,10 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { netFetch } from "@/lib/net/client-fetch";
+import { RecoveryKeyCode } from "@/components/ui/recovery-key-code";
 import {
   downloadRecoveryKey,
   formatRecoveryKey,
-  maskedRecoveryKey,
   normalizeRecoveryKey,
   recoveryKeyTail,
 } from "@/lib/recovery-key";
@@ -673,7 +673,6 @@ function EmailStep({
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
   const [tail, setTail] = useState("");
-  const masked = maskedRecoveryKey(recoveryCode);
   const expectedTail = recoveryCode ? recoveryKeyTail(recoveryCode) : "";
 
   // Proof beats an honour-system tick: retyping the last group means the key
@@ -759,26 +758,16 @@ function EmailStep({
           <span style={{ fontSize: 15, fontWeight: 700, color: "#0b1220" }}>{tr("onb.email.recoveryTitle")}</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-          <code
-            style={{
-              flex: 1,
-              minWidth: 150,
-              background: "#f3f6fa",
-              border: "1px solid #dde5ee",
-              borderRadius: 8,
-              padding: "9px 12px",
-              fontSize: 15,
-              letterSpacing: shown ? "0.12em" : "0.24em",
-              color: "#0b1220",
-              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-              userSelect: shown ? "all" : "none",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {recoveryCode ? (shown ? formatRecoveryKey(recoveryCode) : masked) : tr("onb.email.alreadyShown")}
-          </code>
+          {/* The tail is tinted because the field below asks for exactly that
+              group — and because this is the screen where the key used to run
+              off the edge of a phone with no way to scroll it back. */}
+          <RecoveryKeyCode
+            code={recoveryCode}
+            shown={shown}
+            highlightTail
+            emptyLabel={tr("onb.email.alreadyShown")}
+            palette={{ bg: "#f3f6fa", border: "#dde5ee", text: "#0b1220", highlight: "rgba(99,102,241,0.20)" }}
+          />
           <button type="button" style={keyPill} onClick={() => setShown((s) => !s)} disabled={!recoveryCode}>
             {shown ? tr("onb.email.hide") : tr("onb.email.reveal")}
           </button>
@@ -823,6 +812,11 @@ function EmailStep({
               placeholder="••••"
               aria-label={tr("onb.email.tailAria")}
               autoComplete="off"
+              // A phone keyboard otherwise arrives lowercase and autocorrecting
+              // over a four-character string that is neither a word nor a name.
+              autoCapitalize="characters"
+              autoCorrect="off"
+              spellCheck={false}
             />
             {tailOk ? (
               <span style={{ fontSize: 14, fontWeight: 600, color: "#047857" }}>{tr("onb.email.gotIt")}</span>

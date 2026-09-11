@@ -15,11 +15,11 @@ import { PasswordField } from "@/components/ui/password-field";
 import { passwordProblem } from "@/lib/password";
 import { status } from "@/components/ui/tokens";
 import { avatarInitials } from "@/lib/name";
+import { RecoveryKeyCode } from "@/components/ui/recovery-key-code";
 import {
   downloadRecoveryKey,
   formatRecoveryKey,
   isValidRecoveryKey,
-  maskedRecoveryKey,
   normalizeRecoveryKey,
 } from "@/lib/recovery-key";
 
@@ -621,7 +621,6 @@ function RecoveryKeyCard({
     cursor: "pointer",
   };
 
-  const masked = maskedRecoveryKey(code);
 
   return (
     <div
@@ -658,26 +657,20 @@ function RecoveryKeyCard({
 
       {code && (
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
-          <code
-            style={{
-              flex: 1,
-              minWidth: 160,
-              background: t.inputBg,
-              border: `1px solid ${t.inputBorder}`,
-              borderRadius: 8,
-              padding: "9px 12px",
-              fontSize: 15,
-              letterSpacing: shown ? "0.12em" : "0.24em",
-              color: t.text,
-              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-              userSelect: shown ? "all" : "none",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
+          {/* No tail tint here: this screen confirms with the memory word, not
+              with the last group. Same box otherwise — a key that cannot be
+              read in full is no more use on the account page than in
+              onboarding. */}
+          <RecoveryKeyCode
+            code={code}
+            shown={shown}
+            palette={{
+              bg: t.inputBg,
+              border: t.inputBorder,
+              text: t.text,
+              highlight: t.dark ? "rgba(122,179,247,0.22)" : "rgba(27,95,193,0.12)",
             }}
-          >
-            {shown ? formatRecoveryKey(code) : masked}
-          </code>
+          />
           <button type="button" style={pill} onClick={() => setShown((s) => !s)}>
             {shown ? tr("onb.email.hide") : tr("onb.email.reveal")}
           </button>

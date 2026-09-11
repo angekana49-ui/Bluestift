@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it, expect } from "vitest";
 import {
   RECOVERY_KEY_ALPHABET,
@@ -75,5 +77,41 @@ describe("maskedRecoveryKey", () => {
   });
   it("falls back to full width when there is no key yet", () => {
     expect(maskedRecoveryKey(null)).toBe("••••-••••-••••-••••");
+  });
+});
+
+describe("the key is readable where it is shown", () => {
+  const src = readFileSync(join(process.cwd(), "components/ui/recovery-key-code.tsx"), "utf8");
+  const onboarding = readFileSync(join(process.cwd(), "components/onboarding-form.tsx"), "utf8");
+  const account = readFileSync(join(process.cwd(), "components/auth-panel.tsx"), "utf8");
+
+  it("never cuts the key off — onboarding asks for the characters at its END", () => {
+    /*
+     * The box used to be one nowrap line with `overflow: hidden` and an
+     * ellipsis, sharing a flex row with three buttons. On a phone that cell is
+     * ~150px against a 19-character key, so the tail — the four characters the
+     * next field asks for — was cut off, and nowrap + hidden cannot be
+     * scrolled or swiped. The only way through the screen was to copy the key
+     * into another app, read it there, and come back.
+     */
+    expect(src).not.toMatch(/whiteSpace: "nowrap"/);
+    expect(src).not.toMatch(/textOverflow: "ellipsis"/);
+    expect(src).toMatch(/whiteSpace: "normal"/);
+    // A full row of its own: sharing one with the pills is what squeezed it.
+    expect(src).toMatch(/flexBasis: "100%"/);
+    // Both screens read the same box, so neither can regress alone.
+    expect(onboarding).toMatch(/<RecoveryKeyCode/);
+    expect(account).toMatch(/<RecoveryKeyCode/);
+    // …and only the screen that asks for the tail points at it.
+    expect(onboarding).toMatch(/highlightTail/);
+    expect(account).not.toMatch(/highlightTail/);
+  });
+
+  it("stays one run of text, so selecting the box still copies the whole key", () => {
+    // The tail is an inline <strong> inside the same <code>, not a flex child:
+    // splitting the key into laid-out boxes would put line breaks into what
+    // gets copied.
+    expect(src).toMatch(/<strong/);
+    expect(src).not.toMatch(/display: "flex"/);
   });
 });
