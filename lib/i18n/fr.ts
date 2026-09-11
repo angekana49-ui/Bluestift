@@ -81,8 +81,9 @@ export const fr: Partial<Messages> = {
   "site.nav.startFree": "Commencer gratuitement",
   "site.nav.openApp": "Ouvrir l’app",
 
-  "site.hero.eyebrow": "L’IA collaborative pour l’éducation",
-  "site.hero.headline": "Le diagnostic d’abord. L’apprentissage suit.",
+  "site.hero.eyebrow": "Un seul fil : enseignant, élève, Raya",
+  // Plus court que l’anglais, et volontairement : le slot est manuscrit.
+  "site.hero.headline": "Chacun son IA. Celle-ci, vous la partagez.",
   "site.hero.sub":
     "Être perdu, ce n’est pas manquer de capacités. C’est une étape qui manque — et Raya remonte jusqu’à la trouver.",
   "site.hero.ctaPrimary": "Essayer gratuitement",

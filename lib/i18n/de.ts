@@ -81,8 +81,9 @@ export const de: Partial<Messages> = {
   "site.nav.startFree": "Kostenlos starten",
   "site.nav.openApp": "App öffnen",
 
-  "site.hero.eyebrow": "Die kollaborative KI für die Bildung",
-  "site.hero.headline": "Erst die Diagnose. Dann das Lernen.",
+  "site.hero.eyebrow": "Ein Faden: Lehrkraft, Lernende, Raya",
+  // "ihr", nicht "Sie" — der Rest des Katalogs duzt ("deiner Klasse").
+  "site.hero.headline": "Jeder hat seine KI. Diese hier teilt ihr.",
   "site.hero.sub":
     "Nicht weiterzukommen ist kein Mangel an Begabung. Es ist ein fehlender Schritt — und Raya geht so weit zurück, bis er gefunden ist.",
   "site.hero.ctaPrimary": "Kostenlos ausprobieren",

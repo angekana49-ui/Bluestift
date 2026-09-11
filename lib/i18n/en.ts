@@ -111,8 +111,37 @@ export const en = {
   // fold without learning what Bluestift IS. The headline is set in Caveat at
   // up to 6.4rem: that is a voice, and a category line written by hand reads as
   // a doodled slogan, so the two cannot swap places.
-  "site.hero.eyebrow": "The collaborative AI for education",
-  "site.hero.headline": "The diagnosis comes first. The learning follows.",
+  // The eyebrow names the CATEGORY, and the category is the bridge: three
+  // parties on one thread. "The collaborative AI for education" described
+  // every product launched since 2023 and gave a visitor nothing to act on.
+  // Naming the three also sets up the Kernel and the Rooms further down
+  // without spending a word on either.
+  "site.hero.eyebrow": "One thread: teacher, student, Raya",
+  /*
+   * The hook states the problem and turns it, in two beats.
+   *
+   * What it replaced — "The diagnosis comes first. The learning follows." —
+   * was a hook about a MECHANISM, and mechanisms do not hook; they reassure
+   * somebody who is already interested. Worse, it made the same claim as the
+   * line directly beneath it (a missing step, walked back until Raya finds
+   * it), so the two strongest slots on the page spent themselves twice on one
+   * idea and neither did the hook's actual job: give a stranger a reason to
+   * keep reading.
+   *
+   * This is the thesis instead, in the plainest words available. Everyone in
+   * the classroom now has a private AI of their own, and that is precisely
+   * what has stopped the teacher and the student being able to see each
+   * other. The second sentence is the entire product. No feature, no number,
+   * and no verb an edtech brochure would reach for — "connect", "empower",
+   * "bridge" are all promises, and an observation outranks a promise here
+   * because the reader can check an observation against their own year.
+   *
+   * Set in Caveat at up to 6.4rem inside MEASURE.text (820px) — roughly 21
+   * characters a line. Past ~55 it becomes three lines of handwriting, which
+   * reads as a paragraph rather than a note. Keep translations short for the
+   * same reason, even where the language would rather be precise.
+   */
+  "site.hero.headline": "You both use AI. This one you share.",
   /*
    * One belief, not a summary.
    *
@@ -136,6 +165,13 @@ export const en = {
    *
    * Nothing here is quantified, deliberately. "Rarely", "often", "most students"
    * would each be a statistic nothing in this repo can back.
+   *
+   * STILL TRUE now that the headline above carries the thesis, and in fact the
+   * reason this line survived that rewrite untouched. The three slots divide
+   * the work: the hook takes the positioning, this takes the belief, and the
+   * connection band a screen below takes the argument. The moment this starts
+   * explaining the mechanism again it is duplicating the band — which is how
+   * all three failed drafts began.
    */
   "site.hero.sub":
     "Being lost isn’t a lack of ability. It’s a missing step — and Raya walks back until it finds it.",

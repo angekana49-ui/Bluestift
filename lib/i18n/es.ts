@@ -81,8 +81,10 @@ export const es: Partial<Messages> = {
   "site.nav.startFree": "Empezar gratis",
   "site.nav.openApp": "Abrir la app",
 
-  "site.hero.eyebrow": "La IA colaborativa para la educación",
-  "site.hero.headline": "Primero el diagnóstico. El aprendizaje viene después.",
+  "site.hero.eyebrow": "Un solo hilo: docente, estudiante, Raya",
+  // "ustedes" y no "vosotros": el catálogo tutea, y esta es la forma plural
+  // que se entiende en toda Latinoamérica y en España.
+  "site.hero.headline": "Cada uno tiene su IA. Esta la comparten.",
   "site.hero.sub":
     "Estar perdido no es falta de capacidad. Es un paso que falta — y Raya retrocede hasta encontrarlo.",
   "site.hero.ctaPrimary": "Probar gratis",
