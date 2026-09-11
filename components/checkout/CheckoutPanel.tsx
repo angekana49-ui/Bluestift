@@ -91,7 +91,7 @@ export function CheckoutPanel({
             border: `1px solid ${guardian ? "#2563eb" : "#e3e8f0"}`,
             background: "#f6f8fc",
             cursor: "pointer",
-            fontSize: 14,
+            fontSize: 15,
             lineHeight: 1.5,
             color: "#0b1220",
           }}
@@ -134,10 +134,10 @@ export function CheckoutPanel({
           >
             <span style={{ fontSize: 25, width: 26, textAlign: "center" }}>{m.emoji}</span>
             <span style={{ flex: 1 }}>
-              <span style={{ display: "block", fontSize: 16, fontWeight: 700, color: "#0b1220" }}>{tr(m.labelKey)}</span>
-              <span style={{ display: "block", fontSize: 14, color: "#64748b", marginTop: 1 }}>{tr(m.subKey)}</span>
+              <span style={{ display: "block", fontSize: 17, fontWeight: 700, color: "#0b1220" }}>{tr(m.labelKey)}</span>
+              <span style={{ display: "block", fontSize: 15, color: "#64748b", marginTop: 1 }}>{tr(m.subKey)}</span>
             </span>
-            <span style={{ fontSize: 14, fontWeight: 600, color: loading ? "#64748b" : "#2563eb" }}>
+            <span style={{ fontSize: 15, fontWeight: 600, color: loading ? "#64748b" : "#2563eb" }}>
               {loading ? tr("checkout.redirecting") : tr("checkout.payArrow")}
             </span>
           </button>
@@ -145,7 +145,7 @@ export function CheckoutPanel({
       })}
 
       {error && (
-        <p style={{ fontSize: 14, color: "#dc2626", margin: "4px 2px 0", lineHeight: 1.5 }}>{error}</p>
+        <p style={{ fontSize: 15, color: "#dc2626", margin: "4px 2px 0", lineHeight: 1.5 }}>{error}</p>
       )}
     </div>
   );

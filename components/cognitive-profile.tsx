@@ -28,7 +28,7 @@ function pct(v: number): string {
 
 function Bar({ theme: t, label, value, color }: { theme: AppTheme; label: string; value: number; color: string }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15 }}>
       <span style={{ width: 118, color: t.muted }}>{label}</span>
       <div style={{ flex: 1, height: 8, background: t.gaugeTrack, borderRadius: 99, overflow: "hidden" }}>
         <div style={{ width: pct(value), height: "100%", background: color }} />
@@ -44,8 +44,8 @@ function ConceptCard({ theme: t, c }: { theme: AppTheme; c: ConceptStateOut }) {
   return (
     <div style={{ ...panelCard(t) }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-        <strong style={{ flex: 1, color: t.text, fontSize: 15 }}>{c.label || c.concept_id}</strong>
-        <span style={{ background: st.color, color: "#0b1020", borderRadius: 999, padding: "2px 10px", fontSize: 13, fontWeight: 600 }}>
+        <strong style={{ flex: 1, color: t.text, fontSize: 16 }}>{c.label || c.concept_id}</strong>
+        <span style={{ background: st.color, color: "#0b1020", borderRadius: 999, padding: "2px 10px", fontSize: 14, fontWeight: 600 }}>
           {tr(st.labelKey)}
         </span>
       </div>
@@ -55,7 +55,7 @@ function ConceptCard({ theme: t, c }: { theme: AppTheme; c: ConceptStateOut }) {
         <Bar theme={t} label={tr("kernel.bar.application")} value={c.p_score} color="#06b6d4" />
       </div>
       {c.last_interaction_at && (
-        <p style={{ color: t.mutedLight, fontSize: 13, margin: "12px 0 0" }}>
+        <p style={{ color: t.mutedLight, fontSize: 14, margin: "12px 0 0" }}>
           {tr("kernel.lastPracticed")} {new Date(c.last_interaction_at).toLocaleDateString()}
         </p>
       )}
@@ -97,13 +97,13 @@ export function CognitiveProfile() {
   }, []);
 
   if (state === "loading") {
-    return <p style={{ color: t.muted, fontSize: 15 }}>{tr("kernel.loading")}</p>;
+    return <p style={{ color: t.muted, fontSize: 16 }}>{tr("kernel.loading")}</p>;
   }
 
   if (state === "error") {
     return (
       <div style={panelCard(t)}>
-        <p style={{ margin: 0, color: t.text, fontSize: 15 }}>
+        <p style={{ margin: 0, color: t.text, fontSize: 16 }}>
           {tr("kernel.profileErrorA")} <RayaName />
           {tr("kernel.profileErrorB")}
         </p>
@@ -129,14 +129,14 @@ export function CognitiveProfile() {
            and school-billing.tsx. */
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16, marginBottom: 16 }}>
           <div style={panelCard(t)}>
-            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 10, color: t.text }}>{tr("kernel.overallMastery")}</div>
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 10, color: t.text }}>{tr("kernel.overallMastery")}</div>
             <MasteryGauge theme={t} valueLabel={pct(globalMastery)} caption={tr("kernel.allConcepts")} dashoffset={188 * (1 - globalMastery)} />
           </div>
           {mindset && (
             <div style={panelCard(t)}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                <strong style={{ flex: 1, color: t.text, fontSize: 15 }}>{tr("kernel.mindsetLabel")}</strong>
-                <span style={{ color: t.muted, textTransform: "capitalize", fontSize: 14 }}>{mindset.detected_mindset || "—"}</span>
+                <strong style={{ flex: 1, color: t.text, fontSize: 16 }}>{tr("kernel.mindsetLabel")}</strong>
+                <span style={{ color: t.muted, textTransform: "capitalize", fontSize: 15 }}>{mindset.detected_mindset || "—"}</span>
               </div>
               <Bar theme={t} label={tr("kernel.growthLabel")} value={mindset.m_score} color="#22c55e" />
             </div>
@@ -146,7 +146,7 @@ export function CognitiveProfile() {
 
       {concepts.length === 0 ? (
         <div style={panelCard(t)}>
-          <p style={{ margin: 0, color: t.text, fontSize: 15 }}>
+          <p style={{ margin: 0, color: t.text, fontSize: 16 }}>
             {tr("kernel.noConceptsA")} <RayaName /> {tr("kernel.noConceptsB")}
           </p>
         </div>
@@ -155,7 +155,7 @@ export function CognitiveProfile() {
       )}
 
       {profile?.last_kernel_update && (
-        <p style={{ color: t.mutedLight, fontSize: 13 }}>
+        <p style={{ color: t.mutedLight, fontSize: 14 }}>
           {tr("kernel.updatedOn")} {new Date(profile.last_kernel_update).toLocaleString()}
         </p>
       )}

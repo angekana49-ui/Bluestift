@@ -88,7 +88,7 @@ const mkBtn = (t: AppTheme): React.CSSProperties => ({
   border: "none",
   borderRadius: 99,
   padding: "8px 14px",
-  fontSize: 14,
+  fontSize: 15,
   fontWeight: 600,
   cursor: "pointer",
 });
@@ -98,7 +98,7 @@ const mkGhost = (t: AppTheme): React.CSSProperties => ({
   border: `1px solid ${t.cardBorder}`,
   borderRadius: 99,
   padding: "8px 14px",
-  fontSize: 14,
+  fontSize: 15,
   fontWeight: 600,
   cursor: "pointer",
 });
@@ -613,7 +613,7 @@ function RoomViewBody({
   }
 
   const tabBtn = (on: boolean): React.CSSProperties =>
-    on ? { ...btn, fontSize: 14 } : { ...ghost, fontSize: 14 };
+    on ? { ...btn, fontSize: 15 } : { ...ghost, fontSize: 15 };
 
   /** One label per channel, so the chrome's tabs and the panel's list agree. */
   const channelLabel = (c: Channel): React.ReactNode =>
@@ -721,7 +721,7 @@ function RoomViewBody({
       {chromeOpen ? (
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
         <h1 style={{ fontSize: 23, fontWeight: 800, margin: 0, color: t.text, fontFamily: "var(--font-display)" }}>{roomName}</h1>
-        <span style={{ color: t.muted, fontSize: 15 }}>
+        <span style={{ color: t.muted, fontSize: 16 }}>
           {subject ?? "—"} · {memberCount} member{memberCount === 1 ? "" : "s"}
         </span>
         {timerBadge}
@@ -773,9 +773,9 @@ function RoomViewBody({
                   padding: 12,
                 }}
               >
-                <div style={{ fontSize: 13, fontWeight: 700, color: t.text, marginBottom: 8 }}>{tr("room.headerDocsPopoverTitle")}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: t.text, marginBottom: 8 }}>{tr("room.headerDocsPopoverTitle")}</div>
                 {sharedDocs.length === 0 ? (
-                  <div style={{ fontSize: 13, color: t.muted }}>{tr("room.noDocumentsYet")}</div>
+                  <div style={{ fontSize: 14, color: t.muted }}>{tr("room.noDocumentsYet")}</div>
                 ) : (
                   sharedDocs.map((f) => (
                     <div
@@ -787,8 +787,8 @@ function RoomViewBody({
                       title={f.file_name ?? undefined}
                       style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 8px", borderRadius: 9, cursor: "pointer" }}
                     >
-                      <span style={{ fontSize: 15, flex: "none" }}>📄</span>
-                      <span style={{ minWidth: 0, flex: 1, fontSize: 13, fontWeight: 600, color: t.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      <span style={{ fontSize: 16, flex: "none" }}>📄</span>
+                      <span style={{ minWidth: 0, flex: 1, fontSize: 14, fontWeight: 600, color: t.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                         {f.file_name}
                       </span>
                     </div>
@@ -809,7 +809,7 @@ function RoomViewBody({
         <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
           <h1
             style={{
-              fontSize: 16,
+              fontSize: 17,
               fontWeight: 800,
               margin: 0,
               color: t.text,
@@ -837,7 +837,7 @@ function RoomViewBody({
                 alignItems: "center",
                 gap: 8,
                 marginTop: 12,
-                fontSize: 14,
+                fontSize: 15,
                 color: t.text,
                 background: "rgba(239,68,68,0.1)",
                 border: "1px solid rgba(239,68,68,0.35)",
@@ -885,11 +885,11 @@ function RoomViewBody({
             textAlign: "center",
           }}
         >
-          <p style={{ color: t.muted, fontSize: 15 }}>{tr("room.joinPrompt")}</p>
+          <p style={{ color: t.muted, fontSize: 16 }}>{tr("room.joinPrompt")}</p>
           <button style={btn} onClick={join} disabled={busy}>
             {tr("room.joinButton")}
           </button>
-          {error && <p style={{ color: "#f87171", fontSize: 15 }}>{error}</p>}
+          {error && <p style={{ color: "#f87171", fontSize: 16 }}>{error}</p>}
         </div>
       </PageBody>
     );
@@ -943,11 +943,11 @@ function RoomViewBody({
         ) : (
           <div className="room-report-box" style={listBox}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <h3 style={{ margin: 0, flex: 1, fontSize: 16, fontWeight: 700, color: t.text }}>{tr("room.reportHeading")}</h3>
+              <h3 style={{ margin: 0, flex: 1, fontSize: 17, fontWeight: 700, color: t.text }}>{tr("room.reportHeading")}</h3>
               {report && (
                 <>
                   <DocumentActions doc={reportDoc(roomName, report)} compact personal />
-                  <button style={{ ...ghost, padding: "5px 12px", fontSize: 13 }} title={tr("room.closeTitle")} onClick={() => setReport(null)}>
+                  <button style={{ ...ghost, padding: "5px 12px", fontSize: 14 }} title={tr("room.closeTitle")} onClick={() => setReport(null)}>
                     ✕
                   </button>
                 </>
@@ -957,11 +957,11 @@ function RoomViewBody({
               </button>
             </div>
             {!report ? (
-              <p style={{ color: t.muted, fontSize: 15 }}>
+              <p style={{ color: t.muted, fontSize: 16 }}>
                 {tr("room.reportEmpty")}
               </p>
             ) : (
-              <div style={{ lineHeight: 1.6, color: t.text, fontSize: 15 }}>
+              <div style={{ lineHeight: 1.6, color: t.text, fontSize: 16 }}>
                 {report.squad_score != null && (
                   <p>
                     <strong>{tr("room.squadScoreLabel")}</strong> {report.squad_score}/100
@@ -991,7 +991,7 @@ function RoomViewBody({
             )}
           </div>
         )}
-        {error && <p style={{ color: "#f87171", marginTop: 8, fontSize: 15 }}>{error}</p>}
+        {error && <p style={{ color: "#f87171", marginTop: 8, fontSize: 16 }}>{error}</p>}
       </PageBody>
     );
   }
@@ -1026,7 +1026,7 @@ function RoomViewBody({
   }
 
   const panelSectionTitle: React.CSSProperties = {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: 700,
     letterSpacing: 0.3,
     textTransform: "uppercase",
@@ -1066,7 +1066,7 @@ function RoomViewBody({
                   background: on ? t.ctaBg : "transparent",
                   color: on ? t.ctaText : t.text,
                   fontFamily: "inherit",
-                  fontSize: 14,
+                  fontSize: 15,
                   fontWeight: on ? 700 : 600,
                   cursor: "pointer",
                 }}
@@ -1091,7 +1091,7 @@ function RoomViewBody({
         <div style={panelSectionTitle}>{tr("room.panelNotifications")}</div>
         {notifications.map((n) => (
           <div key={n.id} style={{ background: t.rowActiveBg, borderRadius: 10, padding: "9px 11px", marginBottom: 6 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: t.text, display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: t.text, display: "flex", alignItems: "center", gap: 6 }}>
               <span
                 style={{
                   width: 7,
@@ -1103,7 +1103,7 @@ function RoomViewBody({
               />
               {n.title}
             </div>
-            <div style={{ fontSize: 13, color: t.muted, marginTop: 2 }}>{n.detail}</div>
+            <div style={{ fontSize: 14, color: t.muted, marginTop: 2 }}>{n.detail}</div>
           </div>
         ))}
       </div>
@@ -1112,7 +1112,7 @@ function RoomViewBody({
       <div>
         <div style={panelSectionTitle}>{tr("room.panelDocuments")}</div>
         {sharedDocs.length === 0 ? (
-          <div style={{ fontSize: 13, color: t.muted }}>{tr("room.noDocumentsSharedYet")}</div>
+          <div style={{ fontSize: 14, color: t.muted }}>{tr("room.noDocumentsSharedYet")}</div>
         ) : (
           sharedDocs.map((f) => (
             <div
@@ -1121,12 +1121,12 @@ function RoomViewBody({
               title={f.file_name ?? undefined}
               style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 8px", borderRadius: 9, cursor: "pointer" }}
             >
-              <span style={{ fontSize: 16, flex: "none" }}>📄</span>
+              <span style={{ fontSize: 17, flex: "none" }}>📄</span>
               <span
                 style={{
                   minWidth: 0,
                   flex: 1,
-                  fontSize: 13,
+                  fontSize: 14,
                   fontWeight: 600,
                   color: t.text,
                   whiteSpace: "nowrap",
@@ -1146,7 +1146,7 @@ function RoomViewBody({
         <div style={panelSectionTitle}>{tr("room.panelMembers")}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 2px" }}>
           <ChatAvatar theme={t} size={26} isRaya />
-          <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: t.text }}><RayaName /></span>
+          <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 600, color: t.text }}><RayaName /></span>
           <span className="online-dot" />
         </div>
         {Object.values(roster).map((r) => {
@@ -1155,7 +1155,7 @@ function RoomViewBody({
           return (
             <div key={r.user_id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 2px" }}>
               <ChatAvatar theme={t} size={26} initials={avatarInitials(mine ? studentName : label)} avatarUrl={r.profile_picture_url} />
-              <span style={{ flex: 1, minWidth: 0, fontSize: 14, color: t.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              <span style={{ flex: 1, minWidth: 0, fontSize: 15, color: t.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {label}
               </span>
               <span className={online.has(r.user_id) ? "online-dot" : "offline-dot"} />
@@ -1167,7 +1167,7 @@ function RoomViewBody({
       {/* Settings */}
       <div>
         <div style={panelSectionTitle}>{tr("room.panelSettings")}</div>
-        <div style={{ fontSize: 14, color: t.text, display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ fontSize: 15, color: t.text, display: "flex", flexDirection: "column", gap: 6 }}>
           <div>
             <span style={{ color: t.muted }}>{tr("room.settingsSubject")} </span>
             {subject ?? "—"}
@@ -1284,7 +1284,7 @@ function RoomVisibility({
     display: "inline-flex",
     alignItems: "center",
     gap: 5,
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: 600,
     borderRadius: 99,
     padding: "3px 10px",
@@ -1301,7 +1301,7 @@ function RoomVisibility({
           onClick={flip}
           disabled={busy}
           title={isPublic ? tr("room.vis.publicHint") : tr("room.vis.privateHint")}
-          style={{ ...pill, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1, font: "inherit", fontSize: 14, fontWeight: 600 }}
+          style={{ ...pill, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1, font: "inherit", fontSize: 15, fontWeight: 600 }}
         >
           {isPublic ? `🌐 ${tr("rooms.visPublic")}` : `🔒 ${tr("rooms.visPrivate")}`}
           <span style={{ color: t.muted, fontWeight: 400 }}>· {busy ? tr("room.vis.saving") : tr("room.vis.change")}</span>
@@ -1322,7 +1322,7 @@ function RoomVisibility({
         </span>
       )}
       {note && (
-        <span style={{ alignSelf: "center", fontSize: 13, color: t.muted }}>{note}</span>
+        <span style={{ alignSelf: "center", fontSize: 14, color: t.muted }}>{note}</span>
       )}
     </>
   );

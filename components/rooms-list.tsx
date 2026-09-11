@@ -97,7 +97,7 @@ export function RoomsList({
     border: `1px solid ${on ? t.ctaBg : t.cardBorder}`,
     borderRadius: 99,
     padding: "6px 12px",
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: 600,
     cursor: "pointer",
   });
@@ -152,7 +152,7 @@ export function RoomsList({
   const discoverSearch = useListSearch(discover, (r) => [r.name, r.subject], { noun: tr("list.noun.rooms") });
 
   const sectionLabel: React.CSSProperties = {
-    fontSize: 13,
+    fontSize: 14,
     color: t.mutedLight,
     textTransform: "uppercase",
     letterSpacing: "0.06em",
@@ -176,8 +176,8 @@ export function RoomsList({
       }}
     >
       <div style={{ flex: 1 }}>
-        <div style={{ fontWeight: 600, color: t.text, fontSize: 15 }}>{r.name}</div>
-        <div style={{ fontSize: 13, color: t.mutedLight }}>
+        <div style={{ fontWeight: 600, color: t.text, fontSize: 16 }}>{r.name}</div>
+        <div style={{ fontSize: 14, color: t.mutedLight }}>
           {r.subject ?? "—"} · {r.visibility === "public" ? tr("rooms.visPublic") : tr("rooms.visPrivate")}
         </div>
       </div>
@@ -211,7 +211,7 @@ export function RoomsList({
             server-side regardless, so this is the honest face of a rule that is
             enforced whether or not this component behaves. */}
         {canChooseVisibility ? (
-          <div style={{ display: "flex", gap: 16, margin: "10px 0 14px", fontSize: 14 }}>
+          <div style={{ display: "flex", gap: 16, margin: "10px 0 14px", fontSize: 15 }}>
             {(["private", "public"] as const).map((v) => (
               <label key={v} style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", color: t.text }}>
                 <input type="radio" name="visibility" checked={visibility === v} onChange={() => setVisibility(v)} />
@@ -225,11 +225,11 @@ export function RoomsList({
             ))}
           </div>
         ) : (
-          <div style={{ margin: "10px 0 14px", fontSize: 14, color: t.mutedLight }}>
+          <div style={{ margin: "10px 0 14px", fontSize: 15, color: t.mutedLight }}>
             {tr("rooms.lockedPrivateNotice")}
           </div>
         )}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "2px 0 14px", fontSize: 14, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "2px 0 14px", fontSize: 15, flexWrap: "wrap" }}>
           <span style={{ color: t.text, fontWeight: 600 }}>{tr("rooms.sessionLength")}</span>
           <select
             value={duration}
@@ -248,8 +248,8 @@ export function RoomsList({
           </span>
         </div>
         <div style={{ margin: "2px 0 14px" }}>
-          <div style={{ fontSize: 14, color: t.text, fontWeight: 600, marginBottom: 4 }}>{tr("rooms.contextDocsLabel")}</div>
-          <div style={{ fontSize: 13, color: t.mutedLight, marginBottom: 6 }}>
+          <div style={{ fontSize: 15, color: t.text, fontWeight: 600, marginBottom: 4 }}>{tr("rooms.contextDocsLabel")}</div>
+          <div style={{ fontSize: 14, color: t.mutedLight, marginBottom: 6 }}>
             <RayaName /> {tr("rooms.contextDocsHint")}
           </div>
           <FilePicker
@@ -274,7 +274,7 @@ export function RoomsList({
                     border: `1px solid ${t.cardBorder}`,
                     borderRadius: 99,
                     padding: "4px 6px 4px 11px",
-                    fontSize: 13,
+                    fontSize: 14,
                     color: t.text,
                   }}
                 >
@@ -284,7 +284,7 @@ export function RoomsList({
                     type="button"
                     onClick={() => setDocs((prev) => prev.filter((_, j) => j !== i))}
                     title={tr("rooms.removeTitle")}
-                    style={{ background: "transparent", border: "none", color: t.mutedLight, cursor: "pointer", fontSize: 15, padding: 0, lineHeight: 1 }}
+                    style={{ background: "transparent", border: "none", color: t.mutedLight, cursor: "pointer", fontSize: 16, padding: 0, lineHeight: 1 }}
                   >
                     ✕
                   </button>
@@ -298,12 +298,12 @@ export function RoomsList({
             {busy ? (docs.length ? tr("rooms.creatingAndUploading") : tr("rooms.creating")) : tr("rooms.create")}
           </button>
         </div>
-        {error && <p style={{ color: "#f87171", marginTop: 8, fontSize: 15 }}>{error}</p>}
+        {error && <p style={{ color: "#f87171", marginTop: 8, fontSize: 16 }}>{error}</p>}
       </div>
 
       <div style={{ marginTop: 24 }}>
         <div style={sectionLabel}>{tr("rooms.yourRooms")} ({mine.length})</div>
-        {mine.length === 0 && <p style={{ color: t.muted, marginTop: 12, fontSize: 15 }}>{tr("rooms.noneJoinedYet")}</p>}
+        {mine.length === 0 && <p style={{ color: t.muted, marginTop: 12, fontSize: 16 }}>{tr("rooms.noneJoinedYet")}</p>}
         {mine.map(roomCard)}
       </div>
 
@@ -314,7 +314,7 @@ export function RoomsList({
             name, since "who else is revising physics" is the question this
             section is actually browsed with. */}
         <ListToolbar search={discoverSearch} />
-        {discover.length === 0 && <p style={{ color: t.muted, marginTop: 12, fontSize: 15 }}>{tr("rooms.noPublicRooms")}</p>}
+        {discover.length === 0 && <p style={{ color: t.muted, marginTop: 12, fontSize: 16 }}>{tr("rooms.noPublicRooms")}</p>}
         {discoverSearch.visible.map(roomCard)}
         <ListNoMatch search={discoverSearch} />
       </div>

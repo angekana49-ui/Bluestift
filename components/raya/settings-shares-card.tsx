@@ -94,20 +94,20 @@ export function SettingsSharesCard() {
     border: `1px solid ${t.cardBorder}`,
     borderRadius: 99,
     padding: "4px 11px",
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: 600,
     cursor: "pointer",
   };
 
   return (
     <SettingsCard theme={t} id="shares">
-      <div style={{ fontSize: 16, fontWeight: 700, color: t.text }}>{tr("raya.settings.shares.title")}</div>
-      <div style={{ fontSize: 13, color: t.muted, marginTop: 2, marginBottom: 12, lineHeight: 1.6 }}>
+      <div style={{ fontSize: 17, fontWeight: 700, color: t.text }}>{tr("raya.settings.shares.title")}</div>
+      <div style={{ fontSize: 14, color: t.muted, marginTop: 2, marginBottom: 12, lineHeight: 1.6 }}>
         {tr("raya.settings.shares.desc")}
       </div>
 
       {shares === null ? (
-        <div style={{ fontSize: 14, color: t.muted }}>{tr("school.loading")}</div>
+        <div style={{ fontSize: 15, color: t.muted }}>{tr("school.loading")}</div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {shares.map((s) => (
@@ -127,7 +127,7 @@ export function SettingsSharesCard() {
               <div style={{ flex: 1, minWidth: 160 }}>
                 <div
                   style={{
-                    fontSize: 14,
+                    fontSize: 15,
                     fontWeight: 600,
                     color: t.text,
                     overflow: "hidden",
@@ -137,7 +137,7 @@ export function SettingsSharesCard() {
                 >
                   {s.title || tr("raya.settings.shares.untitled")}
                 </div>
-                <div style={{ fontSize: 12, color: t.mutedLight, marginTop: 2 }}>
+                <div style={{ fontSize: 13, color: t.mutedLight, marginTop: 2 }}>
                   {tr("raya.settings.shares.sharedOn")} {new Date(s.createdAt).toLocaleDateString()}
                 </div>
               </div>
@@ -157,7 +157,7 @@ export function SettingsSharesCard() {
         </div>
       )}
 
-      {err && <p style={{ fontSize: 13, color: t.muted, margin: "10px 0 0" }}>{err}</p>}
+      {err && <p style={{ fontSize: 14, color: t.muted, margin: "10px 0 0" }}>{err}</p>}
     </SettingsCard>
   );
 }

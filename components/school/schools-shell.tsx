@@ -196,7 +196,7 @@ export function SchoolsShell({
                 background: headerLogoUrl ? "transparent" : "#2f7fe0",
                 color: "#fff",
                 fontWeight: 700,
-                fontSize: 15,
+                fontSize: 16,
               }}
             >
               {headerLogoUrl ? (
@@ -215,7 +215,7 @@ export function SchoolsShell({
               <RayaText>{headerTitle ?? brandName}</RayaText>
             </span>
             {headerSubtitle && (
-              <span style={{ fontSize: 14, color: t.muted, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <span style={{ fontSize: 15, color: t.muted, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 <RayaText>{headerSubtitle}</RayaText>
               </span>
             )}

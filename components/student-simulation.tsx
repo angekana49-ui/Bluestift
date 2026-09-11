@@ -121,7 +121,7 @@ export function StudentSimulation() {
     border: `1px solid ${on ? t.ctaBg : t.cardBorder}`,
     borderRadius: 99,
     padding: "5px 11px",
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: 600,
     cursor: "pointer",
   });
@@ -133,7 +133,7 @@ export function StudentSimulation() {
   return (
     <div style={panelCard(t)}>
       <h2 style={cardTitle(t)}>{tr("kernel.sim.title")}</h2>
-      <p style={{ margin: "0 0 14px", color: t.muted, fontSize: 14, lineHeight: 1.6 }}>
+      <p style={{ margin: "0 0 14px", color: t.muted, fontSize: 15, lineHeight: 1.6 }}>
         {tr("kernel.sim.intro")}
       </p>
 
@@ -171,7 +171,7 @@ export function StudentSimulation() {
         })}
       </div>
 
-      {error && <p style={{ color: "#f87171", marginTop: 10, fontSize: 15 }}>{error}</p>}
+      {error && <p style={{ color: "#f87171", marginTop: 10, fontSize: 16 }}>{error}</p>}
 
       {result && (
         <div style={{ marginTop: 16, borderTop: `1px solid ${t.cardBorder}`, paddingTop: 16 }}>
@@ -186,7 +186,7 @@ export function StudentSimulation() {
               </>
             )}
             {delta != null && (
-              <span style={{ fontSize: 14, fontWeight: 700, color: delta >= 0 ? "#22c55e" : "#ef4444" }}>
+              <span style={{ fontSize: 15, fontWeight: 700, color: delta >= 0 ? "#22c55e" : "#ef4444" }}>
                 {delta >= 0 ? "+" : ""}
                 {delta} {tr("kernel.sim.pts")}
               </span>
@@ -194,7 +194,7 @@ export function StudentSimulation() {
             <span
               style={{
                 marginLeft: "auto",
-                fontSize: 13,
+                fontSize: 14,
                 fontWeight: 700,
                 color: confColor(result.confidence),
                 background: t.cardBg2,
@@ -210,13 +210,13 @@ export function StudentSimulation() {
             </button>
           </div>
 
-          <p style={{ fontSize: 15, color: t.text, lineHeight: 1.65, margin: "0 0 12px" }}>{result.summary}</p>
+          <p style={{ fontSize: 16, color: t.text, lineHeight: 1.65, margin: "0 0 12px" }}>{result.summary}</p>
 
           <List theme={t} title={tr("kernel.sim.assumes")} items={result.assumptions} />
           <List theme={t} title={tr("kernel.sim.risks")} items={result.risks} />
           <List theme={t} title={tr("kernel.sim.nextSteps")} items={result.next_steps} accent="#2f7fe0" />
 
-          <p style={{ fontSize: 13, color: t.mutedLight, margin: "10px 0 0" }}>
+          <p style={{ fontSize: 14, color: t.mutedLight, margin: "10px 0 0" }}>
             {tr("kernel.sim.disclaimer")}
           </p>
         </div>
@@ -226,7 +226,7 @@ export function StudentSimulation() {
         <div style={{ marginTop: 16, borderTop: `1px solid ${t.cardBorder}`, paddingTop: 12 }}>
           <button
             onClick={() => setShowHistory((s) => !s)}
-            style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: 13, fontWeight: 700, color: t.muted }}
+            style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: 14, fontWeight: 700, color: t.muted }}
           >
             {showHistory ? "▾" : "▸"} {tr("kernel.sim.pastSimulations")} ({history.length})
           </button>
@@ -251,15 +251,15 @@ export function StudentSimulation() {
                       cursor: "pointer",
                     }}
                   >
-                    <span style={{ flex: 1, fontSize: 14, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <span style={{ flex: 1, fontSize: 15, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       +{h.add_hours}h · {h.focus || tr("kernel.sim.weakestConceptsFallback")}
                     </span>
                     {cur != null && proj != null && (
-                      <span style={{ fontSize: 14, fontWeight: 700, color: proj >= cur ? "#22c55e" : "#ef4444" }}>
+                      <span style={{ fontSize: 15, fontWeight: 700, color: proj >= cur ? "#22c55e" : "#ef4444" }}>
                         {cur}%→{proj}%
                       </span>
                     )}
-                    <span style={{ fontSize: 13, color: t.mutedLight }}>
+                    <span style={{ fontSize: 14, color: t.mutedLight }}>
                       {new Date(h.created_at).toLocaleDateString()}
                     </span>
                   </button>
@@ -276,7 +276,7 @@ export function StudentSimulation() {
 function Stat({ theme: t, label, value, color }: { theme: AppTheme; label: string; value: string; color: string }) {
   return (
     <span style={{ display: "inline-flex", flexDirection: "column", lineHeight: 1.2 }}>
-      <span style={{ fontSize: 13, color: t.mutedLight, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</span>
+      <span style={{ fontSize: 14, color: t.mutedLight, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</span>
       <strong style={{ fontSize: 21, color }}>{value}</strong>
     </span>
   );
@@ -296,8 +296,8 @@ function List({
   if (!items || items.length === 0) return null;
   return (
     <div style={{ marginBottom: 10 }}>
-      <div style={{ fontSize: 13, fontWeight: 700, color: accent ?? t.muted, marginBottom: 4 }}>{title}</div>
-      <ul style={{ margin: 0, paddingLeft: 18, color: t.text, fontSize: 14, lineHeight: 1.6 }}>
+      <div style={{ fontSize: 14, fontWeight: 700, color: accent ?? t.muted, marginBottom: 4 }}>{title}</div>
+      <ul style={{ margin: 0, paddingLeft: 18, color: t.text, fontSize: 15, lineHeight: 1.6 }}>
         {items.slice(0, 5).map((it, i) => (
           <li key={i}>{it}</li>
         ))}

@@ -21,7 +21,7 @@ export default async function OpsBillingPage() {
   return (
     <main style={{ maxWidth: 640, margin: "0 auto", padding: "40px 20px 80px" }}>
       <h1 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 4px" }}>{tr("ops.billing.pageTitle")}</h1>
-      <p style={{ fontSize: 14, color: "#6b7794", margin: "0 0 28px" }}>{tr("ops.billing.pageIntro")}</p>
+      <p style={{ fontSize: 15, color: "#6b7794", margin: "0 0 28px" }}>{tr("ops.billing.pageIntro")}</p>
       <OpsBillingForm />
     </main>
   );

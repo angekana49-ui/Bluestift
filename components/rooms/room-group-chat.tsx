@@ -91,7 +91,7 @@ export function RoomGroupChat({
     border: kind === "raya" ? `1px solid ${t.cardBorder}` : "1px solid transparent",
     borderRadius: kind === "me" ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
     padding: "13px 16px",
-    fontSize: 16,
+    fontSize: 17,
     lineHeight: 1.65,
     // Raya's bubble renders Markdown blocks and brings its own spacing.
     whiteSpace: kind === "raya" ? "normal" : "pre-wrap",
@@ -119,7 +119,7 @@ export function RoomGroupChat({
         border: `1px solid ${t.cardBorder}`,
         background: t.cardBg2,
         color: t.text,
-        fontSize: 14,
+        fontSize: 15,
         fontWeight: 600,
         cursor: busy || expired ? "default" : "pointer",
         opacity: busy || expired ? 0.5 : 1,
@@ -145,7 +145,7 @@ export function RoomGroupChat({
             justifyContent: "center",
             gap: 8,
             padding: "6px 12px",
-            fontSize: 13,
+            fontSize: 14,
             borderRadius: 8,
             background: t.dark ? "rgba(180,120,0,0.18)" : "rgba(180,120,0,0.10)",
             color: t.dark ? "#eab308" : "#92600a",
@@ -215,7 +215,7 @@ export function RoomGroupChat({
             <Bird variant={1} fill={status.aiIndigo} />
             <Bird variant={2} fill={t.mutedLight} />
           </div>
-          <p style={{ maxWidth: 380, margin: "14px 0 26px", fontSize: 15, lineHeight: 1.7, color: t.muted }}>
+          <p style={{ maxWidth: 380, margin: "14px 0 26px", fontSize: 16, lineHeight: 1.7, color: t.muted }}>
             {tr("room.groupIntroA")} <RayaName /> {tr("room.groupIntroB")}
           </p>
 
@@ -240,7 +240,7 @@ export function RoomGroupChat({
                   border: `1px solid ${t.cardBorder}`,
                   borderRadius: 14,
                   padding: "12px 16px",
-                  fontSize: 14,
+                  fontSize: 15,
                   fontWeight: 600,
                   color: t.text,
                   animation: `floatSm ${6.5 + i * 0.35}s ease-in-out infinite`,
@@ -266,7 +266,7 @@ export function RoomGroupChat({
                       key={m.id}
                       style={{
                         alignSelf: "center",
-                        fontSize: 13,
+                        fontSize: 14,
                         color: t.muted,
                         background: t.cardBg2,
                         border: `1px solid ${t.cardBorder}`,
@@ -286,7 +286,7 @@ export function RoomGroupChat({
                   >
                     {avatarFor(m)}
                     <div style={{ display: "flex", flexDirection: "column", alignItems: mine ? "flex-end" : "flex-start", gap: 3, minWidth: 0 }}>
-                      <span style={{ fontSize: 13, color: t.mutedLight }}>{who} {tr("room.sharedDocument")}</span>
+                      <span style={{ fontSize: 14, color: t.mutedLight }}>{who} {tr("room.sharedDocument")}</span>
                       <div style={{ ...bubble(mine ? "me" : "other"), minWidth: 220 }}>
                         <AttachmentCard file={file} onOpen={onPreview} />
                       </div>
@@ -302,7 +302,7 @@ export function RoomGroupChat({
                 >
                   {avatarFor(m)}
                   <div style={{ display: "flex", flexDirection: "column", alignItems: kind === "me" ? "flex-end" : "flex-start", gap: 3, minWidth: 0 }}>
-                    <span style={{ fontSize: 13, color: t.mutedLight }}>
+                    <span style={{ fontSize: 14, color: t.mutedLight }}>
                       {kind === "raya" ? <RayaName /> : kind === "me" ? tr("room.youLabel") : nameOf(m.user_id)}
                     </span>
                     <div style={bubble(kind)}>

@@ -67,8 +67,8 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
               applied by hand: this reads the name off DOC_BRANDS rather than writing
               the literal word in JSX, so the wordmark-sweep's plain-text search never
               found it — the browser's own Google Translate was still rewriting it. */}
-          <span translate="no" className="notranslate" style={{ fontSize: 15, fontWeight: 700, color: brand.accent }}>{brand.name}</span>
-          <span style={{ marginLeft: "auto", fontSize: 13, color: "#8a97a8" }}>{tr("sharePage.sharedReadOnly")}</span>
+          <span translate="no" className="notranslate" style={{ fontSize: 16, fontWeight: 700, color: brand.accent }}>{brand.name}</span>
+          <span style={{ marginLeft: "auto", fontSize: 14, color: "#8a97a8" }}>{tr("sharePage.sharedReadOnly")}</span>
         </header>
 
         <div style={{ padding: "20px 24px 4px" }}>
@@ -88,19 +88,19 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
               );
             if (b.type === "h1") return <h2 key={i} style={{ fontSize: 21, fontWeight: 800, margin: "18px 0 8px" }}>{inline(b.text)}</h2>;
             if (b.type === "h2") return <h3 key={i} style={{ fontSize: 17, fontWeight: 700, color: brand.accent, margin: "16px 0 6px" }}>{inline(b.text)}</h3>;
-            if (b.type === "h3") return <h4 key={i} style={{ fontSize: 16, fontWeight: 700, margin: "12px 0 5px" }}>{inline(b.text)}</h4>;
+            if (b.type === "h3") return <h4 key={i} style={{ fontSize: 17, fontWeight: 700, margin: "12px 0 5px" }}>{inline(b.text)}</h4>;
             if (b.type === "li")
               return (
-                <div key={i} style={{ display: "flex", gap: 8, margin: "4px 0", fontSize: 16, lineHeight: 1.6 }}>
+                <div key={i} style={{ display: "flex", gap: 8, margin: "4px 0", fontSize: 17, lineHeight: 1.6 }}>
                   <span style={{ color: brand.accent, flex: "none" }}>•</span>
                   <span>{inline(b.text)}</span>
                 </div>
               );
-            return <p key={i} style={{ fontSize: 16, lineHeight: 1.65, margin: "8px 0" }}>{inline(b.text)}</p>;
+            return <p key={i} style={{ fontSize: 17, lineHeight: 1.65, margin: "8px 0" }}>{inline(b.text)}</p>;
           })}
         </div>
 
-        <footer style={{ padding: "14px 24px 18px", marginTop: 8, borderTop: "1px solid rgba(15,23,42,0.08)", fontSize: 13, color: "#8a97a8", display: "flex", gap: 6, flexWrap: "wrap" }}>
+        <footer style={{ padding: "14px 24px 18px", marginTop: 8, borderTop: "1px solid rgba(15,23,42,0.08)", fontSize: 14, color: "#8a97a8", display: "flex", gap: 6, flexWrap: "wrap" }}>
           <span>{footerLine((data.brand as DocBrand) in DOC_BRANDS ? (data.brand as DocBrand) : "raya")} ·</span>
           {/* Opens in a new tab, matching the branded document viewer's own
               footer link (components/ui/document.tsx) — it leaves the document

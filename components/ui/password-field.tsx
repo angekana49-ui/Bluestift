@@ -94,7 +94,7 @@ export function PasswordField({
             background: "none",
             border: "none",
             padding: "4px 6px",
-            fontSize: 13,
+            fontSize: 14,
             fontWeight: 600,
             color: muted,
             cursor: "pointer",
@@ -107,7 +107,7 @@ export function PasswordField({
         <p
           style={{
             margin: "6px 0 0",
-            fontSize: 13,
+            fontSize: 14,
             lineHeight: 1.5,
             color: problem ? "#b91c1c" : muted,
           }}

@@ -111,7 +111,7 @@ function InviteControls({
             padding: "8px 10px",
             // 16px on purpose: iOS Safari zooms the whole page in on a focused
             // field under 16px, and this one is focused to be copied from.
-            fontSize: 16,
+            fontSize: 17,
             color: t.muted,
             fontFamily: "inherit",
             textOverflow: "ellipsis",
@@ -128,7 +128,7 @@ function InviteControls({
             border: `1px solid ${t.cardBorder}`,
             borderRadius: 10,
             padding: "9px 12px",
-            fontSize: 14,
+            fontSize: 15,
             fontWeight: 600,
             fontFamily: "inherit",
             cursor: "pointer",
@@ -155,7 +155,7 @@ function InviteControls({
         {tr("room.invite.share")}
       </button>
       {/* The one thing someone hesitates over before sending a link. */}
-      <div style={{ fontSize: 13, color: t.mutedLight }}>{tr("room.invite.privateNote")}</div>
+      <div style={{ fontSize: 14, color: t.mutedLight }}>{tr("room.invite.privateNote")}</div>
     </div>
   );
 }
@@ -201,7 +201,7 @@ export function RoomInviteBanner({
           marginInline: "auto",
         }}
       >
-        <div style={{ flex: 1, minWidth: 150, fontSize: 14, color: t.text, lineHeight: 1.4 }}>
+        <div style={{ flex: 1, minWidth: 150, fontSize: 15, color: t.text, lineHeight: 1.4 }}>
           <strong style={{ fontWeight: 700 }}>{tr("room.invite.aloneTitle")}</strong>{" "}
           <span style={{ color: t.muted }}>{tr("room.invite.aloneBody")}</span>
         </div>
@@ -215,7 +215,7 @@ export function RoomInviteBanner({
             border: "none",
             borderRadius: 99,
             padding: "9px 16px",
-            fontSize: 14,
+            fontSize: 15,
             fontWeight: 700,
             fontFamily: "inherit",
             cursor: "pointer",
@@ -239,7 +239,7 @@ export function RoomInviteBanner({
             border: "none",
             background: "transparent",
             color: t.mutedLight,
-            fontSize: 15,
+            fontSize: 16,
             cursor: "pointer",
           }}
         >

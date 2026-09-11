@@ -246,18 +246,18 @@ function DirectivesPanel({ role }: { role: Role }) {
 
   return (
     <div>
-      <div style={{ fontSize: 15, fontWeight: 700, color: t.text, marginBottom: 4 }}>{tr("school.directives.heading")}</div>
-      <div style={{ fontSize: 13, color: t.muted, marginBottom: 10 }}>
+      <div style={{ fontSize: 16, fontWeight: 700, color: t.text, marginBottom: 4 }}>{tr("school.directives.heading")}</div>
+      <div style={{ fontSize: 14, color: t.muted, marginBottom: 10 }}>
         {tr("school.directives.introA")} <RayaName /> {tr("school.directives.introB")} <RayaName />{tr("school.directives.introC")}
       </div>
-      {error && <div style={{ fontSize: 13, color: "#f87171", marginBottom: 6 }}>{error}</div>}
-      {items.length === 0 && <div style={{ fontSize: 13, color: t.muted }}>{tr("school.directives.noneYet")}</div>}
+      {error && <div style={{ fontSize: 14, color: "#f87171", marginBottom: 6 }}>{error}</div>}
+      {items.length === 0 && <div style={{ fontSize: 14, color: t.muted }}>{tr("school.directives.noneYet")}</div>}
       {items.map((it) => (
         <div
           key={it.id}
           style={{ display: "flex", alignItems: "flex-start", gap: 6, padding: "6px 0", borderBottom: `1px solid ${t.cardBorder}` }}
         >
-          <span style={{ flex: 1, fontSize: 14, color: t.text, opacity: it.isActive ? 1 : 0.45 }}>
+          <span style={{ flex: 1, fontSize: 15, color: t.text, opacity: it.isActive ? 1 : 0.45 }}>
             {it.content}
             <span style={{ color: t.mutedLight }}> · {AUDIENCE_LABEL_KEY[it.audience] ? tr(AUDIENCE_LABEL_KEY[it.audience]) : it.audience}</span>
           </span>
@@ -265,7 +265,7 @@ function DirectivesPanel({ role }: { role: Role }) {
             <>
               <button
                 onClick={() => toggle(it)}
-                style={{ background: "transparent", border: "none", color: t.mutedLight, fontSize: 13, cursor: "pointer", padding: 0 }}
+                style={{ background: "transparent", border: "none", color: t.mutedLight, fontSize: 14, cursor: "pointer", padding: 0 }}
               >
                 {it.isActive ? tr("school.directives.off") : tr("school.directives.on")}
               </button>
@@ -283,7 +283,7 @@ function DirectivesPanel({ role }: { role: Role }) {
       {isAdmin && (
         <form onSubmit={add} style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
           <input
-            style={{ ...textInput(t), fontSize: 14 }}
+            style={{ ...textInput(t), fontSize: 15 }}
             placeholder={tr("school.directives.placeholder")}
             value={content}
             onChange={(e) => setContent(e.target.value)}
@@ -291,7 +291,7 @@ function DirectivesPanel({ role }: { role: Role }) {
           />
           <div style={{ display: "flex", gap: 6 }}>
             <select
-              style={{ ...textInput(t), fontSize: 14, flex: 1 }}
+              style={{ ...textInput(t), fontSize: 15, flex: 1 }}
               value={audience}
               onChange={(e) => setAudience(e.target.value)}
             >
@@ -299,7 +299,7 @@ function DirectivesPanel({ role }: { role: Role }) {
               <option value="students">{tr("school.overview.kpiStudents")}</option>
               <option value="teachers">{tr("school.team.teachersHeading")}</option>
             </select>
-            <button type="submit" style={{ ...ctaButton(t), fontSize: 14, padding: "8px 14px" }} disabled={busy || !content.trim()}>
+            <button type="submit" style={{ ...ctaButton(t), fontSize: 15, padding: "8px 14px" }} disabled={busy || !content.trim()}>
               {tr("school.dashboard.addButton")}
             </button>
           </div>
@@ -333,11 +333,11 @@ function NotificationsPanel() {
 
   return (
     <div>
-      <div style={{ fontSize: 15, fontWeight: 700, color: t.text, marginBottom: 8 }}>{tr("room.panelNotifications")}</div>
-      {items.length === 0 && <div style={{ fontSize: 13, color: t.muted }}>{tr("school.notifications.allCaughtUp")}</div>}
+      <div style={{ fontSize: 16, fontWeight: 700, color: t.text, marginBottom: 8 }}>{tr("room.panelNotifications")}</div>
+      {items.length === 0 && <div style={{ fontSize: 14, color: t.muted }}>{tr("school.notifications.allCaughtUp")}</div>}
       {items.map((n) => (
         <div key={n.id} style={{ background: t.rowActiveBg, borderRadius: 10, padding: 10, marginBottom: 6 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: t.text, display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ fontSize: 15, fontWeight: 600, color: t.text, display: "flex", alignItems: "center", gap: 6 }}>
             <span
               style={{
                 width: 7,
@@ -349,7 +349,7 @@ function NotificationsPanel() {
             />
             {n.title}
           </div>
-          <div style={{ fontSize: 13, color: t.muted, marginTop: 2 }}>{n.detail}</div>
+          <div style={{ fontSize: 14, color: t.muted, marginTop: 2 }}>{n.detail}</div>
         </div>
       ))}
     </div>

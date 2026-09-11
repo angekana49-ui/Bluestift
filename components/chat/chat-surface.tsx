@@ -411,7 +411,7 @@ export function ChatSurface({
                             alignItems: "center",
                             gap: 6,
                             marginTop: 6,
-                            fontSize: 12,
+                            fontSize: 13,
                             opacity: 0.85,
                           }}
                         >

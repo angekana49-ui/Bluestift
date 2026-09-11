@@ -56,7 +56,7 @@ export default async function CheckoutReturnPage({
         <h1 style={{ fontSize: "1.4rem", fontWeight: 900, color: "#0b1220", margin: "12px 0 8px", letterSpacing: "-0.02em" }}>
           {view.title}
         </h1>
-        <p style={{ fontSize: 15, color: "#64748b", lineHeight: 1.7, margin: "0 0 22px" }}>{view.body}</p>
+        <p style={{ fontSize: 16, color: "#64748b", lineHeight: 1.7, margin: "0 0 22px" }}>{view.body}</p>
         <Link
           href={view.cta.href}
           style={{
@@ -65,7 +65,7 @@ export default async function CheckoutReturnPage({
             color: "#fff",
             borderRadius: 999,
             padding: "11px 28px",
-            fontSize: 15,
+            fontSize: 16,
             fontWeight: 600,
             textDecoration: "none",
           }}

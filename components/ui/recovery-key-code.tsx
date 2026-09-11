@@ -63,7 +63,7 @@ export function RecoveryKeyCode({
         border: `1px solid ${palette.border}`,
         borderRadius: 8,
         padding: "10px 12px",
-        fontSize: 16,
+        fontSize: 17,
         lineHeight: 1.6,
         letterSpacing: shown ? "0.12em" : "0.24em",
         color: palette.text,

@@ -31,10 +31,10 @@ export function SettingsThemeCard() {
     <SettingsCard theme={t} id="appearance">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
         <div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: t.text }}>
+          <div style={{ fontSize: 17, fontWeight: 700, color: t.text }}>
             {tr("settings.group.appearance")}
           </div>
-          <div style={{ fontSize: 13, color: t.muted, marginTop: 2 }}>
+          <div style={{ fontSize: 14, color: t.muted, marginTop: 2 }}>
             {tr("settings.theme.desc")}
           </div>
         </div>

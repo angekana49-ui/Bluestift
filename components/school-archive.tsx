@@ -120,7 +120,7 @@ export function SchoolArchive({ currentYearLabel }: { currentYearLabel?: string 
       <div style={{ ...box, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <div style={{ flex: 1, minWidth: 180 }}>
           <h2 style={{ fontSize: 18, margin: 0, color: t.text }}>{tr("school.archive.title")}</h2>
-          <p style={{ margin: "4px 0 0", color: t.muted, fontSize: 14 }}>
+          <p style={{ margin: "4px 0 0", color: t.muted, fontSize: 15 }}>
             {archive
               ? `${archive.year.label} · ${total} ${tr(total === 1 ? "school.archive.entryOne" : "school.archive.entryOther")}${
                   active ? ` ${tr("school.archive.ofSuffix")} ${grandTotal}` : ""
@@ -147,15 +147,15 @@ export function SchoolArchive({ currentYearLabel }: { currentYearLabel?: string 
 
       {error && (
         <div style={box}>
-          <p style={{ margin: 0, color: "#f87171", fontSize: 15 }}>{error}</p>
+          <p style={{ margin: 0, color: "#f87171", fontSize: 16 }}>{error}</p>
         </div>
       )}
-      {busy && <p style={{ color: t.muted, fontSize: 15 }}>{tr("school.loading")}</p>}
+      {busy && <p style={{ color: t.muted, fontSize: 16 }}>{tr("school.loading")}</p>}
 
       {archive && !busy && (
         <>
           <div style={box}>
-            <p style={{ margin: 0, color: t.muted, fontSize: 14 }}>
+            <p style={{ margin: 0, color: t.muted, fontSize: 15 }}>
               {viewingCurrent ? (
                 <>
                   <strong style={{ color: t.text }}>{archive.year.label}</strong> {tr("school.archive.currentYearAfter")}
@@ -172,7 +172,7 @@ export function SchoolArchive({ currentYearLabel }: { currentYearLabel?: string 
           </div>
 
           <div style={{ ...box, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <span style={{ color: t.muted, fontSize: 13.5, fontWeight: 600 }}>{tr("school.archive.filterLabel")}</span>
+            <span style={{ color: t.muted, fontSize: 14.5, fontWeight: 600 }}>{tr("school.archive.filterLabel")}</span>
             <input
               style={{ ...select, width: "auto", minWidth: 170, flex: "1 1 170px" }}
               value={filter.q}
@@ -227,7 +227,7 @@ export function SchoolArchive({ currentYearLabel }: { currentYearLabel?: string 
                   border: "none",
                   color: t.muted,
                   cursor: "pointer",
-                  fontSize: 13,
+                  fontSize: 14,
                   fontWeight: 600,
                 }}
               >
@@ -238,7 +238,7 @@ export function SchoolArchive({ currentYearLabel }: { currentYearLabel?: string 
 
           {filled.length === 0 ? (
             <div style={box}>
-              <p style={{ margin: 0, color: t.muted, fontSize: 15 }}>
+              <p style={{ margin: 0, color: t.muted, fontSize: 16 }}>
                 {active
                   ? tr("school.archive.noMatchFilter")
                   : `${tr("school.archive.nothingRecordedForA")} ${archive.year.label}${tr("school.archive.nothingRecordedForB")}`}
@@ -250,7 +250,7 @@ export function SchoolArchive({ currentYearLabel }: { currentYearLabel?: string 
 
           {capped && (
             <div style={box}>
-              <p style={{ margin: 0, color: t.muted, fontSize: 13.5 }}>
+              <p style={{ margin: 0, color: t.muted, fontSize: 14.5 }}>
                 {tr("school.archive.cappedNote")}
               </p>
             </div>
@@ -258,10 +258,10 @@ export function SchoolArchive({ currentYearLabel }: { currentYearLabel?: string 
 
           {empty.length > 0 && (
             <div style={box}>
-              <h3 style={{ margin: "0 0 6px", fontSize: 15, color: t.text }}>
+              <h3 style={{ margin: "0 0 6px", fontSize: 16, color: t.text }}>
                 {active ? tr("school.archive.noMatchHeading") : tr("school.archive.nothingRecordedHeading")}
               </h3>
-              <p style={{ margin: 0, color: t.muted, fontSize: 14 }}>
+              <p style={{ margin: 0, color: t.muted, fontSize: 15 }}>
                 {empty.map((s) => s.label).join(" · ")}
               </p>
             </div>
@@ -269,16 +269,16 @@ export function SchoolArchive({ currentYearLabel }: { currentYearLabel?: string 
 
           {outOfScope.length > 0 && (
             <div style={box}>
-              <h3 style={{ margin: "0 0 6px", fontSize: 15, color: t.text }}>{tr("school.archive.outsideFilterHeading")}</h3>
-              <p style={{ margin: 0, color: t.muted, fontSize: 14 }}>
+              <h3 style={{ margin: "0 0 6px", fontSize: 16, color: t.text }}>{tr("school.archive.outsideFilterHeading")}</h3>
+              <p style={{ margin: 0, color: t.muted, fontSize: 15 }}>
                 {outOfScope.map((s) => s.label).join(" · ")} {tr("school.archive.outsideFilterNote")}
               </p>
             </div>
           )}
 
           <div style={box}>
-            <h3 style={{ margin: "0 0 8px", fontSize: 15, color: t.text }}>{tr("school.archive.whatThisRecordIs")}</h3>
-            <ul style={{ margin: 0, paddingLeft: "1.1rem", color: t.muted, fontSize: 13.5, lineHeight: 1.6 }}>
+            <h3 style={{ margin: "0 0 8px", fontSize: 16, color: t.text }}>{tr("school.archive.whatThisRecordIs")}</h3>
+            <ul style={{ margin: 0, paddingLeft: "1.1rem", color: t.muted, fontSize: 14.5, lineHeight: 1.6 }}>
               {archive.notes.map((n) => (
                 <li key={n}>{n}</li>
               ))}
@@ -303,7 +303,7 @@ function SectionCard({ s, filtering }: { s: FilteredSection; filtering: boolean 
   return (
     <div style={box}>
       <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", flexWrap: "wrap" }}>
-        <h3 style={{ margin: 0, flex: 1, fontSize: 16, color: t.text }}>
+        <h3 style={{ margin: 0, flex: 1, fontSize: 17, color: t.text }}>
           {s.label}{" "}
           <span style={{ opacity: 0.5, fontWeight: 400 }}>· {s.count}</span>
         </h3>
@@ -318,7 +318,7 @@ function SectionCard({ s, filtering }: { s: FilteredSection; filtering: boolean 
               border: "none",
               color: t.muted,
               cursor: "pointer",
-              fontSize: 13,
+              fontSize: 14,
               fontWeight: 600,
             }}
           >
@@ -332,7 +332,7 @@ function SectionCard({ s, filtering }: { s: FilteredSection; filtering: boolean 
           {s.items.map((i) => (
             <div
               key={i.id}
-              style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", fontSize: 14, flexWrap: "wrap" }}
+              style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", fontSize: 15, flexWrap: "wrap" }}
             >
               <span style={{ color: t.text, fontWeight: 600 }}>{i.title}</span>
               {i.detail && <span style={{ color: t.muted, flex: 1, minWidth: 0 }}>{i.detail}</span>}
@@ -340,7 +340,7 @@ function SectionCard({ s, filtering }: { s: FilteredSection; filtering: boolean 
             </div>
           ))}
           {s.count > s.items.length && (
-            <p style={{ margin: "0.3rem 0 0", color: t.mutedLight, fontSize: 13 }}>
+            <p style={{ margin: "0.3rem 0 0", color: t.mutedLight, fontSize: 14 }}>
               + {s.count - s.items.length} {tr("school.archive.moreNotListed")}
             </p>
           )}

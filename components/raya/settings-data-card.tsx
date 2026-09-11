@@ -117,8 +117,8 @@ export function SettingsDataCard({
     }
   }
 
-  const label = { fontSize: 16, fontWeight: 700, color: t.text } as const;
-  const desc = { fontSize: 13, color: t.muted, marginTop: 2, lineHeight: 1.55 } as const;
+  const label = { fontSize: 17, fontWeight: 700, color: t.text } as const;
+  const desc = { fontSize: 14, color: t.muted, marginTop: 2, lineHeight: 1.55 } as const;
   const legalLink = {
     color: t.link,
     fontWeight: 650,
@@ -152,7 +152,7 @@ export function SettingsDataCard({
       {/* ---------------------------------------------------------- export --- */}
       <div style={row}>
         <div>
-          <div style={{ ...label, fontSize: 15 }}>{tr("raya.settings.data.downloadTitle")}</div>
+          <div style={{ ...label, fontSize: 16 }}>{tr("raya.settings.data.downloadTitle")}</div>
           <div style={desc}>{tr("raya.settings.data.downloadDesc")}</div>
         </div>
         <a
@@ -163,7 +163,7 @@ export function SettingsDataCard({
             border: `1px solid ${t.inputBorder}`,
             borderRadius: 10,
             padding: "9px 14px",
-            fontSize: 14,
+            fontSize: 15,
             fontWeight: 600,
             color: t.text,
             textDecoration: "none",
@@ -178,7 +178,7 @@ export function SettingsDataCard({
       {isMinor ? (
         <div style={row}>
           <div>
-            <div style={{ ...label, fontSize: 15 }}>{tr("raya.settings.data.minorTitle")}</div>
+            <div style={{ ...label, fontSize: 16 }}>{tr("raya.settings.data.minorTitle")}</div>
             <div style={desc}>{tr("raya.settings.data.minorDesc")}</div>
           </div>
         </div>
@@ -186,7 +186,7 @@ export function SettingsDataCard({
         <>
           <div style={row}>
             <div>
-              <div style={{ ...label, fontSize: 15 }}>{tr("raya.settings.data.analyticsTitle")}</div>
+              <div style={{ ...label, fontSize: 16 }}>{tr("raya.settings.data.analyticsTitle")}</div>
               <div style={desc}>{tr("raya.settings.data.analyticsDesc")}</div>
             </div>
             <Switch on={analytics === "granted"} onChange={toggleAnalytics} theme={t} />
@@ -194,7 +194,7 @@ export function SettingsDataCard({
 
           <div style={row}>
             <div>
-              <div style={{ ...label, fontSize: 15 }}>{tr("raya.settings.data.trainingTitle")}</div>
+              <div style={{ ...label, fontSize: 16 }}>{tr("raya.settings.data.trainingTitle")}</div>
               <div style={desc}>
                 {schoolLinked
                   ? tr("raya.settings.data.trainingDescLinked")
@@ -213,7 +213,7 @@ export function SettingsDataCard({
           account. */}
       <div style={row}>
         <div>
-          <div style={{ ...label, fontSize: 15 }}>
+          <div style={{ ...label, fontSize: 16 }}>
             {schoolLinked
               ? tr("raya.settings.data.visibilityTitleLinked")
               : tr("raya.settings.data.visibilityTitleUnlinked")}
@@ -228,7 +228,7 @@ export function SettingsDataCard({
 
       {/* ---------------------------------------------------------- delete --- */}
       <div style={{ ...row, display: "block" }}>
-        <div style={{ ...label, fontSize: 15, color: "#dc2626" }}>{tr("raya.settings.data.deleteTitle")}</div>
+        <div style={{ ...label, fontSize: 16, color: "#dc2626" }}>{tr("raya.settings.data.deleteTitle")}</div>
         <div style={desc}>
           {schoolLinked
             ? tr("raya.settings.data.deleteDescLinked")
@@ -261,7 +261,7 @@ export function SettingsDataCard({
               border: `1px solid ${t.inputBorder}`,
               borderRadius: 10,
               padding: "9px 12px",
-              fontSize: 14,
+              fontSize: 15,
               color: t.text,
               outline: "none",
               width: 160,
@@ -276,7 +276,7 @@ export function SettingsDataCard({
               color: "#dc2626",
               borderRadius: 10,
               padding: "9px 16px",
-              fontSize: 14,
+              fontSize: 15,
               fontWeight: 700,
               cursor: "pointer",
               opacity: deleting || confirm.trim().toUpperCase() !== "DELETE" ? 0.5 : 1,
@@ -287,8 +287,8 @@ export function SettingsDataCard({
         </div>
       </div>
 
-      {msg && <p style={{ color: t.muted, fontSize: 14, margin: "12px 0 0" }}>{msg}</p>}
-      {error && <p style={{ color: "#dc2626", fontSize: 14, margin: "12px 0 0" }}>{error}</p>}
+      {msg && <p style={{ color: t.muted, fontSize: 15, margin: "12px 0 0" }}>{msg}</p>}
+      {error && <p style={{ color: "#dc2626", fontSize: 15, margin: "12px 0 0" }}>{error}</p>}
     </SettingsCard>
   );
 }

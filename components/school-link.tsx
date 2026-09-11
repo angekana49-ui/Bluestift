@@ -52,14 +52,14 @@ export function SchoolLink({ initial }: { initial: SchoolLinkInfo | null }) {
     return (
       <div style={card}>
         <h2 style={cardTitle(t)}>{tr("schoolLink.title")}</h2>
-        <p style={{ margin: "0 0 4px", color: t.text, fontSize: 15 }}>
+        <p style={{ margin: "0 0 4px", color: t.text, fontSize: 16 }}>
           <strong>{link.schoolName ?? tr("schoolLink.schoolFallback")}</strong>
           {link.className ? ` · ${link.className}` : ""}
         </p>
-        <p style={{ margin: 0, color: t.muted, fontSize: 14 }}>
+        <p style={{ margin: 0, color: t.muted, fontSize: 15 }}>
           {tr("schoolLink.enrolledAs")} {link.firstName} {link.lastName}.
         </p>
-        <p style={{ margin: "10px 0 0", color: t.mutedLight, fontSize: 13 }}>
+        <p style={{ margin: "10px 0 0", color: t.mutedLight, fontSize: 14 }}>
           {tr("schoolLink.privacyNote")}
         </p>
       </div>
@@ -69,7 +69,7 @@ export function SchoolLink({ initial }: { initial: SchoolLinkInfo | null }) {
   return (
     <form style={card} onSubmit={onSubmit}>
       <h2 style={cardTitle(t)}>{tr("schoolLink.joinTitle")}</h2>
-      <p style={{ margin: "0 0 14px", color: t.muted, fontSize: 14 }}>
+      <p style={{ margin: "0 0 14px", color: t.muted, fontSize: 15 }}>
         {tr("schoolLink.joinIntro")}
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -93,7 +93,7 @@ export function SchoolLink({ initial }: { initial: SchoolLinkInfo | null }) {
           {busy ? tr("schoolLink.linking") : tr("schoolLink.linkButton")}
         </button>
       </div>
-      {error && <p style={{ color: "#f87171", margin: "12px 0 0", fontSize: 15 }}>{error}</p>}
+      {error && <p style={{ color: "#f87171", margin: "12px 0 0", fontSize: 16 }}>{error}</p>}
     </form>
   );
 }

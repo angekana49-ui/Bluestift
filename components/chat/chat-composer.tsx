@@ -266,7 +266,7 @@ export function ChatComposer({
               bg={voice.recording ? "#e0245e" : t.cardBg2}
               color={voice.recording ? "#fff" : t.muted}
             >
-              {voice.recording ? <span style={{ fontSize: 14 }}>■</span> : <IconMic size={16} />}
+              {voice.recording ? <span style={{ fontSize: 15 }}>■</span> : <IconMic size={16} />}
             </IconButton>
           );
           const textBox = (
@@ -344,7 +344,7 @@ export function ChatComposer({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: 16,
+                fontSize: 17,
                 flex: "none",
                 cursor: sendIdle ? "default" : "pointer",
                 opacity: sendIdle ? 0.5 : 1,
@@ -520,7 +520,7 @@ function AiModeMenu({
         gap: 2,
       }}
     >
-      <div style={{ padding: "5px 9px 3px", fontSize: 12, fontWeight: 700, color: t.mutedLight, textTransform: "uppercase", letterSpacing: "0.03em" }}>
+      <div style={{ padding: "5px 9px 3px", fontSize: 13, fontWeight: 700, color: t.mutedLight, textTransform: "uppercase", letterSpacing: "0.03em" }}>
         {tr("chat.aiModeHeading")}
       </div>
       {state.modes.map((m: { id: AiMode; label: string; blurb: string }) => {
@@ -561,8 +561,8 @@ function AiModeMenu({
               {locked && <IconLock size={13} />}
             </span>
             <span style={{ minWidth: 0 }}>
-              <span style={{ display: "block", fontSize: 13.5, fontWeight: 600 }}>{tr(MODE_LABEL_KEY[m.id])}</span>
-              <span style={{ display: "block", fontSize: 12, color: t.mutedLight, marginTop: 1 }}>
+              <span style={{ display: "block", fontSize: 14.5, fontWeight: 600 }}>{tr(MODE_LABEL_KEY[m.id])}</span>
+              <span style={{ display: "block", fontSize: 13, color: t.mutedLight, marginTop: 1 }}>
                 {locked ? tr("chat.aiModeUpgradeHint") : tr(MODE_BLURB_KEY[m.id])}
               </span>
             </span>

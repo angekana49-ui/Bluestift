@@ -131,7 +131,7 @@ export function ChatHistoryList({
           borderRadius: 9,
           padding: "8px 10px",
           width: "100%",
-          fontSize: 13,
+          fontSize: 14,
           fontWeight: 650,
           fontFamily: "inherit",
           textAlign: "center",
@@ -170,7 +170,7 @@ export function ChatHistoryList({
               border: `1px solid ${t.sidebarBorder}`,
               borderRadius: 9,
               padding: "7px 26px 7px 10px",
-              fontSize: 13,
+              fontSize: 14,
               fontFamily: "inherit",
               outline: "none",
             }}
@@ -195,7 +195,7 @@ export function ChatHistoryList({
                 borderRadius: 999,
                 background: "transparent",
                 color: t.sidebarMuted,
-                fontSize: 13,
+                fontSize: 14,
                 lineHeight: 1,
                 cursor: "pointer",
               }}
@@ -207,7 +207,7 @@ export function ChatHistoryList({
       )}
 
       {conversations.length === 0 && (
-        <div style={{ fontSize: 13, color: t.sidebarMuted, padding: "6px 10px" }}>
+        <div style={{ fontSize: 14, color: t.sidebarMuted, padding: "6px 10px" }}>
           {tr("hist.empty")}
         </div>
       )}
@@ -217,7 +217,7 @@ export function ChatHistoryList({
           they have no conversations because they mistyped a word is the version
           of this that gets reported as data loss. */}
       {conversations.length > 0 && matching.length === 0 && (
-        <div style={{ fontSize: 13, color: t.sidebarMuted, padding: "6px 10px", lineHeight: 1.5 }}>
+        <div style={{ fontSize: 14, color: t.sidebarMuted, padding: "6px 10px", lineHeight: 1.5 }}>
           {tr("hist.noMatch")}
         </div>
       )}
@@ -247,7 +247,7 @@ export function ChatHistoryList({
               borderRadius: 9,
               padding: "8px 10px",
               marginTop: 4,
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: 700,
               fontFamily: "inherit",
               letterSpacing: "0.06em",
@@ -377,7 +377,7 @@ function ConversationRow({
           flex: 1,
           minWidth: 0,
           cursor: "pointer",
-          fontSize: 13,
+          fontSize: 14,
           fontWeight: active ? 700 : 500,
           color: active ? t.sidebarText : t.sidebarMuted,
           whiteSpace: "nowrap",
@@ -494,25 +494,25 @@ function ConfirmAction({
         <h2 style={{ fontSize: "1.12rem", fontWeight: 800, color: t.text, margin: "0 0 4px", letterSpacing: "-0.01em" }}>
           {result ? tr("hist.memorize.done") : tr(k("title"))}
         </h2>
-        <p style={{ fontSize: 13, color: t.mutedLight, margin: "0 0 12px", fontWeight: 600 }}>
+        <p style={{ fontSize: 14, color: t.mutedLight, margin: "0 0 12px", fontWeight: 600 }}>
           {conv.title ?? tr("hist.untitled")}
         </p>
 
         {result ? (
           result.root_gap && (
-            <p style={{ fontSize: 14.5, color: t.text, lineHeight: 1.6, margin: 0 }}>
+            <p style={{ fontSize: 15.5, color: t.text, lineHeight: 1.6, margin: 0 }}>
               {tr("hist.memorize.doneGap")} <strong>{result.root_gap}</strong>
             </p>
           )
         ) : (
           <>
-            <p style={{ fontSize: 14.5, color: t.muted, lineHeight: 1.65, margin: 0 }}>{tr(k("body"))}</p>
+            <p style={{ fontSize: 15.5, color: t.muted, lineHeight: 1.65, margin: 0 }}>{tr(k("body"))}</p>
             {/* The honest footnote on delete: the thread goes, the learning
                 does not. Said here rather than discovered later. */}
             {kind === "delete" && (
               <p
                 style={{
-                  fontSize: 13.5,
+                  fontSize: 14.5,
                   color: t.mutedLight,
                   lineHeight: 1.6,
                   margin: "12px 0 0",
@@ -558,7 +558,7 @@ function btn(t: AppTheme, kind: "primary" | "ghost" | "danger"): CSSProperties {
   const base: CSSProperties = {
     borderRadius: 999,
     padding: "9px 18px",
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: 600,
     cursor: "pointer",
     fontFamily: "inherit",

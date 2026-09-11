@@ -115,7 +115,7 @@ export function SettingsSheet({
               color: t.muted,
               cursor: "pointer",
               fontFamily: "inherit",
-              fontSize: 15,
+              fontSize: 16,
               lineHeight: 1,
             }}
           >

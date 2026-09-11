@@ -125,7 +125,7 @@ export function TeacherLink({
     return (
       <div style={card}>
         <h2 style={cardTitle(t)}>{tr("teacherLink.headline")}</h2>
-        <p style={{ margin: "0 0 14px", color: t.muted, fontSize: 15, lineHeight: 1.6 }}>
+        <p style={{ margin: "0 0 14px", color: t.muted, fontSize: 16, lineHeight: 1.6 }}>
           {tr("teacherLink.emailGateA")} <strong style={{ color: t.text }}>{tr("teacherLink.emailGateStrong")}</strong>{" "}
           {tr("teacherLink.emailGateB")}
         </p>
@@ -141,7 +141,7 @@ export function TeacherLink({
     return (
       <form style={card} onSubmit={createSchool}>
         <h2 style={cardTitle(t)}>{tr("teacherLink.createTitle")}</h2>
-        <p style={{ margin: "0 0 14px", color: t.muted, fontSize: 14 }}>
+        <p style={{ margin: "0 0 14px", color: t.muted, fontSize: 15 }}>
           {tr("teacherLink.createIntro")}
         </p>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
@@ -185,7 +185,7 @@ export function TeacherLink({
             {tr("teacherLink.cancel")}
           </button>
         </div>
-        {error && <p style={{ color: "#f87171", margin: "12px 0 0", fontSize: 15 }}>{error}</p>}
+        {error && <p style={{ color: "#f87171", margin: "12px 0 0", fontSize: 16 }}>{error}</p>}
       </form>
     );
   }
@@ -195,7 +195,7 @@ export function TeacherLink({
     return (
       <div style={card}>
         <h2 style={cardTitle(t)}>{tr("teacherLink.teamTitle")}</h2>
-        <p style={{ margin: "0 0 10px", color: t.text, fontSize: 15 }}>
+        <p style={{ margin: "0 0 10px", color: t.text, fontSize: 16 }}>
           {tr(initial.role === "admin_master" ? "teacherLink.youAreAdminPrefix" : "teacherLink.youAreTeacherPrefix")}{" "}
           <strong>{initial.schoolName}</strong>.
         </p>
@@ -220,7 +220,7 @@ export function TeacherLink({
     return (
       <div style={card}>
         <h2 style={cardTitle(t)}>{tr("teacherLink.teachTitle")}</h2>
-        <p style={{ margin: 0, color: "#22c55e", fontSize: 15 }}>{msg}</p>
+        <p style={{ margin: 0, color: "#22c55e", fontSize: 16 }}>{msg}</p>
         {done === "joined" && (
           <Link href="/school" style={{ ...link, display: "inline-block", marginTop: 10 }}>
             {tr("teacherLink.openDashboard")}
@@ -234,7 +234,7 @@ export function TeacherLink({
   return (
     <form style={card} onSubmit={submit}>
       <h2 style={cardTitle(t)}>{tr("teacherLink.headline")}</h2>
-      <p style={{ margin: "0 0 14px", color: t.muted, fontSize: 14 }}>
+      <p style={{ margin: "0 0 14px", color: t.muted, fontSize: 15 }}>
         {tr("teacherLink.joinIntro2")}
       </p>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -250,7 +250,7 @@ export function TeacherLink({
           {busy ? tr("teacherLink.joining") : tr("teacherLink.joinButton")}
         </button>
       </div>
-      <p style={{ margin: "14px 0 0", fontSize: 14, color: t.muted }}>
+      <p style={{ margin: "14px 0 0", fontSize: 15, color: t.muted }}>
         {tr("teacherLink.noCodeQuestion")}{" "}
         <button
           type="button"
@@ -260,7 +260,7 @@ export function TeacherLink({
           {tr("teacherLink.createSchoolLink")}
         </button>
       </p>
-      {error && <p style={{ color: "#f87171", margin: "12px 0 0", fontSize: 15 }}>{error}</p>}
+      {error && <p style={{ color: "#f87171", margin: "12px 0 0", fontSize: 16 }}>{error}</p>}
     </form>
   );
 }

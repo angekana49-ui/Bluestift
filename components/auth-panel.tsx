@@ -239,14 +239,14 @@ export function AuthPanel({
 
   const infoRow = (label: string, value: React.ReactNode) => (
     <div style={{ borderTop: `1px solid ${t.cardBorder}`, paddingTop: 12 }}>
-      <div style={{ fontSize: 13, color: t.muted, marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 15, color: t.text }}>{value}</div>
+      <div style={{ fontSize: 14, color: t.muted, marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 16, color: t.text }}>{value}</div>
     </div>
   );
 
   // ---- Signed out (/login) ----
   if (!user) {
-    const label: React.CSSProperties = { fontSize: 15, fontWeight: 600, color: t.text, margin: "0 0 8px" };
+    const label: React.CSSProperties = { fontSize: 16, fontWeight: 600, color: t.text, margin: "0 0 8px" };
     return (
       <div style={{ ...card, width: "100%", maxWidth }}>
         <h2 style={cardTitle(t)}>{tr("auth.login.title")}</h2>
@@ -288,7 +288,7 @@ export function AuthPanel({
           {tr("auth.login.startAnon")}
         </button>
 
-        {msg && <p style={{ marginTop: 12, color: t.muted, fontSize: 15 }}>{msg}</p>}
+        {msg && <p style={{ marginTop: 12, color: t.muted, fontSize: 16 }}>{msg}</p>}
         {linkDialog}
       </div>
     );
@@ -327,10 +327,10 @@ export function AuthPanel({
             photo" (or the row itself) past a narrow phone's edge instead of
             shrinking. */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <div style={{ fontSize: 17, fontWeight: 700, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {profile?.display_name ?? "—"}
           </div>
-          <div style={{ fontSize: 14, color: t.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <div style={{ fontSize: 15, color: t.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             @{profile?.username ?? "—"}
           </div>
         </div>
@@ -372,12 +372,12 @@ export function AuthPanel({
               <span style={{ fontSize: 17 }} aria-hidden>
                 ⚠️
               </span>
-              <div style={{ fontSize: 15, fontWeight: 700, color: t.text }}>{tr("auth.account.unsafe.title")}</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: t.text }}>{tr("auth.account.unsafe.title")}</div>
             </div>
             {/* Loss aversion, honestly framed — this is literally true for an
                 anonymous account: no linked email means one cleared browser or
                 one lost recovery key wipes everything. */}
-            <p style={{ fontSize: 14, color: t.muted, lineHeight: 1.6, margin: "0 0 12px" }}>
+            <p style={{ fontSize: 15, color: t.muted, lineHeight: 1.6, margin: "0 0 12px" }}>
               {tr("auth.account.unsafe.a")}{" "}
               <strong style={{ color: t.text }}>{tr("auth.account.unsafe.strong")}</strong>
               {tr("auth.account.unsafe.b")}
@@ -398,13 +398,13 @@ export function AuthPanel({
         <button
           onClick={signOut}
           disabled={busy}
-          style={{ marginTop: 4, alignSelf: "flex-start", background: "none", border: "none", padding: 0, fontSize: 14, color: status.danger, cursor: "pointer" }}
+          style={{ marginTop: 4, alignSelf: "flex-start", background: "none", border: "none", padding: 0, fontSize: 15, color: status.danger, cursor: "pointer" }}
         >
           {tr("menu.signOut")}
         </button>
       </div>
 
-      {msg && <p style={{ marginTop: 12, color: t.muted, fontSize: 15 }}>{msg}</p>}
+      {msg && <p style={{ marginTop: 12, color: t.muted, fontSize: 16 }}>{msg}</p>}
       {linkDialog}
     </div>
   );
@@ -461,12 +461,12 @@ function PasswordCard({ email, canSet }: { email: string | null; canSet: boolean
         <span style={{ fontSize: 17 }} aria-hidden>
           🔒
         </span>
-        <div style={{ fontSize: 15, fontWeight: 700, color: t.text, flex: 1 }}>{tr("auth.pw.title")}</div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: t.text, flex: 1 }}>{tr("auth.pw.title")}</div>
       </div>
 
       {canSet ? (
         <>
-          <p style={{ fontSize: 14, color: t.muted, lineHeight: 1.6, margin: "0 0 12px" }}>
+          <p style={{ fontSize: 15, color: t.muted, lineHeight: 1.6, margin: "0 0 12px" }}>
             {tr("auth.pw.body")}
           </p>
           <div style={{ maxWidth: 320 }}>
@@ -494,7 +494,7 @@ function PasswordCard({ email, canSet }: { email: string | null; canSet: boolean
               border: `1px solid ${t.cardBorder}`,
               borderRadius: 99,
               padding: "8px 16px",
-              fontSize: 13,
+              fontSize: 14,
               fontWeight: 600,
               cursor: "pointer",
               opacity: busy || !ready ? 0.5 : 1,
@@ -507,11 +507,11 @@ function PasswordCard({ email, canSet }: { email: string | null; canSet: boolean
         // An anonymous account has only the synthetic address (lib/auth.ts),
         // which its owner can neither see nor type — so a password on it would
         // authenticate nothing. The email comes first.
-        <p style={{ fontSize: 14, color: t.muted, lineHeight: 1.6, margin: 0 }}>{tr("auth.pw.needEmail")}</p>
+        <p style={{ fontSize: 15, color: t.muted, lineHeight: 1.6, margin: 0 }}>{tr("auth.pw.needEmail")}</p>
       )}
 
-      {note && <p style={{ fontSize: 13, color: t.muted, margin: "10px 0 0" }}>{note}</p>}
-      {err && <p style={{ fontSize: 13, color: status.danger, margin: "10px 0 0" }}>{err}</p>}
+      {note && <p style={{ fontSize: 14, color: t.muted, margin: "10px 0 0" }}>{note}</p>}
+      {err && <p style={{ fontSize: 14, color: status.danger, margin: "10px 0 0" }}>{err}</p>}
     </div>
   );
 }
@@ -616,7 +616,7 @@ function RecoveryKeyCard({
     border: `1px solid ${t.cardBorder}`,
     borderRadius: 99,
     padding: "5px 12px",
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: 600,
     cursor: "pointer",
   };
@@ -636,9 +636,9 @@ function RecoveryKeyCard({
         <span style={{ fontSize: 17 }} aria-hidden>
           🔑
         </span>
-        <div style={{ fontSize: 15, fontWeight: 700, color: t.text, flex: 1 }}>{tr("auth.recovery.title")}</div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: t.text, flex: 1 }}>{tr("auth.recovery.title")}</div>
       </div>
-      <p style={{ fontSize: 14, color: t.muted, lineHeight: 1.6, margin: "0 0 12px" }}>
+      <p style={{ fontSize: 15, color: t.muted, lineHeight: 1.6, margin: "0 0 12px" }}>
         {code ? (
           <>
             {tr("auth.recovery.new.a")} <strong style={{ color: t.text }}>{tr("auth.recovery.new.strong")}</strong> {tr("auth.recovery.new.b")}
@@ -700,7 +700,7 @@ function RecoveryKeyCard({
       <div style={{ marginBottom: 10 }}>
         <label
           htmlFor="recovery-keyword"
-          style={{ display: "block", fontSize: 14, fontWeight: 650, color: t.text, marginBottom: 5 }}
+          style={{ display: "block", fontSize: 15, fontWeight: 650, color: t.text, marginBottom: 5 }}
         >
           {keywordSet ? tr("auth.recovery.kw.enterLabel") : tr("auth.recovery.kw.chooseLabel")}
         </label>
@@ -715,7 +715,7 @@ function RecoveryKeyCard({
           style={{ ...textInput(t), maxWidth: 280 }}
           disabled={busy}
         />
-        <p style={{ fontSize: 13, color: t.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
+        <p style={{ fontSize: 14, color: t.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
           {keywordSet ? tr("auth.recovery.kw.enterHint") : tr("auth.recovery.kw.chooseHint")}
         </p>
       </div>
@@ -737,7 +737,7 @@ function RecoveryKeyCard({
         </button>
         {confirming && !busy && (
           <>
-            <span style={{ fontSize: 13, color: t.muted }}>{tr("auth.recovery.confirmWarning")}</span>
+            <span style={{ fontSize: 14, color: t.muted }}>{tr("auth.recovery.confirmWarning")}</span>
             <button
               type="button"
               style={{ ...pill, border: "none", background: "none", color: t.muted }}
@@ -748,13 +748,13 @@ function RecoveryKeyCard({
           </>
         )}
         {!code && issuedAt && !confirming && (
-          <span style={{ fontSize: 13, color: t.mutedLight }}>
+          <span style={{ fontSize: 14, color: t.mutedLight }}>
             {tr("auth.recovery.issued")} {new Date(issuedAt).toLocaleDateString()}
           </span>
         )}
       </div>
 
-      {err && <p style={{ fontSize: 13, color: t.muted, margin: "10px 0 0" }}>{err}</p>}
+      {err && <p style={{ fontSize: 14, color: t.muted, margin: "10px 0 0" }}>{err}</p>}
     </div>
   );
 }

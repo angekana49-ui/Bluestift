@@ -27,8 +27,8 @@ export function SettingsLanguageCard() {
     <SettingsCard theme={t}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
         <div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: t.text }}>{tr("settings.language.title")}</div>
-          <div style={{ fontSize: 13, color: t.muted, marginTop: 2 }}>{tr("settings.language.desc")}</div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: t.text }}>{tr("settings.language.title")}</div>
+          <div style={{ fontSize: 14, color: t.muted, marginTop: 2 }}>{tr("settings.language.desc")}</div>
         </div>
         <select
           value={locale}
@@ -39,7 +39,7 @@ export function SettingsLanguageCard() {
             border: `1px solid ${t.inputBorder}`,
             borderRadius: 10,
             padding: "9px 12px",
-            fontSize: 15,
+            fontSize: 16,
             fontWeight: 600,
             color: t.text,
             cursor: "pointer",

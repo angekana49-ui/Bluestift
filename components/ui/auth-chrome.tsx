@@ -126,12 +126,12 @@ export function AuthSplit({ children, back }: { children: React.ReactNode; back?
           <h2 style={{ fontFamily: HAND_FONT, fontWeight: 700, fontSize: "clamp(2rem,3.4vw,3rem)", lineHeight: 1, margin: 0, color: "#0b1220" }}>
             {tr("auth.hero.a")}<br />{tr("auth.hero.b")} <BluestiftName>BlueStift</BluestiftName>.
           </h2>
-          <p style={{ maxWidth: 360, marginTop: 16, fontSize: 16, lineHeight: 1.7, color: "#475569" }}>
+          <p style={{ maxWidth: 360, marginTop: 16, fontSize: 17, lineHeight: 1.7, color: "#475569" }}>
             {tr("auth.hero.sub.a")} <RayaName />
             {tr("auth.hero.sub.b")}
           </p>
         </div>
-        <span style={{ fontSize: 14, color: "#64748b" }}>{tr("auth.hero.tagline")}</span>
+        <span style={{ fontSize: 15, color: "#64748b" }}>{tr("auth.hero.tagline")}</span>
       </aside>
 
       <main
@@ -169,7 +169,7 @@ export const heading: React.CSSProperties = {
   color: "#0b1220",
 };
 export const sub: React.CSSProperties = {
-  fontSize: 16,
+  fontSize: 17,
   fontWeight: 500,
   color: "#334155",
   textAlign: "center",
@@ -178,7 +178,7 @@ export const sub: React.CSSProperties = {
 };
 export const fieldLabel: React.CSSProperties = {
   display: "block",
-  fontSize: 14,
+  fontSize: 15,
   fontWeight: 600,
   color: "#1e293b",
   marginBottom: 6,
@@ -191,7 +191,7 @@ export const fieldInput: React.CSSProperties = {
   border: "1.5px solid #cbd5e1",
   borderRadius: 10,
   padding: "11px 14px",
-  fontSize: 16,
+  fontSize: 17,
   fontWeight: 500,
   marginBottom: 16,
   boxSizing: "border-box",
@@ -206,7 +206,7 @@ export const primaryBtn: React.CSSProperties = {
   border: "none",
   borderRadius: 99,
   padding: 14,
-  fontSize: 15,
+  fontSize: 16,
   fontWeight: 600,
   cursor: "pointer",
 };
@@ -216,7 +216,7 @@ export const secondaryBtn: React.CSSProperties = {
   border: "1px solid #dde5ee",
   borderRadius: 99,
   padding: "14px 20px",
-  fontSize: 15,
+  fontSize: 16,
   fontWeight: 600,
   cursor: "pointer",
 };

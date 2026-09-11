@@ -13,7 +13,7 @@ export function SectionHeader({ title, subtitle }: { title: string; subtitle?: s
         <RayaText>{title}</RayaText>
       </div>
       {subtitle && (
-        <div style={{ fontSize: 15, color: t.muted, marginTop: 4 }}>
+        <div style={{ fontSize: 16, color: t.muted, marginTop: 4 }}>
           <RayaText>{subtitle}</RayaText>
         </div>
       )}

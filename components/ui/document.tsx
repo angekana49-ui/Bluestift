@@ -84,7 +84,7 @@ export function DocumentView({
             applied by hand: this reads the name off DOC_BRANDS rather than writing
             the literal word in JSX, so the wordmark-sweep's plain-text search never
             found it — the browser's own Google Translate was still rewriting it. */}
-        <span translate="no" className="notranslate" style={{ fontSize: 14, fontWeight: 700, color: b.accent, letterSpacing: "0.01em" }}>{b.name}</span>
+        <span translate="no" className="notranslate" style={{ fontSize: 15, fontWeight: 700, color: b.accent, letterSpacing: "0.01em" }}>{b.name}</span>
         <span style={{ flex: 1 }} />
         {doc ? (
           <DocumentActions doc={doc} compact shareable={false} />
@@ -102,7 +102,7 @@ export function DocumentView({
         <div style={{ ...displayType(22), color: t.text, lineHeight: 1.25 }}>
           {title}
         </div>
-        {meta && <div style={{ fontSize: 14, color: t.muted, marginTop: 3 }}>{meta}</div>}
+        {meta && <div style={{ fontSize: 15, color: t.muted, marginTop: 3 }}>{meta}</div>}
         <div style={{ width: 40, height: 3, borderRadius: 2, background: b.accent, margin: "12px 0 4px" }} />
       </div>
 
@@ -119,7 +119,7 @@ export function DocumentView({
           padding: "12px 22px 16px",
           marginTop: 8,
           borderTop: `1px solid ${t.cardBorder}`,
-          fontSize: 13,
+          fontSize: 14,
           color: t.mutedLight,
           display: "flex",
           gap: 6,
@@ -165,17 +165,17 @@ function Block({ block, t, accent }: { block: DocBlock; t: AppTheme; accent: str
   if (block.type === "h1")
     return <div style={{ ...displayType(18), color: t.text, margin: "16px 0 6px" }}>{content}</div>;
   if (block.type === "h2")
-    return <div style={{ fontSize: 16, fontWeight: 700, color: accent, margin: "16px 0 5px" }}>{content}</div>;
+    return <div style={{ fontSize: 17, fontWeight: 700, color: accent, margin: "16px 0 5px" }}>{content}</div>;
   if (block.type === "h3")
-    return <div style={{ fontSize: 15, fontWeight: 700, color: t.text, margin: "12px 0 4px" }}>{content}</div>;
+    return <div style={{ fontSize: 16, fontWeight: 700, color: t.text, margin: "12px 0 4px" }}>{content}</div>;
   if (block.type === "li")
     return (
-      <div style={{ display: "flex", gap: 8, margin: "3px 0", fontSize: 15, color: t.text, lineHeight: 1.55 }}>
+      <div style={{ display: "flex", gap: 8, margin: "3px 0", fontSize: 16, color: t.text, lineHeight: 1.55 }}>
         <span style={{ color: accent, flex: "none" }}>•</span>
         <span>{content}</span>
       </div>
     );
-  return <p style={{ fontSize: 15, color: t.text, lineHeight: 1.6, margin: "6px 0" }}>{content}</p>;
+  return <p style={{ fontSize: 16, color: t.text, lineHeight: 1.6, margin: "6px 0" }}>{content}</p>;
 }
 
 function DocButton({ t, onClick, label, title }: { t: AppTheme; onClick: () => void; label: string; title?: string }) {
@@ -189,7 +189,7 @@ function DocButton({ t, onClick, label, title }: { t: AppTheme; onClick: () => v
         border: `1px solid ${t.cardBorder}`,
         borderRadius: 99,
         padding: "5px 12px",
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: 600,
         cursor: "pointer",
       }}

@@ -57,7 +57,7 @@ export function DegradedBanner() {
         justifyContent: "center",
         gap: 8,
         padding: "6px 12px",
-        fontSize: 13,
+        fontSize: 14,
         borderRadius: 8,
         background: tone.bg,
         color: tone.fg,

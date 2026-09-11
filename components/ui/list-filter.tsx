@@ -210,7 +210,7 @@ function SearchField<T>({ search }: { search: ListSearch<T> }) {
             border: "none",
             background: "transparent",
             color: t.muted,
-            fontSize: 15,
+            fontSize: 16,
             lineHeight: 1,
             cursor: "pointer",
           }}

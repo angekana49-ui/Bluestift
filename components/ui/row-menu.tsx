@@ -138,9 +138,9 @@ export function RowMenu({
               </span>
             )}
             <span style={{ minWidth: 0 }}>
-              <span style={{ display: "block", fontSize: 13.5, fontWeight: 600 }}>{item.label}</span>
+              <span style={{ display: "block", fontSize: 14.5, fontWeight: 600 }}>{item.label}</span>
               {item.sublabel && (
-                <span style={{ display: "block", fontSize: 12, color: t.mutedLight, marginTop: 1 }}>
+                <span style={{ display: "block", fontSize: 13, color: t.mutedLight, marginTop: 1 }}>
                   {item.sublabel}
                 </span>
               )}

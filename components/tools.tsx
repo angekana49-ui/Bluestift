@@ -79,7 +79,7 @@ const cta = (t: AppTheme): React.CSSProperties => ({
   border: "none",
   borderRadius: 99,
   padding: "9px 16px",
-  fontSize: 14,
+  fontSize: 15,
   fontWeight: 600,
   cursor: "pointer",
 });
@@ -89,7 +89,7 @@ const ghost = (t: AppTheme): React.CSSProperties => ({
   border: `1.5px solid ${t.dark ? "rgba(255,255,255,0.22)" : "rgba(15,23,42,0.20)"}`,
   borderRadius: 99,
   padding: "6px 13px",
-  fontSize: 14,
+  fontSize: 15,
   fontWeight: 600,
   cursor: "pointer",
 });
@@ -353,7 +353,7 @@ export function Tools({
               <div style={{ width: 36, height: 36, borderRadius: 11, background: t.ctaBg, color: t.ctaText, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
                 {toolIcon[x.id] ?? <IconSummary size={18} />}
               </div>
-              <div style={{ fontSize: 15, fontWeight: 700 }}>{tr(x.labelKey)}</div>
+              <div style={{ fontSize: 16, fontWeight: 700 }}>{tr(x.labelKey)}</div>
             </button>
           );
         })}
@@ -385,13 +385,13 @@ export function Tools({
           padding: 22,
           textAlign: "center",
           color: t.mutedLight,
-          fontSize: 14,
+          fontSize: 15,
           background: dragging ? t.cardBg : t.cardBg2,
           transition: "border-color 0.15s ease, background 0.15s ease",
         }}
       >
         {tr("tools.dropzone")}
-        <div style={{ fontSize: 13, color: t.mutedLight, marginTop: 4 }}>
+        <div style={{ fontSize: 14, color: t.mutedLight, marginTop: 4 }}>
           {tr("tools.upTo")} {Math.round(MAX_PACKET_BYTES / 1024 / 1024)} {tr("tools.mbTotal")}
           {packetBytes > 0 ? ` · ${(packetBytes / 1024 / 1024).toFixed(1)} ${tr("tools.mbUsed")}` : ""}
         </div>
@@ -423,7 +423,7 @@ export function Tools({
                 border: `1px solid ${t.cardBorder}`,
                 borderRadius: 99,
                 padding: "5px 6px 5px 12px",
-                fontSize: 14,
+                fontSize: 15,
                 color: t.text,
               }}
             >
@@ -434,7 +434,7 @@ export function Tools({
               <button
                 onClick={() => removeSource(i)}
                 title={tr("tools.remove")}
-                style={{ background: t.cardBg2, border: `1px solid ${t.cardBorder}`, color: t.mutedLight, borderRadius: "50%", width: 20, height: 20, cursor: "pointer", lineHeight: 1, fontSize: 14 }}
+                style={{ background: t.cardBg2, border: `1px solid ${t.cardBorder}`, color: t.mutedLight, borderRadius: "50%", width: 20, height: 20, cursor: "pointer", lineHeight: 1, fontSize: 15 }}
               >
                 ✕
               </button>
@@ -444,12 +444,12 @@ export function Tools({
       )}
 
       <div style={formActions}>
-        {statusMsg && <span style={{ fontSize: 14, color: t.muted, marginRight: "auto" }}>{statusMsg}</span>}
+        {statusMsg && <span style={{ fontSize: 15, color: t.muted, marginRight: "auto" }}>{statusMsg}</span>}
         <button style={{ ...cta(t), opacity: busy || sources.length === 0 ? 0.5 : 1 }} onClick={generate} disabled={busy || sources.length === 0}>
           {tr("tools.generate")}
         </button>
       </div>
-      {error && <p style={{ color: "#f87171", marginTop: 12, fontSize: 15 }}>{error}</p>}
+      {error && <p style={{ color: "#f87171", marginTop: 12, fontSize: 16 }}>{error}</p>}
 
       {(uploads.length > 0 || outputItems.length > 0 || selfTests.length > 0) && (
         <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 14 }}>
@@ -586,10 +586,10 @@ function LibraryHeader({ theme: t, title, count, hint }: { theme: AppTheme; titl
   return (
     <div style={{ marginBottom: 8 }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: t.text }}>{title}</h3>
-        <span style={{ fontSize: 13, fontWeight: 600, color: t.mutedLight }}>{count}</span>
+        <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: t.text }}>{title}</h3>
+        <span style={{ fontSize: 14, fontWeight: 600, color: t.mutedLight }}>{count}</span>
       </div>
-      <div style={{ fontSize: 13, color: t.mutedLight, marginTop: 2 }}>{hint}</div>
+      <div style={{ fontSize: 14, color: t.mutedLight, marginTop: 2 }}>{hint}</div>
     </div>
   );
 }
@@ -621,13 +621,13 @@ function LibraryRow({
 }) {
   return (
     <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "8px 0", borderTop: `1px solid ${t.cardBorder}`, opacity: dimmed ? 0.62 : 1 }}>
-      <span style={{ flex: 1, minWidth: 0, fontSize: 15, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+      <span style={{ flex: 1, minWidth: 0, fontSize: 16, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
       {/* The type or the date, and the first thing to go on a phone: it is
           `flex: none` next to two buttons that are also `flex: none`, so on a
           375px row it was taking 92px off the one item that says WHICH file
           this is — "Chapitre 7 — Les fonctions affines.pdf" rendered as
           "Chapit…" beside a perfectly legible "application/pdf". */}
-      {meta && <span className="app-row-meta" style={{ color: t.mutedLight, fontSize: 13, flex: "none" }}>{meta}</span>}
+      {meta && <span className="app-row-meta" style={{ color: t.mutedLight, fontSize: 14, flex: "none" }}>{meta}</span>}
       {action2 && onAction2 && (
         <button style={ghost(t)} onClick={onAction2}>
           {action2}

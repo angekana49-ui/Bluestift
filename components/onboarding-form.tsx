@@ -371,7 +371,7 @@ export function OnboardingForm({
               {tr("onb.welcome.greeting")} <BluestiftName>BlueStift</BluestiftName>, {firstName}.
             </h1>
           </div>
-          <p style={{ maxWidth: 400, margin: "16px auto 0", fontSize: 16, lineHeight: 1.7, color: "#475569" }}>
+          <p style={{ maxWidth: 400, margin: "16px auto 0", fontSize: 17, lineHeight: 1.7, color: "#475569" }}>
             {track === "schools" ? (
               tr("onb.welcome.sub.schools")
             ) : (
@@ -402,7 +402,7 @@ export function OnboardingForm({
       <button
         onClick={leaveOnboarding}
         disabled={busy}
-        style={{ background: "none", border: "none", padding: 0, fontSize: 14, color: "#64748b", cursor: "pointer", fontFamily: "inherit" }}
+        style={{ background: "none", border: "none", padding: 0, fontSize: 15, color: "#64748b", cursor: "pointer", fontFamily: "inherit" }}
       >
         {tr("onb.switchMethod")}
       </button>
@@ -415,10 +415,10 @@ export function OnboardingForm({
       {/* Goal-gradient progress — seeded, never 0. */}
       <div style={{ marginBottom: 22 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.06em" }}>
             {tr("onb.stepLabel")} {stepNumber} {tr("onb.of")} {totalSteps}
           </span>
-          <span style={{ fontSize: 13, fontWeight: 700, color: WORDMARK_B }}>{progress}% {tr("onb.setUp")}</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: WORDMARK_B }}>{progress}% {tr("onb.setUp")}</span>
         </div>
         <div style={{ height: 6, borderRadius: 99, background: "#eef2f8", overflow: "hidden" }}>
           <div style={{ height: "100%", width: `${progress}%`, borderRadius: 99, background: "linear-gradient(90deg,#2f7fe0,#6366f1)", transition: "width 0.4s ease" }} />
@@ -482,7 +482,7 @@ export function OnboardingForm({
                 // Digits only, so a stray letter can't turn into a silent NaN.
                 onChange={(e) => setBirthYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
               />
-              <p style={{ fontSize: 13, color: "#64748b", margin: "-4px 0 0", lineHeight: 1.6 }}>
+              <p style={{ fontSize: 14, color: "#64748b", margin: "-4px 0 0", lineHeight: 1.6 }}>
                 {tr("onb.age.note")}
               </p>
             </>
@@ -601,7 +601,7 @@ export function OnboardingForm({
               {!ageOnly && (
                 <p
                   style={{
-                    fontSize: 12.5,
+                    fontSize: 13.5,
                     color: "#64748b",
                     lineHeight: 1.6,
                     textAlign: "center",
@@ -624,7 +624,7 @@ export function OnboardingForm({
         </>
       )}
 
-      {error && <p style={{ color: "#dc2626", textAlign: "center", marginTop: 16, fontSize: 14 }}>{error}</p>}
+      {error && <p style={{ color: "#dc2626", textAlign: "center", marginTop: 16, fontSize: 15 }}>{error}</p>}
 
       {/* The one place the popup must NOT take the window anywhere: the person
           is six steps into a setup they still have to finish, and the link only
@@ -739,7 +739,7 @@ function EmailStep({
         {emailSent ? tr("onb.email.sentBtn") : tr("onb.email.linkBtn")}
       </button>
       {emailSent && (
-        <p style={{ fontSize: 14, color: "#047857", margin: "8px 0 0", lineHeight: 1.5 }}>
+        <p style={{ fontSize: 15, color: "#047857", margin: "8px 0 0", lineHeight: 1.5 }}>
           {tr("onb.email.checkInbox")}
         </p>
       )}
@@ -755,7 +755,7 @@ function EmailStep({
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
           <Icon color="#6366f1">{IconKey}</Icon>
-          <span style={{ fontSize: 15, fontWeight: 700, color: "#0b1220" }}>{tr("onb.email.recoveryTitle")}</span>
+          <span style={{ fontSize: 16, fontWeight: 700, color: "#0b1220" }}>{tr("onb.email.recoveryTitle")}</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
           {/* The tail is tinted because the field below asks for exactly that
@@ -781,7 +781,7 @@ function EmailStep({
             {saved ? tr("onb.email.saved") : tr("onb.email.download")}
           </button>
         </div>
-        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 14, color: "#475569", lineHeight: 1.7 }}>
+        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 15, color: "#475569", lineHeight: 1.7 }}>
           <li>{tr("onb.email.bullet1")}</li>
           <li>{tr("onb.email.bullet2.a")} <strong style={{ color: "#0b1220" }}>{tr("onb.email.bullet2.strong")}</strong> {tr("onb.email.bullet2.b")}</li>
           <li>{tr("onb.email.bullet3")}</li>
@@ -819,16 +819,16 @@ function EmailStep({
               spellCheck={false}
             />
             {tailOk ? (
-              <span style={{ fontSize: 14, fontWeight: 600, color: "#047857" }}>{tr("onb.email.gotIt")}</span>
+              <span style={{ fontSize: 15, fontWeight: 600, color: "#047857" }}>{tr("onb.email.gotIt")}</span>
             ) : (
-              <span style={{ fontSize: 14, color: "#64748b" }}>
+              <span style={{ fontSize: 15, color: "#64748b" }}>
                 {tail.trim() ? tr("onb.email.tailWrong") : tr("onb.email.tailHint")}
               </span>
             )}
           </div>
         </div>
       ) : (
-        <p style={{ fontSize: 14, color: "#64748b", marginTop: 14, lineHeight: 1.6 }}>
+        <p style={{ fontSize: 15, color: "#64748b", marginTop: 14, lineHeight: 1.6 }}>
           {tr("onb.email.noKey.a")}{" "}
           <strong style={{ color: "#0b1220" }}>{tr("onb.email.noKey.strong")}</strong>.
         </p>
@@ -903,7 +903,7 @@ const keyPill: React.CSSProperties = {
   border: "1px solid #dde5ee",
   borderRadius: 99,
   padding: "5px 12px",
-  fontSize: 13,
+  fontSize: 14,
   fontWeight: 600,
   cursor: "pointer",
 };
@@ -921,13 +921,13 @@ const roleCard = (on: boolean): React.CSSProperties => ({
 });
 const pathTitle = (on = false): React.CSSProperties => ({
   display: "block",
-  fontSize: 15,
+  fontSize: 16,
   fontWeight: 700,
   color: on ? "#fff" : "#0b1220",
 });
 const pathDesc = (on = false): React.CSSProperties => ({
   display: "block",
-  fontSize: 14,
+  fontSize: 15,
   color: on ? "rgba(255,255,255,0.9)" : "#475569",
 });
 const noteBox: React.CSSProperties = {
@@ -935,7 +935,7 @@ const noteBox: React.CSSProperties = {
   border: "1px solid #dde5ee",
   borderRadius: 12,
   padding: 14,
-  fontSize: 14,
+  fontSize: 15,
   color: "#475569",
   lineHeight: 1.6,
 };
@@ -950,7 +950,7 @@ const chip = (on: boolean): React.CSSProperties => ({
   border: `1px solid ${on ? "#0b1220" : "#dde5ee"}`,
   borderRadius: 99,
   padding: "8px 14px",
-  fontSize: 14,
+  fontSize: 15,
   fontWeight: 600,
   cursor: "pointer",
 });

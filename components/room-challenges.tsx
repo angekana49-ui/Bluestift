@@ -50,7 +50,7 @@ const mkBtn = (t: AppTheme): React.CSSProperties => ({
   border: "none",
   borderRadius: 99,
   padding: "9px 16px",
-  fontSize: 14,
+  fontSize: 15,
   fontWeight: 600,
   cursor: "pointer",
 });
@@ -60,7 +60,7 @@ const mkGhost = (t: AppTheme): React.CSSProperties => ({
   border: `1.5px solid ${t.dark ? "rgba(255,255,255,0.22)" : "rgba(15,23,42,0.20)"}`,
   borderRadius: 99,
   padding: "6px 13px",
-  fontSize: 14,
+  fontSize: 15,
   fontWeight: 600,
   cursor: "pointer",
 });
@@ -79,7 +79,7 @@ const mkField = (t: AppTheme): React.CSSProperties => ({
   borderRadius: 10,
   padding: "10px 14px",
   marginBottom: 8,
-  fontSize: 15,
+  fontSize: 16,
   fontFamily: "inherit",
   boxSizing: "border-box",
   outline: "none",
@@ -90,7 +90,7 @@ const chip = (t: AppTheme, on: boolean): React.CSSProperties => ({
   border: `1px solid ${on ? t.ctaBg : t.cardBorder}`,
   borderRadius: 99,
   padding: "6px 12px",
-  fontSize: 14,
+  fontSize: 15,
   fontWeight: 600,
   cursor: "pointer",
 });
@@ -381,15 +381,15 @@ export function RoomChallenges({
     return (
       <div style={box}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
-          <h3 style={{ margin: 0, flex: 1, fontSize: 16, fontWeight: 700, color: t.text }}>{tr("room.challenges.standingsHeading")}</h3>
+          <h3 style={{ margin: 0, flex: 1, fontSize: 17, fontWeight: 700, color: t.text }}>{tr("room.challenges.standingsHeading")}</h3>
           {result && (
-            <span style={{ fontSize: 15, color: t.muted }}>
+            <span style={{ fontSize: 16, color: t.muted }}>
               {tr("room.challenges.youWord")} · {result.correct}/{result.total} · {Math.round(result.score * 100)}%
             </span>
           )}
         </div>
-        <h4 style={{ color: t.text, fontSize: 15, margin: "10px 0 4px" }}>{active?.title ?? tr("room.challenges.fallbackTitle")}</h4>
-        {leaderboard.length === 0 && <p style={{ color: t.muted, fontSize: 15 }}>{tr("room.challenges.noScoresYet")}</p>}
+        <h4 style={{ color: t.text, fontSize: 16, margin: "10px 0 4px" }}>{active?.title ?? tr("room.challenges.fallbackTitle")}</h4>
+        {leaderboard.length === 0 && <p style={{ color: t.muted, fontSize: 16 }}>{tr("room.challenges.noScoresYet")}</p>}
         {leaderboard
           .slice()
           .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
@@ -407,7 +407,7 @@ export function RoomChallenges({
                   marginTop: 4,
                   background: mine ? t.rowActiveBg : "transparent",
                   color: t.text,
-                  fontSize: 15,
+                  fontSize: 16,
                 }}
               >
                 <span style={{ color: t.mutedLight, width: 22, flex: "none", fontWeight: 700 }}>
@@ -433,12 +433,12 @@ export function RoomChallenges({
   return (
     <div>
       {readOnly ? (
-        <div style={{ ...box, color: t.muted, fontSize: 15 }}>
+        <div style={{ ...box, color: t.muted, fontSize: 16 }}>
           {tr("room.challenges.readOnlyBanner")}
         </div>
       ) : (
       <div style={box}>
-        <h3 style={{ marginTop: 0, marginBottom: 12, fontSize: 16, fontWeight: 700, color: t.text }}>{tr("room.challenges.newChallengeTitle")}</h3>
+        <h3 style={{ marginTop: 0, marginBottom: 12, fontSize: 17, fontWeight: 700, color: t.text }}>{tr("room.challenges.newChallengeTitle")}</h3>
         <input style={field} placeholder={tr("room.challenges.namePlaceholder")} value={name} onChange={(e) => setName(e.target.value)} />
         <input style={field} placeholder={tr("room.challenges.topicPlaceholder")} value={topic} onChange={(e) => setTopic(e.target.value)} />
         <textarea
@@ -449,7 +449,7 @@ export function RoomChallenges({
           onChange={(e) => setGoal(e.target.value)}
         />
         <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 13, color: t.mutedLight, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{tr("room.challenges.typeOfChallengeLabel")}</div>
+          <div style={{ fontSize: 14, color: t.mutedLight, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{tr("room.challenges.typeOfChallengeLabel")}</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {TEST_KINDS.map((k) => (
               <button key={k.id} type="button" style={chip(t, kind === k.id)} onClick={() => setKind(k.id)} title={tr(k.hintKey)}>
@@ -459,7 +459,7 @@ export function RoomChallenges({
           </div>
         </div>
         <div style={{ marginBottom: 8 }}>
-          <div style={{ fontSize: 14, color: t.muted, marginBottom: 6 }}>{tr("room.challenges.sourceFileLabel")}</div>
+          <div style={{ fontSize: 15, color: t.muted, marginBottom: 6 }}>{tr("room.challenges.sourceFileLabel")}</div>
           <FilePicker
             accept=".txt,.md,.markdown,.csv,.pdf,.docx,.xlsx,.mp3,.m4a,.wav,.webm,.ogg,.flac,audio/*,application/pdf,text/plain"
             onPick={(files) => setSourceFile(files?.[0] ?? null)}
@@ -471,7 +471,7 @@ export function RoomChallenges({
         {/* No document, and the room's fixed subject may no longer be what the
             group is actually discussing — this opts the generation into the
             room's own recent chat instead. */}
-        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: t.muted, marginBottom: 12, cursor: "pointer" }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15, color: t.muted, marginBottom: 12, cursor: "pointer" }}>
           <input type="checkbox" checked={useRoomChat} onChange={(e) => setUseRoomChat(e.target.checked)} />
           {tr("room.challenges.useRoomChatLabel")}
         </label>
@@ -484,12 +484,12 @@ export function RoomChallenges({
             {busy ? tr("room.challenges.generating") : tr("room.challenges.generateButton")}
           </button>
         </div>
-        {error && <p style={{ color: "#f87171", fontSize: 15 }}>{error}</p>}
+        {error && <p style={{ color: "#f87171", fontSize: 16 }}>{error}</p>}
       </div>
       )}
 
       <div style={{ marginTop: 16 }}>
-        {challenges.length === 0 && <p style={{ color: t.muted, fontSize: 15 }}>{tr("room.challenges.noChallengesYet")}</p>}
+        {challenges.length === 0 && <p style={{ color: t.muted, fontSize: 16 }}>{tr("room.challenges.noChallengesYet")}</p>}
         {(() => {
           const liveChallenges = challenges.filter((c) => !c.archived_at);
           const archivedChallenges = challenges.filter((c) => !!c.archived_at);
@@ -513,9 +513,9 @@ export function RoomChallenges({
                 }}
               >
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, color: t.text, fontSize: 15 }}>{label}</div>
-                  {ch.description && <div style={{ fontSize: 14, color: t.muted }}>{ch.description}</div>}
-                  <div style={{ fontSize: 13, color: t.mutedLight }}>
+                  <div style={{ fontWeight: 600, color: t.text, fontSize: 16 }}>{label}</div>
+                  {ch.description && <div style={{ fontSize: 15, color: t.muted }}>{ch.description}</div>}
+                  <div style={{ fontSize: 14, color: t.mutedLight }}>
                     {ch.question_count ?? 0} {tr("tools.selfTest.questionsWord")} · {kindLabel(ch.format, tr)} · {ch.status}
                   </div>
                 </div>

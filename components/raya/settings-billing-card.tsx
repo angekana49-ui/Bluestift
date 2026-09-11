@@ -73,10 +73,10 @@ export function StudentBillingCard() {
        rest of the product. */
     <SettingsCard theme={t} mt id="plan" fontFamily={billingDisplay}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 14 }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: t.text, flex: 1 }}>{tr("nav.billing")}</div>
+        <div style={{ fontSize: 17, fontWeight: 700, color: t.text, flex: 1 }}>{tr("nav.billing")}</div>
         <Link
           href="/pricing"
-          style={{ fontSize: 13, fontWeight: 650, color: t.link, textDecoration: "none" }}
+          style={{ fontSize: 14, fontWeight: 650, color: t.link, textDecoration: "none" }}
         >
           {tr("raya.settings.billing.comparePlans")}
         </Link>
@@ -90,7 +90,7 @@ export function StudentBillingCard() {
           background: t.inputBg,
           borderRadius: 10,
           padding: "10px 14px",
-          fontSize: 14,
+          fontSize: 15,
           lineHeight: 1.55,
           color: t.muted,
           marginBottom: 14,
@@ -101,7 +101,7 @@ export function StudentBillingCard() {
       </div>
 
       {failed && !plans ? (
-        <div style={{ fontSize: 14, color: t.muted, lineHeight: 1.55 }}>
+        <div style={{ fontSize: 15, color: t.muted, lineHeight: 1.55 }}>
           {tr("raya.settings.billing.loadFailedA")}{" "}
           <Link href="/pricing" style={{ color: t.link, fontWeight: 650, textDecoration: "none" }}>
             {tr("raya.settings.billing.loadFailedLink")}
@@ -123,10 +123,10 @@ export function StudentBillingCard() {
                 }}
               >
                 <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-                  <span style={{ fontSize: 15, fontWeight: 700, color: t.text, flex: 1 }}>
+                  <span style={{ fontSize: 16, fontWeight: 700, color: t.text, flex: 1 }}>
                     {p.name}
                   </span>
-                  <span style={{ fontSize: 15, fontWeight: 700, color: t.text }}>
+                  <span style={{ fontSize: 16, fontWeight: 700, color: t.text }}>
                     {fmtPrice(p)}
                   </span>
                 </div>
@@ -136,7 +136,7 @@ export function StudentBillingCard() {
                     <li
                       key={i}
                       style={{
-                        fontSize: 13,
+                        fontSize: 14,
                         color: t.muted,
                         marginBottom: 3,
                         display: "flex",
@@ -155,7 +155,7 @@ export function StudentBillingCard() {
                 <div
                   style={{
                     marginTop: 10,
-                    fontSize: 13,
+                    fontSize: 14,
                     fontWeight: 700,
                     color: current ? "#22c55e" : t.mutedLight,
                   }}

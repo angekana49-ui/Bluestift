@@ -48,7 +48,7 @@ const cta = (t: AppTheme): React.CSSProperties => ({
   border: "none",
   borderRadius: 99,
   padding: "9px 16px",
-  fontSize: 14,
+  fontSize: 15,
   fontWeight: 600,
   cursor: "pointer",
 });
@@ -61,7 +61,7 @@ const field = (t: AppTheme): React.CSSProperties => ({
   padding: "10px 14px",
   marginBottom: 8,
   fontFamily: "inherit",
-  fontSize: 15,
+  fontSize: 16,
   boxSizing: "border-box",
   outline: "none",
 });
@@ -71,7 +71,7 @@ const chip = (t: AppTheme, on: boolean): React.CSSProperties => ({
   border: `1px solid ${on ? t.ctaBg : t.cardBorder}`,
   borderRadius: 99,
   padding: "6px 12px",
-  fontSize: 14,
+  fontSize: 15,
   fontWeight: 600,
   cursor: "pointer",
 });
@@ -404,7 +404,7 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
   return (
     <div>
       <div style={panel(t)}>
-        <h3 style={{ marginTop: 0, marginBottom: 12, fontSize: 16, fontWeight: 700, color: t.text }}>{tr("tools.selfTest.newTitle")}</h3>
+        <h3 style={{ marginTop: 0, marginBottom: 12, fontSize: 17, fontWeight: 700, color: t.text }}>{tr("tools.selfTest.newTitle")}</h3>
         <input style={field(t)} placeholder={tr("tools.selfTest.namePlaceholder")} value={name} onChange={(e) => setName(e.target.value)} />
         <input style={field(t)} placeholder={tr("tools.selfTest.topicPlaceholder")} value={topic} onChange={(e) => setTopic(e.target.value)} />
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
@@ -425,7 +425,7 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
           onChange={(e) => setGoal(e.target.value)}
         />
         <div style={{ marginBottom: 10 }}>
-          <div style={{ fontSize: 13, color: t.mutedLight, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{tr("tools.selfTest.typeLabel")}</div>
+          <div style={{ fontSize: 14, color: t.mutedLight, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{tr("tools.selfTest.typeLabel")}</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {TEST_KINDS.map((k) => (
               <button key={k.id} type="button" style={chip(t, kind === k.id)} onClick={() => setKind(k.id)} title={tr(k.hintKey)}>
@@ -435,7 +435,7 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
           </div>
         </div>
         <div style={{ marginBottom: 8 }}>
-          <div style={{ fontSize: 14, color: t.muted, marginBottom: 6 }}>{tr("tools.selfTest.sourceFileLabel")}</div>
+          <div style={{ fontSize: 15, color: t.muted, marginBottom: 6 }}>{tr("tools.selfTest.sourceFileLabel")}</div>
           <FilePicker
             accept=".txt,.md,.markdown,.csv,.pdf,.docx,.xlsx,.mp3,.m4a,.wav,.webm,.ogg,.flac,audio/*,application/pdf,text/plain"
             onPick={(files) => setFile(files?.[0] ?? null)}
@@ -453,19 +453,19 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
             {busy ? tr("tools.generating") : tr("tools.selfTest.createButton")}
           </button>
         </div>
-        {error && <p style={{ color: "#f87171", fontSize: 15 }}>{error}</p>}
+        {error && <p style={{ color: "#f87171", fontSize: 16 }}>{error}</p>}
       </div>
 
       <div style={{ marginTop: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ flex: 1, fontSize: 13, color: t.mutedLight, textTransform: "uppercase", letterSpacing: "0.06em" }}>{tr("tools.selfTest.yourProgress")}</div>
+          <div style={{ flex: 1, fontSize: 14, color: t.mutedLight, textTransform: "uppercase", letterSpacing: "0.06em" }}>{tr("tools.selfTest.yourProgress")}</div>
           {items.length > 0 && (
             <>
               <DocumentActions doc={progressionDoc()} compact personal />
             </>
           )}
         </div>
-        {items.length === 0 && <p style={{ color: t.muted, marginTop: 8, fontSize: 15 }}>{tr("tools.selfTest.noneYet")}</p>}
+        {items.length === 0 && <p style={{ color: t.muted, marginTop: 8, fontSize: 16 }}>{tr("tools.selfTest.noneYet")}</p>}
         {(() => {
           const liveItems = items.filter((it) => !it.archived_at);
           const archivedItems = items.filter((it) => !!it.archived_at);
@@ -488,8 +488,8 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
                 }}
               >
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, color: t.text, fontSize: 15 }}>{label}</div>
-                  <div style={{ fontSize: 13, color: t.mutedLight }}>
+                  <div style={{ fontWeight: 600, color: t.text, fontSize: 16 }}>{label}</div>
+                  <div style={{ fontSize: 14, color: t.mutedLight }}>
                     {it.question_count ?? 0} {tr("tools.selfTest.questionsWord")}
                     {it.score != null && ` · ${tr("tools.selfTest.lastScore")} ${Math.round(it.score * 100)}%`}
                   </div>

@@ -46,7 +46,7 @@ export function ArchivedDisclosure({
           border: "none",
           borderRadius: 9,
           padding: "8px 2px",
-          fontSize: 12,
+          fontSize: 13,
           fontWeight: 700,
           fontFamily: "inherit",
           letterSpacing: "0.06em",

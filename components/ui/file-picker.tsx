@@ -107,7 +107,7 @@ export function FilePicker({
       {fileName !== undefined && (
         <span
           style={{
-            fontSize: 13,
+            fontSize: 14,
             minWidth: 0,
             overflow: "hidden",
             textOverflow: "ellipsis",

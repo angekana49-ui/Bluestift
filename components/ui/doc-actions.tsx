@@ -238,7 +238,7 @@ export function DocumentActions({
                   }}
                 >
                   <span>{l.label}</span>
-                  <span style={{ fontSize: 11.5, opacity: 0.65, fontWeight: 600, letterSpacing: "0.04em" }}>
+                  <span style={{ fontSize: 12.5, opacity: 0.65, fontWeight: 600, letterSpacing: "0.04em" }}>
                     {l.code.toUpperCase()}
                   </span>
                 </button>

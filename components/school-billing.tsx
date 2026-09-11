@@ -91,8 +91,8 @@ export function SchoolBilling() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (loading) return <p style={{ color: t.muted, fontSize: 15 }}>{tr("school.billing.loadingBilling")}</p>;
-  if (error) return <p style={{ color: "#f87171", fontSize: 15 }}>{error}</p>;
+  if (loading) return <p style={{ color: t.muted, fontSize: 16 }}>{tr("school.billing.loadingBilling")}</p>;
+  if (error) return <p style={{ color: "#f87171", fontSize: 16 }}>{error}</p>;
   if (!billing) return null;
 
   const { seats } = billing;
@@ -124,7 +124,7 @@ export function SchoolBilling() {
           <span>{tr("school.billing.currentPlan")}</span>
           <span
             style={{
-              fontSize: 13,
+              fontSize: 14,
               fontWeight: 700,
               textTransform: "uppercase",
               letterSpacing: 0.4,
@@ -140,7 +140,7 @@ export function SchoolBilling() {
         <div style={{ fontSize: 23, fontWeight: 700, color: t.text, marginBottom: 2 }}>
           {billing.planName ?? tr("school.billing.notSubscribed")}
         </div>
-        <div style={{ fontSize: 14, color: t.muted }}>
+        <div style={{ fontSize: 15, color: t.muted }}>
           {onPilot
             ? `${tr("school.billing.pilotAccessA")} ${fmtDate(billing.pilotUntil)} ${tr("school.billing.pilotAccessB")}`
             : billing.expiresAt
@@ -154,7 +154,7 @@ export function SchoolBilling() {
 
         {/* Seat meter */}
         <div style={{ marginTop: 16 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: t.muted, marginBottom: 6 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 15, color: t.muted, marginBottom: 6 }}>
             <span>{tr("school.billing.seatsUsed")}</span>
             <span style={{ color: t.text, fontWeight: 600 }}>
               {seats.used}
@@ -173,7 +173,7 @@ export function SchoolBilling() {
             />
           </div>
           {seats.limit != null && seats.remaining === 0 && (
-            <p style={{ fontSize: 13, color: "#f87171", margin: "6px 0 0" }}>
+            <p style={{ fontSize: 14, color: "#f87171", margin: "6px 0 0" }}>
               {tr("school.billing.seatLimitReached")}
             </p>
           )}
@@ -189,7 +189,7 @@ export function SchoolBilling() {
             background: t.rowActiveBg,
             borderRadius: 10,
             padding: "10px 12px",
-            fontSize: 14,
+            fontSize: 15,
             color: t.text,
             margin: "0 0 12px",
             lineHeight: 1.5,
@@ -203,7 +203,7 @@ export function SchoolBilling() {
           )}{" "}
           {tr("school.billing.whatYouPayForTail")}
         </div>
-        <p style={{ fontSize: 14, color: t.muted, margin: "0 0 14px" }}>
+        <p style={{ fontSize: 15, color: t.muted, margin: "0 0 14px" }}>
           {tr("school.billing.recordPaymentIntro")}
         </p>
         <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
@@ -224,12 +224,12 @@ export function SchoolBilling() {
       <div style={box}>
         <div style={title}>{tr("school.billing.historyHeading")}</div>
         {billing.history.length === 0 ? (
-          <p style={{ fontSize: 14, color: t.mutedLight, margin: 0 }}>
+          <p style={{ fontSize: 15, color: t.mutedLight, margin: 0 }}>
             {tr("school.billing.noSubscriptionsYet")}
           </p>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 15 }}>
               <thead>
                 <tr style={{ color: t.muted, textAlign: "left" }}>
                   <th style={{ padding: "6px 8px" }}>{tr("school.billing.colPlan")}</th>
@@ -358,15 +358,15 @@ function PlanCard({
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <span style={{ fontSize: 16, fontWeight: 700, color: t.text }}>{plan.name}</span>
-        <span style={{ fontSize: 14, fontWeight: 700, color: t.text }}>{fmtPrice(plan, tr)}</span>
+        <span style={{ fontSize: 17, fontWeight: 700, color: t.text }}>{plan.name}</span>
+        <span style={{ fontSize: 15, fontWeight: 700, color: t.text }}>{fmtPrice(plan, tr)}</span>
       </div>
-      <div style={{ fontSize: 13, color: t.muted, margin: "2px 0 8px" }}>
+      <div style={{ fontSize: 14, color: t.muted, margin: "2px 0 8px" }}>
         {isPerSeat ? tr("school.billing.billedPerStudent") : `${plan.seatLimit ?? 1} ${tr("school.billing.seatSuffix")}`}
       </div>
       <ul style={{ margin: "0 0 12px", padding: 0, listStyle: "none", flex: 1 }}>
         {plan.features.map((f, i) => (
-          <li key={i} style={{ fontSize: 13, color: t.muted, marginBottom: 4, display: "flex", gap: 6 }}>
+          <li key={i} style={{ fontSize: 14, color: t.muted, marginBottom: 4, display: "flex", gap: 6 }}>
             <span style={{ color: "#22c55e" }}>✓</span>
             {f}
           </li>
@@ -374,7 +374,7 @@ function PlanCard({
       </ul>
 
       {current ? (
-        <div style={{ fontSize: 13, fontWeight: 700, color: "#22c55e", textAlign: "center" }}>{tr("school.billing.currentPlan")}</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: "#22c55e", textAlign: "center" }}>{tr("school.billing.currentPlan")}</div>
       ) : bespoke ? (
         <Link href="/contact" style={{ ...btn, width: "100%", textAlign: "center", textDecoration: "none", display: "block", boxSizing: "border-box" }}>
           {tr("site.finalCta.ctaSecondary")}
@@ -396,7 +396,7 @@ function PlanCard({
                 onChange={(e) => setStudents(e.target.value)}
                 disabled={busy}
               />
-              <div style={{ fontSize: 13, color: t.muted, marginTop: -2 }}>
+              <div style={{ fontSize: 14, color: t.muted, marginTop: -2 }}>
                 {defaultSeats > 0
                   ? `${tr("school.billing.prefilledA")} (${defaultSeats}).` +
                     (floorSeats > 0 ? ` ${tr("school.billing.cantGoBelowA")} ${floorSeats} ${tr("school.billing.cantGoBelowB")}` : "")
@@ -424,7 +424,7 @@ function PlanCard({
             <option value="1">{tr("school.billing.monthly1")}</option>
           </select>
           {estimated != null && (
-            <div style={{ fontSize: 14, color: t.text }}>
+            <div style={{ fontSize: 15, color: t.text }}>
               {tr("school.billing.totalForA")} {seatCount} {tr("school.billing.totalForB")} {monthCount} {tr("school.billing.totalForC")}{" "}
               <strong>${estimated.toLocaleString(undefined, { maximumFractionDigits: 2 })}</strong>
               {annualSaving && (
@@ -432,7 +432,7 @@ function PlanCard({
               )}
             </div>
           )}
-          {error && <span style={{ color: "#f87171", fontSize: 13 }}>{error}</span>}
+          {error && <span style={{ color: "#f87171", fontSize: 14 }}>{error}</span>}
           <div style={{ display: "flex", gap: 8 }}>
             <button style={{ ...btn, flex: 1, opacity: busy ? 0.7 : 1 }} onClick={activate} disabled={busy}>
               {busy ? tr("school.billing.activating") : tr("school.billing.confirmPayment")}
@@ -445,7 +445,7 @@ function PlanCard({
               {tr("school.billing.cancel")}
             </button>
           </div>
-          <div style={{ fontSize: 13, color: t.muted, textAlign: "center", marginTop: 2, lineHeight: 1.4 }}>
+          <div style={{ fontSize: 14, color: t.muted, textAlign: "center", marginTop: 2, lineHeight: 1.4 }}>
             {tr("school.billing.onlineCheckoutUnavailable")}
           </div>
         </div>

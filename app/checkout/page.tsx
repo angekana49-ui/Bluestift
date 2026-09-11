@@ -130,14 +130,14 @@ export default async function CheckoutPage({
   return (
     <main style={shell}>
       <div style={card}>
-        <Link href="/pricing" style={{ fontSize: 14, color: "#64748b", textDecoration: "none" }}>
+        <Link href="/pricing" style={{ fontSize: 15, color: "#64748b", textDecoration: "none" }}>
           {tr("checkout.backToPlans")}
         </Link>
 
         <h1 style={{ fontSize: "1.4rem", fontWeight: 900, letterSpacing: "-0.02em", color: "#0b1220", margin: "14px 0 4px" }}>
           {tr("checkout.title")}
         </h1>
-        <p style={{ fontSize: 15, color: "#64748b", margin: 0 }}>{plan!.name}</p>
+        <p style={{ fontSize: 16, color: "#64748b", margin: 0 }}>{plan!.name}</p>
 
         {/* Order summary */}
         <div style={{ background: "#f6f8fc", border: "1px solid #eef2f8", borderRadius: 14, padding: "14px 16px", margin: "18px 0 20px" }}>
@@ -156,7 +156,7 @@ export default async function CheckoutPage({
           )}
           <div style={{ height: 1, background: "#e6ebf3", margin: "10px 0" }} />
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: "#0b1220" }}>{tr("checkout.row.total")}</span>
+            <span style={{ fontSize: 16, fontWeight: 700, color: "#0b1220" }}>{tr("checkout.row.total")}</span>
             <span style={{ fontSize: "1.35rem", fontWeight: 900, color: "#0b1220", letterSpacing: "-0.02em" }}>
               {total != null ? formatMoney(total, currency) : "—"}
             </span>
@@ -176,10 +176,10 @@ export default async function CheckoutPage({
               textAlign: "center",
             }}
           >
-            <p style={{ fontSize: 15, fontWeight: 700, color: "#0b1220", margin: "0 0 6px" }}>
+            <p style={{ fontSize: 16, fontWeight: 700, color: "#0b1220", margin: "0 0 6px" }}>
               {tr("checkout.paymentsOff.title")}
             </p>
-            <p style={{ fontSize: 14.5, color: "#475569", lineHeight: 1.6, margin: "0 0 14px" }}>
+            <p style={{ fontSize: 15.5, color: "#475569", lineHeight: 1.6, margin: "0 0 14px" }}>
               {tr("checkout.paymentsOff.body")}
             </p>
             <Link
@@ -190,7 +190,7 @@ export default async function CheckoutPage({
                 color: "#fff",
                 borderRadius: 999,
                 padding: "11px 26px",
-                fontSize: 15,
+                fontSize: 16,
                 fontWeight: 600,
                 textDecoration: "none",
               }}
@@ -200,7 +200,7 @@ export default async function CheckoutPage({
           </div>
         ) : !user ? (
           <div style={{ textAlign: "center" }}>
-            <p style={{ fontSize: 15, color: "#334155", lineHeight: 1.6, margin: "0 0 14px" }}>
+            <p style={{ fontSize: 16, color: "#334155", lineHeight: 1.6, margin: "0 0 14px" }}>
               {tr("checkout.signIn.prompt")}
             </p>
             <Link
@@ -211,7 +211,7 @@ export default async function CheckoutPage({
                 color: "#fff",
                 borderRadius: 999,
                 padding: "11px 26px",
-                fontSize: 15,
+                fontSize: 16,
                 fontWeight: 600,
                 textDecoration: "none",
               }}
@@ -220,12 +220,12 @@ export default async function CheckoutPage({
             </Link>
           </div>
         ) : perSeat && !seats ? (
-          <p style={{ fontSize: 15, color: "#dc2626", lineHeight: 1.6, textAlign: "center" }}>
+          <p style={{ fontSize: 16, color: "#dc2626", lineHeight: 1.6, textAlign: "center" }}>
             {tr("checkout.noSeats")}
           </p>
         ) : (
           <>
-            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.08em", color: "#94a3b8", textTransform: "uppercase", marginBottom: 10 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.08em", color: "#94a3b8", textTransform: "uppercase", marginBottom: 10 }}>
               {tr("checkout.choosePayment")}
             </div>
             <CheckoutPanel
@@ -239,7 +239,7 @@ export default async function CheckoutPage({
           </>
         )}
 
-        <p style={{ fontSize: 13, color: "#94a3b8", textAlign: "center", marginTop: 18, lineHeight: 1.6 }}>
+        <p style={{ fontSize: 14, color: "#94a3b8", textAlign: "center", marginTop: 18, lineHeight: 1.6 }}>
           {tr("checkout.footerNote")}
         </p>
       </div>
@@ -249,7 +249,7 @@ export default async function CheckoutPage({
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 15, padding: "3px 0" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 16, padding: "3px 0" }}>
       <span style={{ color: "#64748b" }}>{label}</span>
       <span style={{ color: "#0b1220", fontWeight: 600 }}>{value}</span>
     </div>

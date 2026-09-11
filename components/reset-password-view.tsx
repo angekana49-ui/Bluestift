@@ -83,10 +83,10 @@ export function ResetPasswordView({ email }: { email: string | null }) {
         {done ? tr("reset.saved") : tr("reset.save")}
       </button>
 
-      {err && <p style={{ marginTop: 14, color: "#b91c1c", fontSize: 15, textAlign: "center" }}>{err}</p>}
+      {err && <p style={{ marginTop: 14, color: "#b91c1c", fontSize: 16, textAlign: "center" }}>{err}</p>}
 
       <p style={{ marginTop: 18, textAlign: "center" }}>
-        <Link href="/login" style={{ fontSize: 14, color: "#64748b", textDecoration: "none" }}>
+        <Link href="/login" style={{ fontSize: 15, color: "#64748b", textDecoration: "none" }}>
           {tr("reset.backToLogin")}
         </Link>
       </p>

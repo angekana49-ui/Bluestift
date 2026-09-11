@@ -99,7 +99,7 @@ export function ConsentBanner() {
         borderRadius: 16,
         padding: "16px 18px",
         boxShadow: "0 16px 40px rgba(4,10,24,0.45)",
-        fontSize: 15,
+        fontSize: 16,
         lineHeight: 1.55,
       }}
     >
@@ -118,7 +118,7 @@ export function ConsentBanner() {
             color: "#cdd6e4",
             borderRadius: 999,
             padding: "7px 16px",
-            fontSize: 15,
+            fontSize: 16,
             fontWeight: 600,
             cursor: "pointer",
           }}
@@ -133,7 +133,7 @@ export function ConsentBanner() {
             color: "#ffffff",
             borderRadius: 999,
             padding: "7px 18px",
-            fontSize: 15,
+            fontSize: 16,
             fontWeight: 700,
             cursor: "pointer",
           }}

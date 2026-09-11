@@ -52,7 +52,7 @@ function SandboxInner() {
         <div
           style={{
             display: "inline-block",
-            fontSize: 13,
+            fontSize: 14,
             fontWeight: 700,
             letterSpacing: "0.1em",
             color: "#b45309",
@@ -65,7 +65,7 @@ function SandboxInner() {
           {tr("checkout.sandbox.badge")}
         </div>
         <h1 style={{ fontSize: "1.3rem", fontWeight: 900, color: "#0b1220", margin: "16px 0 6px" }}>{tr("checkout.sandbox.title")}</h1>
-        <p style={{ fontSize: 15, color: "#64748b", lineHeight: 1.6, margin: "0 0 22px" }}>
+        <p style={{ fontSize: 16, color: "#64748b", lineHeight: 1.6, margin: "0 0 22px" }}>
           {tr("checkout.sandbox.noticeA")}{" "}
           <strong>{channel}</strong>{tr("checkout.sandbox.noticeB")}
         </p>
@@ -79,7 +79,7 @@ function SandboxInner() {
               border: "none",
               borderRadius: 12,
               padding: "13px",
-              fontSize: 15,
+              fontSize: 16,
               fontWeight: 700,
               cursor: busy ? "default" : "pointer",
             }}
@@ -95,7 +95,7 @@ function SandboxInner() {
               border: "1px solid #fecaca",
               borderRadius: 12,
               padding: "13px",
-              fontSize: 15,
+              fontSize: 16,
               fontWeight: 600,
               cursor: busy ? "default" : "pointer",
             }}

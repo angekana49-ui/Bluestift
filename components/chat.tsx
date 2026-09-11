@@ -239,7 +239,7 @@ function ChatBody({
           maxWidth: 150,
           overflow: "hidden",
           textOverflow: "ellipsis",
-          fontSize: 13,
+          fontSize: 14,
           border: `1px solid ${t.cardBorder}`,
           borderRadius: 99,
           padding: "6px 13px",
@@ -265,7 +265,7 @@ function ChatBody({
           display: "flex",
           alignItems: "center",
           whiteSpace: "nowrap",
-          fontSize: 13,
+          fontSize: 14,
           border: `1px solid ${t.cardBorder}`,
           borderRadius: 99,
           padding: "6px 13px",
@@ -305,7 +305,7 @@ function ChatBody({
             border: `1px solid ${t.cardBorder}`,
             borderRadius: 10,
             padding: "10px 12px",
-            fontSize: 14,
+            fontSize: 15,
             fontWeight: 600,
             fontFamily: "inherit",
             color: t.text,
@@ -318,7 +318,7 @@ function ChatBody({
         </button>
         <div style={{ ...panelSectionTitle(t), marginTop: 14 }}>{tr("chat.sessionDocuments")}</div>
         {engine.sessionFiles.length === 0 ? (
-          <div style={{ fontSize: 13, color: t.muted }}>{tr("chat.noDocuments")}</div>
+          <div style={{ fontSize: 14, color: t.muted }}>{tr("chat.noDocuments")}</div>
         ) : (
           engine.sessionFiles.map((f) => (
             <div
@@ -328,7 +328,7 @@ function ChatBody({
               style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 4px", borderRadius: 9, cursor: "pointer" }}
             >
               <IconFile size={13} style={{ color: t.muted }} />
-              <span style={{ minWidth: 0, flex: 1, fontSize: 13, fontWeight: 600, color: t.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              <span style={{ minWidth: 0, flex: 1, fontSize: 14, fontWeight: 600, color: t.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {f.file_name}
               </span>
             </div>
@@ -338,12 +338,12 @@ function ChatBody({
 
       <div>
         {recommendations.length === 0 && (
-          <div style={{ fontSize: 13, color: t.muted }}>{tr("chatHome.noRecommendationsYet")}</div>
+          <div style={{ fontSize: 14, color: t.muted }}>{tr("chatHome.noRecommendationsYet")}</div>
         )}
         {recommendations.map((r, i) => (
           <div key={i} style={{ background: t.rowActiveBg, borderRadius: 12, padding: 10, marginBottom: 6 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: t.text }}>{r.content}</div>
-            <div style={{ fontSize: 13, color: t.muted, marginTop: 2 }}>{r.source}</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: t.text }}>{r.content}</div>
+            <div style={{ fontSize: 14, color: t.muted, marginTop: 2 }}>{r.source}</div>
           </div>
         ))}
       </div>
@@ -351,19 +351,19 @@ function ChatBody({
       {analysis && (
         <div style={{ border: `1px solid ${t.cardBorder}`, borderRadius: 16, padding: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: t.text, flex: 1 }}>{tr("chatHome.kernelAnalysisTitle")}</span>
+            <span style={{ fontSize: 16, fontWeight: 700, color: t.text, flex: 1 }}>{tr("chatHome.kernelAnalysisTitle")}</span>
             {/* One student's own analysis: never cached (see doc-actions.tsx's
                 `personal`), and not shareable — this stays theirs. */}
             <DocumentActions doc={analysisDoc(analysis)} compact shareable={false} personal />
             <span onClick={() => setAnalysis(null)} title={tr("room.closeTitle")} style={pillBtn(t)}>✕</span>
           </div>
-          <div style={{ fontSize: 14, color: t.text, marginBottom: 4 }}>
+          <div style={{ fontSize: 15, color: t.text, marginBottom: 4 }}>
             <strong>{tr("chatHome.rootGapLabel")}</strong> {analysis.root_gap ?? "—"}
           </div>
-          <div style={{ fontSize: 14, color: t.text, marginBottom: 6 }}>
+          <div style={{ fontSize: 15, color: t.text, marginBottom: 6 }}>
             <strong>{tr("room.summaryLabel")}</strong> {analysis.summary || "—"}
           </div>
-          <div style={{ fontSize: 13, color: t.muted }}>
+          <div style={{ fontSize: 14, color: t.muted }}>
             {tr("chatHome.confidenceLabel")} {analysis.confidence} · {tr("chatHome.kcsAbbrev")} {Object.keys(analysis.mastery_map).length} · {tr("chatHome.modelLabel")} {analysis.llm_used}
           </div>
         </div>
@@ -405,7 +405,7 @@ function ChatBody({
 /** Same section label the room's panel uses — these two panels sit in the same
  *  app and should not each invent their own heading. */
 const panelSectionTitle = (t: AppTheme): React.CSSProperties => ({
-  fontSize: 13,
+  fontSize: 14,
   fontWeight: 700,
   letterSpacing: 0.3,
   textTransform: "uppercase",
@@ -414,7 +414,7 @@ const panelSectionTitle = (t: AppTheme): React.CSSProperties => ({
 });
 
 const pillBtn = (t: AppTheme): React.CSSProperties => ({
-  fontSize: 13,
+  fontSize: 14,
   background: t.cardBg2,
   border: `1px solid ${t.cardBorder}`,
   color: t.mutedLight,

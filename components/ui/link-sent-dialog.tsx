@@ -188,7 +188,7 @@ export function LinkSentDialog({
         <h2 style={{ margin: "0 0 8px", fontSize: 20, fontWeight: 700, color: p.text }}>
           {tr("auth.linkSent.title")}
         </h2>
-        <p style={{ margin: "0 0 18px", fontSize: 15, lineHeight: 1.6, color: p.muted }}>
+        <p style={{ margin: "0 0 18px", fontSize: 16, lineHeight: 1.6, color: p.muted }}>
           {email ? (
             <>
               {tr("auth.msg.linkSent.a")}{" "}
@@ -226,13 +226,13 @@ export function LinkSentDialog({
             }}
             aria-hidden
           />
-          <span style={{ fontSize: 14, lineHeight: 1.5, color: p.muted }}>
+          <span style={{ fontSize: 15, lineHeight: 1.5, color: p.muted }}>
             {confirmed ? tr(confirmedKey) : tr("auth.linkSent.waiting")}
           </span>
         </div>
 
         {!confirmed && (
-          <p style={{ margin: "0 0 18px", fontSize: 13, lineHeight: 1.5, color: p.muted, opacity: 0.85 }}>
+          <p style={{ margin: "0 0 18px", fontSize: 14, lineHeight: 1.5, color: p.muted, opacity: 0.85 }}>
             {tr("auth.linkSent.spam")}
           </p>
         )}
@@ -245,7 +245,7 @@ export function LinkSentDialog({
             border: `1px solid ${p.border}`,
             borderRadius: 99,
             padding: "10px 22px",
-            fontSize: 14,
+            fontSize: 15,
             fontWeight: 600,
             color: p.text,
             cursor: "pointer",

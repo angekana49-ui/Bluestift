@@ -151,12 +151,12 @@ export function ArtifactMenu({
             <h2 style={{ fontSize: "1.12rem", fontWeight: 800, color: t.text, margin: "0 0 4px", letterSpacing: "-0.01em" }}>
               {tr(k("title"))}
             </h2>
-            <p style={{ fontSize: 13, color: t.mutedLight, margin: "0 0 12px", fontWeight: 600 }}>{itemLabel}</p>
-            <p style={{ fontSize: 14.5, color: t.muted, lineHeight: 1.65, margin: 0 }}>{tr(k("body"))}</p>
+            <p style={{ fontSize: 14, color: t.mutedLight, margin: "0 0 12px", fontWeight: 600 }}>{itemLabel}</p>
+            <p style={{ fontSize: 15.5, color: t.muted, lineHeight: 1.65, margin: 0 }}>{tr(k("body"))}</p>
             {danger && deleteCaveatKey && (
               <p
                 style={{
-                  fontSize: 13.5,
+                  fontSize: 14.5,
                   color: t.mutedLight,
                   lineHeight: 1.6,
                   margin: "12px 0 0",
@@ -170,7 +170,7 @@ export function ArtifactMenu({
               </p>
             )}
             {error && (
-              <p style={{ fontSize: 13.5, color: "#ef4444", lineHeight: 1.5, margin: "12px 0 0" }}>{error}</p>
+              <p style={{ fontSize: 14.5, color: "#ef4444", lineHeight: 1.5, margin: "12px 0 0" }}>{error}</p>
             )}
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 20 }}>
               <button
@@ -199,7 +199,7 @@ function btn(t: AppTheme, kind: "primary" | "ghost" | "danger"): React.CSSProper
   const base: React.CSSProperties = {
     borderRadius: 999,
     padding: "9px 18px",
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: 600,
     cursor: "pointer",
     fontFamily: "inherit",

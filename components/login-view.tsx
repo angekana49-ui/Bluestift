@@ -260,7 +260,7 @@ export function LoginView({
 
   const back = (
     <div style={{ marginBottom: 8 }}>
-      <Link href="/" style={{ fontSize: 14, color: "#64748b", textDecoration: "none" }}>
+      <Link href="/" style={{ fontSize: 15, color: "#64748b", textDecoration: "none" }}>
         {tr("login.backToSite")}
       </Link>
     </div>
@@ -279,7 +279,7 @@ export function LoginView({
         border: "none",
         borderRadius: 99,
         padding: "9px 12px",
-        fontSize: 14,
+        fontSize: 15,
         fontWeight: 600,
         cursor: "pointer",
         background: mode === value ? "#ffffff" : "transparent",
@@ -295,7 +295,7 @@ export function LoginView({
     background: "none",
     border: "none",
     padding: 0,
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: 600,
     color: "#2f7fe0",
     cursor: "pointer",
@@ -320,18 +320,18 @@ export function LoginView({
             marginBottom: 20,
           }}
         >
-          <p style={{ margin: "0 0 10px", fontSize: 15, lineHeight: 1.6, color: "#7c5b16" }}>
+          <p style={{ margin: "0 0 10px", fontSize: 16, lineHeight: 1.6, color: "#7c5b16" }}>
             {tr("login.pending.note")}
           </p>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <Link
               href="/onboarding"
-              style={{ ...secondaryBtn, padding: "9px 14px", fontSize: 14, textDecoration: "none", display: "inline-block" }}
+              style={{ ...secondaryBtn, padding: "9px 14px", fontSize: 15, textDecoration: "none", display: "inline-block" }}
             >
               {tr("login.pending.continue")}
             </Link>
             <button
-              style={{ ...secondaryBtn, padding: "9px 14px", fontSize: 14, opacity: busy ? 0.5 : 1 }}
+              style={{ ...secondaryBtn, padding: "9px 14px", fontSize: 15, opacity: busy ? 0.5 : 1 }}
               onClick={leaveSetup}
               disabled={busy}
             >
@@ -423,7 +423,7 @@ export function LoginView({
 
       <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "22px 0 16px" }}>
         <span style={{ flex: 1, height: 1, background: "#e6ecf3" }} />
-        <span style={{ fontSize: 13, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em" }}>{tr("login.newHereDivider")}</span>
+        <span style={{ fontSize: 14, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em" }}>{tr("login.newHereDivider")}</span>
         <span style={{ flex: 1, height: 1, background: "#e6ecf3" }} />
       </div>
 
@@ -435,7 +435,7 @@ export function LoginView({
         {tr("login.startAnonymous")}
       </button>
 
-      {msg && <p style={{ marginTop: 14, color: "#475569", fontSize: 15, textAlign: "center" }}>{msg}</p>}
+      {msg && <p style={{ marginTop: 14, color: "#475569", fontSize: 16, textAlign: "center" }}>{msg}</p>}
 
       {pending && (
         <LinkSentDialog

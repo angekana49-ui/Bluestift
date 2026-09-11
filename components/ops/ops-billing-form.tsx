@@ -29,7 +29,7 @@ const box: React.CSSProperties = {
   marginBottom: 16,
   background: "#151a24",
 };
-const label: React.CSSProperties = { fontSize: 13, color: "#9aa4b8", margin: "0 0 6px", display: "block" };
+const label: React.CSSProperties = { fontSize: 14, color: "#9aa4b8", margin: "0 0 6px", display: "block" };
 const input: React.CSSProperties = {
   background: "#0e1219",
   color: "#eef1f7",
@@ -37,7 +37,7 @@ const input: React.CSSProperties = {
   borderRadius: 10,
   padding: "10px 12px",
   width: "100%",
-  fontSize: 14,
+  fontSize: 15,
   boxSizing: "border-box",
   marginBottom: 14,
 };
@@ -47,7 +47,7 @@ const btn: React.CSSProperties = {
   border: "none",
   borderRadius: 10,
   padding: "11px 18px",
-  fontSize: 14,
+  fontSize: 15,
   fontWeight: 600,
   cursor: "pointer",
   width: "100%",
@@ -60,7 +60,7 @@ const toggle = (active: boolean): React.CSSProperties => ({
   border: `1px solid ${active ? "#4f7cff" : "#2a3142"}`,
   background: active ? "#1d2947" : "transparent",
   color: active ? "#cdd8ff" : "#9aa4b8",
-  fontSize: 14,
+  fontSize: 15,
   fontWeight: 600,
   cursor: "pointer",
 });
@@ -216,9 +216,9 @@ export function OpsBillingForm() {
       <label style={label}>{tr("ops.billing.referenceLabel")}</label>
       <input style={input} value={reference} onChange={(e) => setReference(e.target.value)} disabled={busy} />
 
-      {error && <p style={{ color: "#f87171", fontSize: 14, margin: "0 0 14px" }}>{error}</p>}
+      {error && <p style={{ color: "#f87171", fontSize: 15, margin: "0 0 14px" }}>{error}</p>}
       {result && (
-        <p style={{ color: "#4ade80", fontSize: 14, margin: "0 0 14px" }}>
+        <p style={{ color: "#4ade80", fontSize: 15, margin: "0 0 14px" }}>
           {tr("ops.billing.activatedA")}
           {result.subscriptionId}
           {tr("ops.billing.activatedB")} {new Date(result.expiresAt).toLocaleDateString()}.

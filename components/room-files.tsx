@@ -76,11 +76,11 @@ export function RoomFiles({ roomId, readOnly = false }: { roomId: string; readOn
 
   return (
     <div style={box}>
-      <p style={{ color: t.muted, marginTop: 0, fontSize: 15 }}>
+      <p style={{ color: t.muted, marginTop: 0, fontSize: 16 }}>
         {tr("room.files.contextA")} <RayaName /> {tr("room.files.contextB")}
       </p>
       {readOnly ? (
-        <p style={{ color: t.muted, fontSize: 14, margin: 0 }}>
+        <p style={{ color: t.muted, fontSize: 15, margin: 0 }}>
           {tr("room.files.readOnlyBanner")}
         </p>
       ) : (
@@ -95,11 +95,11 @@ export function RoomFiles({ roomId, readOnly = false }: { roomId: string; readOn
           buttonStyle={neutralButton(t)}
         />
       )}
-      {status && <p style={{ color: t.muted, marginTop: 8, fontSize: 14 }}><RayaText>{status}</RayaText></p>}
-      {error && <p style={{ color: "#f87171", marginTop: 8, fontSize: 15 }}>{error}</p>}
+      {status && <p style={{ color: t.muted, marginTop: 8, fontSize: 15 }}><RayaText>{status}</RayaText></p>}
+      {error && <p style={{ color: "#f87171", marginTop: 8, fontSize: 16 }}>{error}</p>}
 
       <div style={{ marginTop: 16 }}>
-        {files.length === 0 && <p style={{ color: t.muted, fontSize: 15 }}>{tr("room.files.noFilesYet")}</p>}
+        {files.length === 0 && <p style={{ color: t.muted, fontSize: 16 }}>{tr("room.files.noFilesYet")}</p>}
         {files.map((f) => (
           <div
             key={f.id}
@@ -115,8 +115,8 @@ export function RoomFiles({ roomId, readOnly = false }: { roomId: string; readOn
             }}
           >
             <span>📄</span>
-            <span style={{ flex: 1, color: t.text, fontSize: 15 }}>{f.file_name}</span>
-            <span style={{ color: t.mutedLight, fontSize: 13 }}>{f.file_type}</span>
+            <span style={{ flex: 1, color: t.text, fontSize: 16 }}>{f.file_name}</span>
+            <span style={{ color: t.mutedLight, fontSize: 14 }}>{f.file_type}</span>
             <button
               onClick={() => setPreview(f)}
               style={{
@@ -126,7 +126,7 @@ export function RoomFiles({ roomId, readOnly = false }: { roomId: string; readOn
                 borderRadius: 99,
                 padding: "4px 12px",
                 cursor: "pointer",
-                fontSize: 13,
+                fontSize: 14,
                 fontWeight: 600,
               }}
             >
