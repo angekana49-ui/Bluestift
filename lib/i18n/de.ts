@@ -85,7 +85,7 @@ export const de: Partial<Messages> = {
   // "ihr", nicht "Sie" — der Rest des Katalogs duzt ("deiner Klasse").
   "site.hero.headline": "Jeder hat seine KI. Diese hier teilt ihr.",
   "site.hero.sub":
-    "Nicht weiterzukommen ist kein Mangel an Begabung. Es ist ein fehlender Schritt — und Raya geht so weit zurück, bis er gefunden ist.",
+    "Geteilt wird, was verstanden wurde — nie, was getippt wurde. Lernende dürfen weiter feststecken; die Lehrkraft sieht endlich, wo.",
   "site.hero.ctaPrimary": "Kostenlos ausprobieren",
   "site.hero.ctaSecondary": "So funktioniert es",
   "site.hero.chip.scope": "Jedes Fach, jedes Niveau",

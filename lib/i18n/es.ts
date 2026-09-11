@@ -85,8 +85,10 @@ export const es: Partial<Messages> = {
   // "ustedes" y no "vosotros": el catálogo tutea, y esta es la forma plural
   // que se entiende en toda Latinoamérica y en España.
   "site.hero.headline": "Cada uno tiene su IA. Esta la comparten.",
+  // Impersonal ("lo que se entendió") para no mezclar el "ustedes" del titular
+  // con el tuteo del resto del catálogo en una misma frase.
   "site.hero.sub":
-    "Estar perdido no es falta de capacidad. Es un paso que falta — y Raya retrocede hasta encontrarlo.",
+    "Compartida es lo que se entendió — nunca lo que se escribió. El alumno sigue libre de perderse; el docente por fin ve dónde.",
   "site.hero.ctaPrimary": "Probar gratis",
   "site.hero.ctaSecondary": "Ver cómo funciona",
   "site.hero.chip.scope": "Cualquier materia, cualquier nivel",

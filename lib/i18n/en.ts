@@ -143,38 +143,39 @@ export const en = {
    */
   "site.hero.headline": "You both use AI. This one you share.",
   /*
-   * One belief, not a summary.
+   * The hook's footnote — it answers the question the hook just raised.
    *
-   * Three drafts failed here and all three failed the same way: they tried to
-   * be the page. One argued the dissociation thesis, which the connection band
-   * argues in full a screen and a half below. One inventoried three products,
-   * which the features band does one screen below in three scannable cards. One
-   * compressed the Kernel's whole mechanism into a subordinate clause. Every
-   * one of them was an abstract — accurate, dense, and no reason at all to keep
-   * reading. A visitor does not scroll because a paragraph was informative.
+   * "This one you share" is the promise, and the very next thought in a
+   * student's head is "shared HOW — do they read what I wrote?". Left
+   * unanswered, the strongest word in the headline is also the most alarming
+   * one, and the guard that settles it sits a screen and a half down in the
+   * connection band, which is far too late for somebody deciding whether to
+   * keep scrolling. So this line qualifies "shared" in the same breath, then
+   * hands each reader their half of the deal.
    *
-   * So this one carries no feature, no surface and no number. It says the thing
-   * the product actually believes, and it is the one line on the page that is
-   * about the student rather than the software: being stuck is a missing step,
-   * not a deficiency. That is not decoration either — it is the pedagogy this
-   * repo implements. lib/raya/prompt.ts aims every piece of feedback at the
-   * method and never at the person (see site.ladder.note and Dweck), and the
-   * Kernel band spends thirty seconds walking a failure back through four
-   * prerequisites to the step that was actually missing. The claim and the
-   * mechanism are the same claim.
+   * It deliberately echoes site.connection.guard. That is not the duplication
+   * this slot has to avoid: a hero promising something and a band below
+   * substantiating it is the normal shape of a landing page. What it must not
+   * do is repeat the band's STRUCTURE — three steps, a product inventory, or
+   * the Kernel's mechanism compressed into a subordinate clause. Three earlier
+   * drafts died that way, each one an accurate abstract that gave nobody a
+   * reason to scroll.
    *
-   * Nothing here is quantified, deliberately. "Rarely", "often", "most students"
-   * would each be a statistic nothing in this repo can back.
+   * What it replaced — "Being lost isn't a lack of ability. It's a missing
+   * step — and Raya walks back until it finds it." — is a better SENTENCE than
+   * this one and was cut anyway, because it answered a question the old
+   * mechanism-headline had asked and the new headline does not. It belongs
+   * with the pedagogy it describes, above the Socratic ladder (site.ladder.*),
+   * where lib/raya/prompt.ts and the Kernel's four-prerequisite walk-back are
+   * the mechanism for exactly that claim. Worth moving, not worth losing.
    *
-   * STILL TRUE now that the headline above carries the thesis, and in fact the
-   * reason this line survived that rewrite untouched. The three slots divide
-   * the work: the hook takes the positioning, this takes the belief, and the
-   * connection band a screen below takes the argument. The moment this starts
-   * explaining the mechanism again it is duplicating the band — which is how
-   * all three failed drafts began.
+   * The claim itself is enforced, not marketing: a teacher reads concept
+   * mastery and never conversations. Nothing here is quantified, deliberately —
+   * "most students", "often", "rarely" would each be a statistic nothing in
+   * this repo can back.
    */
   "site.hero.sub":
-    "Being lost isn’t a lack of ability. It’s a missing step — and Raya walks back until it finds it.",
+    "Shared means what you understood — never what you typed. The student stays free to be lost; the teacher finally sees where.",
   "site.hero.ctaPrimary": "Try it free",
   "site.hero.ctaSecondary": "See how it works",
   // "Free to start" was saying what the primary CTA above it already says.

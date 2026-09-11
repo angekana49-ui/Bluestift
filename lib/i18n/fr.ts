@@ -85,7 +85,7 @@ export const fr: Partial<Messages> = {
   // Plus court que l’anglais, et volontairement : le slot est manuscrit.
   "site.hero.headline": "Chacun son IA. Celle-ci, vous la partagez.",
   "site.hero.sub":
-    "Être perdu, ce n’est pas manquer de capacités. C’est une étape qui manque — et Raya remonte jusqu’à la trouver.",
+    "Partagée, c’est ce qui a été compris — jamais ce qui a été écrit. L’élève reste libre d’être perdu ; l’enseignant voit enfin où.",
   "site.hero.ctaPrimary": "Essayer gratuitement",
   "site.hero.ctaSecondary": "Voir comment ça marche",
   "site.hero.chip.scope": "Toutes les matières, tous les niveaux",
