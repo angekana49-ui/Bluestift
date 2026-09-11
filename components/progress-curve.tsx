@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAppTheme } from "@/components/ui/theme";
 import { panelCard, cardTitle } from "@/components/ui/forms";
 import { useTranslate } from "@/components/ui/locale";
+import { monotonePath } from "@/lib/smooth-path";
 
 export type ProgressPoint = { t: string; score: number };
 
@@ -27,7 +28,7 @@ export function ProgressCurve({ points }: { points: ProgressPoint[] }) {
     return (
       <div style={card}>
         <h2 style={cardTitle(t)}>{tr("kernel.curve.title")}</h2>
-        <p style={{ margin: 0, color: t.muted, fontSize: 15 }}>
+        <p style={{ margin: 0, color: t.muted, fontSize: 16 }}>
           {tr("kernel.curve.empty")}
         </p>
       </div>
@@ -46,8 +47,17 @@ export function ProgressCurve({ points }: { points: ProgressPoint[] }) {
   const baseline = y(0);
 
   const coords = sorted.map((p, i) => ({ ...p, px: x(times[i]), py: y(p.score) }));
-  const line = coords.map((c, i) => `${i === 0 ? "M" : "L"} ${c.px.toFixed(1)} ${c.py.toFixed(1)}`).join(" ");
-  const area = `${line} L ${coords[coords.length - 1].px.toFixed(1)} ${baseline} L ${coords[0].px.toFixed(1)} ${baseline} Z`;
+  /*
+   * A curve, not a polyline. Progress is a continuous thing that assessments
+   * SAMPLE, and straight segments between dots draw the samples rather than
+   * the thing — which is what makes this read as a scatter plot.
+   *
+   * Monotone cubic specifically, so the smoothing cannot invent a score: see
+   * lib/smooth-path.ts for why the usual spline would bulge past a peak the
+   * student never actually reached.
+   */
+  const line = monotonePath(coords);
+  const area = `${line} L ${coords[coords.length - 1].px.toFixed(2)} ${baseline} L ${coords[0].px.toFixed(2)} ${baseline} Z`;
 
   const gridPct = [0, 25, 50, 75, 100];
   const fmtDate = (t: string) => new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric" });
@@ -56,7 +66,7 @@ export function ProgressCurve({ points }: { points: ProgressPoint[] }) {
   return (
     <div style={card}>
       <h2 style={cardTitle(t)}>{tr("kernel.curve.title")}</h2>
-      <p style={{ margin: "0 0 12px", color: t.muted, fontSize: 14 }}>
+      <p style={{ margin: "0 0 12px", color: t.muted, fontSize: 15 }}>
         {sorted.length} {tr(sorted.length === 1 ? "kernel.curve.assessmentOne" : "kernel.curve.assessmentOther")}
       </p>
       <svg
@@ -88,7 +98,7 @@ export function ProgressCurve({ points }: { points: ProgressPoint[] }) {
 
         {sorted.length > 1 && <path d={area} fill="url(#pc-fill)" />}
         {sorted.length > 1 && (
-          <path d={line} fill="none" stroke={ACCENT} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+          <path d={line} fill="none" stroke={ACCENT} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
         )}
 
         {/* Hover crosshair */}
@@ -96,20 +106,33 @@ export function ProgressCurve({ points }: { points: ProgressPoint[] }) {
           <line x1={active.px} y1={M.top} x2={active.px} y2={baseline} stroke={ACCENT} strokeWidth="1" strokeDasharray="3 3" opacity="0.6" />
         )}
 
-        {/* Markers */}
+        {/* The measured points — quieter than they were, because the curve is
+            now the statement and these are its evidence. A 4px dot every few
+            pixels was most of what made this look like a scatter. */}
         {coords.map((c, i) => (
-          <circle
-            key={i}
-            cx={c.px}
-            cy={c.py}
-            r={hover === i ? 6 : 4}
-            fill={ACCENT}
-            stroke={t.cardBg2}
-            strokeWidth="2"
-            onMouseEnter={() => setHover(i)}
-            onMouseLeave={() => setHover((h) => (h === i ? null : h))}
-            style={{ cursor: "pointer" }}
-          />
+          <g key={i}>
+            {/* An invisible hit area. The visible dot is 3px across and was
+                never a realistic pointer target, let alone a touch one; this
+                gives the same dot a 20px one without drawing anything. */}
+            <circle
+              cx={c.px}
+              cy={c.py}
+              r={10}
+              fill="transparent"
+              onMouseEnter={() => setHover(i)}
+              onMouseLeave={() => setHover((h) => (h === i ? null : h))}
+              style={{ cursor: "pointer" }}
+            />
+            <circle
+              cx={c.px}
+              cy={c.py}
+              r={hover === i ? 5.5 : 3}
+              fill={ACCENT}
+              stroke={t.cardBg2}
+              strokeWidth="2"
+              style={{ pointerEvents: "none" }}
+            />
+          </g>
         ))}
 
         {/* x-axis first / last date */}
