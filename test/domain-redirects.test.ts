@@ -194,3 +194,37 @@ describe("product home redirects (bare root of a product origin)", () => {
     expect(home.every((r) => r.permanent === false)).toBe(true);
   });
 });
+
+/**
+ * The other half of "each origin is its own product": what the tab says once
+ * you are there.
+ *
+ * The redirects above land `raya.` on /chat and `schools.` on /school, and for
+ * a while only the first of those named itself — schools.thebluestift.com
+ * opened a tab reading "Bluestift", the same string the marketing site shows,
+ * on the one origin whose entire purpose is the staff product.
+ */
+describe("each product origin's home names its own product", () => {
+  it("titles /chat and /school absolutely, not through the shared template", async () => {
+    const chat = (await import("@/app/chat/layout")).metadata;
+    const school = (await import("@/app/school/layout")).metadata;
+    // A plain string would come out "Raya · Bluestift" / "Schools · Bluestift"
+    // via the root layout's template. These are product names, not pages
+    // inside something else.
+    expect(chat.title).toEqual({ absolute: "Raya" });
+    expect(school.title).toEqual({ absolute: "Bluestift Schools" });
+  });
+
+  it("gives Schools a title without giving it a second install identity", async () => {
+    // Raya overrides manifest/icons/appleWebApp because it IS a separate
+    // installable app. Schools is not: lib/manifest.ts states the split as "a
+    // student installs Raya; a school installs Bluestift", and
+    // lib/launch-screens.ts names the Bluestift bird as Schools' artwork.
+    // Adding a third identity on the same icon set would contradict both — and
+    // test/pwa-manifest.test.ts pins that no two apps share an icon set.
+    const school = (await import("@/app/school/layout")).metadata;
+    expect(school.manifest).toBeUndefined();
+    expect(school.icons).toBeUndefined();
+    expect(school.appleWebApp).toBeUndefined();
+  });
+});
