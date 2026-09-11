@@ -720,7 +720,7 @@ function RoomViewBody({
     >
       {chromeOpen ? (
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
-        <h1 style={{ fontSize: 23, fontWeight: 800, margin: 0, color: t.text, fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif" }}>{roomName}</h1>
+        <h1 style={{ fontSize: 23, fontWeight: 800, margin: 0, color: t.text, fontFamily: "var(--font-display)" }}>{roomName}</h1>
         <span style={{ color: t.muted, fontSize: 15 }}>
           {subject ?? "—"} · {memberCount} member{memberCount === 1 ? "" : "s"}
         </span>
@@ -813,7 +813,7 @@ function RoomViewBody({
               fontWeight: 800,
               margin: 0,
               color: t.text,
-              fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
+              fontFamily: "var(--font-display)",
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",

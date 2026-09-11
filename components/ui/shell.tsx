@@ -2,6 +2,7 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import type { AppTheme } from "./tokens";
+import { displayType, tracking } from "./tokens";
 import { RayaText } from "./brand";
 import { useTranslate } from "./locale";
 
@@ -122,8 +123,12 @@ export function MobileHeader({
           flex: 1,
           minWidth: 0,
           textAlign: "center",
-          fontSize: 16,
-          fontWeight: 700,
+          /* The chrome speaks in ONE voice. This title, the sidebar wordmark
+             and the right panel's header were three different settings of
+             body type — 16/700, 15/800, 15/700, no tracking anywhere — which
+             is what a shell looks like when nobody decided. They are all the
+             display face now, tracked the way display type is tracked. */
+          ...displayType(16, 700),
           color: t.text,
           overflow: "hidden",
           textOverflow: "ellipsis",
@@ -318,10 +323,13 @@ export function SidebarBrand({
             <span
               className="app-rail-hide"
               style={{
-                fontSize: 15,
-                fontWeight: 800,
+                ...displayType(15, 700),
+                /* A wordmark is the one place that earns tracking below its
+                   size band: it is read as a shape, not as a word, and at 15px
+                   the snug default leaves it looking spaced out next to the
+                   mark it sits against. */
+                letterSpacing: tracking.tight,
                 color: t.sidebarText,
-                fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
               }}
             >
               {name}
@@ -633,7 +641,7 @@ export function RightPanel({
             borderBottom: `1px solid ${t.rightBorder}`,
           }}
         >
-          <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 700, color: t.text }}>
+          <span style={{ flex: 1, minWidth: 0, ...displayType(15, 700), color: t.text }}>
             {title}
           </span>
           {onCollapse && (

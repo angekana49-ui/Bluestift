@@ -31,7 +31,7 @@ const SHEET_PAD = 34;
 
 export const h2 = (t: Theme) =>
   ({
-    fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
+    fontFamily: "var(--font-display)",
     fontWeight: 800,
     fontSize: "1.35rem",
     letterSpacing: "-0.015em",
@@ -43,7 +43,7 @@ export const h2 = (t: Theme) =>
 
 export const h3 = (t: Theme) =>
   ({
-    fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
+    fontFamily: "var(--font-display)",
     fontWeight: 700,
     fontSize: "1.05rem",
     letterSpacing: "-0.01em",

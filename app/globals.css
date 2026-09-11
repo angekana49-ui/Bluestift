@@ -4,6 +4,11 @@
    exposes each as a custom property: --font-inter, --font-plex, --font-caveat,
    --font-instrument-serif.
 
+   Do not reach for those directly. The ROLE properties in :root below —
+   --font-display, --font-editorial — are what call sites name, so the face
+   behind a role can be swapped in one line. --font-plex has exactly one
+   consumer left: the billing cards, deliberately held back on it.
+
    This file used to ALSO @import the same four families from Google's CDN, so
    every page paid for a second, render-blocking download of fonts it had
    already self-hosted — and any slowness or blocking of fonts.googleapis.com
@@ -12,9 +17,9 @@
    fit for a product shipping a DPA and a subprocessor list.
 
    The import existed because components/site/* asks for fonts by literal family
-   name in inline styles. Those call sites now lead with the custom property —
-   fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif" — so they resolve
-   against the self-hosted face and keep the literal name only as a fallback.
+   name in inline styles. Those call sites now lead with the role property —
+   fontFamily: "var(--font-display)" — so they resolve against the self-hosted
+   face and the literal fallbacks live in one place, on the property itself.
    Add a font the same way: register it in layout.tsx, then reference its
    variable. Never re-add a CDN @import. */
 
@@ -28,6 +33,35 @@
 :root {
   --background: #0b0f1a;
   --foreground: #e6ebf5;
+
+  /* THE DISPLAY FACE — one property, so the whole product changes face from
+     one line (components/ui/tokens.ts mirrors it for inline styles). It used to
+     be IBM Plex Sans, named literally at some twenty call sites.
+
+     Resend's stack, from their own brand handbook: ABC Favorit for display,
+     Inter for the product, Domaine Display for editorial. Two of those three
+     are licensed retail faces we do not own — ABC Favorit is Dinamo's, Domaine
+     is Klim's — so they are NAMED FIRST and shipped by nobody. Buy a webfont
+     licence, drop the files in, @font-face them under these exact names, and
+     every heading in the product picks them up with no code change.
+
+     Until then the stack resolves to Inter, which is not a consolation prize:
+     Inter IS what Resend runs its own product UI on, and it is already the face
+     we ship. What carries the personality in the meantime is the TUNING below,
+     not the file — Resend sets display type at 500 weight with -0.045em of
+     tracking where we were setting 800 with -0.01em. Lighter and much tighter
+     is most of the distance between their chrome and generic dashboard type. */
+  --font-display: "ABC Favorit", var(--font-inter), "Inter", ui-sans-serif,
+    system-ui, sans-serif;
+  /* The editorial accent — Resend's Domaine Display slot. Instrument Serif is
+     already loaded for the Raya wordmark and fills the same role. */
+  --font-editorial: "Domaine Display", var(--font-instrument-serif),
+    "Instrument Serif", Georgia, serif;
+  /* Display tracking is tight enough that it has to scale WITH the type:
+     -0.045em is right on a 34px heading and welds a 13px label shut, so the
+     micro end takes --track-tight instead. */
+  --track-display: -0.045em;
+  --track-tight: -0.02em;
 }
 
 * {
@@ -135,7 +169,7 @@ a {
 /* SVG text carries its size in CSS, not as an attribute — it is the only way
    the phone layout can enlarge it independently of the drawing's scale. */
 .pub-pos-lane {
-  font-family: var(--font-plex), "IBM Plex Sans", sans-serif;
+  font-family: var(--font-display);
   font-size: 17px;
   font-weight: 700;
   letter-spacing: -0.01em;
@@ -910,13 +944,13 @@ a {
    0.3 of its own units, and a 15px label would land at four and a half real
    pixels. */
 .pub-orbit-hero {
-  font-family: var(--font-plex), "IBM Plex Sans", sans-serif;
+  font-family: var(--font-display);
   font-size: 21px;
   font-weight: 700;
   letter-spacing: -0.01em;
 }
 .pub-orbit-name {
-  font-family: var(--font-plex), "IBM Plex Sans", sans-serif;
+  font-family: var(--font-display);
   font-size: 15px;
   font-weight: 600;
 }
@@ -925,7 +959,7 @@ a {
   font-weight: 400;
 }
 .pub-orbit-chip {
-  font-family: var(--font-plex), "IBM Plex Sans", sans-serif;
+  font-family: var(--font-display);
   font-size: 12.5px;
   font-weight: 800;
   letter-spacing: 0.16em;
@@ -1195,7 +1229,7 @@ a {
 }
 .pub-graph-subject b {
   display: block;
-  font-family: var(--font-plex), "IBM Plex Sans", sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(21px, 3.3vw, 40px);
   font-weight: 800;
   letter-spacing: -0.02em;

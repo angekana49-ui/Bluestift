@@ -3,7 +3,7 @@
 import { useAppTheme } from "@/components/ui/theme";
 import { DocumentActions } from "@/components/ui/doc-actions";
 import type { BrandedDoc } from "@/lib/document";
-import { display, type AppTheme } from "@/components/ui/tokens";
+import { displayType, type AppTheme } from "@/components/ui/tokens";
 import { useTranslate } from "@/components/ui/locale";
 import { renderMathHtml } from "@/lib/katex-render";
 import {
@@ -99,7 +99,7 @@ export function DocumentView({
 
       {/* Title + meta + accent rule */}
       <div style={{ padding: "18px 22px 0" }}>
-        <div style={{ fontSize: 22, fontWeight: 800, fontFamily: display, color: t.text, lineHeight: 1.25 }}>
+        <div style={{ ...displayType(22), color: t.text, lineHeight: 1.25 }}>
           {title}
         </div>
         {meta && <div style={{ fontSize: 14, color: t.muted, marginTop: 3 }}>{meta}</div>}
@@ -163,7 +163,7 @@ function Block({ block, t, accent }: { block: DocBlock; t: AppTheme; accent: str
   );
 
   if (block.type === "h1")
-    return <div style={{ fontSize: 18, fontWeight: 800, color: t.text, margin: "16px 0 6px", fontFamily: display }}>{content}</div>;
+    return <div style={{ ...displayType(18), color: t.text, margin: "16px 0 6px" }}>{content}</div>;
   if (block.type === "h2")
     return <div style={{ fontSize: 16, fontWeight: 700, color: accent, margin: "16px 0 5px" }}>{content}</div>;
   if (block.type === "h3")

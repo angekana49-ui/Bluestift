@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { useAppTheme } from "@/components/ui/theme";
-import { display, status as statusColors, type AppTheme } from "@/components/ui/tokens";
+import { display, displayType, status as statusColors, type AppTheme } from "@/components/ui/tokens";
 import { useTranslate } from "@/components/ui/locale";
 import { splitInline, type DocBlock } from "@/lib/doc-format";
 import { renderMathHtml } from "@/lib/katex-render";
@@ -141,7 +141,7 @@ export function FocusOverlay({
           ✕
         </button>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: 17, fontWeight: 800, fontFamily: display, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          <div style={{ ...displayType(17), whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {title}
           </div>
           {subtitle && <div style={{ fontSize: 14, color: t.muted }}>{subtitle}</div>}
@@ -331,7 +331,7 @@ export function QuizPlayer({
           <div style={{ fontSize: 15, color: t.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>{tr("player.yourScore")}</div>
           {score ? (
             <>
-              <div style={{ fontSize: 60, fontWeight: 800, fontFamily: display, color: t.text, margin: "8px 0" }}>{pct}%</div>
+              <div style={{ ...displayType(60), color: t.text, margin: "8px 0" }}>{pct}%</div>
               <div style={{ fontSize: 17, color: t.muted }}>
                 {score.correct} / {score.total} {tr("player.correctSuffix")}
               </div>
@@ -530,7 +530,7 @@ export function TestPlayer({
       <FocusOverlay theme={t} title={title} subtitle={tr("player.result")} onClose={onExit} actions={resultActions}>
         <div style={{ textAlign: "center", paddingTop: 20, paddingBottom: 8 }}>
           <div style={{ fontSize: 15, color: t.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>{tr("player.yourScore")}</div>
-          <div style={{ fontSize: 56, fontWeight: 800, fontFamily: display, color: t.text, margin: "6px 0" }}>{pct}%</div>
+          <div style={{ ...displayType(56), color: t.text, margin: "6px 0" }}>{pct}%</div>
           <div style={{ fontSize: 16, color: t.muted }}>{result.correct} / {result.total} {tr("player.correctSuffix")}</div>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 20, flexWrap: "wrap" }}>
             {onAnalyze && (
@@ -832,7 +832,7 @@ export function ReaderView({
                 dangerouslySetInnerHTML={{ __html: renderMathHtml(b.text, true) }}
               />
             );
-          if (b.type === "h1") return <h1 key={i} style={{ fontSize: 25, fontWeight: 800, fontFamily: display, color: t.text, margin: "22px 0 10px" }}>{readerInline(b.text)}</h1>;
+          if (b.type === "h1") return <h1 key={i} style={{ ...displayType(25), color: t.text, margin: "22px 0 10px" }}>{readerInline(b.text)}</h1>;
           if (b.type === "h2") return <h2 key={i} style={{ fontSize: 20, fontWeight: 700, color: statusColors.aiIndigo, margin: "20px 0 8px" }}>{readerInline(b.text)}</h2>;
           if (b.type === "h3") return <h3 key={i} style={{ fontSize: 17, fontWeight: 700, color: t.text, margin: "16px 0 6px" }}>{readerInline(b.text)}</h3>;
           if (b.type === "li")

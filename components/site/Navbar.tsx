@@ -245,7 +245,7 @@ export default function Navbar({
               the same reasoning components/ui/brand.tsx gives for its own pair of
               guards. The bar's guard is the one that covers the nav copy; this one
               survives a refactor that moves the wordmark out of the bar. */}
-          <div translate="no" className="notranslate" style={{ fontSize: 15, fontWeight: 800, letterSpacing: "-0.02em", fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif" }}>
+          <div translate="no" className="notranslate" style={{ fontSize: 15, fontWeight: 800, letterSpacing: "-0.02em", fontFamily: "var(--font-display)" }}>
             <span style={{ color: t.wordmarkA }}>Blue</span>
             <span style={{ color: t.wordmarkB }}>Stift</span>
             {/* Dropped on the narrowest screens (globals.css): it is the widest

@@ -431,7 +431,7 @@ function DoneScreen({ t, responseId, onFreeWall }: { t: Theme; responseId: strin
       <div style={{ display: "flex", justifyContent: "center", marginBottom: 20, color: t.orange }}>
         <IconHeart size={44} filled />
       </div>
-      <h2 style={{ fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "1.9rem", letterSpacing: "-0.02em", margin: "0 0 12px", color: t.text }}>{tr("survey.done.title")}</h2>
+      <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 900, fontSize: "1.9rem", letterSpacing: "-0.02em", margin: "0 0 12px", color: t.text }}>{tr("survey.done.title")}</h2>
       <p style={{ fontSize: 15, lineHeight: 1.7, color: t.text, marginBottom: 24 }}>
         {tr("survey.done.body.a")} <RayaName />&apos;s development. {tr("survey.done.body.b")}
       </p>
@@ -527,7 +527,7 @@ function FreeWall({ t, initialPosts }: { t: Theme; initialPosts: WallPost[] }) {
   return (
     <div style={{ maxWidth: MEASURE.form, margin: "0 auto", padding: `8px ${GUTTER}px 32px` }}>
       <div style={{ marginBottom: 28 }}>
-        <h2 style={{ fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif", fontWeight: 900, fontSize: "clamp(1.3rem,3vw,1.8rem)", letterSpacing: "-0.02em", margin: "0 0 8px", color: t.text }}>{tr("survey.wall.title")}</h2>
+        <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 900, fontSize: "clamp(1.3rem,3vw,1.8rem)", letterSpacing: "-0.02em", margin: "0 0 8px", color: t.text }}>{tr("survey.wall.title")}</h2>
         <p style={{ fontSize: 15, lineHeight: 1.7, color: t.text, margin: 0 }}>
           {tr("survey.wall.sub")}
         </p>

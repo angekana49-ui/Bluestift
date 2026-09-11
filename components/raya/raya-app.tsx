@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/icons";
 import { status } from "@/components/ui/tokens";
 import type { AppTheme } from "@/components/ui/tokens";
-import { hand, display } from "@/components/ui/tokens";
+import { hand, displayType } from "@/components/ui/tokens";
 
 type View = "chat" | "rooms" | "tools" | "kernel" | "settings";
 type RoomTab = "group" | "private";
@@ -553,7 +553,7 @@ function ToolsView({ theme: t }: { theme: AppTheme }) {
   ];
   return (
     <div style={{ flex: 1, padding: "36px 44px", overflow: "auto" }}>
-      <div style={{ fontSize: 23, fontWeight: 800, fontFamily: display, marginBottom: 4, color: t.text }}>Tools Studio</div>
+      <div style={{ ...displayType(23), marginBottom: 4, color: t.text }}>Tools Studio</div>
       <div style={{ fontSize: 15, color: t.muted, marginBottom: 26 }}>Génère des quiz, résumés et flashcards depuis n&apos;importe quel cours.</div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, maxWidth: 900 }}>
         {cards.map((c) => (
@@ -575,7 +575,7 @@ function ToolsView({ theme: t }: { theme: AppTheme }) {
 function KernelView({ theme: t }: { theme: AppTheme }) {
   return (
     <div style={{ flex: 1, padding: "36px 44px", overflow: "auto" }}>
-      <div style={{ fontSize: 23, fontWeight: 800, fontFamily: display, marginBottom: 4, color: t.text }}>Mon Kernel</div>
+      <div style={{ ...displayType(23), marginBottom: 4, color: t.text }}>Mon Kernel</div>
       <div style={{ fontSize: 15, color: t.muted, marginBottom: 26 }}>Ta maîtrise, concept par concept — pas une note globale.</div>
       <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 20, maxWidth: 1100 }}>
         <div style={{ background: t.cardBg2, border: `1px solid ${t.cardBorder}`, borderRadius: 20, padding: 20 }}>
@@ -612,7 +612,7 @@ function ConceptLine({ theme: t, label, pct, color }: { theme: AppTheme; label: 
 function SettingsView({ theme: t, dark, onToggleDark }: { theme: AppTheme; dark: boolean; onToggleDark: () => void }) {
   return (
     <div style={{ flex: 1, padding: "36px 44px", overflow: "auto" }}>
-      <div style={{ fontSize: 23, fontWeight: 800, fontFamily: display, marginBottom: 26, color: t.text }}>Réglages</div>
+      <div style={{ ...displayType(23), marginBottom: 26, color: t.text }}>Réglages</div>
 
       <SettingsCard theme={t}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -665,7 +665,7 @@ function SettingsView({ theme: t, dark, onToggleDark }: { theme: AppTheme; dark:
 }
 
 /* ── settings shared bits (also used by Schools) ─────────── */
-export function SettingsCard({ theme: t, mt, id, children }: { theme: AppTheme; mt?: boolean; id?: string; children: React.ReactNode }) {
+export function SettingsCard({ theme: t, mt, id, fontFamily, children }: { theme: AppTheme; mt?: boolean; id?: string; fontFamily?: string; children: React.ReactNode }) {
   return (
     <div
       /* An anchor, so the settings sheet can send someone to the one card they
@@ -681,6 +681,10 @@ export function SettingsCard({ theme: t, mt, id, children }: { theme: AppTheme; 
         maxWidth: 700,
         marginBottom: 16,
         marginTop: mt ? 16 : 0,
+        /* Almost never set. The billing card is the one caller that passes it,
+           to stay on the face the product moved off — see
+           components/raya/settings-billing-card.tsx for why. */
+        fontFamily,
       }}
     >
       {children}

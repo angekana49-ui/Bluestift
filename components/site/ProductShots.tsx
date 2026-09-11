@@ -1959,7 +1959,7 @@ export function SocraticShot({ theme: t }: { theme: Theme }) {
               alt=""
               style={{ width: uw(22), height: uw(22), objectFit: "contain", flex: "none" }}
             />
-            <span style={{ flex: 1, fontSize: uw(11), fontWeight: 800, color: t.text, fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif" }}>
+            <span style={{ flex: 1, fontSize: uw(11), fontWeight: 800, color: t.text, fontFamily: "var(--font-display)" }}>
               <RayaName />
             </span>
             <IconChevron style={{ width: uw(10), height: uw(10), color: t.muted, transform: "rotate(90deg)" }} />

@@ -275,7 +275,7 @@ export default function KernelSection({ theme: outer }: { theme: Theme }) {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
+                    fontFamily: "var(--font-display)",
                     fontWeight: 800,
                     fontSize: 20,
                   }}

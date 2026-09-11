@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/shell";
 import { IconPanel } from "@/components/ui/icons";
 import { useRightPanel } from "@/components/ui/use-right-panel";
-import { display, type AppTheme } from "@/components/ui/tokens";
+import { displayType, type AppTheme } from "@/components/ui/tokens";
 import { RayaText, SchoolsName } from "@/components/ui/brand";
 import { DegradedBanner } from "@/components/ui/degraded-banner";
 import { initialsOf } from "@/lib/name";
@@ -211,7 +211,7 @@ export function SchoolsShell({
             </span>
           )}
           <span style={{ display: "flex", flexDirection: "column", minWidth: 0, lineHeight: 1.25 }}>
-            <span style={{ fontSize: 18, fontWeight: 800, fontFamily: display, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <span style={{ ...displayType(18), color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               <RayaText>{headerTitle ?? brandName}</RayaText>
             </span>
             {headerSubtitle && (

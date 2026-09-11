@@ -412,7 +412,7 @@ function CompareTable({ t, groups, heads }: { t: Theme; groups: CompareGroup[]; 
     <div style={{ marginTop: 56, maxWidth: MEASURE.wide, marginLeft: "auto", marginRight: "auto" }}>
       <h2
         style={{
-          fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
+          fontFamily: "var(--font-display)",
           fontSize: "1.5rem",
           fontWeight: 800,
           letterSpacing: "-0.02em",

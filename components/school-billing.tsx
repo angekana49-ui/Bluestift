@@ -8,6 +8,7 @@ import { panelCard, cardTitle, textInput, ctaButton } from "@/components/ui/form
 import { MIN_B2B_SEATS, termTotal, isAnnualTerm } from "@/lib/billing/terms";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
+import { billingDisplay } from "@/components/ui/tokens";
 
 /** Mirror of the billing JSON returned by /api/school/billing (see lib/billing.ts). */
 type Plan = {
@@ -110,7 +111,13 @@ export function SchoolBilling() {
           : "#ef4444";
 
   return (
-    <div>
+    /* HELD BACK ON THE OLD FACE — see components/raya/settings-billing-card.tsx
+       for the reasoning. This is the B2B half of the same exception: the whole
+       Billing tab, PlanCard included, keeps IBM Plex Sans while the rest of
+       Schools moved to the Resend display stack. Declared once here rather than
+       per card, so a plan card added next month inherits the exception instead
+       of quietly breaking it. */
+    <div style={{ fontFamily: billingDisplay }}>
       {/* Current plan + seat usage */}
       <div style={box}>
         <div style={{ ...title, display: "flex", alignItems: "center", justifyContent: "space-between" }}>

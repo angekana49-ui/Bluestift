@@ -31,21 +31,45 @@ import { LocaleRootProvider } from "@/components/ui/LocaleRootProvider";
  */
 export const dynamic = "force-dynamic";
 
-// One source of truth for the product typeface (see components/ui/tokens.ts).
-// Inter = body/UI, IBM Plex Sans = headings/nav (the display face, à la PostHog),
-// Caveat = handwritten greeting. Plex tops out at 700, so headings that ask for
-// 800/900 render at Bold — intentional (that's the Plex look).
+/*
+ * One source of truth for the product typeface (roles live in globals.css
+ * `:root` and components/ui/tokens.ts).
+ *
+ * Inter now carries BOTH body and display, which is the arrangement Resend
+ * runs its own product on — their handbook lists Inter as the "Product" face,
+ * with ABC Favorit reserved for display and Domaine Display for editorial.
+ * Those two are licensed retail faces; we name them first in the stack and
+ * ship neither, so buying a licence is a drop-in and nothing here is pirated.
+ *
+ * What replaced IBM Plex Sans as the display face is therefore not another
+ * file but Inter set the way a display face is set — 600 weight at -0.045em
+ * rather than 800 at -0.01em (see `displayType` in tokens.ts).
+ */
 const inter = Inter({
   subsets: ["latin"],
+  // 800 stays loaded: the marketing site still sets its hero type there, and
+  // dropping the weight would not make those lighter — it would hand them to
+  // the browser to fake, which is worse than either.
   weight: ["400", "500", "600", "700", "800"],
   variable: "--font-inter",
   display: "swap",
 });
+/*
+ * IBM Plex Sans is no longer the display face. It has one consumer left — the
+ * billing cards, held back on it deliberately so the screen that asks someone
+ * for money does not change face in the same release as everything else.
+ *
+ * Which is exactly why it stops being preloaded. Preloading puts a font in the
+ * critical path of EVERY page whether that page uses it or not; a face that now
+ * appears on two cards has no business in the critical path of the tutor. Same
+ * reasoning as Caveat and Instrument Serif below.
+ */
 const plex = IBM_Plex_Sans({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["500", "600", "700"],
   variable: "--font-plex",
   display: "swap",
+  preload: false,
 });
 /**
  * NOT preloaded, and it is the largest face we ship — 73 KB, more than Inter

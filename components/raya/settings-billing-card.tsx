@@ -6,6 +6,7 @@ import { useAppTheme } from "@/components/ui/theme";
 import { getJsonCached } from "@/lib/net/client-fetch";
 import { SettingsCard } from "@/components/raya/raya-app";
 import { useTranslate } from "@/components/ui/locale";
+import { billingDisplay } from "@/components/ui/tokens";
 
 type B2cPlan = {
   id: string;
@@ -62,7 +63,15 @@ export function StudentBillingCard() {
   };
 
   return (
-    <SettingsCard theme={t} mt id="plan">
+    /* THE ONE SURFACE THAT DID NOT CHANGE FACE.
+       The product moved off IBM Plex Sans onto the Resend display stack in this
+       release; the two billing cards stayed, by instruction. Why it is worth an
+       exception: a price list that restyles itself in the same week its owner is
+       deciding whether to pay reads as a page that was edited, and "was this
+       number always this?" is not a question a checkout should raise. Scoped to
+       the card, not the route — the settings chrome around it moved with the
+       rest of the product. */
+    <SettingsCard theme={t} mt id="plan" fontFamily={billingDisplay}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 14 }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: t.text, flex: 1 }}>{tr("nav.billing")}</div>
         <Link

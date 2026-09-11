@@ -17,7 +17,7 @@ export { BluestiftName, BluestiftText, RAYA_FONT, RayaName, SchoolsName };
 
 export const WORDMARK_A = "#173d8a";
 export const WORDMARK_B = "#2f7fe0";
-export const HEAD_FONT = "var(--font-plex), 'IBM Plex Sans', sans-serif";
+export const HEAD_FONT = "var(--font-display)";
 export const HAND_FONT = "var(--font-caveat), 'Caveat', cursive";
 
 // A gull-in-flight silhouette (two swept wings meeting at a slightly dipped body)

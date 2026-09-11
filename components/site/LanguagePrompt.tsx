@@ -158,7 +158,7 @@ export function LanguagePrompt({ theme: t }: { theme: Theme }) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-          <span style={{ fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif", fontWeight: 700, fontSize: 14.5, letterSpacing: "-0.01em" }}>
+          <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14.5, letterSpacing: "-0.01em" }}>
             {headingFor[shown]}
           </span>
           <button

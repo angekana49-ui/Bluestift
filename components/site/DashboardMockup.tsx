@@ -144,7 +144,7 @@ export default function DashboardMockup({ theme: t }: { theme: Theme }) {
             alt=""
             style={{ width: 26, height: 26, borderRadius: 8, objectFit: "cover", flex: "none" }}
           />
-          <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: "-0.01em", fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif" }}>
+          <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: "-0.01em", fontFamily: "var(--font-display)" }}>
             <SchoolsName />
           </span>
         </div>
@@ -224,7 +224,7 @@ export default function DashboardMockup({ theme: t }: { theme: Theme }) {
             NA
           </span>
           <span style={{ minWidth: 0, lineHeight: 1.25 }}>
-            <span style={{ display: "block", fontSize: 17, fontWeight: 800, fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif" }}>{SCHOOL}</span>
+            <span style={{ display: "block", fontSize: 17, fontWeight: 800, fontFamily: "var(--font-display)" }}>{SCHOOL}</span>
             <span style={{ display: "block", fontSize: 13, color: t.muted, fontWeight: 500 }}>{tr("nav.overview")}</span>
           </span>
         </div>

@@ -62,7 +62,7 @@ export function LegalIndexView({ signedIn }: { signedIn: boolean }) {
               >
                 <div
                   style={{
-                    fontFamily: "var(--font-plex),'IBM Plex Sans',sans-serif",
+                    fontFamily: "var(--font-display)",
                     fontWeight: 700,
                     fontSize: "1.05rem",
                     color: t.link,

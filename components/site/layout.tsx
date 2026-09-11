@@ -193,7 +193,7 @@ export function bandTone(t: Theme, tone: Tone): { background: string; theme: The
  * naming the family alone would only hit it if the visitor happened to have it
  * installed. The quoted names stay behind it as the fallback they always were.
  */
-const DISPLAY_FONT = "var(--font-plex),'IBM Plex Sans',sans-serif";
+const DISPLAY_FONT = "var(--font-display)";
 const ACCENT_FONT = "var(--font-instrument-serif),'Instrument Serif',serif";
 
 /** The italic serif half of every heading on the site. */

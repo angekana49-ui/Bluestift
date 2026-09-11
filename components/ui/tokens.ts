@@ -219,11 +219,81 @@ export function getTheme(isDark: boolean): AppTheme {
   return isDark ? dark : light;
 }
 
-/** Font stacks — back the `--font-*` CSS variables set in app/layout.tsx. */
+/**
+ * Font stacks. These MIRROR the role properties defined in app/globals.css
+ * `:root` — CSS rules name `var(--font-display)`, inline styles name `display`,
+ * and both resolve to the same face. Change one, change the other.
+ *
+ * The faces themselves are loaded once, by app/layout.tsx.
+ */
 export const sans = "var(--font-inter),'Inter',ui-sans-serif,system-ui,sans-serif";
+/**
+ * The display face — headings, nav, page titles, anything that sets a tone
+ * rather than being read in bulk.
+ *
+ * "ABC Favorit" leads the stack and is shipped by nobody: it is Dinamo's retail
+ * face, the one Resend actually uses, and naming it costs nothing while making
+ * a purchased licence a drop-in (add the @font-face, the whole product moves).
+ * Behind it is Inter — which is not a fallback so much as the right answer,
+ * since Inter is the face Resend runs its own product UI on.
+ */
 export const display =
+  "'ABC Favorit',var(--font-inter),'Inter',ui-sans-serif,system-ui,sans-serif";
+/** Editorial accent — the Domaine Display slot, standing on Instrument Serif. */
+export const editorial =
+  "'Domaine Display',var(--font-instrument-serif),'Instrument Serif',Georgia,serif";
+/**
+ * IBM Plex Sans, which used to be the display face everywhere.
+ *
+ * It has ONE consumer left, deliberately: the billing cards. They were held
+ * back when the rest of the product moved, so the surface where someone is
+ * being asked for money keeps the face they last saw it in rather than
+ * changing under them in the same release. It is also the only face in the
+ * product that is not preloaded-by-default (see app/layout.tsx) — nothing but
+ * a billing screen pays for it.
+ */
+export const billingDisplay =
   "var(--font-plex),'IBM Plex Sans',ui-sans-serif,system-ui,sans-serif";
 export const hand = "var(--font-caveat),'Caveat',cursive";
+
+/**
+ * Letter-spacing, which is doing more work here than the font file is.
+ *
+ * Display type reads as designed rather than defaulted when it is set tight,
+ * and Resend sets it VERY tight — -0.045em at 500 weight. We were setting
+ * -0.01em at 800: heavy and loose, which is the house style of every dashboard
+ * generated in an afternoon. The scale below is per-size because -0.045em is
+ * correct on a 34px heading and illegible on a 13px label.
+ */
+export const tracking = {
+  display: "-0.045em", // 24px and up — page titles, hero numerals
+  tight: "-0.02em", // 17–23px — card and section headings
+  snug: "-0.01em", // 15–16px — nav, chips, dense headers
+  normal: "0",
+  caps: "0.14em", // the only positive one: all-caps micro-labels
+} as const;
+
+/**
+ * The display face AND its tuning in one spread, because the two are not
+ * separable — the tracking is what makes it look deliberate, and a call site
+ * that takes the family while keeping `fontWeight: 800` gets neither face.
+ *
+ *   <div style={{ ...displayType(23), color: t.text }}>Tools Studio</div>
+ *
+ * `weight` defaults to 600. Resend's own display weight is 500; 600 is a half
+ * step up, because our headings sit on busier surfaces than a marketing page
+ * and 500 goes soft against a card border. Pass 500 for large type that has
+ * room to breathe, 700 where a heading must out-rank another heading.
+ */
+export function displayType(size: number, weight: number = 600) {
+  return {
+    fontFamily: display,
+    fontSize: size,
+    fontWeight: weight,
+    letterSpacing:
+      size >= 24 ? tracking.display : size >= 17 ? tracking.tight : tracking.snug,
+  } as const;
+}
 
 /**
  * Type scale (px) — the single source of truth for font sizes, replacing the
