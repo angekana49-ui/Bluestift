@@ -135,6 +135,33 @@ describe("the room's chrome and composer", () => {
     expect(css).toMatch(/@media \(max-width: 640px\) \{[\s\S]*?\.focus-more \{\s*display: flex/);
   });
 
+  it("pushes the invite link while the room has one member", () => {
+    const invite = readFileSync(join(process.cwd(), "components/rooms/room-invite.tsx"), "utf8");
+    // Every room is private by default, so the link is the only door into it.
+    // It is shown until somebody walks through, not parked in a settings list.
+    expect(room).toMatch(/memberTotal <= 1 && \(/);
+    expect(room).toMatch(/<RoomInviteBanner/);
+    expect(room).toMatch(/<RoomInvitePanelBlock/);
+    // The platform's own share sheet first — that is what opens WhatsApp or
+    // Messages with the link already in it — and the clipboard when there is
+    // none. Both paths, or a phone gets a "copied" it cannot paste anywhere.
+    expect(invite).toMatch(/navigator\.share/);
+    expect(invite).toMatch(/navigator\.clipboard\.writeText/);
+    // The link field is focused to be copied from, and iOS Safari zooms the
+    // page in on any focused field under 16px.
+    expect(invite).toMatch(/fontSize: 16/);
+  });
+
+  it("lets a generated report use the whole phone screen", () => {
+    // The cap used to be an inline `maxHeight: 52vh`, which no stylesheet can
+    // take back — a report read through a half-screen letterbox with its own
+    // scrollbar, inside a page that already scrolls.
+    expect(room).toMatch(/className="room-report-box"/);
+    expect(room).not.toMatch(/maxHeight: "52vh"/);
+    expect(css).toMatch(/\.room-report-box \{[\s\S]*?max-height: 52vh/);
+    expect(css).toMatch(/@media \(max-width: 899px\) \{\s*\.room-report-box \{[\s\S]*?max-height: none/);
+  });
+
   it("pins the room's composer to two tiers at every width", () => {
     // `\r?` because this repo checks out CRLF on Windows.
     expect(group).toMatch(/\r?\n\s*stacked\s*\r?\n/);

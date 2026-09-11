@@ -26,6 +26,7 @@ import { useChatEngine } from "@/components/chat/use-chat-engine";
 import { ChatSurface } from "@/components/chat/chat-surface";
 import { ChatAvatar } from "@/components/chat/chat-avatar";
 import { RoomGroupChat, type GroupMsg } from "@/components/rooms/room-group-chat";
+import { RoomInviteBanner, RoomInvitePanelBlock } from "@/components/rooms/room-invite";
 import type { ChatConfig, Msg as ChatMsg, ConversationFile } from "@/components/chat/types";
 
 function reportToMd(r: {
@@ -101,13 +102,16 @@ const mkGhost = (t: AppTheme): React.CSSProperties => ({
   fontWeight: 600,
   cursor: "pointer",
 });
+/*
+ * The generated report's box. Its HEIGHT is `.room-report-box` in globals.css,
+ * not here: it used to be a flat `maxHeight: 52vh` inline, which on a phone is
+ * a report showing through a half-screen letterbox with its own scrollbar
+ * inside a page that also scrolls. Inline, no stylesheet could take it back.
+ */
 const mkListBox = (t: AppTheme): React.CSSProperties => ({
   display: "flex",
   flexDirection: "column",
   gap: 12,
-  minHeight: 280,
-  maxHeight: "52vh",
-  overflow: "auto",
   background: t.cardBg2,
   border: `1px solid ${t.cardBorder}`,
   borderRadius: 16,
@@ -190,9 +194,11 @@ function RoomViewBody({
   const listBox = mkListBox(t);
   const [supabase] = useState(() => createClient());
   const [joined, setJoined] = useState(isMember);
-  const [copied, setCopied] = useState(false);
   const [rightOpen, setRightOpen] = useRightPanel();
   const [docsOpen, setDocsOpen] = useState(false);
+  /** Dismissing the invite banner is for this visit only — a room that is still
+   *  empty next time is still a room that needs sharing. */
+  const [inviteHidden, setInviteHidden] = useState(false);
   /** The room header folds to a single line. Open by default, at every width —
    *  a room you have just walked into should say whose it is and how long is
    *  left before it starts saving you space. */
@@ -226,15 +232,6 @@ function RoomViewBody({
     return `${m}:${String(s).padStart(2, "0")}`;
   }
 
-  async function copyInvite() {
-    try {
-      await navigator.clipboard.writeText(`${window.location.origin}/rooms/${roomId}`);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setCopied(false);
-    }
-  }
   const [channel, setChannel] = useState<Channel>("group");
   const [report, setReport] = useState<RoomReport>(initialReport);
   // Held locally so the pill flips the moment the server action resolves,
@@ -932,7 +929,7 @@ function RoomViewBody({
         ) : channel === "files" ? (
           <RoomFiles roomId={roomId} readOnly={expired} />
         ) : (
-          <div style={listBox}>
+          <div className="room-report-box" style={listBox}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               <h3 style={{ margin: 0, flex: 1, fontSize: 16, fontWeight: 700, color: t.text }}>{tr("room.reportHeading")}</h3>
               {report && (
@@ -988,6 +985,9 @@ function RoomViewBody({
   }
 
   const onlineCount = Object.values(roster).filter((r) => online.has(r.user_id)).length;
+  // The roster is the membership list, fetched on join; `memberCount` is the
+  // server's count at page load and covers the moment before it lands.
+  const memberTotal = Object.keys(roster).length || memberCount;
 
   // A light, derived notifications feed — no table, just the room's live signals.
   const notifications: { id: string; tone: "risk" | "warn" | "info"; title: string; detail: string }[] = [];
@@ -1064,6 +1064,14 @@ function RoomViewBody({
             );
           })}
         </div>
+      </div>
+
+      {/* Invite — first, and above the notifications: every room is private by
+          default, so this link is the only door into it, and a room nobody was
+          sent it to has one member for good. */}
+      <div>
+        <div style={panelSectionTitle}>{tr("room.invite.panelTitle")}</div>
+        <RoomInvitePanelBlock theme={t} roomId={roomId} roomName={roomName} />
       </div>
 
       {/* Notifications */}
@@ -1160,9 +1168,6 @@ function RoomViewBody({
             <span style={{ color: t.muted }}>{tr("room.settingsSession")} </span>
             {remainingMs == null ? tr("room.noTimeLimit") : expired ? tr("room.timerEndedShort") : `${fmtRemaining(remainingMs)} ${tr("room.leftSuffix")}`}
           </div>
-          <button style={{ ...ghost, marginTop: 4, alignSelf: "flex-start" }} onClick={copyInvite}>
-            {copied ? tr("room.inviteCopied") : tr("room.copyInviteLink")}
-          </button>
         </div>
       </div>
     </RightPanel>
@@ -1185,6 +1190,12 @@ function RoomViewBody({
     >
       <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
         {chrome}
+        {/* A room of one is a room whose link was never sent. It goes as soon as
+            anybody joins — `roster` is the membership list, so this answers
+            itself — or when it is dismissed for this visit. */}
+        {joined && !inviteHidden && memberTotal <= 1 && (
+          <RoomInviteBanner theme={t} roomId={roomId} roomName={roomName} onDismiss={() => setInviteHidden(true)} />
+        )}
         {channelBody}
       </div>
       {preview && <FilePreview file={preview} scope="room" onClose={() => setPreview(null)} />}

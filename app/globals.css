@@ -2609,6 +2609,29 @@ a {
   }
 }
 
+/* -- A room's generated report ------------------------------------- */
+/* On a desktop the report is one block among several on the Report channel,
+   so it is capped and scrolls inside its own card. On a phone that cap was
+   half the screen: a letterbox with its own scrollbar, inside a page that
+   already scrolls, showing about six lines of a report at a time.
+
+   Below 900px the cap goes and the report is simply as long as it is — the
+   page scrolls it, the way the page scrolls everything else. The chrome above
+   it is folded away at that tier, so there is a full screen to give it. */
+.room-report-box {
+  min-height: 280px;
+  max-height: 52vh;
+  overflow: auto;
+}
+
+@media (max-width: 899px) {
+  .room-report-box {
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+  }
+}
+
 /* -- A study player's header actions, on a narrow screen ------------ */
 /* Opening a generated tool puts Reset, TXT, PDF and Link in the overlay's
    header, all of them `flex: none`. Below ~530px that row cannot hold them
