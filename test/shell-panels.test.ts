@@ -121,6 +121,20 @@ describe("the room's chrome and composer", () => {
     expect(room.match(/CHANNELS\.map\(/g)?.length ?? 0).toBe(2);
   });
 
+  it("folds a study player's header actions behind one control on a phone", () => {
+    const player = readFileSync(join(process.cwd(), "components/study/focus-player.tsx"), "utf8");
+    // Reset + TXT + PDF + Link are all `flex: none`: at 375px they took the
+    // whole row and the document's own name was rendering under the Reset pill.
+    expect(player).toMatch(/className="focus-more"/);
+    expect(player).toMatch(/"focus-actions is-open"/);
+    // Both display states belong to the stylesheet. An inline `display` on the
+    // toggle outranks the class and leaves a ⋯ on every desktop, next to the
+    // very actions it exists to replace — which is what happened first.
+    expect(player).not.toMatch(/const headerBtn: React\.CSSProperties = \{\s*\r?\n\s*display:/);
+    expect(css).toMatch(/\.focus-more \{\s*display: none/);
+    expect(css).toMatch(/@media \(max-width: 640px\) \{[\s\S]*?\.focus-more \{\s*display: flex/);
+  });
+
   it("pins the room's composer to two tiers at every width", () => {
     // `\r?` because this repo checks out CRLF on Windows.
     expect(group).toMatch(/\r?\n\s*stacked\s*\r?\n/);

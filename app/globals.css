@@ -2609,6 +2609,64 @@ a {
   }
 }
 
+/* -- A study player's header actions, on a narrow screen ------------ */
+/* Opening a generated tool puts Reset, TXT, PDF and Link in the overlay's
+   header, all of them `flex: none`. Below ~530px that row cannot hold them
+   AND the document's name: the name was getting zero pixels and the Reset
+   pill was rendering on top of it, with the export pills wrapped underneath.
+
+   Below 640px they fold behind one ⋯ control and drop out of it as a small
+   panel. Above it nothing changes — the actions are the inline row they have
+   always been, and the toggle does not exist. */
+.focus-actions-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: none;
+}
+.focus-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+/* The toggle's display is owned here, both ways — see the note on `headerBtn`
+   in focus-player.tsx for why it cannot be set inline. */
+.focus-more {
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 640px) {
+  .focus-more {
+    display: flex;
+  }
+  .focus-actions {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 70;
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    /* Sized to its content, not to a number: the pills inside are words in
+       four languages, and a fixed width that suits "Link" wraps "Verknüpfung"
+       onto a line of its own. Capped so the panel can never leave the screen. */
+    width: max-content;
+    min-width: 170px;
+    max-width: calc(100vw - 28px);
+    padding: 10px;
+    border-radius: 14px;
+    background: var(--focus-menu-bg, #fff);
+    border: 1px solid var(--focus-menu-border, rgba(15, 23, 42, 0.12));
+    box-shadow: var(--focus-menu-shadow, 0 18px 44px rgba(15, 23, 42, 0.18));
+  }
+  .focus-actions.is-open {
+    display: flex;
+  }
+}
+
 /* -- Secondary row detail, on a phone ------------------------------ */
 /* A list row is `name · detail · button · button`, and only the name is
    flexible — so the detail (a MIME type, a date) and the buttons keep their

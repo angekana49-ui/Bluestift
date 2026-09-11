@@ -52,6 +52,62 @@ export function FocusOverlay({
   children: ReactNode;
 }) {
   const tr = useTranslate();
+
+  /*
+   * The header's actions, on a screen too narrow to hold them.
+   *
+   * A generated tool arrives with four or five of them — Reset, TXT, PDF, Link
+   * — and they are all `flex: none`, so on a phone they took the row and left
+   * the title ZERO pixels: the mind map's header rendered "Reset" ON TOP of the
+   * document's own name, with the export pills wrapped onto a second line
+   * underneath.
+   *
+   * Below 640px they fold into this one control and drop down from it. Which
+   * tier that is belongs to the stylesheet (`.focus-more` / `.focus-actions` in
+   * globals.css) for the usual reason — the viewport is not knowable while
+   * rendering on the server — so what lives here is only whether the menu is
+   * open, which is harmless at any width: above the tier the panel is an
+   * ordinary inline row and this flag changes nothing.
+   */
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onDown = (e: PointerEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMoreOpen(false);
+    };
+    document.addEventListener("pointerdown", onDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [moreOpen]);
+
+  /**
+   * The close button and the actions toggle are the same object, twice.
+   *
+   * No `display` here, deliberately: the toggle's is the stylesheet's to set,
+   * and an inline one would outrank `.focus-more`'s `display: none` and leave
+   * a ⋯ sitting next to the actions it is supposed to replace on every desktop.
+   */
+  const headerBtn: React.CSSProperties = {
+    alignItems: "center",
+    justifyContent: "center",
+    width: 34,
+    height: 34,
+    flex: "none",
+    borderRadius: 10,
+    border: `1.5px solid ${t.dark ? "rgba(255,255,255,0.24)" : "rgba(15,23,42,0.22)"}`,
+    background: t.cardBg2,
+    color: t.text,
+    cursor: "pointer",
+    fontSize: 17,
+  };
+
   return (
     <div
       // Same pale-blue animated wash as the chat conversations, not a flat white.
@@ -80,20 +136,7 @@ export function FocusOverlay({
           onClick={onClose}
           title={tr("room.closeTitle")}
           aria-label={tr("room.closeTitle")}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: 34,
-            height: 34,
-            flex: "none",
-            borderRadius: 10,
-            border: `1.5px solid ${t.dark ? "rgba(255,255,255,0.24)" : "rgba(15,23,42,0.22)"}`,
-            background: t.cardBg2,
-            color: t.text,
-            cursor: "pointer",
-            fontSize: 17,
-          }}
+          style={{ ...headerBtn, display: "flex" }}
         >
           ✕
         </button>
@@ -103,7 +146,34 @@ export function FocusOverlay({
           </div>
           {subtitle && <div style={{ fontSize: 14, color: t.muted }}>{subtitle}</div>}
         </div>
-        {actions}
+        {actions && (
+          <div
+            className="focus-actions-wrap"
+            ref={moreRef}
+            style={{
+              // The dropped-down panel's own colours — the stylesheet decides
+              // when it IS a panel, but only the theme knows what it looks like.
+              ["--focus-menu-bg" as string]: t.cardBg,
+              ["--focus-menu-border" as string]: t.cardBorder,
+              ["--focus-menu-shadow" as string]: t.dark
+                ? "0 18px 44px rgba(0,0,0,0.5)"
+                : "0 18px 44px rgba(15,23,42,0.18)",
+            }}
+          >
+            <button
+              type="button"
+              className="focus-more"
+              onClick={() => setMoreOpen((o) => !o)}
+              aria-expanded={moreOpen}
+              aria-label={tr("player.moreActions")}
+              title={tr("player.moreActions")}
+              style={{ ...headerBtn, background: moreOpen ? t.rowActiveBg : t.cardBg2 }}
+            >
+              ⋯
+            </button>
+            <div className={moreOpen ? "focus-actions is-open" : "focus-actions"}>{actions}</div>
+          </div>
+        )}
       </div>
 
       {progress && (

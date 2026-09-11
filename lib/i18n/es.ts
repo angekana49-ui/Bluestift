@@ -2906,6 +2906,7 @@ export const es: Partial<Messages> = {
   "player.yourScore": "Tu puntaje",
   "player.correctSuffix": "correctas",
   "player.submitted": "Enviado ✓",
+  "player.moreActions": "Acciones del documento",
   "player.restart": "Reiniciar",
   "player.done": "Hecho",
   "player.prevButton": "‹ Ant.",

@@ -3189,6 +3189,7 @@ export const en = {
   "player.yourScore": "Your score",
   "player.correctSuffix": "correct",
   "player.submitted": "Submitted ✓",
+  "player.moreActions": "Document actions",
   "player.restart": "Restart",
   "player.done": "Done",
   "player.prevButton": "‹ Prev",
