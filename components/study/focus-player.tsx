@@ -853,16 +853,45 @@ export function MindMapView({
     [mindMap, title],
   );
 
-  // Ultra-large canvas: plenty of terrain to stretch, compress and re-route.
-  const MIN_W = 2200;
-  const MIN_H = 1500;
-  const SLACK = 600; // free space kept beyond the furthest node
-  const COLW = 300;
-  const PAD = 90;
   const CARD_W = 202;
+
+  /*
+   * How much room the map actually has. Measured rather than assumed, because
+   * the same overlay is a 1400px desktop canvas and a 375px phone, and a layout
+   * built for the first is unusable on the second: three 300px columns start
+   * 90px in, so a phone opened the map onto ONE card's left half with 1800px of
+   * empty terrain to its right.
+   *
+   * Measuring is safe here in a way it is not elsewhere in the app: this overlay
+   * only ever exists after a click, so there is no server render to disagree
+   * with. 0 means "not measured yet" and keeps the desktop layout.
+   */
+  const viewRef = useRef<HTMLDivElement>(null);
+  const [viewW, setViewW] = useState(0);
+  useEffect(() => {
+    const el = viewRef.current;
+    if (!el) return;
+    const read = () => setViewW(el.clientWidth);
+    read();
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(read);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const narrow = viewW > 0 && viewW < 620;
+
+  // One column on a phone: the map becomes a vertical chain, which is the axis
+  // a phone scrolls anyway. Wide screens keep the snaking 2-3 column terrain.
+  const COLW = narrow ? CARD_W + 14 : 300;
+  const PAD = narrow ? 20 : 90;
+  // Free space kept beyond the furthest node. Generous on a desktop, where it is
+  // room to drag into; on a phone it is just empty scrolling, so it shrinks to
+  // what the widest card needs.
+  const slackX = narrow ? CARD_W / 2 + 20 : 600;
+  const slackY = narrow ? 160 : 600;
   const maxCh = nodes.reduce((m, n) => Math.max(m, n.children.length), 0);
   const rowH = 210 + maxCh * 16;
-  const cols = Math.min(3, Math.max(2, nodes.length));
+  const cols = narrow ? 1 : Math.min(3, Math.max(2, nodes.length));
 
   const serpentine = useCallback((): Record<number, XY> => {
     const out: Record<number, XY> = {};
@@ -873,23 +902,35 @@ export function MindMapView({
       out[k] = { x: PAD + col * COLW + COLW / 2, y: PAD + row * rowH + 40 };
     });
     return out;
-  }, [nodes, cols, rowH]);
+  }, [nodes, cols, rowH, COLW, PAD]);
 
   const storeKey = `bluestift:mindmap:${(mindMap.title || title).slice(0, 60)}:${nodes.length}`;
-  const [pos, setPos] = useState<Record<number, XY>>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const s = window.localStorage.getItem(storeKey);
-        if (s) {
-          const parsed = JSON.parse(s) as Record<number, XY>;
-          if (parsed && Object.keys(parsed).length === nodes.length) return parsed;
-        }
-      } catch {
-        // ignore — fall back to the fresh serpentine
+  /** A layout this learner arranged by hand, if there is one. */
+  const stored = useMemo<Record<number, XY> | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const s = window.localStorage.getItem(storeKey);
+      if (s) {
+        const parsed = JSON.parse(s) as Record<number, XY>;
+        if (parsed && Object.keys(parsed).length === nodes.length) return parsed;
       }
+    } catch {
+      // ignore — fall back to the fresh serpentine
     }
-    return serpentine();
-  });
+    return null;
+  }, [storeKey, nodes.length]);
+  const [pos, setPos] = useState<Record<number, XY>>(() => stored ?? serpentine());
+
+  /*
+   * Re-lay-out when the shape of the terrain changes — which is what the
+   * measurement above does one tick after mount, and what a rotation does after
+   * that. Never over a layout the learner arranged themselves: their map is
+   * theirs, and a phone turned sideways is not a request to throw it away.
+   */
+  const arranged = useRef(stored != null);
+  useEffect(() => {
+    if (!arranged.current) setPos(serpentine());
+  }, [serpentine]);
   // Which decorative endpoints have their alert light on.
   const [lit, setLit] = useState<Record<number, boolean>>({});
 
@@ -910,7 +951,10 @@ export function MindMapView({
   const onPointerMove = (e: ReactPointerEvent) => {
     const d = drag.current;
     if (!d) return;
-    if (Math.abs(e.clientX - d.sx) + Math.abs(e.clientY - d.sy) > 4) d.moved = true;
+    if (Math.abs(e.clientX - d.sx) + Math.abs(e.clientY - d.sy) > 4) {
+      d.moved = true;
+      arranged.current = true; // hand-placed: no automatic re-layout over it
+    }
     setPos((p) => ({
       ...p,
       [d.id]: { x: clamp(d.ox + (e.clientX - d.sx), CARD_W / 2 + 10, 12000), y: clamp(d.oy + (e.clientY - d.sy), 24, 12000) },
@@ -943,8 +987,10 @@ export function MindMapView({
 
   const xs = nodes.map((_, k) => pos[k]?.x ?? 0);
   const ys = nodes.map((_, k) => pos[k]?.y ?? 0);
-  const canvasW = Math.max(MIN_W, Math.max(0, ...xs) + SLACK);
-  const canvasH = Math.max(MIN_H, Math.max(0, ...ys) + SLACK);
+  // Never smaller than the viewport (so a short map still fills it), never
+  // bigger than the furthest node plus its slack (so a phone has no dead miles).
+  const canvasW = Math.max(narrow ? viewW : 2200, Math.max(0, ...xs) + slackX);
+  const canvasH = Math.max(narrow ? 0 : 1500, Math.max(0, ...ys) + slackY);
   const points: XY[] = nodes.map((_, k) => pos[k]);
 
   return (
@@ -956,17 +1002,37 @@ export function MindMapView({
       wide
       actions={
         <>
-          <button style={ghostBtn(t)} onClick={() => setPos(serpentine())} title={tr("player.resetLayoutTitle")}>
+          <button
+            style={ghostBtn(t)}
+            onClick={() => {
+              arranged.current = false;
+              setPos(serpentine());
+            }}
+            title={tr("player.resetLayoutTitle")}
+          >
             {tr("player.resetButton")}
           </button>
           {actions}
         </>
       }
     >
+      <div ref={viewRef}>
       <div style={{ textAlign: "center", fontSize: 14, color: t.muted, marginBottom: 14 }}>
         {tr("player.mindMapInstructions")}
       </div>
-      <div style={{ position: "relative", width: canvasW, height: canvasH, margin: "0 auto", touchAction: "none" }}>
+      {/*
+       * NO `touch-action: none` here. It used to sit on this element, and on a
+       * touch screen that is the difference between a map you can explore and a
+       * map you cannot move at all: it told the browser to send every gesture
+       * over the whole 2200x1500 canvas to script, and nothing here handles a
+       * swipe, so a finger anywhere on the map did nothing while the overlay's
+       * scroller sat there able to pan.
+       *
+       * The checkpoints keep their own `touch-action: none` (below), which is
+       * where it belongs: dragging ONE card must not scroll the map under it.
+       * Everywhere else the browser pans and pinch-zooms natively.
+       */}
+      <div style={{ position: "relative", width: canvasW, height: canvasH, margin: "0 auto" }}>
         {/* The winding path, drawn BEHIND the cards so it never touches their text. */}
         <svg width={canvasW} height={canvasH} style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
           <defs>
@@ -1073,6 +1139,7 @@ export function MindMapView({
             </div>
           );
         })}
+      </div>
       </div>
     </FocusOverlay>
   );

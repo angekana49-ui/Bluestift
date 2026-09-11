@@ -2044,6 +2044,7 @@ export const de: Partial<Messages> = {
   "room.keyLearningsLabel": "Wichtigste Erkenntnisse:",
   "room.highlightsLabel": "Highlights:",
   "room.recommendationsLabel": "Empfehlungen:",
+  "room.panelChannels": "Kanäle",
   "room.panelNotifications": "Benachrichtigungen",
   "room.panelDocuments": "Dokumente",
   "room.panelMembers": "Mitglieder",

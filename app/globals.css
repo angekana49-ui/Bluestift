@@ -2175,31 +2175,37 @@ a {
   }
 }
 
-/* ---- A room's channel tabs, on a small screen ----
-   Group chat / Raya (private) / Challenges / Files / Report. Five labels do not
-   fit one phone line, and `flex-wrap: wrap` turned them into two or three rows
-   of chrome above a conversation that already had the least room on this screen.
+/* ---- One header per phone ----
+   A room used to stack two: the shell's (burger · "Rooms" · panel) and the
+   room's own chrome (name, subject, member count, countdown, visibility, a docs
+   button, a collapse chevron, and five channel tabs). Together they took ~160px
+   of an iPhone's 812 before a single message appeared, and the chrome's own row
+   was so tight that the name and the pills overlapped.
 
-   One scrolling row instead. The buttons are `flex: none` + nowrap inline so a
-   label can neither shrink nor break mid-word, and the scrollbar is hidden
-   because a horizontal bar under a tab strip reads as a broken layout rather
-   than an affordance — the partly-visible fifth tab is the affordance.
+   Below 900px the room's chrome goes, whole. Nothing on it is lost: the name
+   and the countdown move up into the shell header (RayaShell's `mobileTitle` /
+   `mobileTrailing`), and the channels, documents, members, subject, visibility
+   and session time are in the right panel — which that header's own button
+   opens. Above 900px the chrome is untouched: there the screen is wide enough
+   for both, and the panel is a column rather than a drawer.
 
-   `overscroll-behavior-x: contain` stops a swipe that runs out of tabs from
-   continuing into the browser's back gesture. */
+   Kept as a stylesheet rule, not a JS branch, for the same reason as the
+   composer: the viewport is not knowable while rendering on the server. */
 @media (max-width: 899px) {
-  .room-tabs {
-    flex-wrap: nowrap !important;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    /* Room for the focus ring of the first and last tab, which a plain
-       overflow container would clip. */
-    padding-bottom: 2px;
-  }
-  .room-tabs::-webkit-scrollbar {
+  .room-chrome {
     display: none;
+  }
+}
+
+/* The counterpart: content that exists ONLY at that tier, because something
+   else carries it above. Its one use today is the right panel's channel list,
+   which stands in for the tab strip the rule above folds away. */
+.app-only-phone {
+  display: none;
+}
+@media (max-width: 899px) {
+  .app-only-phone {
+    display: block;
   }
 }
 

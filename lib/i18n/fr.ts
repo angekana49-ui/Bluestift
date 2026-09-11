@@ -2043,6 +2043,7 @@ export const fr: Partial<Messages> = {
   "room.keyLearningsLabel": "Points clés retenus :",
   "room.highlightsLabel": "Temps forts :",
   "room.recommendationsLabel": "Recommandations :",
+  "room.panelChannels": "Canaux",
   "room.panelNotifications": "Notifications",
   "room.panelDocuments": "Documents",
   "room.panelMembers": "Membres",

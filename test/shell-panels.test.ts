@@ -101,9 +101,24 @@ describe("the room's chrome and composer", () => {
   it("leaves the channel tabs reachable in both header states", () => {
     // The tabs sit outside the chromeOpen branch — folding the header must not
     // cost the ability to move between channels.
-    const tabsAt = room.indexOf('className="room-tabs"');
+    const tabsAt = room.indexOf("{CHANNELS.map(");
     const branchEnd = room.indexOf("{joined && (", room.indexOf("Collapsed: the name, the clock"));
     expect(tabsAt).toBeGreaterThan(branchEnd);
+  });
+
+  it("keeps one header on a phone, with nothing on the folded one lost", () => {
+    // The chrome goes at the phone tier (stylesheet, not a JS branch: the
+    // viewport is not knowable while rendering on the server)…
+    expect(room).toMatch(/className="room-chrome"/);
+    expect(css).toMatch(/@media \(max-width: 899px\) \{\s*\.room-chrome \{\s*display: none/);
+    // …so the name and the clock move up into the shell's own header…
+    expect(room).toMatch(/mobileTitle=\{roomName\}/);
+    expect(room).toMatch(/mobileTrailing=\{timerPill\(true\)\}/);
+    // …and the channels — the one thing with no other home — into the panel.
+    expect(room).toMatch(/className="app-only-phone"/);
+    expect(css).toMatch(/\.app-only-phone \{\s*display: none/);
+    // Both switchers read one list, so a sixth channel cannot reach only one.
+    expect(room.match(/CHANNELS\.map\(/g)?.length ?? 0).toBe(2);
   });
 
   it("pins the room's composer to two tiers at every width", () => {

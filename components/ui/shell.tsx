@@ -77,6 +77,11 @@ export function Scrim({ open, onClick }: { open: boolean; onClick: () => void })
  * `leftOpen` / `rightOpen` exist so the labels can say which way the button
  * goes. They are optional: a caller that does not know its own state still gets
  * the old "Open …" wording rather than a wrong one.
+ *
+ * `trailing` is for the one fact a screen cannot afford to lose when its own
+ * header is folded away at this tier — the room's session countdown is the
+ * case that asked for it. It sits between the title and the panel button and
+ * must stay SMALL: this row is 375px wide on the screen that needs it most.
  */
 export function MobileHeader({
   theme: t,
@@ -85,6 +90,7 @@ export function MobileHeader({
   onOpenRight,
   leftOpen = false,
   rightOpen = false,
+  trailing,
 }: {
   theme: AppTheme;
   title: string;
@@ -93,6 +99,8 @@ export function MobileHeader({
   /** Drawer state, for the button's accessible name. */
   leftOpen?: boolean;
   rightOpen?: boolean;
+  /** A compact badge shown before the right-panel button. */
+  trailing?: ReactNode;
 }) {
   const tr = useTranslate();
   return (
@@ -124,6 +132,7 @@ export function MobileHeader({
       >
         <RayaText>{title}</RayaText>
       </span>
+      {trailing}
       {onOpenRight ? (
         <IconButton
           theme={t}

@@ -2278,6 +2278,7 @@ export const en = {
   "room.keyLearningsLabel": "Key learnings:",
   "room.highlightsLabel": "Highlights:",
   "room.recommendationsLabel": "Recommendations:",
+  "room.panelChannels": "Channels",
   "room.panelNotifications": "Notifications",
   "room.panelDocuments": "Documents",
   "room.panelMembers": "Members",

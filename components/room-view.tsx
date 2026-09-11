@@ -62,6 +62,14 @@ function reportDoc(roomName: string, r: Parameters<typeof reportToMd>[0]): Brand
 export type RoomFileRow = Attachment & { message_id: string | null };
 /** A learning.conversation_files row from the private Raya channel. */
 export type PrivateFileRow = Attachment & { message_id: string | null };
+/**
+ * The room's five channels, in the order they are offered. One list, read by
+ * the wide-screen tab strip AND by the right panel's channel list (which is
+ * the only channel switcher a phone has, the chrome being folded away there).
+ */
+const CHANNELS = ["group", "private", "challenge", "files", "report"] as const;
+type Channel = (typeof CHANNELS)[number];
+
 type RoomReport = {
   id: string;
   summary: string | null;
@@ -227,9 +235,7 @@ function RoomViewBody({
       setCopied(false);
     }
   }
-  const [channel, setChannel] = useState<
-    "group" | "private" | "challenge" | "report" | "files"
-  >("group");
+  const [channel, setChannel] = useState<Channel>("group");
   const [report, setReport] = useState<RoomReport>(initialReport);
   // Held locally so the pill flips the moment the server action resolves,
   // rather than waiting for the revalidated page to come back.
@@ -600,41 +606,60 @@ function RoomViewBody({
   const tabBtn = (on: boolean): React.CSSProperties =>
     on ? { ...btn, fontSize: 14 } : { ...ghost, fontSize: 14 };
 
+  /** One label per channel, so the chrome's tabs and the panel's list agree. */
+  const channelLabel = (c: Channel): React.ReactNode =>
+    c === "group"
+      ? tr("room.tab.group")
+      : c === "private"
+        ? <><RayaName /> {tr("room.tab.privateSuffix")}</>
+        : c === "challenge"
+          ? tr("room.tab.challenges")
+          : c === "files"
+            ? tr("room.tab.files")
+            : tr("room.tab.report");
+
   // The room's shared documents, for the header docs popover + the panel list.
   const sharedDocs = Object.values(roomFiles);
 
   /*
-   * The session countdown, lifted out of the header row because BOTH states of
-   * the header need it. Collapsing a timed room must not take the clock with it:
-   * the room turns read-only when it runs out, and "how long have I got" is the
-   * one fact on this strip that changes on its own.
+   * The session countdown, lifted out of the header row because every state of
+   * the header needs it: the open chrome, the folded one, and — `compact` — the
+   * shell's own header, which is the only one a phone has. Collapsing a timed
+   * room must not take the clock with it: the room turns read-only when it runs
+   * out, and "how long have I got" is the one fact here that changes on its own.
    */
-  const timerBadge =
+  const timerPill = (compact: boolean) =>
     remainingMs != null ? (
       <span
-            style={{
-              alignSelf: "center",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 5,
-              fontSize: 14,
-              fontWeight: 700,
-              fontVariantNumeric: "tabular-nums",
-              borderRadius: 99,
-              padding: "3px 10px",
-              color: expired ? "#b91c1c" : remainingMs <= 120_000 ? "#b45309" : t.text,
-              background: expired
-                ? "rgba(239,68,68,0.12)"
-                : remainingMs <= 120_000
-                  ? "rgba(245,158,11,0.14)"
-                  : t.cardBg2,
-              border: `1px solid ${expired ? "rgba(239,68,68,0.4)" : remainingMs <= 120_000 ? "rgba(245,158,11,0.45)" : t.cardBorder}`,
-            }}
+        style={{
+          alignSelf: "center",
+          flex: "none",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 5,
+          fontSize: compact ? 13 : 14,
+          fontWeight: 700,
+          fontVariantNumeric: "tabular-nums",
+          whiteSpace: "nowrap",
+          borderRadius: 99,
+          padding: compact ? "3px 8px" : "3px 10px",
+          color: expired ? "#b91c1c" : remainingMs <= 120_000 ? "#b45309" : t.text,
+          background: expired
+            ? "rgba(239,68,68,0.12)"
+            : remainingMs <= 120_000
+              ? "rgba(245,158,11,0.14)"
+              : t.cardBg2,
+          border: `1px solid ${expired ? "rgba(239,68,68,0.4)" : remainingMs <= 120_000 ? "rgba(245,158,11,0.45)" : t.cardBorder}`,
+        }}
         title={expired ? tr("room.timerEndedTitle") : tr("room.timerLeftTitle")}
       >
-        ⏱ {expired ? tr("room.timerEndedShort") : `${fmtRemaining(remainingMs)} ${tr("room.leftSuffix")}`}
+        {/* Compact drops the "left" — it shares a 375px row with the room's
+            name and a drawer button, and a clock glyph in front of a falling
+            number does not need a word to say what it is. */}
+        ⏱ {expired ? tr("room.timerEndedShort") : compact ? fmtRemaining(remainingMs) : `${fmtRemaining(remainingMs)} ${tr("room.leftSuffix")}`}
       </span>
     ) : null;
+  const timerBadge = timerPill(false);
 
   /** Fold the metadata row away. Available at every width, not just phones. */
   const chromeToggle = (
@@ -661,10 +686,22 @@ function RoomViewBody({
     </IconButton>
   );
 
-  // The room chrome (title, timer, members, tabs) — a solid strip pinned above
-  // the chat, exactly where /chat keeps its session header.
+  /*
+   * The room chrome (title, timer, members, visibility, docs, tabs) — a solid
+   * strip pinned above the chat, exactly where /chat keeps its session header.
+   *
+   * IT DOES NOT EXIST ON A PHONE. `.room-chrome` is display:none below 900px
+   * (globals.css): the shell already puts a header on that screen, and two
+   * stacked ones ate roughly a fifth of an iPhone's height before a single
+   * message was shown. Everything on it has another home at that tier — the
+   * room's name and countdown move into the shell header (`mobileTitle` /
+   * `mobileTrailing`), and the channels, documents, members, subject,
+   * visibility and session time are all in the right panel, which the header's
+   * own button opens.
+   */
   const chrome = (
     <div
+      className="room-chrome"
       style={{
         flex: "none",
         background: t.cardBg,
@@ -807,27 +844,15 @@ function RoomViewBody({
             </div>
           )}
 
-          {/* Five channels. On a wide screen they wrap if they must; below 900px
-              they become one scrolling row instead (`.room-tabs` in globals.css)
-              — wrapping there cost two or three lines of the chrome, which is
-              vertical space taken from the conversation on the screen that has
-              the least of it. */}
-          <div className="room-tabs" style={{ display: "flex", gap: 6, marginTop: 14, flexWrap: "wrap" }}>
-            {(["group", "private", "challenge", "files", "report"] as const).map((c) => (
+          {/* Five channels, wrapping if they must. */}
+          <div style={{ display: "flex", gap: 6, marginTop: 14, flexWrap: "wrap" }}>
+            {CHANNELS.map((c) => (
               <button
                 key={c}
                 onClick={() => setChannel(c)}
                 style={{ ...tabBtn(channel === c), flex: "none", whiteSpace: "nowrap" }}
               >
-                {c === "group"
-                  ? tr("room.tab.group")
-                  : c === "private"
-                    ? <><RayaName /> {tr("room.tab.privateSuffix")}</>
-                    : c === "challenge"
-                      ? tr("room.tab.challenges")
-                      : c === "files"
-                        ? tr("room.tab.files")
-                        : tr("room.tab.report")}
+                {channelLabel(c)}
               </button>
             ))}
           </div>
@@ -999,6 +1024,48 @@ function RoomViewBody({
 
   const roomPanel = joined ? (
     <RightPanel theme={t} width={300} title={roomName} onCollapse={() => setRightOpen(false)}>
+      {/* Channels — PHONE ONLY, and the only channel switcher there: the tab
+          strip lives on the room chrome, which is folded away at this tier.
+          A full-width list rather than a row of pills, because this is now a
+          navigation menu and not a strip of tabs. */}
+      <div className="app-only-phone">
+        <div style={panelSectionTitle}>{tr("room.panelChannels")}</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          {CHANNELS.map((c) => {
+            const on = channel === c;
+            return (
+              <button
+                key={c}
+                onClick={() => {
+                  setChannel(c);
+                  // The panel is an overlay here — leaving it open would put the
+                  // channel you just picked behind a scrim.
+                  setRightOpen(false);
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  width: "100%",
+                  textAlign: "left",
+                  gap: 8,
+                  padding: "10px 12px",
+                  borderRadius: 10,
+                  border: `1px solid ${on ? "transparent" : t.cardBorder}`,
+                  background: on ? t.ctaBg : "transparent",
+                  color: on ? t.ctaText : t.text,
+                  fontFamily: "inherit",
+                  fontSize: 14,
+                  fontWeight: on ? 700 : 600,
+                  cursor: "pointer",
+                }}
+              >
+                {channelLabel(c)}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Notifications */}
       <div>
         <div style={panelSectionTitle}>{tr("room.panelNotifications")}</div>
@@ -1111,6 +1178,10 @@ function RoomViewBody({
       profileAvatarUrl={studentAvatarUrl}
       rightPanel={rightOpen ? roomPanel : undefined}
       onToggleRight={joined ? () => setRightOpen((o) => !o) : undefined}
+      // The phone has one header, and it is this one — so it carries the room's
+      // name and its clock, which the folded chrome would otherwise take with it.
+      mobileTitle={roomName}
+      mobileTrailing={timerPill(true)}
     >
       <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
         {chrome}

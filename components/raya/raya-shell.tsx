@@ -65,6 +65,8 @@ export function RayaShell({
   chatHistory,
   rightPanel,
   onToggleRight,
+  mobileTitle,
+  mobileTrailing,
   children,
 }: {
   theme: AppTheme;
@@ -80,6 +82,18 @@ export function RayaShell({
   /** Lets the small-screen header toggle the caller's right panel. Without it
    *  the header shows no right-hand button. */
   onToggleRight?: () => void;
+  /**
+   * What the small-screen header says instead of the nav label.
+   *
+   * A screen that has its OWN header on a wide monitor (a room's name and
+   * chrome, say) folds it away on a phone — two stacked headers is most of the
+   * room's vertical budget on a 375px screen. The identity has to survive that,
+   * so it moves up here, where "Rooms" was telling the learner something the
+   * sidebar already says.
+   */
+  mobileTitle?: string;
+  /** A compact badge for that same row — e.g. a room's session countdown. */
+  mobileTrailing?: ReactNode;
   /** @deprecated the content zone no longer takes a width floor. */
   mainMinWidth?: number;
   children: ReactNode;
@@ -312,14 +326,18 @@ export function RayaShell({
       <MainCard theme={t} column>
         <MobileHeader
           theme={t}
-          title={(() => {
-            const item = NAV.find((n) => n.key === active);
-            return item ? tr(item.labelKey) : "Raya";
-          })()}
+          title={
+            mobileTitle ??
+            (() => {
+              const item = NAV.find((n) => n.key === active);
+              return item ? tr(item.labelKey) : "Raya";
+            })()
+          }
           onOpenLeft={() => setNavOpen((o) => !o)}
           leftOpen={navOpen}
           onOpenRight={onToggleRight}
           rightOpen={rightPanel != null}
+          trailing={mobileTrailing}
         />
         <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
           {children}

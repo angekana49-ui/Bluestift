@@ -13,7 +13,7 @@ import { useRightPanel } from "@/components/ui/use-right-panel";
 import { useLocale } from "@/lib/use-locale";
 import { RayaShell } from "@/components/raya/raya-shell";
 import { RightPanel } from "@/components/ui/shell";
-import { IconKernel } from "@/components/ui/icons";
+import { IconKernel, IconSummary } from "@/components/ui/icons";
 import { type AppTheme } from "@/components/ui/tokens";
 import { initialsOf, avatarInitials } from "@/lib/name";
 import { useChatEngine } from "@/components/chat/use-chat-engine";
@@ -252,11 +252,19 @@ function ChatBody({
           <IconKernel size={15} />
         </span>
       </span>
+      {/* Same swap, same reason: on a phone the header's four controls and the
+          session title were fighting over 375px, and the title lost — it was
+          rendering as three letters and an ellipsis while "In session" wrapped
+          under the dot. Words above the tier, glyph below it. */}
       <span
         onClick={() => !busy && messages.length > 0 && onAnalyze()}
         title={tr("chatHome.analyzeSessionTitle")}
+        aria-label={tr("chatHome.analyzeSessionTitle")}
         style={{
           flex: "none",
+          display: "flex",
+          alignItems: "center",
+          whiteSpace: "nowrap",
           fontSize: 13,
           border: `1px solid ${t.cardBorder}`,
           borderRadius: 99,
@@ -266,7 +274,10 @@ function ChatBody({
           opacity: busy || messages.length === 0 ? 0.45 : 1,
         }}
       >
-        {tr("chatHome.analyze")}
+        <span className="app-pill-label">{tr("chatHome.analyze")}</span>
+        <span className="app-pill-glyph">
+          <IconSummary size={15} />
+        </span>
       </span>
     </>
   );

@@ -212,8 +212,11 @@ export function ChatSurface({
             <div style={ell(text.base, 700, t.text)}>{activeTitle}</div>
             {/* The status used to be green TEXT (#10b981 on the header white,
                 ~2.4:1) — a colour carrying meaning at 13px, under AA twice over.
-                The dot carries the colour, the words carry the meaning. */}
-            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: text.xs, color: t.muted }}>
+                The dot carries the colour, the words carry the meaning.
+                `nowrap`: this line sits in a column that a narrow screen can
+                squeeze hard, and two words wrapping under a 7px dot is how the
+                header started overlapping the row beneath it. */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: text.xs, color: t.muted, whiteSpace: "nowrap" }}>
               <span
                 aria-hidden
                 style={{
