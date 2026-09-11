@@ -111,6 +111,28 @@ describe("the chat's three subtrees share one column", () => {
     expect(room.match(/chat-col/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
   });
 
+  it("gives Raya a bubble in a room and none in a one-to-one", () => {
+    /*
+     * A bubble says WHO is talking. With exactly two participants, one of them
+     * the product, that is settled before anyone opens their mouth — so the
+     * border, the 16px of side padding and the avatar are all width taken out
+     * of a ~330px phone column for nothing, on nearly every message, since long
+     * answers are most of what Raya sends.
+     *
+     * The room's group chat is the opposite case and keeps the whole treatment:
+     * several people really are talking there.
+     */
+    expect(room).toMatch(/t\.bubbleBg/);
+    expect(surface).not.toMatch(/t\.bubbleBg/);
+    // The student's turn keeps its bubble on both surfaces — it is short, and
+    // once Raya's is gone it is the only thing marking where a turn begins.
+    expect(surface).toMatch(/t\.bubbleMineBg/);
+    // Raya's block takes the reading column rather than sitting in an 85% box
+    // with an avatar beside it.
+    expect(surface).toMatch(/alignSelf: mine \? "flex-end" : "stretch"/);
+    expect(surface).toMatch(/\{mine && <ChatAvatar/);
+  });
+
   it("none of them still centres a bare THREAD_MAX_W box", () => {
     // The old pattern. Its problem was never the number, it was that the gutter
     // sat OUTSIDE the max-width in one place and inside it in another.

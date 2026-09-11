@@ -364,6 +364,29 @@ export function ChatSurface({
               {messages.map((m) => {
                 const mine = m.role !== "assistant";
                 const files = filesByMessage[m.id] ?? [];
+                /*
+                 * Raya does not speak in a bubble here, and that is the line
+                 * between a tutor and a group chat.
+                 *
+                 * A bubble's job is to say WHO is talking, and that is only
+                 * worth paying for when it could be one of several people. In a
+                 * thread with exactly two participants — one of them the
+                 * product — it says nothing and charges for it: a border, 16px
+                 * of padding on each side, an avatar and its gap, all taken out
+                 * of a column that is barely 330px wide on a phone. Long
+                 * answers are most of what Raya produces, so that tax lands on
+                 * nearly every message in the thread.
+                 *
+                 * The student's turn keeps its bubble. It is short, it reads as
+                 * quoted-back input rather than more prose, and once Raya's
+                 * bubble is gone it is the only thing left marking where one
+                 * turn ends and the next begins.
+                 *
+                 * Rooms keep the full messaging treatment — that is
+                 * components/rooms/room-group-chat.tsx, a different component.
+                 * There several people really are talking, and the bubble is
+                 * doing the job it exists for.
+                 */
                 return (
                   <div
                     key={m.id}
@@ -371,27 +394,38 @@ export function ChatSurface({
                       display: "flex",
                       gap: 8,
                       alignItems: "flex-end",
-                      alignSelf: mine ? "flex-end" : "flex-start",
+                      // Raya takes the whole reading column; the student's turn
+                      // stays a right-aligned object inside it.
+                      alignSelf: mine ? "flex-end" : "stretch",
                       flexDirection: mine ? "row-reverse" : "row",
-                      maxWidth: "85%",
+                      maxWidth: mine ? "85%" : "100%",
                     }}
                   >
-                    <ChatAvatar theme={t} isRaya={!mine} initials={userInitials} avatarUrl={mine ? userAvatarUrl : undefined} />
+                    {mine && <ChatAvatar theme={t} initials={userInitials} avatarUrl={userAvatarUrl} />}
                     <div
                       style={{
                         minWidth: 0,
-                        background: mine ? t.bubbleMineBg : t.bubbleBg,
-                        color: mine ? t.bubbleMineText : t.text,
-                        // Raya's bubble is the same white as a card, so it needs
-                        // the same 1px edge to be a bubble and not just text.
-                        border: mine ? "1px solid transparent" : `1px solid ${t.cardBorder}`,
-                        borderRadius: mine ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
-                        padding: "13px 16px",
                         fontSize: text.base,
                         lineHeight: 1.65,
                         // Raya's replies are Markdown and carry their own block
                         // structure; the student's own text is literal.
                         whiteSpace: mine ? "pre-wrap" : "normal",
+                        ...(mine
+                          ? {
+                              background: t.bubbleMineBg,
+                              color: t.bubbleMineText,
+                              border: "1px solid transparent",
+                              borderRadius: "16px 16px 4px 16px",
+                              padding: "13px 16px",
+                            }
+                          : {
+                              // No box of any kind. The vertical padding is the
+                              // only thing left, and it is there so a reply does
+                              // not sit flush against the turn above it.
+                              flex: 1,
+                              color: t.text,
+                              padding: "2px 0",
+                            }),
                       }}
                     >
                       {files.length > 0 && (
