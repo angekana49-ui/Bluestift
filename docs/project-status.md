@@ -677,7 +677,9 @@ Env (`.env.local`): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
 `SUPABASE_SERVICE_ROLE_KEY`, `KERNEL_API_URL`, `KERNEL_API_SECRET`,
 `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` (public-form captcha —
 skipped when unset), `GEMINI_API_KEY`, `GROQ_API_KEY`, `GEMINI_MODEL`,
-`GROQ_MODEL`, `GROQ_WHISPER_MODEL`, `ENTITLEMENTS_ENFORCE` (forfait gating —
+`GEMINI_MODEL_FALLBACK` (the Gemini rung under the primary — defaults to the
+model in service, so promoting a new one is one env change), `GROQ_MODEL`,
+`GROQ_WHISPER_MODEL`, `ENTITLEMENTS_ENFORCE` (forfait gating —
 **an override, no longer the switch**. Unset, enforcement is DERIVED from
 `billingIsLive()`: gates log but never block while no real payment provider is
 configured, and start blocking on their own the moment one is, because a

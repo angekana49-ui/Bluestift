@@ -252,3 +252,123 @@ describe("rayaStream token usage", () => {
     expect(usage.total).toBe(12);
   });
 });
+
+/**
+ * The Gemini side is a LADDER: the configured model, then a second one where
+ * the env names a different one, then Groq. What decides whether the second
+ * rung is worth a try is not the failure's severity but whether Gemini
+ * ANSWERED — a refusal is about the model, silence is about the host, and no
+ * other model on that host fixes silence.
+ */
+describe("the Gemini model ladder", () => {
+  const geminiModelOf = (url: RequestInfo | URL) =>
+    /models\/([^:]+):/.exec(String(url))?.[1] ?? null;
+
+  it("is one rung until the env names a second model", async () => {
+    // Both default to the same literal, so a deployment that sets neither
+    // spends exactly one Gemini deadline, as it always has.
+    const calls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        calls.push(String(url));
+        if (String(url).includes("generativelanguage")) return new Response("no", { status: 404 });
+        return sseResponse([groqEvent("From Groq")]);
+      }),
+    );
+    const { model } = await rayaStream([{ role: "user", content: "hi" }]);
+    expect(model).toContain("groq");
+    expect(calls.filter((u) => u.includes("generativelanguage"))).toHaveLength(1);
+  });
+
+  it("tries the second model when the first REFUSES, before reaching Groq", async () => {
+    vi.stubEnv("GEMINI_MODEL", "gemini-next");
+    vi.stubEnv("GEMINI_MODEL_FALLBACK", "gemini-today");
+    const tried: (string | null)[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        if (String(url).includes("generativelanguage")) {
+          const m = geminiModelOf(url);
+          tried.push(m);
+          if (m === "gemini-next") return new Response("unknown model", { status: 404 });
+          return sseResponse([geminiEvent("From the old model")]);
+        }
+        return sseResponse([groqEvent("From Groq")]);
+      }),
+    );
+    const { model, stream } = await rayaStream([{ role: "user", content: "hi" }]);
+    expect(tried).toEqual(["gemini-next", "gemini-today"]);
+    expect(model).toBe("gemini:gemini-today");
+    expect(await collect(stream)).toBe("From the old model");
+  });
+
+  it("skips the second model and goes straight to Groq when Gemini is SILENT", async () => {
+    /*
+     * The whole value of the first-byte deadline is that Groq gets its turn
+     * fast. Spending a second 1.5s budget on a host that just failed to answer
+     * would double the silence the fallback exists to prevent.
+     */
+    vi.useFakeTimers();
+    vi.stubEnv("GEMINI_MODEL", "gemini-next");
+    vi.stubEnv("GEMINI_MODEL_FALLBACK", "gemini-today");
+    const tried: (string | null)[] = [];
+    const fetchMock = vi.fn((url: RequestInfo | URL, init?: RequestInit) => {
+      if (String(url).includes("generativelanguage")) {
+        tried.push(geminiModelOf(url));
+        return hang(url, init);
+      }
+      return Promise.resolve(sseResponse([groqEvent("From Groq")]));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const p = rayaStream([{ role: "user", content: "hi" }]);
+    await vi.advanceTimersByTimeAsync(1600);
+    const { model, stream } = await p;
+    expect(tried).toEqual(["gemini-next"]);
+    expect(model).toContain("groq");
+    expect(await collect(stream)).toBe("From Groq");
+  });
+
+  it("falls through both rungs to Groq when both refuse", async () => {
+    vi.stubEnv("GEMINI_MODEL", "gemini-next");
+    vi.stubEnv("GEMINI_MODEL_FALLBACK", "gemini-today");
+    const tried: (string | null)[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        if (String(url).includes("generativelanguage")) {
+          tried.push(geminiModelOf(url));
+          return new Response("nope", { status: 429 });
+        }
+        return sseResponse([groqEvent("From Groq")]);
+      }),
+    );
+    const { model } = await rayaStream([{ role: "user", content: "hi" }]);
+    expect(tried).toEqual(["gemini-next", "gemini-today"]);
+    expect(model).toContain("groq");
+  });
+
+  it("climbs the same ladder without streaming", async () => {
+    vi.stubEnv("GEMINI_MODEL", "gemini-next");
+    vi.stubEnv("GEMINI_MODEL_FALLBACK", "gemini-today");
+    const tried: (string | null)[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        if (String(url).includes("generativelanguage")) {
+          const m = geminiModelOf(url);
+          tried.push(m);
+          if (m === "gemini-next") return new Response("unknown model", { status: 404 });
+          return new Response(
+            JSON.stringify({ candidates: [{ content: { parts: [{ text: "Old model here" }] } }] }),
+            { status: 200 },
+          );
+        }
+        return new Response(JSON.stringify({ choices: [{ message: { content: "Groq" } }] }), { status: 200 });
+      }),
+    );
+    const out = await rayaComplete([{ role: "user", content: "hi" }]);
+    expect(tried).toEqual(["gemini-next", "gemini-today"]);
+    expect(out).toEqual({ text: "Old model here", model: "gemini:gemini-today" });
+  });
+});

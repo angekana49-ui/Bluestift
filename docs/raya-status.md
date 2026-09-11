@@ -21,7 +21,13 @@ Supabase DB and the contract `user_id = public.users.id = auth.users.id`.
   (`streamGenerateContent?alt=sse`) then Groq (`stream:true`).
 - **Voice/STT**: OpenAI **Whisper served by Groq** (`whisper-large-v3`).
 - Env (`.env.local`, reuse the Kernel keys):
-  `GEMINI_API_KEY`, `GROQ_API_KEY`, `GEMINI_MODEL`, `GROQ_MODEL`, `GROQ_WHISPER_MODEL`.
+  `GEMINI_API_KEY`, `GROQ_API_KEY`, `GEMINI_MODEL`, `GEMINI_MODEL_FALLBACK`,
+  `GROQ_MODEL`, `GROQ_WHISPER_MODEL`.
+  The Gemini side is a ladder: `GEMINI_MODEL`, then `GEMINI_MODEL_FALLBACK`
+  where it names a different model, then Groq. Both default to the same
+  model, so promoting a new one is `GEMINI_MODEL=<new>` and nothing else —
+  the model in service today stays underneath it. The second rung is only
+  tried when Gemini ANSWERED and refused; silence goes straight to Groq.
 
 ## Files
 | File | Role |
