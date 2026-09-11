@@ -27,23 +27,45 @@ export const SITE_DESCRIPTION =
  *
  * changeFrequency/priority are the sitemap's hints, not a promise a crawler
  * honours — kept modest and roughly true rather than tuned for effect.
+ *
+ * `lastModified` IS honoured, and it was the thing missing.
+ *
+ * Google schedules recrawls largely off `<lastmod>`, and a sitemap that omits
+ * it gives a crawler no reason to come back and look at a page it already has.
+ * That is the mechanism behind a rewritten site whose search result still shows
+ * the copy it replaced: nothing in the sitemap ever said the pages changed, so
+ * the old snapshot stayed good enough for months.
+ *
+ * The dates are WRITTEN DOWN, not generated. Two tempting shortcuts both make
+ * things worse:
+ *   - `new Date()` at request time says every page changed on every crawl,
+ *     which is false, and Google demonstrably discounts a lastmod it catches
+ *     being wrong — leaving the site no better off than with none at all.
+ *   - The build timestamp says every page changed on every deploy, which is
+ *     also false the moment you deploy a bug fix.
+ * So: when you materially change a page's copy, change its date here. That is
+ * the only version of this field that keeps working.
  */
 export const PUBLIC_ROUTES: Array<{
   path: string;
   changeFrequency: "daily" | "weekly" | "monthly" | "yearly";
   priority: number;
+  /** ISO date (YYYY-MM-DD) the page's CONTENT last materially changed. */
+  lastModified: string;
 }> = [
-  { path: "/", changeFrequency: "weekly", priority: 1 },
-  { path: "/research", changeFrequency: "daily", priority: 0.8 },
-  { path: "/pricing", changeFrequency: "monthly", priority: 0.8 },
-  { path: "/contact", changeFrequency: "yearly", priority: 0.4 },
-  { path: "/feedback", changeFrequency: "yearly", priority: 0.3 },
-  { path: "/survey", changeFrequency: "monthly", priority: 0.4 },
-  { path: "/legal", changeFrequency: "yearly", priority: 0.3 },
-  { path: "/privacy", changeFrequency: "yearly", priority: 0.3 },
-  { path: "/terms", changeFrequency: "yearly", priority: 0.3 },
-  { path: "/dpa", changeFrequency: "yearly", priority: 0.2 },
-  { path: "/subprocessors", changeFrequency: "monthly", priority: 0.2 },
+  // 2026-09-11: the typographic pass — the display face changed across every
+  // marketing surface, which is a visible content change on all of them.
+  { path: "/", changeFrequency: "weekly", priority: 1, lastModified: "2026-09-11" },
+  { path: "/research", changeFrequency: "daily", priority: 0.8, lastModified: "2026-09-11" },
+  { path: "/pricing", changeFrequency: "monthly", priority: 0.8, lastModified: "2026-09-11" },
+  { path: "/contact", changeFrequency: "yearly", priority: 0.4, lastModified: "2026-09-11" },
+  { path: "/feedback", changeFrequency: "yearly", priority: 0.3, lastModified: "2026-09-11" },
+  { path: "/survey", changeFrequency: "monthly", priority: 0.4, lastModified: "2026-09-11" },
+  { path: "/legal", changeFrequency: "yearly", priority: 0.3, lastModified: "2026-09-11" },
+  { path: "/privacy", changeFrequency: "yearly", priority: 0.3, lastModified: "2026-09-11" },
+  { path: "/terms", changeFrequency: "yearly", priority: 0.3, lastModified: "2026-09-11" },
+  { path: "/dpa", changeFrequency: "yearly", priority: 0.2, lastModified: "2026-09-11" },
+  { path: "/subprocessors", changeFrequency: "monthly", priority: 0.2, lastModified: "2026-09-11" },
 ];
 
 /**

@@ -228,6 +228,43 @@ const nextConfig: NextConfig = {
           { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
         ],
       },
+      {
+        /*
+         * The three files that describe the site to something that is not a
+         * person — a crawler, an install prompt, an app switcher — must never
+         * be served from a cache older than the deploy.
+         *
+         * They had no cache policy at all, which means each layer in front of
+         * them (CDN, browser, the OS's own PWA store) picked its own, and the
+         * generous ones win: an installed app can keep showing the name and
+         * icon from the manifest it was installed with long after both
+         * changed, and a crawler can re-read a sitemap it already has instead
+         * of noticing the new one. Neither ever surfaces as an error — it
+         * surfaces as "why is the old version still there".
+         *
+         * `must-revalidate` with a short window is the right trade: these are
+         * tiny files, and being one hour stale is the worst case rather than
+         * the indefinite one.
+         */
+        source: "/:file(manifest.webmanifest|sitemap.xml|robots.txt)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=0, s-maxage=3600, must-revalidate",
+          },
+        ],
+      },
+      {
+        // Raya's manifest is a route handler rather than a file convention,
+        // so it needs the rule spelled out separately — same reasoning.
+        source: "/raya-manifest",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=0, s-maxage=3600, must-revalidate",
+          },
+        ],
+      },
     ];
   },
 };
