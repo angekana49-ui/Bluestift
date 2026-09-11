@@ -7,16 +7,24 @@ import { join } from "node:path";
  * Nothing in the file-convention docs says a twitter-image falls back to
  * opengraph-image's output, so both exist — same artwork, generated once.
  */
-export const OG_IMAGE_ALT =
-  "Bluestift — a Socratic AI tutor, and the dashboard that explains it to teachers";
+export const OG_IMAGE_ALT = "Bluestift — the collaborative AI for education";
 export const OG_IMAGE_SIZE = { width: 1200, height: 630 };
 
-// Short on purpose — this renders at a fixed size with no text-fit logic, so
-// it needs a line proven to wrap safely rather than the full meta description
-// (lib/seo.ts's SITE_DESCRIPTION, used for <meta name="description"> instead,
-// where a browser/crawler wraps it for free). Lifted from README.md's own
-// one-line pitch.
-const TAGLINE = "An AI tutor that refuses to do the homework, and a dashboard that tells teachers why.";
+/**
+ * ONE claim, and it is the hero's own chip (`site.hero.eyebrow`).
+ *
+ * This card, the tab title (app/page.tsx), the install prompt
+ * (app/manifest.ts) and this file's alt text had drifted into four different
+ * descriptions of the product — one of them ("AI-powered diagnostic engine for
+ * schools") being copy the site itself had already retired. A share card is
+ * the one surface a stranger meets first, so it was showing the oldest pitch
+ * to exactly the people with no other context.
+ *
+ * Short on purpose either way: this renders at a fixed size with no text-fit
+ * logic, so it needs a line proven to wrap safely. The longer elaboration
+ * lives in SITE_DESCRIPTION (lib/seo.ts), where a crawler wraps it for free.
+ */
+const TAGLINE = "The collaborative AI for education";
 
 // Satori (what ImageResponse renders with) needs an actual image source, not
 // a filesystem path — base64-embedding public/'s own mark keeps this in sync
@@ -48,11 +56,14 @@ export async function buildBrandOgImage() {
         <div style={{ display: "flex", fontSize: 88, fontWeight: 700, color: "#ffffff", letterSpacing: -2 }}>
           Bluestift
         </div>
+        {/* 34 rather than 30: the tagline used to be a full sentence that
+            needed to wrap small. It is one short line now, so it can carry
+            its own weight under the wordmark instead of reading as a caption. */}
         <div
           style={{
             display: "flex",
             marginTop: 24,
-            fontSize: 30,
+            fontSize: 34,
             lineHeight: 1.4,
             color: "#a9bdd9",
             maxWidth: 820,

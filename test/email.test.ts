@@ -130,4 +130,18 @@ describe("siteUrl", () => {
   it("never yields an empty origin when nothing is configured", () => {
     for (const s of SURFACES) expect(siteUrl(s)).toMatch(/^https:\/\/\S+$/);
   });
+
+  it("falls back to a host that actually resolves, not a placeholder", () => {
+    // It used to return `https://app.bluestift.local`. Nothing failed when it
+    // did: the send succeeded, the mail rendered, and only the link was dead —
+    // on every invite, join request and receipt at once. And because
+    // NEXT_PUBLIC_* is inlined at BUILD time, setting the var in the dashboard
+    // does not repair a deployment already built without it. A fallback that
+    // cannot be reached is worse than one that points at production too early
+    // (the call lib/seo.ts already made for metadata).
+    for (const s of SURFACES) {
+      expect(siteUrl(s)).not.toMatch(/\.local$/);
+      expect(siteUrl(s)).toBe("https://thebluestift.com");
+    }
+  });
 });

@@ -25,7 +25,11 @@ export default function manifest(): MetadataRoute.Manifest {
     id: "/",
     name: "Bluestift",
     shortName: "Bluestift",
-    description: "Bluestift — AI-powered diagnostic engine for schools.",
+    // Was "AI-powered diagnostic engine for schools" — copy the site itself
+    // retired (see the Navbar note on the dropped tagline), still being shown
+    // in the install prompt. One claim across the tab title, the share card
+    // and here: the hero's own chip.
+    description: "Bluestift — the collaborative AI for education.",
     startUrl: "/login",
     icons: "icon",
   });

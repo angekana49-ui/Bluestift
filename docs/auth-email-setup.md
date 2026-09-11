@@ -23,10 +23,56 @@ Supabase Dashboard → **Authentication → Emails → SMTP Settings** → enabl
 
 Supabase Dashboard → **Authentication → URL Configuration**:
 
-- **Site URL**: `http://localhost:3000` (dev) — set the production URL when you deploy.
-- **Redirect URLs** (allowlist): add `http://localhost:3000/**` (and your prod URL `/**`).
+- **Site URL**: the production apex, e.g. `https://thebluestift.com`. `http://localhost:3000`
+  is the dev value and **must not survive a deploy** — see the failure below.
+- **Redirect URLs** (allowlist): every origin that signs anyone in.
 
-The templates below use `{{ .SiteURL }}`, so Site URL must be correct.
+```
+https://thebluestift.com/**
+https://schools.thebluestift.com/**
+https://www.raya.thebluestift.com/**      ← spell out a two-label host
+http://localhost:3000/**
+```
+
+> **`https://*.thebluestift.com/**` does not cover `www.raya.thebluestift.com`.**
+> The wildcard matches one label, so it covers `schools.` and `raya.` but not a
+> host with two labels in front. If DNS made a product live at `www.raya.`
+> rather than `raya.`, that origin needs its own line.
+
+### The failure this causes, and why it is hard to read
+
+Every `signInWithOtp` / `updateUser` call in the app asks for
+`${window.location.origin}/auth/callback?next=/account`. Supabase honours that
+**only if it is allowlisted**. When it is not, it does not error — it silently
+substitutes the **Site URL**. So one missing allowlist entry produces:
+
+- links that point at the wrong host (localhost, if that value was left in place), and
+- a landing at the **root** with `?code=…` instead of `/auth/callback?code=…`,
+
+…for **every** email the product sends, all at once. Both symptoms, one cause.
+`app/page.tsx` now forwards a stray `?code=` to `/auth/callback` so the sign-in
+still completes, but that is a safety net: the wrong host in the email is the
+symptom that tells you the configuration, not the code, is what needs fixing.
+
+### The app sends its own email too — different wiring, same symptom
+
+Two circuits share one Resend account, and a link can break in either:
+
+| | Supabase auth mail (magic link, confirm, email change) | App mail (`lib/email.ts` — invites, join requests, receipts, share links) |
+|---|---|---|
+| Sent by | Supabase, through Resend as SMTP relay | the app, through the Resend API |
+| Link built from | `{{ .SiteURL }}` (§2 above) | `siteUrl(surface)` → `NEXT_PUBLIC_SITE_URL` / `_RAYA_URL` / `_SCHOOLS_URL` |
+| Breaks when | Site URL / allowlist are wrong in the dashboard | those vars are unset **in the build** |
+
+`NEXT_PUBLIC_*` is inlined at **build** time, so setting it in Vercel does not
+repair a deployment already built without it — rebuild, don't redeploy. Unset,
+`siteUrl()` now falls back to `SITE_URL` (production) rather than the old
+`https://app.bluestift.local`, which resolved nowhere and turned every app
+email into a dead link while the send itself reported success.
+
+Checking both takes two minutes: request a magic link and look at the host in
+the URL, then trigger one app email (a staff invite is easiest) and look at the
+host in its button.
 
 ## 3. Email templates
 

@@ -1,6 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasRealEmail } from "@/lib/auth";
+import { SITE_URL } from "@/lib/seo";
 
 /**
  * Transactional email via Resend's REST API (no SDK dependency — same fetch-only
@@ -153,6 +154,19 @@ export async function getUserEmail(userId: string): Promise<string | null> {
  *
  * Both product vars fall back to the site URL. Unset — which is the case today,
  * on one origin — every caller gets exactly the string it got before.
+ *
+ * The last fallback is `SITE_URL` (lib/seo.ts), which is production, NOT the
+ * `https://app.bluestift.local` placeholder this used to return. That
+ * placeholder never resolves, so an unset NEXT_PUBLIC_SITE_URL sent every
+ * invite, join request and receipt out with a dead link — and nothing failed:
+ * the send succeeded, the mail looked right, only the link was gone. Worse,
+ * NEXT_PUBLIC_* is inlined at BUILD time, so "I set it in Vercel" does not fix
+ * a deployment already built without it.
+ *
+ * lib/seo.ts already made this exact call for metadata, and its reasoning
+ * transfers with more force here: a link to the real apex at least reaches a
+ * working site, while a link to a domain that does not exist reaches nothing.
+ * One module answering "what is our base URL?" for the whole app, not two.
  */
 export function siteUrl(surface: EmailBrand): string {
   const site = process.env.NEXT_PUBLIC_SITE_URL;
@@ -162,5 +176,5 @@ export function siteUrl(surface: EmailBrand): string {
       : surface === "schools"
         ? (process.env.NEXT_PUBLIC_SCHOOLS_URL ?? site)
         : site;
-  return raw?.replace(/\/$/, "") ?? "https://app.bluestift.local";
+  return raw?.replace(/\/$/, "") ?? SITE_URL;
 }

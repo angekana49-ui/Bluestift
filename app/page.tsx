@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { resolveHome } from "@/lib/routing";
 import { pricingEntry } from "@/lib/billing";
@@ -19,7 +20,38 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
 
-export default async function Home() {
+/**
+ * An auth code that lands HERE is a misconfiguration, and it used to be a
+ * silent one.
+ *
+ * Every `signInWithOtp` / `updateUser` call in this app asks for
+ * `${origin}/auth/callback?next=/account`. Supabase honours that only if the
+ * URL is in its **Redirect URLs** allowlist; when it is not, it silently
+ * substitutes the project's **Site URL** — so the link in the email arrives at
+ * the root of whatever that is set to, carrying `?code=` with it. The landing
+ * page then rendered marketing copy over a perfectly valid, single-use auth
+ * code and dropped it: no session, no error, nothing to report.
+ *
+ * Forwarding it costs one redirect and turns that dead end into a working
+ * sign-in. It does NOT paper over the misconfiguration — the email still shows
+ * the wrong host, which is the visible symptom that gets it fixed (see
+ * docs/auth-email-setup.md §2) — it only stops the user paying for it.
+ *
+ * Root only, deliberately: `?code=` is a legitimate parameter elsewhere in the
+ * product (a school's class access code), and a blanket rule in the proxy
+ * would hijack that flow. Nothing legitimately sends `?code=` to `/`.
+ */
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ code?: string; error?: string }>;
+}) {
+  const { code, error } = await searchParams;
+  if (code) redirect(`/auth/callback?code=${encodeURIComponent(code)}`);
+  // The same fallback delivers Supabase's failures here too (an expired or
+  // already-used link). /login knows how to say that; the landing page does not.
+  if (error) redirect("/login?error=auth");
+
   const supabase = await createClient();
   const {
     data: { user },
