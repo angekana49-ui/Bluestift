@@ -2112,38 +2112,48 @@ a {
 }
 
 /* ============================================================
-   THE COMPOSER — a detached box, or a bar across the bottom
+   THE COMPOSER — one floating box, at every width
    ============================================================
-   Small screens get the shape a phone keyboard expects, and the one every
-   chat app on a phone has converged on: the text box owns a full-width tier
-   of its own and grows downward as the message gets longer, and voice, attach,
-   the mode pill and send sit on a second tier beneath it. A single row cannot
-   do this — four 38px circles plus a labelled button leave the field a ~90px
-   slot on a 360px screen, and it gets narrower the moment a surface adds a
-   control.
+   TREATMENT, first, because it is the part that has no exceptions: the
+   composer is an OBJECT that floats over the conversation — an opaque rounded
+   box on a shadow — and never a band of chrome bolted across the bottom of the
+   page. The strip around it is transparent at every width and on every
+   surface. There is no second treatment to keep in step with anything.
 
-   And where it wears that shape it DETACHES: no top border, no fill across the
-   width, the rounded box lifting off the thread on a shadow. The full-bleed
-   strip is right for a field that is one line; around two tiers it is a slab
-   of chrome across the bottom of a phone.
+   It used to be both: a detached box below 900px, and above it a full-bleed
+   bar — a top border and a card-coloured fill right across the viewport. That
+   bar is a horizontal seam in a page that has no other one, and it reads as
+   the page ending early and something else beginning: the thread sits on the
+   content ground, then a hard edge, then a slab in a different colour. The
+   composer is not a different region of the app. It is the thing you type in,
+   and it should look like it is sitting ON the conversation, not walling it
+   off. Colour and a border are also simply not needed to say "input" when a
+   bordered, shadowed, rounded box is already saying it.
 
-   So the detached two-tier box is the DEFAULT here, and the one media query
-   below takes it back to the historical bar-with-a-row — wide screens, where
-   width is not scarce and two tiers is just a taller composer, and short ones,
-   where a phone held sideways cannot spare the height. Writing it in that
-   direction is what keeps the shape and the treatment on one condition instead
-   of two that can drift apart.
+   SHAPE is the part that does vary, and it varies with the room available:
+
+   - Two tiers by default — the text box owns a full-width tier and grows
+     downward as the message does, with voice, attach, the mode pill and send
+     on a second tier beneath it. This is what every chat app on a phone has
+     converged on, because a single row cannot do it: four 38px circles plus a
+     labelled button leave the field a ~90px slot on a 360px screen.
+   - One row from 900px up, or on a short viewport (a phone held sideways is
+     812x375, where two tiers is a third of the screen and all of it with the
+     keyboard up). Room is not scarce there, or height is, and either way the
+     controls move INSIDE the same box rather than out onto the page. That is
+     what the old bar was really for — without it, loose round buttons on the
+     content ground have nothing holding them together.
 
    ONE markup tree serves both (components/chat/chat-composer.tsx renders the
    two-tier shape unconditionally) — the choice is the viewport's, and the
    viewport is not knowable at render time on the server. Choosing in JS would
    paint the desktop row on a phone for a frame and then jump.
 
-   `.chat-composer-strip.is-pinned` keeps the detached two-tier box at every
-   width; only the room's group chat asks for that, being the one composer with
-   a labelled "Ask Raya" button alongside the round ones. `.is-centered` is the
-   welcome screen, where the composer sits under the greeting: no strip to
-   speak of, and no shadow — it is not floating over anything there.
+   `.chat-composer-strip.is-pinned` holds the two tiers at every width; only
+   the room's group chat asks for that, being the one composer with a labelled
+   "Ask Raya" button alongside the round ones. `.is-centered` is the welcome
+   screen, where the composer sits under the greeting: no shadow there, since
+   there is no conversation yet for it to float over.
 
    Colours arrive as custom properties set inline by the component, since only
    it holds the theme. */
@@ -2179,6 +2189,12 @@ a {
 /* Under the greeting there is no conversation to float over. */
 .chat-composer-strip.is-centered .chat-composer-box {
   background: var(--composer-box-bg);
+}
+/* `:not(:focus-within)` and not a bare `box-shadow: none`, which outranks the
+   focus rule below — three classes against one class and a pseudo-class — and
+   so silently took the focus ring off the welcome screen's composer, the one
+   field a new arrival types into first. */
+.chat-composer-strip.is-centered .chat-composer-box:not(:focus-within) {
   box-shadow: none;
 }
 
@@ -2192,7 +2208,11 @@ a {
    rendered outside the shell. */
 .chat-composer-box:focus-within {
   border-color: var(--app-focus, #1b5fc1);
-  box-shadow: 0 0 0 3px rgba(43, 116, 217, 0.16);
+  /* The ring AND the lift. One `box-shadow` declaration replaces the other, so
+     spelling only the ring here dropped the box flat onto the page the moment
+     it was focused — a floating composer that stops floating exactly while it
+     is in use. */
+  box-shadow: 0 0 0 3px rgba(43, 116, 217, 0.16), var(--composer-shadow);
 }
 
 .chat-composer-field {
@@ -2224,36 +2244,28 @@ a {
    two tiers is a composer taking a third of the screen — with the keyboard up,
    all of it. Width is not the only way to run out of room.
 
-   Everything that makes the composer a bar instead of a detached box lives in
-   here, on the one condition, so the two can never disagree. */
+   SHAPE ONLY. Nothing in here touches the fill, the border, the radius or the
+   shadow: the box is the same floating object it is everywhere else, and the
+   two tiers simply collapse into one row inside it. The controls stay INSIDE
+   that box — the previous version put them out on the page and relied on a
+   full-bleed bar behind them to group them, which is the bar this whole
+   section now does without. */
 @media (min-width: 900px), (max-height: 480px) and (min-width: 480px) {
-  /* -- the strip comes back: a border and a fill across the width -- */
-  .chat-composer-strip:not(.is-pinned):not(.is-centered) {
-    border-top: 1px solid var(--composer-strip-border);
-    background: var(--composer-strip-bg);
-  }
-  .chat-composer-strip:not(.is-pinned):not(.is-centered) > .chat-col {
-    padding-top: 12px;
-  }
   .chat-composer-strip:not(.is-pinned) .chat-composer {
-    padding: 16px 0;
+    padding: 6px 0 14px;
   }
 
-  /* -- and the box flattens into one row inside it -- */
   .chat-composer-strip:not(.is-pinned) .chat-composer-box {
     flex-direction: row;
+    /* Bottom-aligned, so a message that has grown to several lines pushes the
+       box upward while send stays under the caret's last line. */
     align-items: flex-end;
     gap: 8px;
-    background: transparent;
-    border: none;
-    border-radius: 0;
-    padding: 0;
-    box-shadow: none;
-  }
-  /* The field is a pill again, so the ring goes back onto the field itself
-     (its own :focus outline) rather than onto a box that has no border left. */
-  .chat-composer-strip:not(.is-pinned) .chat-composer-box:focus-within {
-    box-shadow: none;
+    /* Even on both sides, unlike the two-tier shape: a round button sits at
+       each end of this row, and an inset written for text would push the left
+       one visibly further in than the right. Where a surface has no voice
+       button the field leads instead, and its own padding supplies the inset. */
+    padding: 7px 8px;
   }
   .chat-composer-strip:not(.is-pinned) .chat-composer-actions {
     display: contents;
@@ -2261,10 +2273,10 @@ a {
   .chat-composer-strip:not(.is-pinned) .chat-composer-field {
     order: 2;
     flex: 1;
-    background: var(--composer-field-bg);
-    border: 1px solid var(--composer-border);
-    border-radius: 20px;
-    padding: 10px 18px;
+    /* Padded to the height of the 38px circles beside it, so a one-line
+       message and the buttons share a baseline instead of the text riding
+       low in the row. */
+    padding: 8px 6px;
   }
   .chat-composer-strip:not(.is-pinned) .chat-composer-lead > * {
     order: 1;

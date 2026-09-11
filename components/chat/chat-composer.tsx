@@ -58,14 +58,15 @@ export const COMPOSER_ACCEPT =
  * and both room channels) so they stay pixel-identical: optional voice + attach,
  * the AI-mode pill, the round send button, the staged-attachment chips and the
  * inline error line. `centered` places it under the welcome greeting; otherwise it
- * pins to the bottom edge with a top border. `extraAction` slots a surface-specific
- * control (e.g. the room's "Ask Raya") just before the send button.
+ * floats at the bottom edge. `extraAction` slots a surface-specific control
+ * (e.g. the room's "Ask Raya") just before the send button.
  *
  * Its SHAPE is the stylesheet's call, not this file's: below 900px every surface
  * gets two tiers — the growing text box on a full-width row, every control on a
- * second row under it — and from 900px up it flattens back to the single row.
- * See `.chat-composer` in globals.css, and `stacked` below for the room's
- * exception.
+ * second row under it — and from 900px up those two tiers collapse into one row
+ * INSIDE the same box. What never varies is the box: an opaque rounded object on
+ * a shadow, over a strip that paints nothing. See `.chat-composer` in
+ * globals.css, and `stacked` below for the room's exception.
  */
 /**
  * How many messages left before the composer starts saying so. Flat rather
@@ -149,20 +150,20 @@ export function ChatComposer({
   }, [input]);
 
   /*
-   * Pinned to the bottom, but reading as an object that floats over the thread
-   * rather than a bar bolted to its edge.
+   * Pinned to the bottom, and reading as an object that floats over the thread
+   * — at every width, on every surface. There is no longer a second treatment.
    *
-   * The old default was a full-bleed strip: a top border and a solid fill right
-   * across the width. That is right for a field that is ONE line. Two tiers in
-   * the same treatment is a slab of chrome at the bottom of a phone — which is
-   * what the room's composer opted out of, and what every surface now does
-   * wherever it wears the two-tier shape: no border, no fill of its own, and
-   * the rounded box inside carrying a shadow so it lifts off the conversation.
+   * What it replaced, above 900px, was a full-bleed strip: a top border and a
+   * card-coloured fill right across the viewport. A bar like that is a seam the
+   * page has nowhere else, and it makes the composer look like a different
+   * region of the app rather than the thing you type into this one. Below 900px
+   * the strip was already transparent, so the app was also wearing two
+   * different bottoms depending on the window.
    *
-   * Which of the two it is, is `.chat-composer-strip` in globals.css, keyed on
-   * the same media condition that decides the shape — detached where the box is
-   * two tiers, a bar where it flattens back to a row. Same reason as everything
-   * else here: the viewport is not knowable while rendering on the server.
+   * The strip itself now paints NOTHING (`.chat-composer-strip` in globals.css,
+   * `background: transparent`). Everything visible is the rounded box inside
+   * it, which is why the buttons live inside that box in both shapes: out on
+   * the page they had only the old bar holding them together.
    *
    * It stays a flex sibling of the thread rather than an absolute overlay — the
    * thread must never scroll its last message underneath a floating panel it
@@ -176,11 +177,8 @@ export function ChatComposer({
       style={{
         // Theme first, layout second: the stylesheet owns which of these apply
         // at a given width, but only the theme knows the colours.
-        ["--composer-strip-bg" as string]: t.cardBg,
-        ["--composer-strip-border" as string]: t.cardBorder,
         ["--composer-float-bg" as string]: t.cardBg,
         ["--composer-box-bg" as string]: t.inputBg,
-        ["--composer-field-bg" as string]: t.inputBg,
         ["--composer-border" as string]: t.inputBorder,
         ["--composer-shadow" as string]: t.dark
           ? "0 6px 22px rgba(0,0,0,0.42)"
@@ -286,11 +284,11 @@ export function ChatComposer({
             rows={1}
             // `no-scrollbar-arrows` hides the native scrollbar (Firefox +
             // WebKit) so a long message has no chrome — the caret and drag
-            // still scroll it. The field's BOX — fill, border, radius, padding,
-            // and whether it is a tier of its own or a cell in a row — is
-            // `.chat-composer-field` in globals.css, because that is the half
-            // of it that changes with the viewport. What is width-independent
-            // stays here.
+            // still scroll it. The field itself paints nothing in either shape
+            // (the box around it is what you see); its padding, and whether it
+            // is a tier of its own or a cell in a row, is `.chat-composer-field`
+            // in globals.css, because that is the half of it that changes with
+            // the viewport. What is width-independent stays here.
             className="no-scrollbar-arrows chat-composer-field"
             style={{
               minWidth: 100,

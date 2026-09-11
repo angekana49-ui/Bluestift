@@ -224,27 +224,58 @@ describe("the room's chrome and composer", () => {
     // back out of it — so the default below 900px is the two-tier box.
     expect(rules).toMatch(/\.chat-composer-strip:not\(\.is-pinned\) \.chat-composer-box \{/);
     expect(rules).toMatch(/flex-direction: row/);
-    /*
-     * The SHAPE and the TREATMENT are one condition, not two.
-     *
-     * Detached — no top border, no fill across the width, a shadow under the
-     * box — is the default, and this same query is what puts the bar back.
-     * Written the other way round (a strip by default, detached under a second
-     * query) the two could disagree, and a two-tier box inside a full-bleed
-     * band is exactly the slab of chrome this is meant to avoid.
-     */
-    expect(rules).toMatch(/border-top: 1px solid var\(--composer-strip-border\)/);
-    const base = css.slice(css.indexOf(".chat-composer-strip {"), css.indexOf("@media (min-width: 900px)", css.indexOf(".chat-composer-strip {")));
-    expect(base).toMatch(/\.chat-composer-strip \{\s*background: transparent/);
-    expect(base).toMatch(/box-shadow: var\(--composer-shadow\)/);
     // Width is not the only way to run out of room: a phone held sideways is
     // 812x375, where two tiers is a composer taking a third of the screen —
     // all of it once the keyboard is up. Same flattening, second condition.
     expect(conditions).toMatch(/max-height: 480px/);
   });
 
+  it("floats the composer at every width instead of banding the page", () => {
+    /*
+     * The wide tier collapses the TIERS and nothing else.
+     *
+     * It used to also put a bar back under the composer — a top border and a
+     * card-coloured fill right across the viewport — and strip the box itself
+     * bare, leaving the round buttons loose on the page with only that bar
+     * holding them together. That band is a seam the app has nowhere else, and
+     * it made the composer read as a different region rather than the thing
+     * you type into this one; it also meant two different bottoms depending on
+     * the window width.
+     *
+     * So: one treatment, and a query that may not touch it.
+     */
+    const flatten = /@media \(min-width: 900px\)[^{]*\{([\s\S]*?)\n\}/.exec(
+      css.slice(css.indexOf(".chat-composer-strip {")),
+    );
+    const rules = flatten?.[1] ?? "";
+    expect(rules).not.toMatch(/border-top|background|box-shadow|border-radius/);
+    // The controls move inside the box rather than out beside it — this is the
+    // declaration that does it, and the reason the bar is not missed.
+    expect(rules).toMatch(/\.chat-composer-actions \{\s*display: contents/);
+
+    const base = css.slice(
+      css.indexOf(".chat-composer-strip {"),
+      css.indexOf("@media (min-width: 900px)", css.indexOf(".chat-composer-strip {")),
+    );
+    expect(base).toMatch(/\.chat-composer-strip \{\s*background: transparent/);
+    expect(base).toMatch(/box-shadow: var\(--composer-shadow\)/);
+    // And the two properties that painted the band are gone outright, in the
+    // stylesheet and at the component that fed them a colour — a dead custom
+    // property is an invitation to put the band back.
+    expect(css).not.toMatch(/--composer-strip-(bg|border)/);
+    expect(composer).not.toMatch(/--composer-strip-/);
+  });
+
   it("gives the stacked box a focus ring, since the field gave up its own", () => {
     expect(composer).toMatch(/className="chat-composer-box"/);
     expect(css).toMatch(/\.chat-composer-box:focus-within\s*\{[^}]*border-color/);
+    // The ring must not cost the box its lift: one box-shadow declaration
+    // replaces the other, so the focused composer would drop flat onto the
+    // page exactly while it is being used.
+    expect(css).toMatch(/\.chat-composer-box:focus-within\s*\{[\s\S]*?box-shadow:[^;]*var\(--composer-shadow\)/);
+    // Same trap, opposite direction: the welcome screen kills the shadow with
+    // a THREE-class selector, which outranks `:focus-within` and took the ring
+    // off the first field a new arrival ever types into.
+    expect(css).toMatch(/\.is-centered \.chat-composer-box:not\(:focus-within\)\s*\{\s*box-shadow: none/);
   });
 });
