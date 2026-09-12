@@ -42,6 +42,8 @@ type Billing = {
   declaredEffectif: number | null;
   pilotUntil: string | null;
   expiresAt: string | null;
+  /** Pilot over, no plan running: no new students or classes (lib/billing.ts). */
+  readOnly?: boolean;
   history: HistoryItem[];
   plans: Plan[];
 };
@@ -118,6 +120,21 @@ export function SchoolBilling() {
        per card, so a plan card added next month inherits the exception instead
        of quietly breaking it. */
     <div style={{ fontFamily: billingDisplay }}>
+      {billing.readOnly && (
+        <div
+          role="alert"
+          style={{
+            ...box,
+            border: "1px solid rgba(239,68,68,0.45)",
+            background: "rgba(239,68,68,0.08)",
+            color: t.text,
+            fontSize: 16,
+            lineHeight: 1.55,
+          }}
+        >
+          <strong>{tr("school.billing.readOnlyTitle")}</strong> {tr("school.billing.readOnlyBody")}
+        </div>
+      )}
       {/* Current plan + seat usage */}
       <div style={box}>
         <div style={{ ...title, display: "flex", alignItems: "center", justifyContent: "space-between" }}>

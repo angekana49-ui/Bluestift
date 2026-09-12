@@ -256,8 +256,19 @@ export type SeatGate = {
   /** Real current headcount (student_identities for the school). */
   used: number;
   /** Why the gate is (or isn't) active — for logging/UX. */
-  reason: "pilot" | "uncapped" | "no_subscription" | "plan";
+  reason: "pilot" | "uncapped" | "no_subscription" | "plan" | "pilot_ended";
 };
+
+/**
+ * PostgREST filter for a subscription that is still running: no end, or an end
+ * not yet reached. Both `active` and `trial` rows need it — without it the free
+ * pilot's `trial` row kept granting seats for ever after the pilot was over.
+ * The timestamp is quoted because an ISO string carries `.` and `:`, which the
+ * `or=` grammar reserves.
+ */
+function stillRunning(nowIso: string): string {
+  return `end_date.is.null,end_date.gte."${nowIso}"`;
+}
 
 /**
  * Resolve the seat gate for a school. Used both by the join route (to refuse a
@@ -266,7 +277,8 @@ export type SeatGate = {
  */
 export async function resolveSeatGate(schoolId: string): Promise<SeatGate> {
   const schools = createSchoolsAdminClient();
-  const today = new Date().toISOString().slice(0, 10);
+  const nowIso = new Date().toISOString();
+  const today = nowIso.slice(0, 10);
 
   // Non-gameable headcount = the source of truth for billing.
   const { count } = await schools
@@ -285,16 +297,27 @@ export async function resolveSeatGate(schoolId: string): Promise<SeatGate> {
     return { limited: false, seats: null, used, reason: "pilot" };
   }
 
-  const { data: subData } = await schools
+  const { data: subData, error: subErr } = await schools
     .from("subscriptions")
     .select("plan_id, seat_limit")
     .eq("school_id", schoolId)
     .in("status", ["active", "trial"])
+    .or(stillRunning(nowIso))
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
   const sub = subData as { plan_id: string | null; seat_limit: number | null } | null;
-  if (!sub) return { limited: false, seats: null, used, reason: "no_subscription" };
+  // A failed read is not "no plan": degrade to ungated, like every other branch.
+  if (subErr) return { limited: false, seats: null, used, reason: "no_subscription" };
+  if (!sub) {
+    // A school that had a pilot, let it run out and never activated a plan is
+    // READ-ONLY: its dashboard stays open, but it takes no new students (a cap
+    // of zero) and no new classes (isSchoolReadOnly) until a plan is activated.
+    // A school with no pilot on record predates self-serve creation and keeps
+    // the old ungated behaviour.
+    if (pilotUntil) return { limited: true, seats: 0, used, reason: "pilot_ended" };
+    return { limited: false, seats: null, used, reason: "no_subscription" };
+  }
 
   let planSeat: number | null = null;
   if (sub.plan_id) {
@@ -308,6 +331,15 @@ export async function resolveSeatGate(schoolId: string): Promise<SeatGate> {
   const seats = sub.seat_limit ?? planSeat;
   if (seats == null) return { limited: false, seats: null, used, reason: "uncapped" };
   return { limited: true, seats, used, reason: "plan" };
+}
+
+/** True once a school's pilot is over and no plan is running — see resolveSeatGate. */
+export async function isSchoolReadOnly(schoolId: string): Promise<boolean> {
+  try {
+    return (await resolveSeatGate(schoolId)).reason === "pilot_ended";
+  } catch {
+    return false; // never lock a school out on a read failure
+  }
 }
 
 // ---- Plan label (sidebar profile chip) -------------------------------------
@@ -327,12 +359,14 @@ export async function getPlanLabel(
   const freeLabel = "userId" in target ? "User — Free" : "Free";
   try {
     const schools = createSchoolsAdminClient();
-    const today = new Date().toISOString().slice(0, 10);
+    const nowIso = new Date().toISOString();
+    const today = nowIso.slice(0, 10);
 
     let filtered = schools
       .from("subscriptions")
-      .select("plan_id")
-      .in("status", ["active", "trial"]);
+      .select("plan_id, status")
+      .in("status", ["active", "trial"])
+      .or(stillRunning(nowIso));
     filtered =
       "schoolId" in target
         ? filtered.eq("school_id", target.schoolId)
@@ -341,7 +375,11 @@ export async function getPlanLabel(
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    const planId = (sub as { plan_id: string | null } | null)?.plan_id ?? null;
+    const row = sub as { plan_id: string | null; status: string } | null;
+    // A school's `trial` row is its free pilot: the plan on it is the one it
+    // CHOSE, not one it pays for, and the chip should not claim otherwise.
+    if (row?.status === "trial" && "schoolId" in target) return "Pilot";
+    const planId = row?.plan_id ?? null;
 
     if (planId) {
       const { data: p } = await schools
@@ -393,6 +431,8 @@ export type SchoolBilling = {
   declaredEffectif: number | null;
   pilotUntil: string | null;
   expiresAt: string | null;
+  /** The pilot is over and no plan is running: no new students or classes. */
+  readOnly: boolean;
   history: BillingHistoryItem[];
   plans: BillingPlan[]; // b2b catalog for upgrade/activation
 };
@@ -445,13 +485,21 @@ export async function getSchoolBilling(userId: string): Promise<SchoolBilling | 
   if (school?.current_school_year_id) effQuery = effQuery.eq("school_year_id", school.current_school_year_id);
   const { data: effData } = await effQuery;
   const effRows = (effData as { expected_size: number | null }[] | null) ?? [];
-  const declaredEffectif = effRows.some((r) => r.expected_size != null)
+  const classEffectif = effRows.some((r) => r.expected_size != null)
     ? effRows.reduce((sum, r) => sum + (r.expected_size ?? 0), 0)
     : null;
+  // Before any class exists, the headcount the admin declared when starting the
+  // pilot (stored on its trial row) is the only effectif on record.
+  const pilotEffectif = subs.find((s) => s.status === "trial" && s.seat_limit != null)?.seat_limit ?? null;
+  const declaredEffectif = classEffectif ?? pilotEffectif;
   const planName = new Map(plans.map((p) => [p.id, p.name]));
 
-  // The current subscription = the newest active/trial one, if any.
-  const current = subs.find((s) => s.status === "active" || s.status === "trial") ?? null;
+  // The current subscription = the newest active/trial one still running.
+  const nowIso = new Date().toISOString();
+  const current =
+    subs.find(
+      (s) => (s.status === "active" || s.status === "trial") && (s.end_date == null || s.end_date >= nowIso),
+    ) ?? null;
 
   const history: BillingHistoryItem[] = subs.map((s) => ({
     id: s.id,
@@ -477,6 +525,7 @@ export async function getSchoolBilling(userId: string): Promise<SchoolBilling | 
     declaredEffectif,
     pilotUntil: school?.pilot_until ?? null,
     expiresAt: school?.subscription_expires_at ?? null,
+    readOnly: gate.reason === "pilot_ended",
     history,
     plans,
   };

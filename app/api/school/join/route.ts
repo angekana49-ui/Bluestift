@@ -128,6 +128,12 @@ export async function POST(request: Request) {
   // seat-neutral). Ungated schools (pilot / no seat-limited plan) never block.
   if (newToSchool) {
     const gate = await resolveSeatGate(schoolId);
+    if (gate.reason === "pilot_ended") {
+      return NextResponse.json(
+        { error: "This school isn't accepting new students right now — ask your school administrator." },
+        { status: 409 },
+      );
+    }
     if (gate.limited && gate.used >= (gate.seats ?? Infinity)) {
       return NextResponse.json(
         { error: "This school has reached its seat limit — ask your school administrator to add seats." },

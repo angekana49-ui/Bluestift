@@ -2723,6 +2723,9 @@ export const de: Partial<Messages> = {
   "school.billing.method.card": "Karte (manuell)",
   "school.billing.method.other": "Andere",
   "school.billing.onQuote": "Auf Anfrage",
+  "school.billing.readOnlyTitle": "Deine Pilotphase ist beendet.",
+  "school.billing.readOnlyBody":
+    "Deine Schule ist schreibgeschützt: Alles bleibt einsehbar, aber es können keine neuen Schüler oder Klassen hinzugefügt werden, bis du unten einen Plan aktivierst.",
   "school.billing.perStudentMoSuffix": "/ Schüler / Monat",
   "school.billing.free": "Kostenlos",
   "school.billing.yr": "Jahr",

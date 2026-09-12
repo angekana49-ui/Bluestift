@@ -2725,6 +2725,9 @@ export const es: Partial<Messages> = {
   "school.billing.method.card": "Tarjeta (manual)",
   "school.billing.method.other": "Otro",
   "school.billing.onQuote": "Bajo presupuesto",
+  "school.billing.readOnlyTitle": "Tu piloto ha terminado.",
+  "school.billing.readOnlyBody":
+    "Tu centro está en solo lectura: todo sigue disponible, pero no se pueden añadir alumnos ni clases nuevos hasta que actives un plan abajo.",
   "school.billing.perStudentMoSuffix": "/ alumno / mes",
   "school.billing.free": "Gratis",
   "school.billing.yr": "año",

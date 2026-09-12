@@ -3046,6 +3046,9 @@ export const en = {
   "school.billing.method.card": "Card (manual)",
   "school.billing.method.other": "Other",
   "school.billing.onQuote": "On quote",
+  "school.billing.readOnlyTitle": "Your pilot has ended.",
+  "school.billing.readOnlyBody":
+    "Your school is read-only: everything stays available, but no new students or classes can be added until you activate a plan below.",
   "school.billing.perStudentMoSuffix": "/ student / mo",
   "school.billing.free": "Free",
   "school.billing.yr": "yr",

@@ -2722,6 +2722,9 @@ export const fr: Partial<Messages> = {
   "school.billing.method.card": "Carte (manuel)",
   "school.billing.method.other": "Autre",
   "school.billing.onQuote": "Sur devis",
+  "school.billing.readOnlyTitle": "Votre pilote est terminé.",
+  "school.billing.readOnlyBody":
+    "Votre établissement est en lecture seule : tout reste consultable, mais plus aucun élève ni aucune classe ne peut être ajouté tant qu'une offre n'est pas activée ci-dessous.",
   "school.billing.perStudentMoSuffix": "/ élève / mois",
   "school.billing.free": "Gratuit",
   "school.billing.yr": "an",

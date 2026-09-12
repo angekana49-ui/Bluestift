@@ -11,6 +11,21 @@ export const ANNUAL_DISCOUNT = 0.15;
  */
 export const MIN_B2B_SEATS = 100;
 
+/**
+ * The free pilot every self-serve school starts on. Creating a school is where
+ * the plan and the headcount are chosen, so the pilot begins at creation and
+ * runs this many days; afterwards an unpaid school turns read-only (see
+ * resolveSeatGate's "pilot_ended").
+ */
+export const SCHOOL_PILOT_DAYS = 45;
+
+/** The pilot's last day (inclusive), as the `date` column stores it: YYYY-MM-DD. */
+export function pilotEndDate(from: Date, days = SCHOOL_PILOT_DAYS): string {
+  const end = new Date(from);
+  end.setUTCDate(end.getUTCDate() + days);
+  return end.toISOString().slice(0, 10);
+}
+
 /** Round to 2 decimals (money). */
 export function round2(n: number): number {
   return Math.round(n * 100) / 100;

@@ -10,6 +10,7 @@ import {
   getAdminSchool,
   isArchivedClass,
 } from "@/lib/school-admin";
+import { isSchoolReadOnly } from "@/lib/billing";
 
 /** Create a class under the admin's school, tied to its current school year. */
 export async function POST(request: Request) {
@@ -25,6 +26,13 @@ export async function POST(request: Request) {
   }
   const school = await getAdminSchool(user.id);
   if (!school) return NextResponse.json({ error: "You don't administer a school." }, { status: 403 });
+  // A pilot that ended with no plan activated leaves the school read-only.
+  if (await isSchoolReadOnly(school.id)) {
+    return NextResponse.json(
+      { error: "Your pilot has ended. Activate a plan in Billing to add classes again.", code: "pilot_ended" },
+      { status: 402 },
+    );
+  }
 
   let body: { name?: string; level?: string; expectedSize?: number | null };
   try {
