@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { hasRealEmail, ensureRecoveryKeyIssued } from "@/lib/auth";
+import { hasRealEmail, ensureProfileRow, ensureRecoveryKeyIssued } from "@/lib/auth";
 import { resolveHome } from "@/lib/routing";
 import { needsAgeGate } from "@/lib/compliance/guard";
 import { OnboardingForm } from "@/components/onboarding-form";
@@ -12,13 +12,23 @@ export default async function OnboardingPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("users")
-    .select(
-      "username, display_name, account_state, birth_year, minor_consent_source, school_id",
-    )
-    .eq("id", user.id)
-    .single();
+  const readProfile = () =>
+    supabase
+      .from("users")
+      .select(
+        "username, display_name, account_state, birth_year, minor_consent_source, school_id",
+      )
+      .eq("id", user.id)
+      .maybeSingle();
+
+  let { data: profile } = await readProfile();
+  // Every route sends a profile-less account here, so this is the one place
+  // that can give it a row back — otherwise the form saves into nothing and
+  // the next page returns it here, forever. See ensureProfileRow.
+  if (!profile) {
+    await ensureProfileRow(user);
+    ({ data: profile } = await readProfile());
+  }
 
   const onboarded = Boolean(profile && profile.account_state !== "onboarding_pending");
   const gated = needsAgeGate(profile);

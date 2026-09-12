@@ -253,7 +253,7 @@ export function OnboardingForm({
     const isRaya = track !== "schools";
     const roleSignal = isRaya ? "student" : schoolRole ?? "teacher";
 
-    const { error: updErr } = await supabase
+    const { data: updated, error: updErr } = await supabase
       .from("users")
       .update({
         username: u,
@@ -262,7 +262,8 @@ export function OnboardingForm({
         account_state: emailVerified ? "active_verified" : "active_unverified",
         onboarding_completed_at: new Date().toISOString(),
       })
-      .eq("id", userId);
+      .eq("id", userId)
+      .select("id");
 
     if (updErr) {
       setBusy(false);
@@ -271,6 +272,14 @@ export function OnboardingForm({
         return setError(tr("onb.err.usernameTaken"));
       }
       return setError(updErr.message);
+    }
+    // An UPDATE that matches no row is not an error to PostgREST — it answers
+    // 200 with nothing changed. Treating that as success showed the welcome
+    // screen, whose button led to a page that sent the account straight back
+    // here: the onboarding loop. Nothing saved means nothing to celebrate.
+    if (!updated?.length) {
+      setBusy(false);
+      return setError(tr("onb.err.saveFailed"));
     }
 
     await supabase.from("onboarding_events").insert([

@@ -94,15 +94,22 @@ export async function POST(request: Request) {
   const isAdult = allowsOptionalProcessing(ageBand(birthYear));
   const grantDefault = isAdult && !existing?.training_consent_at && !existing?.school_id;
 
-  const { error } = await admin
+  const { data: stored, error } = await admin
     .from("users")
     .update({
       birth_year: birthYear,
       age_declared_at: new Date().toISOString(),
       ...(grantDefault ? { training_consent: true } : {}),
     })
-    .eq("id", user.id);
+    .eq("id", user.id)
+    .select("id");
   if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
+  // No row, nothing stored — and every guarded page reads the year back from
+  // that row. Answering "allowed" here sent the account onward to be gated
+  // straight back to /onboarding.
+  if (!stored?.length) {
+    return NextResponse.json({ error: clientError(null, "Your profile could not be found.") }, { status: 500 });
+  }
 
   // The band just changed, and the read path memoises it for five minutes.
   forgetOptionalProcessing(user.id);

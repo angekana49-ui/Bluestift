@@ -219,6 +219,38 @@ export async function mintSessionFor(
 }
 
 /**
+ * Recreate the public.users row for an auth account that has none.
+ *
+ * `handle_new_user` writes that row at sign-up, so this is only reached when
+ * the row went missing afterwards — a data reset that cleared public.users but
+ * not auth.users left exactly that (2026-09-11). Without a row, the account is
+ * trapped: onboarding's UPDATE matches nothing and reports no error, and every
+ * product page sends a profile-less user straight back to /onboarding.
+ *
+ * Mirrors the trigger's insert and nothing more, so the account restarts at
+ * `onboarding_pending` like a new one. ON CONFLICT DO NOTHING, so a row that
+ * exists is never touched. Service role: users cannot INSERT their own row.
+ */
+export async function ensureProfileRow(user: { id: string; email?: string | null }): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const real = hasRealEmail(user.email);
+    await admin.from("users").upsert(
+      {
+        id: user.id,
+        email: real ? user.email : null,
+        username: `user_${user.id.replace(/-/g, "").slice(0, 8)}`,
+        auth_method: real ? "email" : "anonymous",
+        account_type: real ? "verified" : "anonymous",
+      },
+      { onConflict: "id", ignoreDuplicates: true },
+    );
+  } catch {
+    // best-effort — the caller re-reads and decides
+  }
+}
+
+/**
  * On a successful email login/confirmation, record that the email is verified.
  * - `email_verified_at` is set once (if still null).
  * - `account_state` is bumped `active_unverified → active_verified` ONLY — a new
