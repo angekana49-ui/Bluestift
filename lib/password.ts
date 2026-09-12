@@ -8,14 +8,21 @@ import type { MessageKey } from "@/lib/i18n";
  * instead of a round trip that comes back saying "Password should be at least 6
  * characters" in English, untranslated, under a form the person has to retype.
  *
- * Deliberately short of the usual ceremony — no required symbol, no digit quota.
- * Those rules push people towards `Password1!` and towards writing it down, and
- * this product's users include twelve-year-olds on a school machine. Length,
- * plus a refusal of the three genuinely guessable shapes, is the honest trade.
+ * It MUST be at least as strict as the project's Auth settings, or it is worse
+ * than no check: a password this module passed came back from Supabase as an
+ * untranslated "should contain at least one character of each…". The project
+ * requires a lowercase letter, a capital and a digit (Authentication → Sign In /
+ * Providers → Email → password requirements), so this does too — change both
+ * together. No symbol is required, and that stays deliberate: symbol quotas push
+ * people towards `Password1!` and towards writing it down, and this product's
+ * users include twelve-year-olds on a school machine.
  */
 
-/** Supabase's own default floor is 6; 8 is ours, and it is the one users see. */
+/** Supabase's floor is 6; 8 is ours, and it is the one users see. */
 export const MIN_PASSWORD_LENGTH = 8;
+
+/** The character classes the Supabase project requires — ASCII, exactly as it checks them. */
+const REQUIRED_CLASSES = [/[a-z]/, /[A-Z]/, /[0-9]/];
 
 /**
  * The passwords an attacker tries first. Not a dictionary — a dictionary belongs
@@ -61,6 +68,10 @@ export function passwordProblem(password: string, email?: string): MessageKey | 
     const e = email.trim().toLowerCase();
     if (low === e || (localPart(e).length >= 3 && low === localPart(e))) return "pw.err.sameAsEmail";
   }
+
+  // Last, so the messages above — which ask for a different password rather
+  // than an edit to this one — are not hidden behind "add a capital".
+  if (!REQUIRED_CLASSES.every((c) => c.test(password))) return "pw.err.mix";
 
   return null;
 }

@@ -10,16 +10,26 @@ import { en } from "@/lib/i18n/en";
  */
 describe("passwordProblem", () => {
   it("accepts an ordinary, unremarkable password", () => {
-    expect(passwordProblem("correct horse battery")).toBeNull();
-    expect(passwordProblem("mangue-45-bleue")).toBeNull();
-    expect(isAcceptablePassword("mangue-45-bleue")).toBe(true);
+    expect(passwordProblem("Correct horse battery 9")).toBeNull();
+    expect(passwordProblem("Mangue-45-bleue")).toBeNull();
+    expect(isAcceptablePassword("Mangue-45-bleue")).toBe(true);
   });
 
   it("rejects anything under the length floor, and nothing at it", () => {
     expect(passwordProblem("a".repeat(MIN_PASSWORD_LENGTH - 1))).toBe("pw.err.short");
     // Exactly at the floor the LENGTH rule is satisfied; "aaaaaaaa" then fails
     // the repeated-character rule instead, which is the point of having both.
-    expect(passwordProblem("abcd1234")).toBeNull();
+    expect(passwordProblem("Abcd1234")).toBeNull();
+  });
+
+  it("requires what the Supabase project requires: a lowercase, a capital, a digit", () => {
+    // Anything this passes and Supabase refuses comes back as a raw English
+    // error — the exact failure this module exists to prevent.
+    for (const p of ["mangue-45-bleue", "MANGUE-45-BLEUE", "Mangue-bleue", "correct horse battery"]) {
+      expect(passwordProblem(p), p).toBe("pw.err.mix");
+    }
+    // No symbol quota.
+    expect(passwordProblem("Mangue45bleue")).toBeNull();
   });
 
   it("rejects the passwords tried first", () => {
@@ -43,7 +53,7 @@ describe("passwordProblem", () => {
   it("does not read a short local part as the whole password", () => {
     // `jo@x.com` — refusing every password containing "jo" would be absurd, so
     // the local-part rule only applies from three characters up.
-    expect(passwordProblem("jonquille22", "jo@x.com")).toBeNull();
+    expect(passwordProblem("Jonquille22", "jo@x.com")).toBeNull();
   });
 
   it("checks length before anything else, so the first message is the useful one", () => {
@@ -61,6 +71,7 @@ describe("passwordProblem", () => {
       passwordProblem("short"),
       passwordProblem("password"),
       passwordProblem("ada@school.org", "ada@school.org"),
+      passwordProblem("mangue-45-bleue"),
     ];
     for (const key of emitted) {
       expect(key).not.toBeNull();

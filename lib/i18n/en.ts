@@ -768,10 +768,11 @@ export const en = {
   // ── Passwords (lib/password.ts, ui/password-field.tsx, /reset) ──
   "pw.label": "Password",
   "pw.placeholder": "At least 8 characters",
-  "pw.hint": "Eight characters or more. No symbol quota — length is what counts.",
+  "pw.hint": "Eight characters or more, with a lowercase letter, a capital and a digit. No symbol needed.",
   "pw.show": "Show",
   "pw.hide": "Hide",
   "pw.err.short": "Use at least 8 characters.",
+  "pw.err.mix": "Add at least one lowercase letter, one capital and one digit.",
   "pw.err.common": "That one is guessed early. Pick something less obvious.",
   "pw.err.sameAsEmail": "Your password can't be your email address.",
 

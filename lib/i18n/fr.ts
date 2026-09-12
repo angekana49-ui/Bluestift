@@ -547,10 +547,11 @@ export const fr: Partial<Messages> = {
 
   "pw.label": "Mot de passe",
   "pw.placeholder": "8 caractères minimum",
-  "pw.hint": "Huit caractères ou plus. Aucun quota de symboles — c'est la longueur qui compte.",
+  "pw.hint": "Huit caractères ou plus, avec une minuscule, une majuscule et un chiffre. Pas besoin de symbole.",
   "pw.show": "Afficher",
   "pw.hide": "Masquer",
   "pw.err.short": "Utilisez au moins 8 caractères.",
+  "pw.err.mix": "Ajoutez au moins une minuscule, une majuscule et un chiffre.",
   "pw.err.common": "Celui-là se devine trop vite. Choisissez moins évident.",
   "pw.err.sameAsEmail": "Votre mot de passe ne peut pas être votre adresse e-mail.",
 

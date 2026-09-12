@@ -550,10 +550,11 @@ export const es: Partial<Messages> = {
 
   "pw.label": "Contraseña",
   "pw.placeholder": "Al menos 8 caracteres",
-  "pw.hint": "Ocho caracteres o más. Sin cuota de símbolos — lo que cuenta es la longitud.",
+  "pw.hint": "Ocho caracteres o más, con una minúscula, una mayúscula y un número. No hace falta símbolo.",
   "pw.show": "Mostrar",
   "pw.hide": "Ocultar",
   "pw.err.short": "Usa al menos 8 caracteres.",
+  "pw.err.mix": "Añade al menos una minúscula, una mayúscula y un número.",
   "pw.err.common": "Esa se adivina enseguida. Elige algo menos obvio.",
   "pw.err.sameAsEmail": "Tu contraseña no puede ser tu correo.",
 

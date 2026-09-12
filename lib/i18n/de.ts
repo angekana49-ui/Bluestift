@@ -547,10 +547,11 @@ export const de: Partial<Messages> = {
 
   "pw.label": "Passwort",
   "pw.placeholder": "Mindestens 8 Zeichen",
-  "pw.hint": "Acht Zeichen oder mehr. Keine Sonderzeichen-Pflicht — die Länge zählt.",
+  "pw.hint": "Acht Zeichen oder mehr, mit einem Klein-, einem Großbuchstaben und einer Ziffer. Kein Sonderzeichen nötig.",
   "pw.show": "Anzeigen",
   "pw.hide": "Verbergen",
   "pw.err.short": "Nimm mindestens 8 Zeichen.",
+  "pw.err.mix": "Nimm mindestens einen Kleinbuchstaben, einen Großbuchstaben und eine Ziffer.",
   "pw.err.common": "Das wird früh erraten. Nimm etwas weniger Naheliegendes.",
   "pw.err.sameAsEmail": "Dein Passwort darf nicht deine E-Mail-Adresse sein.",
 
