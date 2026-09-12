@@ -1,0 +1,22 @@
+#!/bin/sh
+#
+# The checks CI runs (.github/workflows/ci.yml), run BEFORE the push instead of
+# after it.
+#
+# Every push to main deploys, and CI only reports once the commit is already
+# there. On 2026-09-12 that meant seven red pushes in a row, each one live in
+# production, all failing the same test — a result that was available locally
+# in forty seconds before the first of them left the machine.
+#
+# The build step is left to CI: it is the slow one, and the type-check catches
+# most of what it would. Skip in an emergency with `git push --no-verify`.
+#
+# Enabled per clone, once:  git config core.hooksPath .githooks
+
+echo "pre-push: type-check, lint and tests (what CI will run)…"
+
+npm run --silent typecheck || { echo "pre-push: type-check failed — push aborted."; exit 1; }
+npm run --silent lint || { echo "pre-push: lint failed — push aborted."; exit 1; }
+npm test --silent || { echo "pre-push: tests failed — push aborted."; exit 1; }
+
+echo "pre-push: all green."

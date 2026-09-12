@@ -1,0 +1,4 @@
+# Git hooks are run by sh, which reads a CRLF line ending as part of the
+# command (`npm\r: not found`). With core.autocrlf=true on a Windows checkout
+# they would be converted on every checkout, so pin them to LF.
+.githooks/* text eol=lf
