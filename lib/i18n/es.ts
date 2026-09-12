@@ -657,6 +657,9 @@ export const es: Partial<Messages> = {
   "login.forgot": "¿Olvidaste tu contraseña?",
   "login.err.badCredentials":
     "Ese correo y esa contraseña no coinciden. Si nunca has puesto una contraseña, usa el enlace por correo o tu clave de recuperación.",
+  "login.err.emailNotConfirmed":
+    "Este correo aún no está confirmado. Abre el enlace que te enviamos o usa abajo el enlace por correo.",
+  "login.err.emailTaken": "Este correo ya tiene una cuenta. Mejor inicia sesión o usa el enlace por correo.",
   "login.err.emailFirst": "Escribe primero tu correo.",
   "login.recoveryPlaceholder": "Clave de recuperación",
   "login.newHereDivider": "Nuevo por aquí",

@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createClient as createAnonClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -87,12 +86,15 @@ export async function POST(request: Request) {
   if (!email) return NextResponse.json({ status: "invalid" });
 
   // Real email on file -> magic link (Supabase checks the captcha token itself).
+  //
+  // Through the SSR client, not a bare supabase-js one. A bare client defaults
+  // to the IMPLICIT flow, whose link returns `#access_token=…` instead of the
+  // `?code=` /auth/callback exchanges — so every one of these links ended on
+  // "invalid or expired". The SSR client is PKCE and writes the code verifier
+  // onto this response, which is what the callback needs in this browser.
   if (hasRealEmail(email)) {
-    const anon = createAnonClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    );
-    const { error } = await anon.auth.signInWithOtp({
+    const supabase = await createClient();
+    const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
         shouldCreateUser: false,

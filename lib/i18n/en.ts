@@ -884,6 +884,9 @@ export const en = {
   // is the common case, because accounts start anonymous or magic-link only.
   "login.err.badCredentials":
     "That email and password don't match. If you've never set a password, use the email link or your recovery key.",
+  "login.err.emailNotConfirmed":
+    "This email isn't confirmed yet. Open the link we sent you, or use the email link below.",
+  "login.err.emailTaken": "This email already has an account. Sign in instead, or use the email link.",
   "login.err.emailFirst": "Type your email address first.",
   "login.recoveryPlaceholder": "Recovery key",
   "login.newHereDivider": "New here",

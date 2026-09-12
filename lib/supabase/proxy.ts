@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { withTimeout } from "@/lib/net/timeout";
+import { conflictingSessionCookies, cookieDomainFor } from "@/lib/supabase/cookie-domain";
 import type { Database } from "@/types/database.types";
 
 /**
@@ -33,10 +34,16 @@ export async function updateSession(
 ) {
   let supabaseResponse = NextResponse.next({ request: { headers: requestHeaders() } });
 
+  // The same scope the browser and server clients write. This client used to
+  // pass none, so every refresh it performed wrote a host-only duplicate of the
+  // parent-domain session cookie — see cookieDomainFor.
+  const domain = cookieDomainFor(request.headers.get("x-forwarded-host") ?? request.headers.get("host"));
+
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: { domain },
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -100,6 +107,26 @@ export async function updateSession(
     void refresh.then((late) => {
       if (late) console.warn(`Supabase session refresh exceeded ${AUTH_REFRESH_TIMEOUT_MS}ms in proxy`);
     });
+  }
+
+  /**
+   * Browsers that met the old proxy still hold host-only copies next to the
+   * parent-domain session, and nothing else will ever remove them — signOut
+   * clears its own scope only, and the cookies live for 400 days. Expire the
+   * host-only copies wherever both are present.
+   *
+   * Raw `Set-Cookie` headers, appended last, rather than `cookies.set`: the
+   * cookie API holds one entry per name, so a deletion of the host-only copy
+   * would overwrite a parent-domain write of the same name in this response.
+   * A `Set-Cookie` without `Domain` only ever matches the host-only cookie.
+   */
+  if (domain) {
+    for (const name of conflictingSessionCookies(request.headers.get("cookie"))) {
+      supabaseResponse.headers.append(
+        "set-cookie",
+        `${name}=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`,
+      );
+    }
   }
 
   return supabaseResponse;

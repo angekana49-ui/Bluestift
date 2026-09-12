@@ -136,7 +136,10 @@ export function LoginView({
       const data = await res.json().catch(() => null);
       resetCaptcha();
       if (!res.ok) return setMsg(data?.error ?? tr("auth.err.startFailed"));
-      router.refresh();
+      // Not router.refresh(): that re-renders THIS page, and /login shows a
+      // fresh onboarding_pending session the "resume setup" banner instead of
+      // moving it on — so "Start anonymously" appeared to do nothing.
+      enterApp();
     } catch {
       setMsg(tr("auth.err.network"));
     } finally {
@@ -161,6 +164,10 @@ export function LoginView({
     // case, because most accounts start anonymous or magic-link only. Say so,
     // and point at the two doors that do work, rather than leaving someone
     // retyping a password they never set.
+    //
+    // Except when the password was right and the address was never confirmed:
+    // "they don't match" would send that person round in circles.
+    if (error?.code === "email_not_confirmed") return setMsg(tr("login.err.emailNotConfirmed"));
     if (error) return setMsg(tr("login.err.badCredentials"));
     enterApp();
   }
@@ -182,6 +189,11 @@ export function LoginView({
     // off. With it on — how this one ships — there is no session yet and the
     // account is not usable until the link is opened, so we wait for it here.
     if (data.session) return enterApp();
+    // An address that already has a confirmed account gets no error and NO
+    // email: Supabase answers with a look-alike user carrying no identities.
+    // Opening the "check your inbox" dialog there meant waiting for a link that
+    // was never sent.
+    if (data.user && data.user.identities?.length === 0) return setMsg(tr("login.err.emailTaken"));
     setPending({ email, dest: "/auth/continue" });
   }
 
@@ -241,8 +253,7 @@ export function LoginView({
       }
       if (data.status === "recovered") {
         setMsg(tr("auth.msg.recovered"));
-        router.refresh();
-        router.push("/account");
+        enterApp();
         return;
       }
       resetCaptcha();

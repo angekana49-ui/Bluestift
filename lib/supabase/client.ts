@@ -1,6 +1,7 @@
 import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
+import { cookieDomainFor } from "@/lib/supabase/cookie-domain";
 
 /**
  * Browser (client component) Supabase client.
@@ -11,14 +12,19 @@ import type { Database } from "@/types/database.types";
  * than @supabase/supabase-js@2.110 (arity mismatch), which otherwise collapses
  * write types to `never`. Drop the assertion once @supabase/ssr is upgraded.
  *
- * `cookieOptions.domain` MUST stay identical to the server client's
- * (lib/supabase/server.ts) — see the reasoning there. Two scopes for one cookie
- * name is the failure mode worth avoiding, so both read the same env var.
+ * `cookieOptions.domain` MUST resolve identically in all three clients (this
+ * one, lib/supabase/server.ts, lib/supabase/proxy.ts) — two scopes for one
+ * cookie name is the failure mode worth avoiding, so all three go through
+ * cookieDomainFor.
  */
 export function createClient(): SupabaseClient<Database> {
   return createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookieOptions: { domain: process.env.NEXT_PUBLIC_COOKIE_DOMAIN } },
+    {
+      cookieOptions: {
+        domain: cookieDomainFor(typeof window !== "undefined" ? window.location.hostname : undefined),
+      },
+    },
   ) as unknown as SupabaseClient<Database>;
 }

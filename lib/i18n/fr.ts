@@ -654,6 +654,9 @@ export const fr: Partial<Messages> = {
   "login.forgot": "Mot de passe oublié ?",
   "login.err.badCredentials":
     "Cet e-mail et ce mot de passe ne correspondent pas. Si vous n'avez jamais défini de mot de passe, utilisez le lien par e-mail ou votre clé de récupération.",
+  "login.err.emailNotConfirmed":
+    "Cet e-mail n'est pas encore confirmé. Ouvrez le lien que nous vous avons envoyé, ou utilisez le lien par e-mail ci-dessous.",
+  "login.err.emailTaken": "Cet e-mail a déjà un compte. Connectez-vous plutôt, ou utilisez le lien par e-mail.",
   "login.err.emailFirst": "Saisissez d'abord votre adresse e-mail.",
   "login.recoveryPlaceholder": "Clé de récupération",
   "login.newHereDivider": "Nouveau ici",
