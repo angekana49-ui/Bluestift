@@ -93,6 +93,55 @@ export function Flock() {
 }
 
 /**
+ * The "you're all set" flock: the same birds, flying sine waves instead of the
+ * welcome screen's looser undulation. Each bird crosses its own lane at a
+ * constant speed while swinging between two crests (sineCross + sineSwing,
+ * globals.css). Periods and amplitudes are staggered so the waves never line
+ * up into one formation. Fills its positioned parent; decorative only.
+ */
+const SINE_FLOCK = [
+  { size: 22, top: "12%", cross: 9.5, swing: 1.6, amp: 16, delay: 0, flap: "0.22s" },
+  { size: 15, top: "30%", cross: 8.2, swing: 1.3, amp: 11, delay: 2.1, flap: "0.19s" },
+  { size: 19, top: "52%", cross: 10.4, swing: 1.9, amp: 18, delay: 4.0, flap: "0.24s" },
+  { size: 13, top: "70%", cross: 7.6, swing: 1.2, amp: 9, delay: 1.2, flap: "0.18s" },
+  { size: 17, top: "86%", cross: 9.0, swing: 1.5, amp: 13, delay: 5.3, flap: "0.21s" },
+];
+
+export function SineFlock() {
+  return (
+    <div className="sine-flock" style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }} aria-hidden>
+      {SINE_FLOCK.map((b, i) => (
+        <span
+          key={i}
+          style={{
+            position: "absolute",
+            top: b.top,
+            animation: `sineCross ${b.cross}s linear ${b.delay}s infinite both`,
+          }}
+        >
+          <span
+            style={{
+              display: "block",
+              ["--amp" as string]: `${b.amp}px`,
+              animation: `sineSwing ${b.swing}s cubic-bezier(0.37,0,0.63,1) ${b.delay}s infinite alternate`,
+            }}
+          >
+            <svg
+              width={b.size}
+              height={b.size * 0.42}
+              viewBox="0 0 30 12"
+              style={{ display: "block", animation: `wingFlap ${b.flap} ease-in-out infinite`, transformOrigin: "center" }}
+            >
+              <path d={BIRD_PATH} fill="none" stroke={BIRD_BLUE} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/**
  * Full-screen split: a brand pane (landing gradient + logo + handwritten hook +
  * a small flock) beside a centered content panel. The brand pane collapses under
  * 860px (`.onb-brand`/`.onb-panel`, globals.css). Renders the panel logo at top.

@@ -28,7 +28,9 @@ export default async function ProfilePage({
   searchParams: Promise<{ intent?: string }>;
 }) {
   const { intent } = await searchParams;
-  const startCreateSchool = intent === "create";
+  // School creation moved to the layer (/school/enter), where it comes with a
+  // plan and a pilot. Old links and bookmarks still arrive here with the intent.
+  if (intent === "create") redirect("/school/enter?as=admin");
   const tr = await getServerTranslate();
   const supabase = await createClient();
   const {
@@ -89,7 +91,7 @@ export default async function ProfilePage({
       <PageBody>
         <SectionHeader title="My Kernel" subtitle={tr("kernel.pageSubtitle")} />
         <SchoolLink initial={schoolLink} />
-        <TeacherLink initial={staff} startCreate={startCreateSchool} hasEmail={hasRealEmail(user.email)} />
+        <TeacherLink initial={staff} hasEmail={hasRealEmail(user.email)} />
         <ProgressCurve points={points} />
         <KernelMemory
           initial={(memorized ?? [])

@@ -59,7 +59,10 @@ type SchoolRole = "teacher" | "school";
 // turn away. It is also phrased neutrally ("what year were you born?") rather
 // than as "are you over 13?", which tells a child which answer opens the door.
 const RAYA_STEPS = ["path", "age", "name", "level", "subjects", "goal"] as const;
-const SCHOOL_STEPS = ["path", "age", "name", "srole", "focus", "ready"] as const;
+// Schools stops at the role question. Everything after it — the school's own
+// details, or the code to join one — belongs to the layer at /school/enter,
+// which asks it once, in full, instead of half of it here and again there.
+const SCHOOL_STEPS = ["path", "age", "name", "srole"] as const;
 
 const LEVELS: { value: string; labelKey: MessageKey }[] = [
   { value: "middle_school", labelKey: "onb.level.middle" },
@@ -117,7 +120,8 @@ export function OnboardingForm({
   const [subjects, setSubjects] = useState<string[]>([]);
   const [goal, setGoal] = useState(() => tr("onb.goal.default"));
   const [schoolRole, setSchoolRole] = useState<SchoolRole | null>(null);
-  const [focus, setFocus] = useState("");
+  /** Filter 1: an anonymous account tried to choose Schools. */
+  const [schoolsGate, setSchoolsGate] = useState(false);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -140,14 +144,24 @@ export function OnboardingForm({
   const progress =
     totalSteps > 1 ? Math.round(28 + ((stepNumber - 1) / (totalSteps - 1)) * 67) : 60;
 
-  const dest = track === "schools" ? "/school/enter" : "/chat";
-
   function toggleSubject(s: string) {
     setSubjects((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
   }
 
+  /**
+   * FILTER 1 — learner or staff. Schools accounts belong to teachers and school
+   * staff, and a school's data has to sit on an account that can be recovered,
+   * so choosing Schools requires a real email. An anonymous account is stopped
+   * here with the reason and two ways on, rather than being let through to a
+   * form the server would refuse at the very end.
+   */
   function pickTrack(t: Track) {
     setError(null);
+    if (t === "schools" && isAnonymous) {
+      setSchoolsGate(true);
+      return;
+    }
+    setSchoolsGate(false);
     setTrack(t);
     setStepIndex(1);
   }
@@ -286,7 +300,7 @@ export function OnboardingForm({
       {
         user_id: userId,
         step: "username_set",
-        metadata: isRaya ? { role: "student", track: "raya" } : { role: roleSignal, track: "schools", focus: focus.trim() || null },
+        metadata: isRaya ? { role: "student", track: "raya" } : { role: roleSignal, track: "schools" },
       },
       ...(isRaya && level
         ? [
@@ -298,6 +312,13 @@ export function OnboardingForm({
           ]
         : []),
     ]);
+
+    // FILTER 2 — staff who joins a school, or staff who runs one. Schools goes
+    // straight on to the layer for that role; its last card is the welcome.
+    if (!isRaya) {
+      window.location.assign(`/school/enter?as=${schoolRole === "teacher" ? "teacher" : "admin"}`);
+      return;
+    }
 
     setBusy(false);
     setPhase(isAnonymous ? "email" : "welcome");
@@ -338,7 +359,7 @@ export function OnboardingForm({
   }
 
   function enterApp() {
-    router.push(dest);
+    router.push("/chat");
     router.refresh();
   }
 
@@ -470,9 +491,53 @@ export function OnboardingForm({
                   <span style={{ textAlign: "left" }}>
                     <span style={pathTitle()}>{tr("onb.path.schools.title")}</span>
                     <span style={pathDesc()}>{tr("onb.path.schools.desc")}</span>
+                    {/* Said on the card, before the choice — not after it. */}
+                    <span
+                      style={{
+                        display: "inline-block",
+                        marginTop: 6,
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: "#7c5b16",
+                        background: "#fff4dc",
+                        border: "1px solid #f3d9a4",
+                        borderRadius: 99,
+                        padding: "2px 10px",
+                      }}
+                    >
+                      {tr("onb.path.schools.badge")}
+                    </span>
                   </span>
                 </button>
               </div>
+
+              {schoolsGate && (
+                <div
+                  role="alert"
+                  style={{
+                    marginTop: 14,
+                    border: "1px solid #f3d9a4",
+                    background: "#fffaf0",
+                    borderRadius: 14,
+                    padding: "14px 16px",
+                  }}
+                >
+                  <p style={{ margin: "0 0 6px", fontSize: 16, fontWeight: 700, color: "#0b1220" }}>
+                    {tr("onb.path.schools.gateTitle")}
+                  </p>
+                  <p style={{ margin: "0 0 12px", fontSize: 15, lineHeight: 1.6, color: "#7c5b16" }}>
+                    {tr("onb.path.schools.gateBody")}
+                  </p>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button onClick={() => pickTrack("raya")} style={{ ...primaryBtn, width: "auto", marginTop: 0, padding: "10px 18px", fontSize: 15 }}>
+                      {tr("onb.path.schools.gateRaya")}
+                    </button>
+                    <button onClick={leaveOnboarding} disabled={busy} style={{ ...secondaryBtn, padding: "10px 18px", fontSize: 15 }}>
+                      {tr("onb.path.schools.gateEmail")}
+                    </button>
+                  </div>
+                </div>
+              )}
             </>
           )}
 
@@ -568,29 +633,6 @@ export function OnboardingForm({
                     <span style={pathDesc(schoolRole === "school")}>{tr("onb.srole.school.desc")}</span>
                   </span>
                 </button>
-              </div>
-            </>
-          )}
-
-          {stepKey === "focus" && (
-            <>
-              <h1 style={heading}>{schoolRole === "school" ? tr("onb.focus.heading.school") : tr("onb.focus.heading.teacher")}</h1>
-              <p style={sub}>{tr("onb.focus.sub")}</p>
-              <input
-                style={fieldInput}
-                placeholder={schoolRole === "school" ? tr("onb.focus.placeholder.school") : tr("onb.focus.placeholder.teacher")}
-                value={focus}
-                onChange={(e) => setFocus(e.target.value)}
-              />
-            </>
-          )}
-
-          {stepKey === "ready" && (
-            <>
-              <h1 style={heading}>{tr("onb.ready.heading")}</h1>
-              <p style={sub}>{tr("onb.ready.sub")}</p>
-              <div style={noteBox}>
-                {schoolRole === "school" ? tr("onb.ready.note.school") : tr("onb.ready.note.teacher")}
               </div>
             </>
           )}
@@ -939,15 +981,6 @@ const pathDesc = (on = false): React.CSSProperties => ({
   fontSize: 15,
   color: on ? "rgba(255,255,255,0.9)" : "#475569",
 });
-const noteBox: React.CSSProperties = {
-  background: "#f3f6fa",
-  border: "1px solid #dde5ee",
-  borderRadius: 12,
-  padding: 14,
-  fontSize: 15,
-  color: "#475569",
-  lineHeight: 1.6,
-};
 const chipRow: React.CSSProperties = {
   display: "flex",
   flexWrap: "wrap",

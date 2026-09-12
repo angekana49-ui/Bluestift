@@ -2,52 +2,43 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useAppTheme } from "@/components/ui/theme";
 import { netFetch } from "@/lib/net/client-fetch";
-import { panelCard, cardTitle, textInput, ctaButton, linkText, formActions } from "@/components/ui/forms";
-import { COUNTRIES } from "@/lib/school-constants";
+import { panelCard, cardTitle, textInput, ctaButton, linkText } from "@/components/ui/forms";
 import { useTranslate } from "@/components/ui/locale";
 
 type Staff = { schoolName: string; role: string };
 
 /**
  * Teacher/founder surface inside Raya (where every user is): join a school with a
- * staff invite code, OR create your own school. Creation lives here — not buried
- * in the Schools app — because this is the shared user home. Already-staff users
- * see their school + the dashboard link, and can still spin up another school.
+ * staff invite code, or go set one up. Already-staff users see their school, the
+ * dashboard link, and the way to set up another.
+ *
+ * Creating a school no longer happens in this card. It happens in the layer at
+ * /school/enter, where it comes with a plan, a declared headcount and the pilot
+ * those start — an inline "name + city + Create" here would be a way around all
+ * three, which are the point.
  */
 export function TeacherLink({
   initial,
-  startCreate = false,
   hasEmail = true,
 }: {
   initial: Staff | null;
-  startCreate?: boolean;
   /** Whether the account has a verified email. Teacher/admin actions require one
    *  (anonymous accounts are for basic learners); false shows the add-email gate. */
   hasEmail?: boolean;
 }) {
   const { theme: t } = useAppTheme();
   const tr = useTranslate();
-  const router = useRouter();
   const card = panelCard(t);
   const input = { ...textInput(t), letterSpacing: "0.05em" };
   const btn = ctaButton(t);
   const link = linkText(t);
-  // `startCreate` (from /profile?intent=create, set by onboarding's "run a
-  // school" path) opens straight into the create form.
-  const [mode, setMode] = useState<"default" | "create">(startCreate ? "create" : "default");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<null | "joined" | "requested">(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  // Create-school form fields.
-  const [name, setName] = useState("");
-  const [city, setCity] = useState("");
-  const [countryCode, setCountryCode] = useState("");
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -85,42 +76,9 @@ export function TeacherLink({
     }
   }
 
-  async function createSchool(e: React.FormEvent) {
-    e.preventDefault();
-    if (busy || !name.trim()) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await netFetch(
-        "/api/school/create",
-        {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ name: name.trim(), city: city.trim(), countryCode }),
-        },
-        { timeoutMs: 15_000 },
-      );
-      const d = await res.json().catch(() => null);
-      if (!res.ok) {
-        setError(d?.error ?? `Request failed (${res.status}).`);
-        setBusy(false);
-        return;
-      }
-      // The route makes the new school active. Land on Billing so pricing is asked
-      // from the start — the deterrent against casual school creation for users who
-      // aren't real admins/teachers.
-      router.push("/school?tab=billing");
-      router.refresh();
-    } catch {
-      setError(tr("teacherLink.serverUnreachable"));
-      setBusy(false);
-    }
-  }
-
   // ---- Email gate: staff (teacher/admin) accounts require a verified email ----
-  // Shown before any join/create surface for a not-yet-staff, email-less account
-  // (covers the onboarding create-intent deep link too). Anonymous accounts stay
-  // fine for basic learning; this is the deliberate line for adult staff accounts.
+  // Anonymous accounts stay fine for basic learning; this is the deliberate line
+  // for adult staff accounts.
   if (!hasEmail && !initial) {
     return (
       <div style={card}>
@@ -133,60 +91,6 @@ export function TeacherLink({
           {tr("teacherLink.addEmailCta")}
         </Link>
       </div>
-    );
-  }
-
-  // ---- Create a school (reachable from any state) ----
-  if (mode === "create") {
-    return (
-      <form style={card} onSubmit={createSchool}>
-        <h2 style={cardTitle(t)}>{tr("teacherLink.createTitle")}</h2>
-        <p style={{ margin: "0 0 14px", color: t.muted, fontSize: 15 }}>
-          {tr("teacherLink.createIntro")}
-        </p>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
-          <input
-            style={{ ...textInput(t), flex: 1, minWidth: 200, width: "auto" }}
-            placeholder={tr("teacherLink.schoolNamePlaceholder")}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            disabled={busy}
-          />
-          <input
-            style={{ ...textInput(t), width: 150 }}
-            placeholder={tr("teacherLink.cityPlaceholder")}
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            disabled={busy}
-          />
-        </div>
-        <select
-          style={{ ...textInput(t), width: "100%", marginBottom: 12, cursor: "pointer" }}
-          value={countryCode}
-          onChange={(e) => setCountryCode(e.target.value)}
-          disabled={busy}
-        >
-          <option value="">{tr("teacherLink.countryPlaceholder")}</option>
-          {COUNTRIES.map((c) => (
-            <option key={c.code} value={c.code}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        <div style={{ ...formActions, marginTop: 0 }}>
-          <button type="submit" style={{ ...btn, opacity: busy || !name.trim() ? 0.6 : 1 }} disabled={busy || !name.trim()}>
-            {busy ? tr("teacherLink.creating") : tr("teacherLink.createButton")}
-          </button>
-          <button
-            type="button"
-            onClick={() => { setMode("default"); setError(null); }}
-            style={{ background: "none", border: "none", padding: 0, cursor: "pointer", ...link }}
-          >
-            {tr("teacherLink.cancel")}
-          </button>
-        </div>
-        {error && <p style={{ color: "#f87171", margin: "12px 0 0", fontSize: 16 }}>{error}</p>}
-      </form>
     );
   }
 
@@ -203,13 +107,9 @@ export function TeacherLink({
           <Link href="/school" style={link}>
             {tr("teacherLink.openDashboard")}
           </Link>
-          <button
-            type="button"
-            onClick={() => setMode("create")}
-            style={{ background: "none", border: "none", padding: 0, cursor: "pointer", ...link }}
-          >
+          <Link href="/school/enter?as=admin&new=1" style={link}>
             {tr("teacherLink.createAnother")}
-          </button>
+          </Link>
         </div>
       </div>
     );
@@ -230,7 +130,7 @@ export function TeacherLink({
     );
   }
 
-  // ---- Not staff yet: join by code, or create ----
+  // ---- Not staff yet: join by code, or set up a school ----
   return (
     <form style={card} onSubmit={submit}>
       <h2 style={cardTitle(t)}>{tr("teacherLink.headline")}</h2>
@@ -252,13 +152,13 @@ export function TeacherLink({
       </div>
       <p style={{ margin: "14px 0 0", fontSize: 15, color: t.muted }}>
         {tr("teacherLink.noCodeQuestion")}{" "}
-        <button
-          type="button"
-          onClick={() => { setMode("create"); setError(null); }}
-          style={{ background: "none", border: "none", padding: 0, cursor: "pointer", ...link }}
-        >
+        <Link href="/school/enter?as=admin" style={link}>
           {tr("teacherLink.createSchoolLink")}
-        </button>
+        </Link>
+        {" · "}
+        <Link href="/school/enter?as=teacher" style={link}>
+          {tr("layer.teacher.askTitle")}
+        </Link>
       </p>
       {error && <p style={{ color: "#f87171", margin: "12px 0 0", fontSize: 16 }}>{error}</p>}
     </form>

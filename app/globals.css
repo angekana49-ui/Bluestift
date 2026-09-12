@@ -3108,6 +3108,41 @@ a {
     transform: scaleY(0.5);
   }
 }
+/* "You're all set" flock (SineFlock, components/ui/auth-chrome.tsx): a true
+   sine path, built from two motions on two nested elements. The outer one
+   crosses at CONSTANT speed (linear); the inner one swings between two crests
+   with easeInOutSine, alternating. Linear x plus sinusoidal y is y = A·sin(x):
+   a wave, not a bob. Each bird sets its own --amp and period. */
+@keyframes sineCross {
+  0% {
+    left: -12%;
+    opacity: 0;
+  }
+  7% {
+    opacity: 1;
+  }
+  93% {
+    opacity: 1;
+  }
+  100% {
+    left: 112%;
+    opacity: 0;
+  }
+}
+@keyframes sineSwing {
+  from {
+    transform: translateY(calc(var(--amp, 14px) * -1));
+  }
+  to {
+    transform: translateY(var(--amp, 14px));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sine-flock,
+  .sine-flock * {
+    animation: none !important;
+  }
+}
 @keyframes pulseDot {
   0%,
   100% {
