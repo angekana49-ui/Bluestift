@@ -6,6 +6,7 @@ import { createAdminClient, createSchoolsAdminClient } from "@/lib/supabase/admi
 import { confirmMembershipForYear, getAdminMembership, makeStaffCode } from "@/lib/school-admin";
 import { checkStrictUserRateLimit } from "@/lib/rate-limit";
 import { firstNameOf, sendAccountCreatedEmail, sendBrandedEmail, siteUrl } from "@/lib/email";
+import { isNameTooShort } from "@/lib/names";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -111,8 +112,12 @@ export async function POST(request: Request) {
       email: identifier,
       password: randomBytes(36).toString("base64url"),
       email_confirm: true,
-      // handle_new_user seeds public.users.display_name from this.
-      user_metadata: { display_name: firstname },
+      // handle_new_user seeds public.users.display_name from this. Only a name
+      // that meets the names floor (lib/names.ts): the database refuses a
+      // shorter one, and that refusal would abort the whole account creation.
+      // "Jo" from jo@school.org simply starts with no display name and picks
+      // one at onboarding.
+      user_metadata: isNameTooShort(firstname) ? {} : { display_name: firstname },
     });
     if (createErr || !created.user) {
       // An auth account whose profile row is missing: it exists, so it is not

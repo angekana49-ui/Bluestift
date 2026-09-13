@@ -3,6 +3,7 @@ import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { getAdminMembership, SCHOOL_TYPES } from "@/lib/school-admin";
+import { MIN_NAME_LENGTH, isNameTooShort } from "@/lib/names";
 
 const SCHOOL_TYPE_SET: readonly string[] = SCHOOL_TYPES;
 
@@ -37,10 +38,18 @@ export async function PATCH(request: Request) {
   const patch: Record<string, string | null> = {};
   if (body.name !== undefined) {
     const name = body.name.trim().slice(0, 120);
-    if (!name) return NextResponse.json({ error: "School name can't be empty." }, { status: 400 });
+    if (isNameTooShort(name)) {
+      return NextResponse.json({ error: `The school name needs at least ${MIN_NAME_LENGTH} characters.` }, { status: 400 });
+    }
     patch.name = name;
   }
-  if (body.city !== undefined) patch.city = body.city.trim().slice(0, 80) || null;
+  // The city is part of what identifies a school (see /api/school/create), so
+  // it can be corrected but not removed.
+  if (body.city !== undefined) {
+    const city = body.city.trim().slice(0, 80);
+    if (!city) return NextResponse.json({ error: "The school's city can't be empty." }, { status: 400 });
+    patch.city = city;
+  }
   if (body.countryCode !== undefined)
     patch.country_code = body.countryCode.trim().toUpperCase().slice(0, 2) || null;
   if (body.schoolType !== undefined) {

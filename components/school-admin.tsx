@@ -60,6 +60,7 @@ import { FilePicker } from "@/components/ui/file-picker";
 import { neutralButton, formActions } from "@/components/ui/forms";
 import { SettingsSheet, type SettingsGroup } from "@/components/ui/settings-sheet";
 import { initialsOf } from "@/lib/name";
+import { isNameTooShort } from "@/lib/names";
 import type { AppTheme } from "@/components/ui/tokens";
 import type {
   AdminClass,
@@ -1644,6 +1645,22 @@ function SchoolSettings({
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [idCopied, setIdCopied] = useState(false);
+
+  /**
+   * The school's id is the one thing that names it unambiguously — there are
+   * many schools called Lincoln High, and a school can be renamed. Shown here
+   * so an admin can hand it to support instead of describing the school.
+   */
+  async function copyId() {
+    try {
+      await navigator.clipboard.writeText(school.id);
+      setIdCopied(true);
+      setTimeout(() => setIdCopied(false), 2000);
+    } catch {
+      setIdCopied(false);
+    }
+  }
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -1708,6 +1725,17 @@ function SchoolSettings({
       <form style={box} onSubmit={save}>
       <h3 style={{ margin: "0 0 0.85rem", fontSize: "1.05rem" }}>{tr("school.settings.title")}</h3>
 
+      <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap", marginBottom: "1rem", fontSize: "0.85rem" }}>
+        <span style={{ opacity: 0.6 }}>{tr("school.settings.idLabel")}</span>
+        <code style={{ fontSize: "0.8rem", padding: "2px 8px", borderRadius: 6, background: t.cardBg, border: `1px solid ${t.cardBorder}`, wordBreak: "break-all" }}>
+          {school.id}
+        </code>
+        <button type="button" onClick={copyId} style={{ ...neutralButton(t), padding: "2px 10px", fontSize: "0.8rem" }}>
+          {idCopied ? tr("school.settings.idCopied") : tr("school.settings.idCopy")}
+        </button>
+        <span style={{ opacity: 0.6, flexBasis: "100%" }}>{tr("school.settings.idHint")}</span>
+      </div>
+
       <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1rem" }}>
         <div
           style={{
@@ -1745,11 +1773,11 @@ function SchoolSettings({
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.6rem" }}>
         <label style={{ gridColumn: "1 / -1", fontSize: "0.8rem", opacity: 0.6 }}>
-          {tr("school.settings.nameLabel")}
+          {tr("school.settings.nameLabel")} *
           <input style={{ ...input, width: "100%", marginTop: 4 }} value={name} onChange={(e) => setName(e.target.value)} disabled={busy} />
         </label>
         <label style={{ fontSize: "0.8rem", opacity: 0.6 }}>
-          {tr("school.settings.cityLabel")}
+          {tr("school.settings.cityLabel")} *
           <input style={{ ...input, width: "100%", marginTop: 4 }} value={city} onChange={(e) => setCity(e.target.value)} disabled={busy} />
         </label>
         <label style={{ fontSize: "0.8rem", opacity: 0.6 }}>
@@ -1789,7 +1817,7 @@ function SchoolSettings({
 
       <div style={{ ...formActions, marginTop: "0.9rem" }}>
         {msg && <span style={{ color: "#22c55e", fontSize: "0.85rem", marginRight: "auto" }}>{msg}</span>}
-        <button type="submit" style={{ ...btn, opacity: busy ? 0.7 : 1 }} disabled={busy || !name.trim()}>
+        <button type="submit" style={{ ...btn, opacity: busy ? 0.7 : 1 }} disabled={busy || isNameTooShort(name) || !city.trim()}>
           {busy ? tr("school.prefs.saving") : tr("school.settings.saveChanges")}
         </button>
         {error && <span style={{ color: "#f87171", fontSize: "0.85rem" }}>{error}</span>}

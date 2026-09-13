@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -37,6 +37,15 @@ import { PasswordField } from "@/components/ui/password-field";
  *   · anonymous — the front door of the product, kept last so it reads as the
  *     alternative to signing up rather than as the fallback from failing to.
  */
+type NoticeAt = "credentials" | "recovery" | "anonymous";
+type Notice = {
+  text: string;
+  tone: "error" | "info";
+  at: NoticeAt;
+  /** An error that has a way out on this very page offers it inside the alert. */
+  action?: "signIn";
+};
+
 export function LoginView({
   initialError,
   pendingSetup = false,
@@ -58,12 +67,31 @@ export function LoginView({
   const [recoveryCode, setRecoveryCode] = useState("");
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(
-    initialError === "auth" ? tr("login.err.invalidLink") : null,
-  );
   /**
-   * "A link is out there, waiting to be opened." Separate from `msg` — which is
-   * one slot shared by every error on this form — because this is not a status
+   * What the form has to say, and WHERE it says it.
+   *
+   * It used to be one grey line under the last button of the page, the same
+   * for "that email already has an account" as for "signed out". On a phone
+   * that line sat a full screen below the button that caused it, so the answer
+   * to "why didn't that work?" was never in view. Now an error is red, boxed,
+   * announced, and rendered right under the action it belongs to — the
+   * credentials block, the recovery key, or the anonymous start — and scrolled
+   * into view when it appears.
+   */
+  const [notice, setNotice] = useState<Notice | null>(
+    initialError === "auth" ? { text: tr("login.err.invalidLink"), tone: "error", at: "credentials" } : null,
+  );
+  const noticeRef = useRef<HTMLDivElement>(null);
+  const fail = (at: NoticeAt, text: string, action?: Notice["action"]) => setNotice({ text, tone: "error", at, action });
+  const inform = (at: NoticeAt, text: string) => setNotice({ text, tone: "info", at });
+  const clearNotice = () => setNotice(null);
+
+  useEffect(() => {
+    if (notice) noticeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [notice]);
+  /**
+   * "A link is out there, waiting to be opened." Separate from `notice` — which
+   * reports on the form — because this is not a status
    * line: it is a state the page is IN, and it stays open watching for the
    * sign-in that will happen in another window.
    *
@@ -104,7 +132,7 @@ export function LoginView({
     setBusy(true);
     await supabase.auth.signOut();
     setBusy(false);
-    setMsg(tr("login.msg.signedOut"));
+    inform("credentials", tr("login.msg.signedOut"));
     router.refresh();
   }
 
@@ -119,9 +147,9 @@ export function LoginView({
   }
 
   async function startAnonymous() {
-    if (!captchaToken) return setMsg(tr("auth.err.captcha"));
+    if (!captchaToken) return fail("anonymous", tr("auth.err.captcha"));
     setBusy(true);
-    setMsg(null);
+    clearNotice();
     try {
       await clearPendingSession();
       const res = await netFetch(
@@ -135,13 +163,13 @@ export function LoginView({
       );
       const data = await res.json().catch(() => null);
       resetCaptcha();
-      if (!res.ok) return setMsg(data?.error ?? tr("auth.err.startFailed"));
+      if (!res.ok) return fail("anonymous", data?.error ?? tr("auth.err.startFailed"));
       // Not router.refresh(): that re-renders THIS page, and /login shows a
       // fresh onboarding_pending session the "resume setup" banner instead of
       // moving it on — so "Start anonymously" appeared to do nothing.
       enterApp();
     } catch {
-      setMsg(tr("auth.err.network"));
+      fail("anonymous", tr("auth.err.network"));
     } finally {
       setBusy(false);
     }
@@ -150,7 +178,7 @@ export function LoginView({
   async function signInWithPassword() {
     if (!credentialsReady) return;
     setBusy(true);
-    setMsg(null);
+    clearNotice();
     await clearPendingSession();
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -167,15 +195,15 @@ export function LoginView({
     //
     // Except when the password was right and the address was never confirmed:
     // "they don't match" would send that person round in circles.
-    if (error?.code === "email_not_confirmed") return setMsg(tr("login.err.emailNotConfirmed"));
-    if (error) return setMsg(tr("login.err.badCredentials"));
+    if (error?.code === "email_not_confirmed") return fail("credentials", tr("login.err.emailNotConfirmed"));
+    if (error) return fail("credentials", tr("login.err.badCredentials"));
     enterApp();
   }
 
   async function signUpWithPassword() {
     if (!credentialsReady) return;
     setBusy(true);
-    setMsg(null);
+    clearNotice();
     await clearPendingSession();
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -184,7 +212,7 @@ export function LoginView({
     });
     setBusy(false);
     resetCaptcha();
-    if (error) return setMsg(error.message);
+    if (error) return fail("credentials", error.message);
     // A session comes back only when the project has email confirmation turned
     // off. With it on — how this one ships — there is no session yet and the
     // account is not usable until the link is opened, so we wait for it here.
@@ -193,15 +221,15 @@ export function LoginView({
     // email: Supabase answers with a look-alike user carrying no identities.
     // Opening the "check your inbox" dialog there meant waiting for a link that
     // was never sent.
-    if (data.user && data.user.identities?.length === 0) return setMsg(tr("login.err.emailTaken"));
+    if (data.user && data.user.identities?.length === 0) return fail("credentials", tr("login.err.emailTaken"), "signIn");
     setPending({ email, dest: "/auth/continue" });
   }
 
   async function sendEmailLink() {
     if (!email) return;
-    if (!captchaToken) return setMsg(tr("auth.err.captcha"));
+    if (!captchaToken) return fail("credentials", tr("auth.err.captcha"));
     setBusy(true);
-    setMsg(null);
+    clearNotice();
     await clearPendingSession();
     const { error } = await supabase.auth.signInWithOtp({
       email,
@@ -209,22 +237,22 @@ export function LoginView({
     });
     setBusy(false);
     resetCaptcha();
-    if (error) return setMsg(error.message);
+    if (error) return fail("credentials", error.message);
     setPending({ email, dest: "/auth/continue" });
   }
 
   async function forgotPassword() {
-    if (!email) return setMsg(tr("login.err.emailFirst"));
-    if (!captchaToken) return setMsg(tr("auth.err.captcha"));
+    if (!email) return fail("credentials", tr("login.err.emailFirst"));
+    if (!captchaToken) return fail("credentials", tr("auth.err.captcha"));
     setBusy(true);
-    setMsg(null);
+    clearNotice();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: origin ? `${origin}/auth/callback?next=/reset` : undefined,
       captchaToken: captchaToken ?? undefined,
     });
     setBusy(false);
     resetCaptcha();
-    if (error) return setMsg(error.message);
+    if (error) return fail("credentials", error.message);
     // Both tabs end up on /reset — the one the person is looking at can finish
     // the job, whichever that turns out to be.
     setPending({ email, dest: "/reset" });
@@ -232,9 +260,9 @@ export function LoginView({
 
   async function recoverWithKey() {
     if (!recoveryCode.trim()) return;
-    if (!captchaToken) return setMsg(tr("auth.err.captcha"));
+    if (!captchaToken) return fail("recovery", tr("auth.err.captcha"));
     setBusy(true);
-    setMsg(null);
+    clearNotice();
     try {
       await clearPendingSession();
       const res = await netFetch(
@@ -249,10 +277,10 @@ export function LoginView({
       const data = await res.json().catch(() => null);
       if (!res.ok) {
         resetCaptcha();
-        return setMsg(data?.error ?? tr("auth.err.recoveryFailed"));
+        return fail("recovery", data?.error ?? tr("auth.err.recoveryFailed"));
       }
       if (data.status === "recovered") {
-        setMsg(tr("auth.msg.recovered"));
+        inform("recovery", tr("auth.msg.recovered"));
         enterApp();
         return;
       }
@@ -261,13 +289,85 @@ export function LoginView({
       // whoever typed the key, so the dialog falls back to "if that key is
       // valid…" rather than naming it.
       if (data.status === "sent") setPending({ dest: "/auth/continue" });
-      else setMsg(tr("auth.err.keyInvalid"));
+      else fail("recovery", tr("auth.err.keyInvalid"));
     } catch {
-      setMsg(tr("auth.err.network"));
+      fail("recovery", tr("auth.err.network"));
     } finally {
       setBusy(false);
     }
   }
+
+  /** The notice, if it belongs HERE — rendered under the action that caused it. */
+  const noticeAt = (at: NoticeAt) => {
+    if (!notice || notice.at !== at) return null;
+    const isError = notice.tone === "error";
+    return (
+      <div
+        ref={noticeRef}
+        role={isError ? "alert" : "status"}
+        style={{
+          marginTop: 14,
+          display: "flex",
+          gap: 10,
+          alignItems: "flex-start",
+          borderRadius: 12,
+          padding: "12px 14px",
+          fontSize: 15,
+          lineHeight: 1.5,
+          fontWeight: isError ? 600 : 500,
+          border: `1.5px solid ${isError ? "#f87171" : "#bfdbfe"}`,
+          background: isError ? "#fef2f2" : "#eff6ff",
+          color: isError ? "#991b1b" : "#1e3a8a",
+          scrollMarginBlock: 24,
+        }}
+      >
+        <span
+          aria-hidden
+          style={{
+            flexShrink: 0,
+            width: 20,
+            height: 20,
+            marginTop: 1,
+            borderRadius: "50%",
+            background: isError ? "#dc2626" : "#2563eb",
+            color: "#fff",
+            fontSize: 13,
+            fontWeight: 800,
+            lineHeight: "20px",
+            textAlign: "center",
+          }}
+        >
+          {isError ? "!" : "i"}
+        </span>
+        <span>
+          {notice.text}
+          {notice.action === "signIn" && (
+            <button
+              type="button"
+              onClick={() => {
+                setMode("signin");
+                clearNotice();
+              }}
+              style={{
+                display: "block",
+                marginTop: 6,
+                background: "none",
+                border: "none",
+                padding: 0,
+                color: "#991b1b",
+                fontWeight: 700,
+                fontSize: 15,
+                textDecoration: "underline",
+                cursor: "pointer",
+              }}
+            >
+              {tr("login.err.emailTakenAction")}
+            </button>
+          )}
+        </span>
+      </div>
+    );
+  };
 
   const back = (
     <div style={{ marginBottom: 8 }}>
@@ -282,7 +382,7 @@ export function LoginView({
       type="button"
       onClick={() => {
         setMode(value);
-        setMsg(null);
+        clearNotice();
       }}
       aria-pressed={mode === value}
       style={{
@@ -409,6 +509,7 @@ export function LoginView({
           </button>
         )}
       </div>
+      {noticeAt("credentials")}
 
       {/* Recovery key. */}
       <label htmlFor="login-recovery" style={{ ...fieldLabel, marginTop: 22 }}>
@@ -431,6 +532,7 @@ export function LoginView({
           {tr("auth.login.recoverBtn")}
         </button>
       </div>
+      {noticeAt("recovery")}
 
       <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "22px 0 16px" }}>
         <span style={{ flex: 1, height: 1, background: "#e6ecf3" }} />
@@ -445,8 +547,7 @@ export function LoginView({
       >
         {tr("login.startAnonymous")}
       </button>
-
-      {msg && <p style={{ marginTop: 14, color: "#475569", fontSize: 16, textAlign: "center" }}>{msg}</p>}
+      {noticeAt("anonymous")}
 
       {pending && (
         <LinkSentDialog

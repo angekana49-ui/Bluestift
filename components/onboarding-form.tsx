@@ -32,6 +32,7 @@ import { useTranslate } from "@/components/ui/locale";
 import { LinkSentDialog } from "@/components/ui/link-sent-dialog";
 import { PasswordField } from "@/components/ui/password-field";
 import { passwordProblem } from "@/lib/password";
+import { isNameTooShort } from "@/lib/names";
 import type { MessageKey } from "@/lib/i18n";
 
 /**
@@ -135,7 +136,16 @@ export function OnboardingForm({
   const steps = track === "schools" ? SCHOOL_STEPS : RAYA_STEPS;
   const stepKey = steps[stepIndex];
   const lastStep = steps.length - 1;
-  const identityReady = username.trim().length > 0 && displayName.trim().length > 0;
+  // Both names, at least MIN_NAME_LENGTH characters each, any characters at all
+  // (lib/names.ts). The database holds the same floor (users_username_min_length,
+  // users_display_name_min_length) and a case-insensitive unique username.
+  const identityReady = !isNameTooShort(username) && !isNameTooShort(displayName);
+  const identityError = (): string | null =>
+    !username.trim() || !displayName.trim()
+      ? tr("onb.err.nameRequired")
+      : identityReady
+        ? null
+        : tr("onb.err.nameShort");
 
   // In age-only mode there is exactly one question, so the counter says so
   // rather than pretending the user is partway through a fresh setup.
@@ -183,7 +193,7 @@ export function OnboardingForm({
       case "age":
         return /^\d{4}$/.test(birthYear.trim()) ? null : tr("onb.err.age");
       case "name":
-        return identityReady ? null : tr("onb.err.nameRequired");
+        return identityError();
       case "level":
         return level ? null : tr("onb.err.level");
       case "srole":
@@ -257,9 +267,10 @@ export function OnboardingForm({
     // Jump back to whichever index "name" now sits at — it moved when the age
     // question was inserted, and a hard-coded 1 would land on the wrong screen.
     const nameStep = (steps as readonly string[]).indexOf("name");
-    if (!u || !d) {
+    const nameErr = identityError();
+    if (nameErr) {
       setStepIndex(nameStep);
-      return setError(tr("onb.err.nameRequired"));
+      return setError(nameErr);
     }
     setBusy(true);
     setError(null);
@@ -284,6 +295,11 @@ export function OnboardingForm({
       if (updErr.code === "23505") {
         setStepIndex(nameStep);
         return setError(tr("onb.err.usernameTaken"));
+      }
+      // The database's own names floor, if this form's check was ever bypassed.
+      if (updErr.code === "23514") {
+        setStepIndex(nameStep);
+        return setError(tr("onb.err.nameShort"));
       }
       return setError(updErr.message);
     }
@@ -566,10 +582,53 @@ export function OnboardingForm({
             <>
               <h1 style={heading}>{tr("onb.name.heading")}</h1>
               <p style={sub}>{tr("onb.name.sub")}</p>
-              <label style={fieldLabel}>{tr("onb.name.usernameLabel")}</label>
-              <input style={fieldInput} placeholder={tr("onb.name.usernamePlaceholder")} value={username} onChange={(e) => setUsername(e.target.value)} />
-              <label style={fieldLabel}>{tr("onb.name.displayLabel")}</label>
-              <input style={fieldInput} placeholder={tr("onb.name.displayPlaceholder")} value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+              {/* The two names are easy to mix up, so the handle LOOKS like a
+                  handle: a translucent @ in front of it, the way it is shown
+                  everywhere else (@username). The @ is decoration, never part
+                  of the value — typing one is simply absorbed. */}
+              <label htmlFor="onb-username" style={fieldLabel}>
+                {tr("onb.name.usernameLabel")}
+              </label>
+              <div style={{ position: "relative" }}>
+                <span
+                  aria-hidden
+                  style={{
+                    position: "absolute",
+                    left: 14,
+                    top: 12,
+                    fontSize: 17,
+                    fontWeight: 600,
+                    color: "rgba(11,18,32,0.35)",
+                    pointerEvents: "none",
+                  }}
+                >
+                  @
+                </span>
+                <input
+                  id="onb-username"
+                  style={{ ...fieldInput, paddingLeft: 32, marginBottom: 4 }}
+                  placeholder={tr("onb.name.usernamePlaceholder")}
+                  value={username}
+                  maxLength={40}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  onChange={(e) => setUsername(e.target.value.replace(/^@+/, ""))}
+                />
+              </div>
+              <p style={{ margin: "0 0 16px", fontSize: 14, color: "#64748b" }}>{tr("onb.name.usernameHint")}</p>
+              <label htmlFor="onb-display" style={fieldLabel}>
+                {tr("onb.name.displayLabel")}
+              </label>
+              <input
+                id="onb-display"
+                style={{ ...fieldInput, marginBottom: 4 }}
+                placeholder={tr("onb.name.displayPlaceholder")}
+                value={displayName}
+                maxLength={80}
+                onChange={(e) => setDisplayName(e.target.value)}
+              />
+              <p style={{ margin: "0 0 16px", fontSize: 14, color: "#64748b" }}>{tr("onb.name.displayHint")}</p>
             </>
           )}
 

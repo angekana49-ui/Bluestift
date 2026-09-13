@@ -6,6 +6,7 @@ import { netFetch } from "@/lib/net/client-fetch";
 import { COUNTRIES, SCHOOL_TYPES } from "@/lib/school-constants";
 import { MIN_B2B_SEATS, SCHOOL_PILOT_DAYS, termTotal } from "@/lib/billing/terms";
 import { initialsOf } from "@/lib/name";
+import { isNameTooShort } from "@/lib/names";
 import { useAppLocale, useTranslate } from "@/components/ui/locale";
 import { fieldInput, fieldLabel, heading, primaryBtn, secondaryBtn, sub, WORDMARK_B } from "@/components/ui/auth-chrome";
 import type { MessageKey } from "@/lib/i18n";
@@ -72,6 +73,8 @@ export function SchoolSetup({ plans, adminEmail }: { plans: LayerPlan[]; adminEm
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [showDetailErrors, setShowDetailErrors] = useState(false);
+  /** A refusal from the server that belongs to the details screen (e.g. a duplicate). */
+  const [detailsNotice, setDetailsNotice] = useState<string | null>(null);
 
   const [planId, setPlanId] = useState<string | null>(null);
   const [effectif, setEffectif] = useState(String(MIN_B2B_SEATS));
@@ -87,9 +90,11 @@ export function SchoolSetup({ plans, adminEmail }: { plans: LayerPlan[]; adminEm
     if (logo) URL.revokeObjectURL(logo.url);
   }, [logo]);
 
-  const detailErrors: Partial<Record<"name" | "country" | "email", MessageKey>> = {};
+  const detailErrors: Partial<Record<"name" | "country" | "city" | "email", MessageKey>> = {};
   if (!name.trim()) detailErrors.name = "layer.school.err.name";
+  else if (isNameTooShort(name)) detailErrors.name = "layer.school.err.nameShort";
   if (!countryCode) detailErrors.country = "layer.school.err.country";
+  if (!city.trim()) detailErrors.city = "layer.school.err.city";
   if (email.trim() && !EMAIL_RE.test(email.trim())) detailErrors.email = "layer.school.err.email";
   const detailsOk = Object.keys(detailErrors).length === 0;
   const fieldError = (k: keyof typeof detailErrors) =>
@@ -162,6 +167,20 @@ export function SchoolSetup({ plans, adminEmail }: { plans: LayerPlan[]; adminEm
       );
       const d = await res.json().catch(() => null);
       if (!res.ok) {
+        // A school this admin already has, or a detail the server refused: the
+        // fix is on the first screen, so that is where the message goes.
+        if (d?.code === "duplicate_school") {
+          setStep(1);
+          setDetailsNotice(tr("layer.school.err.duplicate"));
+          topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+          return;
+        }
+        if (d?.code === "name" || d?.code === "city" || d?.code === "country") {
+          setShowDetailErrors(true);
+          setStep(1);
+          setDetailsNotice(d?.error ?? tr("layer.err.generic"));
+          return;
+        }
         setError(d?.error ?? tr("layer.err.generic"));
         return;
       }
@@ -252,6 +271,25 @@ export function SchoolSetup({ plans, adminEmail }: { plans: LayerPlan[]; adminEm
           <h1 style={heading}>{tr("layer.school.heading")}</h1>
           <p style={{ ...sub, maxWidth: 520, marginInline: "auto" }}>{tr("layer.school.sub")}</p>
 
+          {detailsNotice && (
+            <div
+              role="alert"
+              style={{
+                border: "1.5px solid #fca5a5",
+                background: "#fef2f2",
+                color: "#991b1b",
+                borderRadius: 12,
+                padding: "12px 14px",
+                fontSize: 15,
+                fontWeight: 600,
+                lineHeight: 1.5,
+                marginBottom: 18,
+              }}
+            >
+              {detailsNotice}
+            </div>
+          )}
+
           {/* Logo */}
           <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20 }}>
             <div
@@ -310,7 +348,10 @@ export function SchoolSetup({ plans, adminEmail }: { plans: LayerPlan[]; adminEm
             placeholder={tr("layer.school.namePlaceholder")}
             value={name}
             maxLength={120}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value);
+              setDetailsNotice(null);
+            }}
           />
           {fieldError("name")}
 
@@ -332,7 +373,15 @@ export function SchoolSetup({ plans, adminEmail }: { plans: LayerPlan[]; adminEm
               <label htmlFor="school-country" style={fieldLabel}>
                 {tr("layer.school.country")} *
               </label>
-              <select id="school-country" style={{ ...fieldInput, cursor: "pointer" }} value={countryCode} onChange={(e) => setCountryCode(e.target.value)}>
+              <select
+                id="school-country"
+                style={{ ...fieldInput, cursor: "pointer" }}
+                value={countryCode}
+                onChange={(e) => {
+                  setCountryCode(e.target.value);
+                  setDetailsNotice(null);
+                }}
+              >
                 <option value="">{tr("layer.school.countryNone")}</option>
                 {COUNTRIES.map((c) => (
                   <option key={c.code} value={c.code}>
@@ -344,9 +393,19 @@ export function SchoolSetup({ plans, adminEmail }: { plans: LayerPlan[]; adminEm
             </div>
             <div>
               <label htmlFor="school-city" style={fieldLabel}>
-                {tr("layer.school.city")}
+                {tr("layer.school.city")} *
               </label>
-              <input id="school-city" style={fieldInput} value={city} maxLength={80} onChange={(e) => setCity(e.target.value)} />
+              <input
+                id="school-city"
+                style={fieldInput}
+                value={city}
+                maxLength={80}
+                onChange={(e) => {
+                  setCity(e.target.value);
+                  setDetailsNotice(null);
+                }}
+              />
+              {fieldError("city")}
             </div>
             <div>
               <label htmlFor="school-phone" style={fieldLabel}>

@@ -65,11 +65,43 @@ const toggle = (active: boolean): React.CSSProperties => ({
   cursor: "pointer",
 });
 
+type FoundSchool = {
+  id: string;
+  name: string;
+  city: string | null;
+  countryCode: string | null;
+  pilotUntil: string | null;
+  adminEmails: string[];
+};
+
 export function OpsBillingForm() {
   const tr = useTranslate();
   const [target, setTarget] = useState<"user" | "school">("user");
   const [email, setEmail] = useState("");
   const [schoolId, setSchoolId] = useState("");
+  // Finding the school: nobody knows an id by heart, and a name alone can match
+  // several schools — each result shows city, country and admin to tell them apart.
+  const [schoolQuery, setSchoolQuery] = useState("");
+  const [found, setFound] = useState<FoundSchool[] | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [picked, setPicked] = useState<FoundSchool | null>(null);
+
+  async function findSchools() {
+    const q = schoolQuery.trim();
+    if (q.length < 2 || searching) return;
+    setSearching(true);
+    setError(null);
+    try {
+      const res = await netFetch(`/api/ops/schools?q=${encodeURIComponent(q)}`, { method: "GET" }, { timeoutMs: 15_000 });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? tr("ops.billing.searchFailed"));
+      setFound((data?.schools as FoundSchool[] | undefined) ?? []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : tr("ops.billing.searchFailed"));
+    } finally {
+      setSearching(false);
+    }
+  }
   const [plans, setPlans] = useState<Plan[]>([]);
   const [planId, setPlanId] = useState("");
   const [seatLimit, setSeatLimit] = useState("");
@@ -162,12 +194,76 @@ export function OpsBillingForm() {
         </>
       ) : (
         <>
+          <label style={label}>{tr("ops.billing.findSchoolLabel")}</label>
+          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+            <input
+              style={{ ...input, marginBottom: 0, flex: 1 }}
+              placeholder={tr("ops.billing.findSchoolPlaceholder")}
+              value={schoolQuery}
+              onChange={(e) => setSchoolQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void findSchools();
+                }
+              }}
+              disabled={busy}
+            />
+            <button type="button" style={{ ...btn, width: "auto", opacity: searching ? 0.7 : 1 }} onClick={findSchools} disabled={busy || searching}>
+              {searching ? "…" : tr("ops.billing.findSchoolButton")}
+            </button>
+          </div>
+          {found && (
+            <div style={{ marginBottom: 14, display: "grid", gap: 6 }}>
+              {found.length === 0 ? (
+                <span style={{ fontSize: 14, color: "#9aa4b8" }}>{tr("ops.billing.noSchoolFound")}</span>
+              ) : (
+                found.map((s) => {
+                  const on = picked?.id === s.id;
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => {
+                        setPicked(s);
+                        setSchoolId(s.id);
+                      }}
+                      style={{
+                        textAlign: "left",
+                        background: on ? "#1d2947" : "#0e1219",
+                        border: `1px solid ${on ? "#4f7cff" : "#2a3142"}`,
+                        borderRadius: 10,
+                        padding: "9px 12px",
+                        color: "#eef1f7",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <span style={{ display: "block", fontSize: 15, fontWeight: 600 }}>
+                        {s.name}
+                        <span style={{ fontWeight: 400, color: "#9aa4b8" }}>
+                          {" "}
+                          · {s.city ?? "—"}
+                          {s.countryCode ? `, ${s.countryCode}` : ""}
+                        </span>
+                      </span>
+                      <span style={{ display: "block", fontSize: 13, color: "#9aa4b8", marginTop: 2 }}>
+                        {s.adminEmails.length ? s.adminEmails.join(", ") : tr("ops.billing.noAdminEmail")} · {s.id}
+                      </span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          )}
           <label style={label}>{tr("ops.billing.schoolIdLabel")}</label>
           <input
             style={input}
             placeholder={tr("ops.billing.schoolIdPlaceholder")}
             value={schoolId}
-            onChange={(e) => setSchoolId(e.target.value)}
+            onChange={(e) => {
+              setSchoolId(e.target.value);
+              setPicked(null);
+            }}
             disabled={busy}
           />
         </>

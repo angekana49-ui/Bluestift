@@ -10,6 +10,7 @@ import { hasRealEmail } from "@/lib/auth";
 import { MIN_B2B_SEATS, SCHOOL_PILOT_DAYS, pilotEndDate } from "@/lib/billing/terms";
 import { checkStrictUserRateLimit } from "@/lib/rate-limit";
 import { firstNameOf, sendPilotStartedEmail } from "@/lib/email";
+import { MIN_NAME_LENGTH, isNameTooShort, normalizeName } from "@/lib/names";
 
 /** A plain address check — enough to refuse a typo, not a deliverability test. */
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -73,12 +74,20 @@ export async function POST(request: Request) {
   }
 
   const name = (body.name ?? "").trim().slice(0, 120);
-  if (!name) return NextResponse.json({ error: "A school name is required." }, { status: 400 });
+  if (isNameTooShort(name)) {
+    return NextResponse.json(
+      { error: `The school name needs at least ${MIN_NAME_LENGTH} characters.`, code: "name" },
+      { status: 400 },
+    );
+  }
   const countryCode = (body.countryCode ?? "").trim().toUpperCase().slice(0, 2) || null;
-  if (!countryCode) return NextResponse.json({ error: "Choose the school's country." }, { status: 400 });
+  if (!countryCode) return NextResponse.json({ error: "Choose the school's country.", code: "country" }, { status: 400 });
   const rawType = (body.schoolType ?? "").trim().toLowerCase();
   const schoolType = (SCHOOL_TYPES as readonly string[]).includes(rawType) ? rawType : null;
-  const city = (body.city ?? "").trim().slice(0, 80) || null;
+  // Required: country + name alone do not identify a school. Every state has its
+  // Lincoln High and its Roosevelt High; the city is what tells them apart.
+  const city = (body.city ?? "").trim().slice(0, 80);
+  if (!city) return NextResponse.json({ error: "Enter the school's city.", code: "city" }, { status: 400 });
   const phone = (body.phone ?? "").trim().slice(0, 40) || null;
   const email = (body.email ?? "").trim().slice(0, 160) || null;
   if (email && !EMAIL_RE.test(email)) {
@@ -107,6 +116,43 @@ export async function POST(request: Request) {
   const plan = planData as { id: string; name: string; tier: string | null; category: string | null } | null;
   if (!plan || plan.category !== "b2b") {
     return NextResponse.json({ error: "Choose a plan for your pilot.", code: "plan" }, { status: 400 });
+  }
+
+  /**
+   * One admin, one copy of a school.
+   *
+   * Name, country and city together are what a school is to the people in it,
+   * and the admin's account is the last word that separates two genuinely
+   * different schools sharing all three (two Lincoln Highs in one Springfield,
+   * run by two different people). So the same three, under the same admin,
+   * are the same school, and a second one is a double submit or a forgotten
+   * first try, not a new campus. Different admins may share the three freely;
+   * each school keeps its own id either way.
+   *
+   * Compared on normalizeName: accents, case and spacing don't make a school.
+   */
+  const { data: mine } = await schools
+    .from("school_admins")
+    .select("school_id")
+    .eq("user_id", user.id)
+    .eq("role", "admin_master");
+  const mineIds = ((mine as { school_id: string }[] | null) ?? []).map((m) => m.school_id);
+  if (mineIds.length) {
+    const { data: existing } = await schools.from("schools").select("id, name, city, country_code").in("id", mineIds);
+    const clash = ((existing as { id: string; name: string; city: string | null; country_code: string | null }[] | null) ?? []).find(
+      (s) =>
+        s.country_code === countryCode && normalizeName(s.name) === normalizeName(name) && normalizeName(s.city) === normalizeName(city),
+    );
+    if (clash) {
+      return NextResponse.json(
+        {
+          error: `You already have ${clash.name} in ${clash.city}. Open it from your schools instead of creating it again.`,
+          code: "duplicate_school",
+          schoolId: clash.id,
+        },
+        { status: 409 },
+      );
+    }
   }
 
   const now = new Date();

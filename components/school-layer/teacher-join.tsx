@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { netFetch } from "@/lib/net/client-fetch";
+import { isNameTooShort } from "@/lib/names";
 import { useTranslate } from "@/components/ui/locale";
 import { fieldInput, fieldLabel, heading, primaryBtn, secondaryBtn, sub } from "@/components/ui/auth-chrome";
 import { AllSetCard, LayerShell } from "./layer-shell";
@@ -40,8 +41,8 @@ export function TeacherJoin({ displayName, email }: { displayName: string; email
    */
   async function saveName(): Promise<boolean> {
     const trimmed = name.trim();
-    if (!trimmed) {
-      setError(tr("layer.teacher.err.name"));
+    if (isNameTooShort(trimmed)) {
+      setError(tr(trimmed ? "layer.teacher.err.nameShort" : "layer.teacher.err.name"));
       return false;
     }
     if (trimmed === displayName) return true;

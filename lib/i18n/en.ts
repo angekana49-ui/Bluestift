@@ -646,6 +646,8 @@ export const en = {
   "onb.name.usernamePlaceholder": "e.g. alex_m",
   "onb.name.displayLabel": "Display name",
   "onb.name.displayPlaceholder": "e.g. Alex",
+  "onb.name.usernameHint": "Unique — it's your @handle. At least 3 characters.",
+  "onb.name.displayHint": "What others see next to your messages. At least 3 characters.",
 
   "onb.level.heading": "Where are you in school?",
   "onb.level.sub.a": "This helps",
@@ -713,6 +715,7 @@ export const en = {
 
   "onb.err.age": "Enter the year you were born.",
   "onb.err.nameRequired": "Choose a username and a display name.",
+  "onb.err.nameShort": "Your username and display name each need at least 3 characters.",
   "onb.err.level": "Pick your level.",
   "onb.err.srole": "Tell us how you'll use Schools.",
   "onb.err.saveFailed": "Couldn't save that",
@@ -894,6 +897,7 @@ export const en = {
   "login.err.emailNotConfirmed":
     "This email isn't confirmed yet. Open the link we sent you, or use the email link below.",
   "login.err.emailTaken": "This email already has an account. Sign in instead, or use the email link.",
+  "login.err.emailTakenAction": "Sign in with this email →",
   "login.err.emailFirst": "Type your email address first.",
   "login.recoveryPlaceholder": "Recovery key",
   "login.newHereDivider": "New here",
@@ -2718,6 +2722,10 @@ export const en = {
 
   // ── School settings (school-admin.tsx: SchoolSettings) ───────────────
   "school.settings.title": "School info",
+  "school.settings.idLabel": "School ID",
+  "school.settings.idCopy": "Copy",
+  "school.settings.idCopied": "Copied",
+  "school.settings.idHint": "Share this ID with Bluestift support so we find your school straight away.",
   "school.settings.changeLogo": "Change logo",
   "school.settings.uploading": "Uploading…",
   "school.settings.nameLabel": "Name",
@@ -3216,6 +3224,12 @@ export const en = {
   "ops.billing.userEmailLabel": "User email",
   "ops.billing.schoolIdLabel": "School id",
   "ops.billing.schoolIdPlaceholder": "uuid — found in Supabase (schools.schools)",
+  "ops.billing.findSchoolLabel": "Find the school",
+  "ops.billing.findSchoolPlaceholder": "School name, admin email or school ID",
+  "ops.billing.findSchoolButton": "Search",
+  "ops.billing.noSchoolFound": "No school matches.",
+  "ops.billing.noAdminEmail": "no admin email",
+  "ops.billing.searchFailed": "The search failed.",
   "ops.billing.planLabel": "Plan",
   "ops.billing.selectPlanPlaceholder": "Select a plan…",
   "ops.billing.onQuote": "(on quote)",
@@ -3427,6 +3441,9 @@ export const en = {
   "layer.school.err.name": "Enter the school's name.",
   "layer.school.err.country": "Choose the school's country.",
   "layer.school.err.email": "The school email doesn't look right.",
+  "layer.school.err.nameShort": "The school name needs at least 3 characters.",
+  "layer.school.err.city": "Enter the school's city.",
+  "layer.school.err.duplicate": "You already have a school with this name in this city. Open it from your schools, or change the name if it's really a different school.",
   "layer.plans.heading": "Choose your pilot plan",
   "layer.plans.subA": "Your school starts on a free",
   "layer.plans.subB":
@@ -3472,6 +3489,7 @@ export const en = {
   "layer.teacher.sub": "Enter the invite code from your school's admin. No code? You can ask your school directly.",
   "layer.teacher.name": "Your name, as your school will see it",
   "layer.teacher.err.name": "Enter your name.",
+  "layer.teacher.err.nameShort": "Your name needs at least 3 characters.",
   "layer.teacher.signedInAs": "Signed in as",
   "layer.teacher.code": "Invite code",
   "layer.teacher.codePlaceholder": "e.g. K7M2QX",
