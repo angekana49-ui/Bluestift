@@ -30,8 +30,8 @@ describe("the batched authorisation", () => {
   });
 
   it("keeps 404-before-403 precedence per id", () => {
-    const notFound = route.indexOf('"Alert not found."');
-    const forbidden = route.indexOf('"Not your student."');
+    const notFound = route.indexOf('apiT("api.alertNotFound")');
+    const forbidden = route.indexOf('apiT("api.notYourStudent")');
     expect(notFound).toBeGreaterThan(-1);
     expect(forbidden).toBeGreaterThan(notFound);
   });

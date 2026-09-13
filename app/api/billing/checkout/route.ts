@@ -9,6 +9,7 @@ import { getPaymentProvider, sandboxBlockedInProd, type PaymentChannel } from "@
 import { createPayment, setPaymentProviderRef } from "@/lib/billing/payments-data";
 import { MIN_B2B_SEATS, termTotal } from "@/lib/billing/terms";
 import { siteUrl } from "@/lib/email";
+import { apiT } from "@/lib/i18n/server";
 
 /**
  * Start a self-serve online checkout (card / mobile money / PayPal via the active
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
   }
 
   const planId = typeof body.planId === "string" ? body.planId.trim() : "";
-  if (!planId) return NextResponse.json({ error: "A plan is required." }, { status: 400 });
+  if (!planId) return NextResponse.json({ error: await apiT("api.planRequired") }, { status: 400 });
 
   const audience = body.audience === "b2b" ? "b2b" : "b2c";
   const channel = body.channel as PaymentChannel | undefined;
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
   if (requiresGuardianToPay(payerBand) && !guardianAttested) {
     return NextResponse.json(
       {
-        error: "This account belongs to someone under 18. A parent or guardian has to confirm they are the one paying.",
+        error: await apiT("api.thisAccountBelongsToSomeoneUnder"),
         code: "guardian_required",
       },
       { status: 403 },
@@ -72,10 +73,10 @@ export async function POST(request: Request) {
 
   const provider = getPaymentProvider();
   if (provider.id === "sandbox" && sandboxBlockedInProd()) {
-    return NextResponse.json({ error: "Online payments aren't configured yet." }, { status: 503 });
+    return NextResponse.json({ error: await apiT("api.onlinePaymentsArentConfiguredYet") }, { status: 503 });
   }
   if (!channel || !provider.supportedChannels.includes(channel)) {
-    return NextResponse.json({ error: "Unsupported payment method." }, { status: 400 });
+    return NextResponse.json({ error: await apiT("api.unsupportedPaymentMethod") }, { status: 400 });
   }
 
   // Load the plan (must be active and match the audience's category).
@@ -94,9 +95,9 @@ export async function POST(request: Request) {
     price_unit: string | null;
     billing_period: string | null;
   } | null;
-  if (!plan) return NextResponse.json({ error: "Unknown or inactive plan." }, { status: 400 });
+  if (!plan) return NextResponse.json({ error: await apiT("api.planUnknown") }, { status: 400 });
   if (plan.category && plan.category !== audience) {
-    return NextResponse.json({ error: "Plan does not match the selected audience." }, { status: 400 });
+    return NextResponse.json({ error: await apiT("api.planDoesNotMatchTheSelected") }, { status: 400 });
   }
 
   // Region-adapted price: the double-layer (declared country + IP) picks the zone,
@@ -114,7 +115,7 @@ export async function POST(request: Request) {
   if (audience === "b2b") {
     const membership = await getAdminMembership(user.id);
     if (!membership || membership.role !== "admin_master") {
-      return NextResponse.json({ error: "Only the school admin can pay for the school." }, { status: 403 });
+      return NextResponse.json({ error: await apiT("api.onlyTheSchoolAdminCanPay") }, { status: 403 });
     }
     schoolId = membership.schoolId;
     const { data: sc } = await schools.from("schools").select("country_code").eq("id", schoolId).maybeSingle();
@@ -133,12 +134,12 @@ export async function POST(request: Request) {
   // a bespoke contract at a number nobody agreed to.
   if (!resolved || rate == null) {
     return NextResponse.json(
-      { error: "This plan is quoted, not sold online — talk to the team.", code: "quote_only" },
+      { error: await apiT("api.thisPlanIsQuotedNotSold"), code: "quote_only" },
       { status: 400 },
     );
   }
   if (rate <= 0) {
-    return NextResponse.json({ error: "This plan is free — no payment needed." }, { status: 400 });
+    return NextResponse.json({ error: await apiT("api.thisPlanIsFreeNoPayment") }, { status: 400 });
   }
   const currency = resolved.currency;
 
@@ -150,17 +151,17 @@ export async function POST(request: Request) {
     months = clampInt(body.months) ?? 12;
     if (resolved.priceUnit === "per_seat") {
       seatLimit = clampInt(body.seats);
-      if (!seatLimit) return NextResponse.json({ error: "Enter the number of students to contract." }, { status: 400 });
+      if (!seatLimit) return NextResponse.json({ error: await apiT("api.contractSeatsRequired") }, { status: 400 });
       // Floor: at least MIN_B2B_SEATS (minimum deal size), and never below the real
       // enrolled headcount (the no-leak floor).
       const gate = await resolveSeatGate(schoolId as string);
       const floor = Math.max(MIN_B2B_SEATS, gate.used);
       if (seatLimit < floor) {
-        const why =
+        const error =
           gate.used > MIN_B2B_SEATS
-            ? `your school has ${gate.used} students enrolled`
-            : `the minimum contract is ${MIN_B2B_SEATS} students`;
-        return NextResponse.json({ error: `Contract at least ${floor} seats — ${why}.` }, { status: 400 });
+            ? await apiT("api.contractAtLeastEnrolled", { floor, headcount: gate.used })
+            : await apiT("api.contractAtLeastMinimum", { floor, min: MIN_B2B_SEATS });
+        return NextResponse.json({ error }, { status: 400 });
       }
       amount = termTotal(rate * seatLimit * months, months);
     } else {
@@ -194,7 +195,7 @@ export async function POST(request: Request) {
       },
     },
   });
-  if (!paymentId) return NextResponse.json({ error: "Could not start checkout." }, { status: 500 });
+  if (!paymentId) return NextResponse.json({ error: await apiT("api.couldNotStartCheckout") }, { status: 500 });
 
   // "bluestift", not "schools", even on the B2B path: /checkout/return and the
   // aggregator webhook are cross-product and stay on the public origin. The
@@ -214,11 +215,11 @@ export async function POST(request: Request) {
       notifyUrl: `${origin}/api/billing/webhook/${provider.id}`,
     });
     if (checkout.mode !== "redirect") {
-      return NextResponse.json({ error: "This method isn't available for online checkout." }, { status: 400 });
+      return NextResponse.json({ error: await apiT("api.thisMethodIsntAvailableForOnline") }, { status: 400 });
     }
     if (checkout.providerRef) await setPaymentProviderRef(paymentId, checkout.providerRef);
     return NextResponse.json({ url: checkout.url, paymentId });
   } catch {
-    return NextResponse.json({ error: "Could not reach the payment provider. Try again." }, { status: 502 });
+    return NextResponse.json({ error: await apiT("api.couldNotReachThePaymentProvider") }, { status: 502 });
   }
 }

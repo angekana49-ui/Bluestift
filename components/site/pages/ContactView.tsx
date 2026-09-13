@@ -13,7 +13,7 @@ const SUBJECT_KEYS: MessageKey[] = ["contact.subject.school", "contact.subject.r
 
 export function ContactView({ signedIn }: { signedIn: boolean }) {
   const tr = useTranslate();
-  const SUBJECTS = SUBJECT_KEYS.map(tr);
+  const SUBJECTS = SUBJECT_KEYS.map((key) => tr(key));
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
   const [state, setState] = useState<"idle" | "busy" | "done" | "error">("idle");
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);

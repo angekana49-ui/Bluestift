@@ -2,7 +2,9 @@
 
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 import { useLocale, type LocaleValue } from "@/lib/use-locale";
-import { lookup, type MessageKey } from "@/lib/i18n";
+import { lookup, type MessageKey, type MessageVars } from "@/lib/i18n";
+import { LOCALE_KEY, normalizeLocale } from "@/lib/locale";
+import { readPref } from "@/lib/shared-pref";
 
 /**
  * App-language context — the locale twin of `AppThemeProvider`.
@@ -39,7 +41,16 @@ export function useAppLocale(): LocaleValue {
  * Named `tr`, not `t`, by convention across this codebase: `t` is already the
  * theme in essentially every component, and shadowing it would be a trap.
  */
-export function useTranslate(): (key: MessageKey) => string {
+export function useTranslate(): (key: MessageKey, vars?: MessageVars) => string {
   const { locale } = useAppLocale();
-  return useMemo(() => (key: MessageKey) => lookup(locale, key), [locale]);
+  return useMemo(() => (key: MessageKey, vars?: MessageVars) => lookup(locale, key, vars), [locale]);
+}
+
+/**
+ * For code that runs outside a component — a module-level fetch helper that
+ * throws the message a component later shows. Reads the stored preference at
+ * call time, which is what the provider holds anyway once the page has mounted.
+ */
+export function trNow(key: MessageKey, vars?: MessageVars): string {
+  return lookup(normalizeLocale(readPref(LOCALE_KEY)), key, vars);
 }

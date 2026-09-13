@@ -7,6 +7,7 @@ import { assertRoomOpen } from "@/lib/rooms";
 import { FORMATTING_RULES, safetyLayer } from "@/lib/raya/prompt";
 import { appGuideLayer } from "@/lib/raya/app-guide-layer";
 import { checkStrictUserRateLimit } from "@/lib/rate-limit";
+import { apiT } from "@/lib/i18n/server";
 
 // Non-streamed LLM turn: allow the full reply to complete on Vercel.
 export const maxDuration = 60;
@@ -57,7 +58,7 @@ export async function POST(request: Request) {
 
   const { open } = await assertRoomOpen(supabase, roomId);
   if (!open) {
-    return NextResponse.json({ error: "This room has ended — it's now read-only." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.roomEnded") }, { status: 403 });
   }
 
   const [{ data: hist }, { data: files }] = await Promise.all([
@@ -79,7 +80,7 @@ export async function POST(request: Request) {
   ]);
 
   if (!hist || hist.length === 0) {
-    return NextResponse.json({ error: "no messages yet" }, { status: 400 });
+    return NextResponse.json({ error: await apiT("api.noMessagesYet") }, { status: 400 });
   }
 
   // Room documents give the room its context.
@@ -104,7 +105,7 @@ export async function POST(request: Request) {
     reply = (await rayaComplete(messages)).text;
   } catch (e) {
     return NextResponse.json(
-      { error: clientError(e, "llm error") },
+      { error: clientError(e, await apiT("api.llmError")) },
       { status: 502 },
     );
   }

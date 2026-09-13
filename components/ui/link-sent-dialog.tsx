@@ -39,6 +39,8 @@ const paletteOf = (t?: AppTheme): Palette =>
 
 /** How often the tab asks whether the link has been opened elsewhere. */
 const POLL_MS = 2500;
+/** The same question asked of the server: a request each time, so less often. */
+const REMOTE_POLL_MS = 5000;
 /** Long enough to read "you're in", short enough not to feel stuck. */
 const HANDOVER_MS = 1100;
 
@@ -78,26 +80,56 @@ async function identityOf(supabase: SupabaseClient<Database>): Promise<string> {
  * changed and the moment a 2.5-second wait is most visible, so focus and
  * visibility skip the queue.
  */
-function useIdentityChange(supabase: SupabaseClient<Database>, onChange: () => void) {
-  // Both in refs, and for the same reason: NOTHING about this watch may restart
+function useIdentityChange(
+  supabase: SupabaseClient<Database>,
+  onChange: () => void,
+  /**
+   * Ask the server instead of the cookie. An account upgrade (lib/account-
+   * upgrade.ts) gains its address admin-side, possibly on another device, and
+   * nothing in THIS browser's cookie changes when it does — the token still
+   * carries the old address until it is next refreshed. So that caller passes
+   * the question itself.
+   */
+  checkConfirmed?: () => Promise<boolean>,
+) {
+  // All in refs, and for the same reason: NOTHING about this watch may restart
   // it, because restarting re-captures the baseline — and a baseline captured
   // after the session arrives can never differ from it. A poll that resets
   // itself often enough simply stops detecting anything, silently.
   //
-  // Both inputs move constantly. The callers pass an inline arrow, and they
+  // The inputs move constantly. The callers pass an inline arrow, and they
   // build their client in the render body (`const supabase = createClient()`),
   // so its identity changes on every render of the page behind this dialog.
   const fire = useRef(onChange);
   fire.current = onChange;
   const client = useRef(supabase);
+  const remote = useRef(checkConfirmed);
 
   useEffect(() => {
     const supa = client.current;
+    const check = remote.current;
     let done = false;
     let baseline: string | null = null;
     let timer: ReturnType<typeof setTimeout> | undefined;
 
     const tick = async () => {
+      if (check) {
+        // Nobody is looking at a hidden tab, so it spends no request; coming
+        // back to it runs a check at once (see `wake`).
+        if (document.visibilityState === "hidden") {
+          timer = setTimeout(tick, REMOTE_POLL_MS);
+          return;
+        }
+        const confirmed = await check().catch(() => false);
+        if (done) return;
+        if (confirmed) {
+          done = true;
+          fire.current();
+          return;
+        }
+        timer = setTimeout(tick, REMOTE_POLL_MS);
+        return;
+      }
       const id = await identityOf(supa);
       if (done) return;
       if (baseline === null) baseline = id;
@@ -132,6 +164,7 @@ export function LinkSentDialog({
   email,
   theme,
   confirmedKey = "auth.linkSent.confirmed",
+  checkConfirmed,
   onClose,
   onConfirmed,
 }: {
@@ -145,6 +178,9 @@ export function LinkSentDialog({
    *  which is a lie in onboarding — there the link only verifies an address and
    *  the person carries on exactly where they were. */
   confirmedKey?: MessageKey;
+  /** Ask the server whether the link was used, instead of watching the cookie.
+   *  See useIdentityChange. */
+  checkConfirmed?: () => Promise<boolean>;
   onClose: () => void;
   /** Run once, when this tab notices the link has been opened. */
   onConfirmed: () => void;
@@ -160,10 +196,14 @@ export function LinkSentDialog({
     onConfirmed();
   }, [onConfirmed]);
 
-  useIdentityChange(supabase, () => {
-    setConfirmed(true);
-    setTimeout(handOver, HANDOVER_MS);
-  });
+  useIdentityChange(
+    supabase,
+    () => {
+      setConfirmed(true);
+      setTimeout(handOver, HANDOVER_MS);
+    },
+    checkConfirmed,
+  );
 
   // Once the link is in, this dialog is the last thing standing between the
   // person and the app — so dismissing it means "go", not "stay here signed in

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminMembership } from "@/lib/school-admin";
+import { apiT } from "@/lib/i18n/server";
 
 /**
  * History for the Raya-for-Schools chat — the staff-side mirror of
@@ -30,7 +31,7 @@ export async function GET(request: Request) {
   // No id → the history list for the active school.
   if (!id) {
     const membership = await getAdminMembership(user.id);
-    if (!membership) return NextResponse.json({ error: "School staff only." }, { status: 403 });
+    if (!membership) return NextResponse.json({ error: await apiT("api.staffOnly") }, { status: 403 });
     const { data, error } = await supabase
       .schema("learning")
       .from("conversations")
@@ -62,7 +63,7 @@ export async function GET(request: Request) {
    * alone, which made the guarantee only as true as the id was hard to guess.
    */
   const membership = await getAdminMembership(user.id);
-  if (!membership) return NextResponse.json({ error: "School staff only." }, { status: 403 });
+  if (!membership) return NextResponse.json({ error: await apiT("api.staffOnly") }, { status: 403 });
   const { data: owned } = await supabase
     .schema("learning")
     .from("conversations")
@@ -72,7 +73,7 @@ export async function GET(request: Request) {
     .eq("context_type", "school_analytics")
     .eq("school_id", membership.schoolId)
     .maybeSingle();
-  if (!owned) return NextResponse.json({ error: "conversation not found" }, { status: 404 });
+  if (!owned) return NextResponse.json({ error: await apiT("api.conversationNotFound") }, { status: 404 });
 
   const [{ data, error }, { data: files }] = await Promise.all([
     supabase
@@ -117,7 +118,7 @@ export async function DELETE(request: Request) {
    * belongs to the one it was held about — see the note on the chat route).
    */
   const membership = await getAdminMembership(user.id);
-  if (!membership) return NextResponse.json({ error: "School staff only." }, { status: 403 });
+  if (!membership) return NextResponse.json({ error: await apiT("api.staffOnly") }, { status: 403 });
   const { data: owned } = await supabase
     .schema("learning")
     .from("conversations")
@@ -127,7 +128,7 @@ export async function DELETE(request: Request) {
     .eq("context_type", "school_analytics")
     .eq("school_id", membership.schoolId)
     .maybeSingle();
-  if (!owned) return NextResponse.json({ error: "conversation not found" }, { status: 404 });
+  if (!owned) return NextResponse.json({ error: await apiT("api.conversationNotFound") }, { status: 404 });
 
   await supabase.schema("learning").from("messages").delete().eq("conversation_id", id);
   const { error } = await supabase

@@ -7,6 +7,7 @@ import {
   isSupportedLocale,
   translateDocument,
 } from "@/lib/documents/translate";
+import { apiT } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 
@@ -50,12 +51,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "unsupported language" }, { status: 400 });
   }
   if (!title.trim() || !text.trim()) {
-    return NextResponse.json({ error: "nothing to translate" }, { status: 400 });
+    return NextResponse.json({ error: await apiT("api.nothingToTranslate") }, { status: 400 });
   }
   if (title.length + text.length > MAX_DOC_CHARS) {
     // A document, not a corpus. The cap is above anything this product
     // generates and well below what would make one call expensive.
-    return NextResponse.json({ error: "document too long to translate" }, { status: 413 });
+    return NextResponse.json({ error: await apiT("api.documentTooLongToTranslate") }, { status: 413 });
   }
 
   /**
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
    */
   if (!(await checkStrictUserRateLimit("doc_translate", user.id, 40, "60 minutes"))) {
     return NextResponse.json(
-      { error: "Too many translations just now — try again shortly." },
+      { error: await apiT("api.tooManyTranslationsJustNowTry") },
       { status: 429 },
     );
   }

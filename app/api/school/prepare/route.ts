@@ -12,6 +12,7 @@ import {
 } from "@/lib/school-admin";
 import { generateJson } from "@/lib/raya/llm";
 import { resolveSchoolEntitlements, gateQuota, startOfMonthIso } from "@/lib/entitlements";
+import { apiT } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
     .select("id", { count: "exact", head: true })
     .eq("created_by", membership.adminId)
     .gte("created_at", startOfMonthIso());
-  const overPrep = gateQuota(prepUsed ?? 0, ent.preparePerMonthPerProf, {
+  const overPrep = await gateQuota(prepUsed ?? 0, ent.preparePerMonthPerProf, {
     metric: "Prepare generations",
     period: "month",
     upgradeTo: "Plus",
@@ -79,7 +80,7 @@ export async function POST(request: Request) {
   const count = Math.min(Math.max(Number(body.count) || 8, 1), 20);
 
   if (classId && !(await assertClassAccess(user.id, classId))) {
-    return NextResponse.json({ error: "Not your class." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.notYourClass") }, { status: 403 });
   }
 
   // Ground on real cognitive data: class snapshot and/or subject mastery.
@@ -100,7 +101,7 @@ export async function POST(request: Request) {
       subjectName = sc.subjectName;
       parts.push(`Subject snapshot —\n${sc.context}`);
     } else {
-      return NextResponse.json({ error: "Subject not found or not yours." }, { status: 404 });
+      return NextResponse.json({ error: await apiT("api.subjectNotFoundOrNotYours") }, { status: 404 });
     }
   }
   const grounding = parts.join("\n\n") || "No cognitive data available yet — write a solid general set.";
@@ -128,7 +129,7 @@ export async function POST(request: Request) {
     const raw = await generateJson(system, userMsg);
     parsed = JSON.parse(raw) as { title?: string; instructions?: string; questions?: unknown };
   } catch (e) {
-    return NextResponse.json({ error: clientError(e, "generation failed") }, { status: 502 });
+    return NextResponse.json({ error: clientError(e, await apiT("api.generationFailed")) }, { status: 502 });
   }
 
   const questions: GenQuestion[] = Array.isArray(parsed.questions)
@@ -137,7 +138,7 @@ export async function POST(request: Request) {
         .filter((q): q is GenQuestion => q !== null)
     : [];
   if (questions.length === 0) {
-    return NextResponse.json({ error: "The model returned no usable questions." }, { status: 502 });
+    return NextResponse.json({ error: await apiT("api.theModelReturnedNoUsableQuestions") }, { status: 502 });
   }
 
   const title =
@@ -233,7 +234,7 @@ async function authStaff() {
   } = await supabase.auth.getUser();
   if (!user) return { error: NextResponse.json({ error: "unauthorized" }, { status: 401 }) } as const;
   const membership = await getAdminMembership(user.id);
-  if (!membership) return { error: NextResponse.json({ error: "School staff only." }, { status: 403 }) } as const;
+  if (!membership) return { error: NextResponse.json({ error: await apiT("api.staffOnly") }, { status: 403 }) } as const;
   return { user, membership, error: null } as const;
 }
 
@@ -274,7 +275,7 @@ export async function PATCH(request: Request) {
     .maybeSingle();
   const row = resource as { school_id: string; created_by: string } | null;
   if (!row || row.school_id !== membership.schoolId) {
-    return NextResponse.json({ error: "not found" }, { status: 404 });
+    return NextResponse.json({ error: await apiT("api.notFound") }, { status: 404 });
   }
   // created_by is the school_admins row id (membership.adminId), NOT the auth
   // user id — same identifier the insert in POST above writes.
@@ -304,7 +305,7 @@ export async function DELETE(request: Request) {
     .maybeSingle();
   const row = resource as { school_id: string; created_by: string; class_id: string | null } | null;
   if (!row || row.school_id !== membership.schoolId) {
-    return NextResponse.json({ error: "not found" }, { status: 404 });
+    return NextResponse.json({ error: await apiT("api.notFound") }, { status: 404 });
   }
   if (row.created_by !== membership.adminId && membership.role !== "admin_master") {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
@@ -318,7 +319,7 @@ export async function DELETE(request: Request) {
   // is why only class-less (general/ungrouped) resources are deletable.
   if (row.class_id) {
     return NextResponse.json(
-      { error: "This resource is tied to a class and part of the year record — archive it instead of deleting it." },
+      { error: await apiT("api.thisResourceIsTiedToA") },
       { status: 409 },
     );
   }

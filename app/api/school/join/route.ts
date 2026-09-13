@@ -7,6 +7,7 @@ import { resolveSeatGate } from "@/lib/billing";
 import { checkStrictUserRateLimit } from "@/lib/rate-limit";
 import { ageBand, isMinor } from "@/lib/compliance/age";
 import { forgetOptionalProcessing } from "@/lib/compliance/optional-processing";
+import { apiT } from "@/lib/i18n/server";
 
 // Local shapes for the untyped `schools` schema (not in generated types).
 type CodeRow = { class_id: string; school_year_id: string | null };
@@ -44,9 +45,9 @@ export async function POST(request: Request) {
   const code = typeof body.code === "string" ? body.code.trim() : "";
   const firstName = clampName(body.firstName);
   const lastName = clampName(body.lastName);
-  if (!code) return NextResponse.json({ error: "A class code is required." }, { status: 400 });
+  if (!code) return NextResponse.json({ error: await apiT("api.aClassCodeIsRequired") }, { status: 400 });
   if (!firstName || !lastName) {
-    return NextResponse.json({ error: "First and last name are required." }, { status: 400 });
+    return NextResponse.json({ error: await apiT("api.firstAndLastNameAreRequired") }, { status: 400 });
   }
   /**
    * Bucketed on the ACCOUNT, not the address, and the address was wrong on both
@@ -79,7 +80,7 @@ export async function POST(request: Request) {
     .maybeSingle();
   const codeRow = (codeData ?? null) as CodeRow | null;
   if (!codeRow) {
-    return NextResponse.json({ error: "Invalid or inactive class code." }, { status: 404 });
+    return NextResponse.json({ error: await apiT("api.invalidOrInactiveClassCode") }, { status: 404 });
   }
 
   const { data: classData } = await schools
@@ -89,7 +90,7 @@ export async function POST(request: Request) {
     .maybeSingle();
   const classRow = (classData ?? null) as ClassRow | null;
   if (!classRow) {
-    return NextResponse.json({ error: "That class no longer exists." }, { status: 404 });
+    return NextResponse.json({ error: await apiT("api.thatClassNoLongerExists") }, { status: 404 });
   }
 
   const schoolId = classRow.school_id;
@@ -116,7 +117,7 @@ export async function POST(request: Request) {
       .eq("class_id", classRow.id);
     if ((count ?? 0) >= cap) {
       return NextResponse.json(
-        { error: "This class is full — ask your teacher for another class or code." },
+        { error: await apiT("api.thisClassIsFullAskYour") },
         { status: 409 },
       );
     }
@@ -130,13 +131,13 @@ export async function POST(request: Request) {
     const gate = await resolveSeatGate(schoolId);
     if (gate.reason === "pilot_ended") {
       return NextResponse.json(
-        { error: "This school isn't accepting new students right now — ask your school administrator." },
+        { error: await apiT("api.thisSchoolIsntAcceptingNewStudents") },
         { status: 409 },
       );
     }
     if (gate.limited && gate.used >= (gate.seats ?? Infinity)) {
       return NextResponse.json(
-        { error: "This school has reached its seat limit — ask your school administrator to add seats." },
+        { error: await apiT("api.thisSchoolHasReachedItsSeat") },
         { status: 409 },
       );
     }

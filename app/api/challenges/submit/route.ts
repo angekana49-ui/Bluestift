@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { generateJson } from "@/lib/raya/llm";
 import { reportGradedSubmission } from "@/lib/kernel/graded";
 import { assertRoomOpen } from "@/lib/rooms";
+import { apiT } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -37,7 +38,8 @@ async function gradeOpen(items: OpenItem[]): Promise<Map<string, { score: number
     });
   } catch {
     // Grading unavailable — leave open answers unscored (excluded from the score).
-    for (const it of items) out.set(it.questionId, { score: null, feedback: "Automatic grading was unavailable for this answer." });
+    const feedback = await apiT("api.gradingUnavailable");
+    for (const it of items) out.set(it.questionId, { score: null, feedback });
   }
   return out;
 }
@@ -91,7 +93,7 @@ export async function POST(request: Request) {
   if (roomId) {
     const { open } = await assertRoomOpen(supabase, roomId);
     if (!open) {
-      return NextResponse.json({ error: "This room has ended — it's now read-only." }, { status: 403 });
+      return NextResponse.json({ error: await apiT("api.roomEnded") }, { status: 403 });
     }
   }
 
@@ -103,7 +105,7 @@ export async function POST(request: Request) {
     .eq("challenge_id", challengeId);
   if (qErr) return NextResponse.json({ error: clientError(qErr) }, { status: 500 });
   if (!questions || questions.length === 0) {
-    return NextResponse.json({ error: "challenge has no questions" }, { status: 400 });
+    return NextResponse.json({ error: await apiT("api.challengeHasNoQuestions") }, { status: 400 });
   }
 
   // Grade open answers in one batch.

@@ -231,17 +231,19 @@ export async function mintSessionFor(
  * `onboarding_pending` like a new one. ON CONFLICT DO NOTHING, so a row that
  * exists is never touched. Service role: users cannot INSERT their own row.
  */
-export async function ensureProfileRow(user: { id: string; email?: string | null }): Promise<void> {
+export async function ensureProfileRow(user: AuthUserLike): Promise<void> {
   try {
     const admin = createAdminClient();
-    const real = hasRealEmail(user.email);
+    const status = accountStatusOf(user);
     await admin.from("users").upsert(
       {
         id: user.id,
-        email: real ? user.email : null,
+        email: status === "anonymous" ? null : user.email,
         username: `user_${user.id.replace(/-/g, "").slice(0, 8)}`,
-        auth_method: real ? "email" : "anonymous",
-        account_type: real ? "verified" : "anonymous",
+        auth_method: status === "anonymous" ? "anonymous" : "email",
+        // 'verified' only once the address is confirmed — an unconfirmed
+        // signup is not, whatever address it typed.
+        account_type: status === "verified" ? "verified" : "anonymous",
       },
       { onConflict: "id", ignoreDuplicates: true },
     );
@@ -250,36 +252,73 @@ export async function ensureProfileRow(user: { id: string; email?: string | null
   }
 }
 
+/** What an account is, as the Settings screens say it. */
+export type AccountStatus = "anonymous" | "unverified" | "verified";
+
 /**
- * On a successful email login/confirmation, record that the email is verified.
- * - `email_verified_at` is set once (if still null).
- * - `account_state` is bumped `active_unverified → active_verified` ONLY — a new
- *   user still on `onboarding_pending` is left alone so onboarding still runs.
- * Uses the service role (account_state is not user-writable). Best-effort.
+ * Read from auth.users, never from public.users: auth is where an address is
+ * actually confirmed, and the synthetic recovery address is confirmed there
+ * too without belonging to anyone, so it never counts.
  */
-export async function markEmailVerified(user: {
+export function accountStatusOf(user: { email?: string | null; email_confirmed_at?: string | null }): AccountStatus {
+  if (!hasRealEmail(user.email)) return "anonymous";
+  return user.email_confirmed_at ? "verified" : "unverified";
+}
+
+type AuthUserLike = {
   id: string;
   email?: string | null;
-  is_anonymous?: boolean;
-}): Promise<void> {
-  // Only a REAL linked email confers verified status. The synthetic recovery
-  // address (email-less accounts) is Supabase-confirmed but must never count.
-  if (!hasRealEmail(user.email) || user.is_anonymous) return;
+  email_confirmed_at?: string | null;
+};
+
+/**
+ * Bring the profile row's account columns (email, auth_method, account_type,
+ * email_verified_at, account_state) in line with auth.users.
+ *
+ * The rule lives in the database, `public.sync_account_status`, which a trigger
+ * on auth.users also runs on every change of address or confirmation — so a
+ * link opened on another device, which never reaches our callback with a
+ * session, still updates the account. Calling it here as well repairs rows
+ * from before that trigger, and is a no-op otherwise.
+ *
+ * If the function is not there (a database behind this code), the same rule
+ * is applied from here with what the caller already knows. Service role:
+ * none of these columns is user-writable. Best-effort: a sign-in never waits
+ * on it failing.
+ */
+export async function syncAccountStatus(user: AuthUserLike): Promise<void> {
   try {
     const admin = createAdminClient();
+    const { error } = await admin.rpc("sync_account_status", { p_user_id: user.id });
+    if (!error) return;
+
     const { data: prof } = await admin
       .from("users")
-      .select("account_state, email_verified_at")
+      .select("account_type, auth_method, account_state, email_verified_at")
       .eq("id", user.id)
       .maybeSingle();
     if (!prof) return;
 
-    const patch: { email_verified_at?: string; account_state?: string } = {};
-    if (!prof.email_verified_at) patch.email_verified_at = new Date().toISOString();
-    if (prof.account_state === "active_unverified") patch.account_state = "active_verified";
-    if (Object.keys(patch).length > 0) {
-      await admin.from("users").update(patch).eq("id", user.id);
-    }
+    const status = accountStatusOf(user);
+    const verified = status === "verified";
+    const patch = {
+      email: status === "anonymous" ? null : (user.email ?? null),
+      auth_method: status === "anonymous" ? (prof.auth_method === "recovery_key" ? "recovery_key" : "anonymous") : "email",
+      account_type:
+        prof.account_type === "b2c_paid" || prof.account_type === "school_admin"
+          ? prof.account_type
+          : verified
+            ? "verified"
+            : "anonymous",
+      email_verified_at: verified ? (prof.email_verified_at ?? user.email_confirmed_at ?? new Date().toISOString()) : null,
+      account_state:
+        prof.account_state === "active_unverified" && verified
+          ? "active_verified"
+          : prof.account_state === "active_verified" && !verified
+            ? "active_unverified"
+            : prof.account_state,
+    };
+    await admin.from("users").update(patch).eq("id", user.id);
   } catch {
     // non-fatal — never block the login redirect
   }

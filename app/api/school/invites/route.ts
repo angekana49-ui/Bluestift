@@ -4,6 +4,7 @@ import { randomInt } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { getAdminMembership } from "@/lib/school-admin";
+import { apiT } from "@/lib/i18n/server";
 
 // Unambiguous alphabet (no 0/O/1/I). 8 chars — a staff code grants a personal
 // membership, so more entropy than a 6-char class code.
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
 
   const membership = await getAdminMembership(user.id);
   if (!membership || membership.role !== "admin_master") {
-    return NextResponse.json({ error: "Admin only." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.adminOnly") }, { status: 403 });
   }
 
   let body: { autoApprove?: boolean };
@@ -60,7 +61,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: clientError(error) }, { status: 500 });
     }
   }
-  return NextResponse.json({ error: "Could not allocate a unique code, try again." }, { status: 500 });
+  return NextResponse.json({ error: await apiT("api.couldNotAllocateAUniqueCode") }, { status: 500 });
 }
 
 /** Activate / deactivate a staff invite code (admin_master of its school only). */
@@ -73,7 +74,7 @@ export async function PATCH(request: Request) {
 
   const membership = await getAdminMembership(user.id);
   if (!membership || membership.role !== "admin_master") {
-    return NextResponse.json({ error: "Admin only." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.adminOnly") }, { status: 403 });
   }
 
   let body: { codeId?: string; isActive?: boolean };
@@ -97,6 +98,6 @@ export async function PATCH(request: Request) {
     .select("id")
     .maybeSingle();
   if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
-  if (!data) return NextResponse.json({ error: "Code not found." }, { status: 404 });
+  if (!data) return NextResponse.json({ error: await apiT("api.codeNotFound") }, { status: 404 });
   return NextResponse.json({ id: codeId, isActive });
 }

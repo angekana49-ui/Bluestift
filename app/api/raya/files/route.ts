@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { extractFileText, storageSafeName } from "@/lib/extract";
 import { contentLengthExceeds, tooLarge, MAX_DOC_BYTES } from "@/lib/upload-limits";
 import { assertRoomOpen } from "@/lib/rooms";
+import { apiT } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
   const gated = await ageGateResponse(user.id);
   if (gated) return gated;
 
-  const oversized = contentLengthExceeds(request, MAX_DOC_BYTES);
+  const oversized = await contentLengthExceeds(request, MAX_DOC_BYTES);
   if (oversized) return oversized;
 
   let form: FormData;
@@ -45,9 +46,9 @@ export async function POST(request: Request) {
   const roomIdRaw = form.get("roomId");
   const roomId = typeof roomIdRaw === "string" && roomIdRaw ? roomIdRaw : null;
   if (!(file instanceof File)) {
-    return NextResponse.json({ error: "file required" }, { status: 400 });
+    return NextResponse.json({ error: await apiT("api.fileRequired") }, { status: 400 });
   }
-  const big = tooLarge(file, MAX_DOC_BYTES);
+  const big = await tooLarge(file, MAX_DOC_BYTES);
   if (big) return big;
 
   if (roomId) {
@@ -62,7 +63,7 @@ export async function POST(request: Request) {
       assertRoomOpen(supabase, roomId),
     ]);
     if (!membership || !room.open) {
-      return NextResponse.json({ error: "This room is unavailable." }, { status: 403 });
+      return NextResponse.json({ error: await apiT("api.thisRoomIsUnavailable") }, { status: 403 });
     }
   }
 
@@ -76,7 +77,7 @@ export async function POST(request: Request) {
       .eq("id", conversationId)
       .eq("user_id", user.id)
       .maybeSingle();
-    if (!conv) return NextResponse.json({ error: "conversation not found" }, { status: 403 });
+    if (!conv) return NextResponse.json({ error: await apiT("api.conversationNotFound") }, { status: 403 });
   } else {
     const { data: conv, error: convErr } = await supabase
       .schema("learning")
@@ -156,7 +157,7 @@ export async function DELETE(request: Request) {
     .select("file_path")
     .maybeSingle();
   if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
-  if (!row) return NextResponse.json({ error: "not found" }, { status: 404 });
+  if (!row) return NextResponse.json({ error: await apiT("api.notFound") }, { status: 404 });
 
   // Reclaim the storage object. Best-effort: the row is already gone, and an
   // orphaned blob is cheaper than failing a delete the user has seen succeed.

@@ -8,6 +8,7 @@ import {
   normalizeKeyword,
   verifyKeyword,
 } from "@/lib/recovery-keyword";
+import { en } from "@/lib/i18n/en";
 
 /**
  * The memory word that gates recovery-key generation.
@@ -167,7 +168,9 @@ describe("the route is where the security actually lives", () => {
     // rather than the surrounding source — the first version of this test
     // matched the word "wrong" inside its own explanatory comment.
     const gate = route.slice(route.indexOf("if (stored)"), route.indexOf("} else if"));
-    const messages = [...gate.matchAll(/error: "([^"]+)"/g)].map((m) => m[1]);
+    // The route sends catalogue keys (lib/i18n/server.ts); what a guesser reads
+    // is the message behind each one.
+    const messages = [...gate.matchAll(/error: await apiT\("([^"]+)"\)/g)].map((m) => en[m[1] as keyof typeof en]);
     // Exactly two: the rate-limit refusal and the verification refusal. A third
     // would mean the route had started explaining itself to an attacker.
     expect(messages).toHaveLength(2);

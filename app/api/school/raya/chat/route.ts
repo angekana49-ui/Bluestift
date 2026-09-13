@@ -9,6 +9,7 @@ import { reportError } from "@/lib/observability/report";
 import { persistAndGather, linkAttachments, replayReply } from "@/lib/raya/chat-context";
 import { FORMATTING_RULES } from "@/lib/raya/prompt";
 import { appGuideLayerForStaff } from "@/lib/raya/app-guide-layer";
+import { apiT } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -76,7 +77,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid json" }, { status: 400 });
   }
   const content = (body.content ?? "").trim().slice(0, 2000);
-  if (!content) return NextResponse.json({ error: "empty message" }, { status: 400 });
+  if (!content) return NextResponse.json({ error: await apiT("api.emptyMessage") }, { status: 400 });
 
   const fileIds = Array.isArray(body.fileIds)
     ? body.fileIds.filter((id): id is string => typeof id === "string").slice(0, 10)
@@ -117,7 +118,7 @@ export async function POST(request: Request) {
   ]);
   if (!allowed) {
     return NextResponse.json(
-      { error: "You're sending messages very fast — give it a second." },
+      { error: await apiT("api.chatTooFast") },
       { status: 429 },
     );
   }
@@ -125,16 +126,16 @@ export async function POST(request: Request) {
   // wrong advice here, and support needs to tell the two apart.
   if (!dayAllowed) {
     return NextResponse.json(
-      { error: "You've hit today's message ceiling. It resets over the next 24 hours." },
+      { error: await apiT("api.chatDailyCeiling") },
       { status: 429 },
     );
   }
   if (!membership) {
-    return NextResponse.json({ error: "School staff only." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.staffOnly") }, { status: 403 });
   }
-  if (!convOk) return NextResponse.json({ error: "conversation not found" }, { status: 403 });
+  if (!convOk) return NextResponse.json({ error: await apiT("api.conversationNotFound") }, { status: 403 });
   if (context == null) {
-    return NextResponse.json({ error: "No school data available for you yet." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.noSchoolDataAvailableForYou") }, { status: 403 });
   }
 
   // Ensure a conversation scoped to this staff member + school (new chats only).
@@ -203,7 +204,7 @@ export async function POST(request: Request) {
     usage = out.usage;
   } catch (e) {
     await linkPromise;
-    return NextResponse.json({ error: clientError(e, "llm error") }, { status: 502 });
+    return NextResponse.json({ error: clientError(e, await apiT("api.llmError")) }, { status: 502 });
   }
   await linkPromise;
 

@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { netFetch } from "@/lib/net/client-fetch";
 import { putBlob, getBlob, deleteBlob } from "@/lib/net/blob-store";
+import { useTranslate } from "@/components/ui/locale";
 
 /** Where a failed recording waits. One slot: the last un-transcribed take. */
 const PENDING_AUDIO_ID = "pending-voice";
@@ -19,6 +20,7 @@ const PENDING_AUDIO_ID = "pending-voice";
  * back to and retyped, it's simply gone.
  */
 export function useVoiceRecorder(onText: (text: string) => void | Promise<void>) {
+  const tr = useTranslate();
   const [recording, setRecording] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,19 +44,19 @@ export function useVoiceRecorder(onText: (text: string) => void | Promise<void>)
         );
         const data = await res.json().catch(() => null);
         if (!res.ok || !data?.text) {
-          setError(data?.error ? `Transcription: ${data.error}` : "Could not transcribe.");
+          setError(data?.error ? `${tr("voice.transcriptionPrefix")} ${data.error}` : tr("voice.couldNotTranscribe"));
           return false;
         }
         await onText(data.text as string);
         return true;
       } catch {
-        setError("Could not transcribe — your recording is saved.");
+        setError(tr("voice.couldNotTranscribeSaved"));
         return false;
       } finally {
         setBusy(false);
       }
     },
-    [onText],
+    [onText, tr],
   );
 
   async function handleResult(blob: Blob) {
@@ -92,7 +94,7 @@ export function useVoiceRecorder(onText: (text: string) => void | Promise<void>)
       mediaRef.current = mr;
       setRecording(true);
     } catch {
-      setError("Microphone access denied.");
+      setError(tr("voice.micDenied"));
     }
   }
 

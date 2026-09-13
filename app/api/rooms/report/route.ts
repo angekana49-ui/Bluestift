@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateJson } from "@/lib/raya/llm";
 import type { Json } from "@/types/database.types";
+import { apiT } from "@/lib/i18n/server";
 
 /**
  * Generate a group study report for a room from its conversation. The requester
@@ -35,7 +36,7 @@ export async function POST(request: Request) {
     .order("created_at", { ascending: true })
     .limit(200);
   if (!msgs || msgs.length === 0) {
-    return NextResponse.json({ error: "Not enough activity to report on." }, { status: 400 });
+    return NextResponse.json({ error: await apiT("api.notEnoughActivityToReportOn") }, { status: 400 });
   }
 
   const { data: files } = await supabase
@@ -73,7 +74,7 @@ export async function POST(request: Request) {
     report = JSON.parse(raw);
   } catch (e) {
     return NextResponse.json(
-      { error: clientError(e, "generation failed") },
+      { error: clientError(e, await apiT("api.generationFailed")) },
       { status: 502 },
     );
   }

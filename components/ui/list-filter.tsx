@@ -194,7 +194,7 @@ function SearchField<T>({ search }: { search: ListSearch<T> }) {
         <button
           type="button"
           onClick={search.clear}
-          aria-label="Clear search"
+          aria-label={tr("list.clearSearch")}
           style={{
             position: "absolute",
             right: 6,

@@ -27,6 +27,7 @@ import {
   setLatestAnalysis,
 } from "@/lib/kernel/profile-cache";
 import type { KernelMessage } from "@/lib/kernel/types";
+import { apiT } from "@/lib/i18n/server";
 
 // Streaming LLM turn: give the function room to finish long replies on Vercel.
 export const maxDuration = 60;
@@ -104,7 +105,7 @@ export async function POST(request: Request) {
   }
   const content = (body.content ?? "").trim().slice(0, 4000);
   if (!content) {
-    return NextResponse.json({ error: "empty message" }, { status: 400 });
+    return NextResponse.json({ error: await apiT("api.emptyMessage") }, { status: 400 });
   }
 
   // Documents staged in the composer, to be attached to this message.
@@ -183,7 +184,7 @@ export async function POST(request: Request) {
     ]);
   if (!allowed) {
     return NextResponse.json(
-      { error: "You're sending messages very fast — give it a second." },
+      { error: await apiT("api.chatTooFast") },
       { status: 429 },
     );
   }
@@ -191,7 +192,7 @@ export async function POST(request: Request) {
   // wrong advice here, and support needs to tell the two apart.
   if (!dayAllowed) {
     return NextResponse.json(
-      { error: "You've hit today's message ceiling. It resets over the next 24 hours." },
+      { error: await apiT("api.chatDailyCeiling") },
       { status: 429 },
     );
   }
@@ -207,7 +208,7 @@ export async function POST(request: Request) {
   // student to wait. Counted BEFORE this message is stored, so a limit of N
   // lets N through. Inert until ENTITLEMENTS_ENFORCE is on — until then it
   // logs and reports what WOULD have been blocked.
-  const overMessages = gateQuota(turnsToday, ent.messagesPerDay, {
+  const overMessages = await gateQuota(turnsToday, ent.messagesPerDay, {
     metric: "messages",
     period: "day",
     upgradeTo: "Plus",
@@ -217,11 +218,11 @@ export async function POST(request: Request) {
   });
   if (overMessages) return overMessages;
   if (!roomMember) {
-    return NextResponse.json({ error: "You are not a member of this room." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.youAreNotAMemberOf") }, { status: 403 });
   }
   // A timed room turns read-only once it ends — the private Raya channel too.
   if (!roomOpen) {
-    return NextResponse.json({ error: "This room has ended — it's now read-only." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.roomEnded") }, { status: 403 });
   }
 
   // Ensure a conversation (only a brand-new chat pays this extra round trip).
@@ -241,7 +242,7 @@ export async function POST(request: Request) {
       (conversation.room_id ?? null) !== roomId ||
       Boolean(conversation.is_private_room_channel) !== (roomId != null)
     ) {
-      return NextResponse.json({ error: "conversation not found" }, { status: 403 });
+      return NextResponse.json({ error: await apiT("api.conversationNotFound") }, { status: 403 });
     }
   }
   if (!convId) {
@@ -264,7 +265,7 @@ export async function POST(request: Request) {
         .eq("user_id", user.id)
         .eq("is_private_room_channel", true)
         .gte("created_at", startOfMonthIso());
-      const overPrivate = gateQuota(privateSessions ?? 0, ent.privateRayaPerMonth, {
+      const overPrivate = await gateQuota(privateSessions ?? 0, ent.privateRayaPerMonth, {
         metric: "private sessions with Raya",
         period: "month",
         upgradeTo: "Plus",
@@ -356,7 +357,7 @@ export async function POST(request: Request) {
   } catch (e) {
     await linkPromise;
     return NextResponse.json(
-      { error: clientError(e, "llm error") },
+      { error: clientError(e, await apiT("api.llmError")) },
       { status: 502 },
     );
   }

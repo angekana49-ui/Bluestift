@@ -41,8 +41,8 @@ describe("schools that share a name", () => {
   const create = read("app/api/school/create/route.ts");
 
   it("require a city, on creation and in settings", () => {
-    expect(create).toContain('if (!city) return NextResponse.json({ error: "Enter the school\'s city.", code: "city" }');
-    expect(read("app/api/school/settings/route.ts")).toContain("The school's city can't be empty.");
+    expect(create).toContain('if (!city) return NextResponse.json({ error: await apiT("api.enterTheSchoolsCity"), code: "city" }');
+    expect(read("app/api/school/settings/route.ts")).toContain('apiT("api.theSchoolsCityCantBeEmpty")');
   });
 
   it("apply the names floor to the school name", () => {
@@ -74,12 +74,13 @@ describe("people's names", () => {
   const migration = read("supabase/migrations/20260913130000_user_names_rules.sql");
 
   it("mark the username as the @handle, and never store the @", () => {
-    expect(onboarding).toContain('onChange={(e) => setUsername(e.target.value.replace(/^@+/, ""))}');
+    expect(onboarding).toContain('setUsername(e.target.value.replace(/^@+/, ""));');
     expect(onboarding).toMatch(/color: "rgba\(11,18,32,0\.35\)",[\s\S]{0,200}>\s*@\s*<\/span>/);
   });
 
   it("hold the 3-character floor in the form and in the database", () => {
-    expect(onboarding).toContain("!isNameTooShort(username) && !isNameTooShort(displayName)");
+    expect(onboarding).toContain('if (isNameTooShort(username)) return { field: "username"');
+    expect(onboarding).toContain('if (isNameTooShort(displayName)) return { field: "display"');
     expect(migration).toContain("check (username is null or char_length(btrim(username)) >= 3)");
     expect(migration).toContain("check (display_name is null or char_length(btrim(display_name)) >= 3)");
   });

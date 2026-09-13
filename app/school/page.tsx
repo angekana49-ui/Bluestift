@@ -14,7 +14,7 @@ import {
 import { getActiveSchoolId } from "@/lib/school-active";
 import { getPlanLabel } from "@/lib/billing";
 import { softValue } from "@/lib/page-data";
-import { recoveryKeyState, hasRealEmail } from "@/lib/auth";
+import { recoveryKeyState, hasRealEmail, accountStatusOf } from "@/lib/auth";
 import type { AdminClass, ProfContext, SchoolDashboard } from "@/lib/school-admin";
 import { SchoolAdmin } from "@/components/school-admin";
 import { getServerTranslate } from "@/lib/i18n/server";
@@ -35,7 +35,7 @@ export async function generateMetadata({
   searchParams: Promise<{ tab?: string }>;
 }): Promise<Metadata> {
   const { tab } = await searchParams;
-  return { title: { absolute: schoolTabTitle(tab) } };
+  return { title: { absolute: schoolTabTitle(tab, await getServerTranslate()) } };
 }
 
 export default async function SchoolPage({
@@ -121,7 +121,7 @@ export default async function SchoolPage({
   // Raya-scaffolded /account page. Anonymous until a real email is linked.
   const realEmail = hasRealEmail(user.email);
   const account = {
-    user: { id: user.id, email: realEmail ? user.email ?? null : null, isAnonymous: !realEmail },
+    user: { id: user.id, email: realEmail ? user.email ?? null : null, isAnonymous: !realEmail, status: accountStatusOf(user) },
     profile: {
       username: profile.username,
       display_name: profile.display_name,

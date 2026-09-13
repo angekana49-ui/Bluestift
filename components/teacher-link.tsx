@@ -58,7 +58,7 @@ export function TeacherLink({
       );
       const d = await res.json();
       if (!res.ok) {
-        setError(d?.error ?? `Request failed (${res.status}).`);
+        setError(d?.error ?? tr("common.requestFailed", { status: res.status }));
         return;
       }
       const where = d.schoolName ? ` ${d.schoolName}` : "";

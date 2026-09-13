@@ -3,6 +3,7 @@ import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { rayaComplete } from "@/lib/raya/llm";
 import { resolveRayaEntitlements, gateFeature } from "@/lib/entitlements";
+import { apiT } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
 
   // AI analysis of a self-test attempt is a Plus+ feature (Free gets the raw score).
   const { ent, tier } = await resolveRayaEntitlements(user.id);
-  const denied = gateFeature(ent.selfTestAiAnalysis, {
+  const denied = await gateFeature(ent.selfTestAiAnalysis, {
     feature: "self_test_ai_analysis",
     upgradeTo: "Plus",
     scope: "challenges",
@@ -64,7 +65,7 @@ export async function POST(request: Request) {
       .eq("challenge_id", challengeId)
       .order("order", { ascending: true }),
   ]);
-  if (!attempt) return NextResponse.json({ error: "No attempt to analyse yet." }, { status: 404 });
+  if (!attempt) return NextResponse.json({ error: await apiT("api.noAttemptToAnalyseYet") }, { status: 404 });
 
   const { data: ans } = await supabase
     .schema("learning")
@@ -104,7 +105,7 @@ export async function POST(request: Request) {
     analysis = out.text.trim();
     if (!analysis) throw new Error("empty analysis");
   } catch (e) {
-    return NextResponse.json({ error: clientError(e, "analysis failed") }, { status: 502 });
+    return NextResponse.json({ error: clientError(e, await apiT("api.analysisFailed")) }, { status: 502 });
   }
 
   return NextResponse.json({ title: `${challenge?.title ?? "Self-test"} — analysis`, analysis });

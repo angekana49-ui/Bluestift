@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { resolveRayaEntitlements, gateQuota, sinceDaysIso } from "@/lib/entitlements";
 import { captureServer } from "@/lib/analytics/server";
 import { siteUrl } from "@/lib/email";
+import { apiT } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
   const title = (body.title ?? "").toString().slice(0, 200);
   const content = (body.body ?? "").toString().slice(0, 100000);
   const brand = body.brand === "bluestift" ? "bluestift" : "raya";
-  if (!content.trim()) return NextResponse.json({ error: "nothing to share" }, { status: 400 });
+  if (!content.trim()) return NextResponse.json({ error: await apiT("api.nothingToShare") }, { status: 400 });
 
   // Exports are quota-metered per week (Free: 5; the grid counts TXT + shares,
   // but only the share is server-side, so this meters the shareable exports).
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
     .select("token", { count: "exact", head: true })
     .eq("user_id", user.id)
     .gte("created_at", sinceDaysIso(7));
-  const overShare = gateQuota(shareUsed ?? 0, ent.exportsPerWeek, {
+  const overShare = await gateQuota(shareUsed ?? 0, ent.exportsPerWeek, {
     metric: "exports",
     period: "week",
     upgradeTo: "Plus",

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { eraseAccount, recordDataRequest } from "@/lib/compliance/erasure";
 import { checkStrictUserRateLimit } from "@/lib/rate-limit";
+import { apiT } from "@/lib/i18n/server";
 
 /**
  * "Delete my account" — GDPR art. 17, and the deletion right a parent or school
@@ -36,13 +37,13 @@ export async function POST(request: Request) {
   }
   if (typeof body.confirm !== "string" || body.confirm.trim().toUpperCase() !== CONFIRM) {
     return NextResponse.json(
-      { error: `Type ${CONFIRM} to confirm.` },
+      { error: await apiT("api.typeToConfirm", { confirm: CONFIRM }) },
       { status: 400 },
     );
   }
 
   if (!(await checkStrictUserRateLimit("account_delete", user.id, 3, "1 hour"))) {
-    return NextResponse.json({ error: "Too many attempts — try again shortly." }, { status: 429 });
+    return NextResponse.json({ error: await apiT("api.tooManyAttemptsTryAgainShortly") }, { status: 429 });
   }
 
   // Read the school link BEFORE the row is gone: it belongs in the audit note,
@@ -78,9 +79,7 @@ export async function POST(request: Request) {
     // Say so plainly rather than reporting a success we didn't achieve.
     return NextResponse.json(
       {
-        error:
-          "We removed most of your data but part of the deletion failed. " +
-          "Write to hello@thebluestift.com and we'll finish it by hand.",
+        error: await apiT("api.deletionPartlyFailed"),
         failed: report.failed,
       },
       { status: 500 },

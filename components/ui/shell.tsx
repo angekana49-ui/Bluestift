@@ -635,6 +635,7 @@ export function RightPanel({
   onCollapse?: () => void;
   children: ReactNode;
 }) {
+  const tr = useTranslate();
   return (
     <div
       className={`app-right${open ? " is-open" : ""}`}
@@ -663,7 +664,7 @@ export function RightPanel({
             {title}
           </span>
           {onCollapse && (
-            <IconButton theme={t} onClick={onCollapse} title="Collapse panel">
+            <IconButton theme={t} onClick={onCollapse} title={tr("shell.closePanel")}>
               <IconCollapseRight />
             </IconButton>
           )}

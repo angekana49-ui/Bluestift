@@ -20,6 +20,8 @@
  *    seeds the tab. The address and the screen agree in both directions.
  */
 
+import type { MessageKey } from "@/lib/i18n";
+
 /** Admin tabs ∪ teacher tabs. Both roles' keys, because one rewrite serves both
  *  and the page already picks the right dashboard by role. */
 export const SCHOOL_TABS = [
@@ -66,9 +68,27 @@ export function isSchoolTab(value: string | null | undefined): value is SchoolTa
  * there — a student's own account, not a school's configuration — so the suffix
  * is what distinguishes them, exactly as it does for Tools and Rooms.
  */
-export function schoolTabTitle(tab: string | null | undefined): string {
-  return isSchoolTab(tab) ? `${LABELS[tab]} · ${SCHOOLS_APP_NAME}` : SCHOOLS_APP_NAME;
+export function schoolTabTitle(tab: string | null | undefined, translate?: (key: MessageKey) => string): string {
+  if (!isSchoolTab(tab)) return SCHOOLS_APP_NAME;
+  const label = translate && LABEL_KEYS[tab] ? translate(LABEL_KEYS[tab]) : LABELS[tab];
+  return `${label} · ${SCHOOLS_APP_NAME}`;
 }
+
+/** The same labels as the dashboard's nav, in the reader's language. Raya is a name. */
+const LABEL_KEYS: Record<SchoolTab, MessageKey | null> = {
+  overview: "nav.overview",
+  manage: "nav.classes",
+  classes: "nav.classes",
+  team: "nav.team",
+  focus: "nav.focus",
+  prepare: "nav.prepare",
+  insights: "nav.insights",
+  raya: null,
+  reports: "nav.reports",
+  archive: "nav.archive",
+  billing: "nav.billing",
+  settings: "nav.settings",
+};
 
 /**
  * True when this browser is on the Schools origin — the only place the slugs

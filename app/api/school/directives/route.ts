@@ -3,6 +3,7 @@ import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { getAdminMembership } from "@/lib/school-admin";
+import { apiT } from "@/lib/i18n/server";
 
 const AUDIENCES = ["students", "teachers", "both"] as const;
 type Audience = (typeof AUDIENCES)[number];
@@ -53,7 +54,7 @@ export async function POST(request: Request) {
   const audience = (AUDIENCES as readonly string[]).includes(body.audience ?? "")
     ? (body.audience as Audience)
     : "both";
-  if (!content) return NextResponse.json({ error: "Directive text is required." }, { status: 400 });
+  if (!content) return NextResponse.json({ error: await apiT("api.directiveTextIsRequired") }, { status: 400 });
 
   const schools = createSchoolsAdminClient();
   const { data, error: insErr } = await schools
@@ -102,7 +103,7 @@ export async function PATCH(request: Request) {
     .select("id")
     .maybeSingle();
   if (updErr) return NextResponse.json({ error: clientError(updErr) }, { status: 500 });
-  if (!data) return NextResponse.json({ error: "Directive not found." }, { status: 404 });
+  if (!data) return NextResponse.json({ error: await apiT("api.directiveNotFound") }, { status: 404 });
   return NextResponse.json({ ok: true, id });
 }
 
@@ -123,7 +124,7 @@ export async function DELETE(request: Request) {
     .select("id")
     .maybeSingle();
   if (delErr) return NextResponse.json({ error: clientError(delErr) }, { status: 500 });
-  if (!data) return NextResponse.json({ error: "Directive not found." }, { status: 404 });
+  if (!data) return NextResponse.json({ error: await apiT("api.directiveNotFound") }, { status: 404 });
   return NextResponse.json({ ok: true, id });
 }
 
@@ -134,7 +135,7 @@ async function authStaff() {
   } = await supabase.auth.getUser();
   if (!user) return { error: NextResponse.json({ error: "unauthorized" }, { status: 401 }) } as const;
   const membership = await getAdminMembership(user.id);
-  if (!membership) return { error: NextResponse.json({ error: "School staff only." }, { status: 403 }) } as const;
+  if (!membership) return { error: NextResponse.json({ error: await apiT("api.staffOnly") }, { status: 403 }) } as const;
   return { membership, error: null } as const;
 }
 
@@ -142,7 +143,7 @@ async function authAdmin() {
   const res = await authStaff();
   if (res.error) return res;
   if (res.membership.role !== "admin_master") {
-    return { error: NextResponse.json({ error: "Admin only." }, { status: 403 }) } as const;
+    return { error: NextResponse.json({ error: await apiT("api.adminOnly") }, { status: 403 }) } as const;
   }
   return res;
 }

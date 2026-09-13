@@ -41,7 +41,7 @@ describe("inviting a teacher", () => {
     expect(createBranch.indexOf("auth.admin.createUser(")).toBeLessThan(createBranch.indexOf('.from("school_admins")'));
     expect(createBranch).toMatch(/\.insert\(\{ user_id: newUserId,/);
     // Never on an address that already belongs to someone.
-    expect(createBranch).toContain("already has an account");
+    expect(createBranch).toContain('apiT("api.thatEmailAlreadyHasAnAccount")');
   });
 
   it("caps account creation per admin and never shows anyone the password", () => {
@@ -52,7 +52,7 @@ describe("inviting a teacher", () => {
 
   it("still reads school_admins — to refuse someone already in the school", () => {
     expect(post).toContain('.from("school_admins")');
-    expect(post).toContain("already in your school");
+    expect(post).toContain('apiT("api.thatUserIsAlreadyInYour")');
   });
 
   it("mints a code for this invitation and emails it", () => {

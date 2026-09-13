@@ -20,7 +20,10 @@ import { initialsOf } from "@/lib/name";
 import { getServerTranslate } from "@/lib/i18n/server";
 
 // A surface of Raya — "My Kernel" in the nav, same words here.
-export const metadata: Metadata = { title: { absolute: "My Kernel · Raya" } };
+export async function generateMetadata(): Promise<Metadata> {
+  const tr = await getServerTranslate();
+  return { title: { absolute: `${tr("nav.kernel")} · Raya` } };
+}
 
 export default async function ProfilePage({
   searchParams,

@@ -433,7 +433,7 @@ function DoneScreen({ t, responseId, onFreeWall }: { t: Theme; responseId: strin
       </div>
       <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 900, fontSize: "1.9rem", letterSpacing: "-0.02em", margin: "0 0 12px", color: t.text }}>{tr("survey.done.title")}</h2>
       <p style={{ fontSize: 15, lineHeight: 1.7, color: t.text, marginBottom: 24 }}>
-        {tr("survey.done.body.a")} <RayaName />&apos;s development. {tr("survey.done.body.b")}
+        {tr("survey.done.body.a")} <RayaName />{tr("survey.rayaDevelopmentSuffix")} {tr("survey.done.body.b")}
       </p>
 
       {responseId && !saved && (
@@ -650,7 +650,7 @@ export function SurveyView({ signedIn, initialPosts, stats }: Props) {
               </h1>
               <p style={{ margin: "0 auto 32px", fontSize: 15, color: t.text, lineHeight: 1.7 }}>
                 {QUESTION_COUNT} {tr("survey.hero.sub.p1")} {TAP_COUNT} {tr("survey.hero.sub.p2")} {tr("survey.hero.sub.p3")}{" "}
-                <RayaName />&apos;s development.
+                <RayaName />{tr("survey.rayaDevelopmentSuffix")}
               </p>
 
               <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginBottom: 20 }}>

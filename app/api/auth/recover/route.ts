@@ -1,34 +1,32 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import {
-  ensureRecoverable,
-  findUserIdByRecoveryKey,
-  hasRealEmail,
-  mintSessionFor,
-} from "@/lib/auth";
+import { ensureRecoverable, findUserIdByRecoveryKey, mintSessionFor } from "@/lib/auth";
 import { isValidRecoveryKey, normalizeRecoveryKey } from "@/lib/recovery-key";
 import { verifyTurnstile } from "@/lib/turnstile";
 import { checkStrictRateLimit } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/request-ip";
 
 /**
- * Reconnect via recovery key. Two paths, chosen by the account's identity:
- * - Real linked email  -> email a fresh magic link (Supabase verifies captcha).
- * - Email-less anonymous account -> mint a session server-side against the
- *   synthetic address. No inbox needed, which is the whole point of a key for
- *   anonymous users. The session cookies are set on this response.
+ * Reconnect via recovery key: the key signs the account in, directly, whatever
+ * the account is — anonymous or upgraded to a verified email.
+ *
+ * It used to email a magic link instead whenever the account had a real
+ * address. Owner decision (2026-09-13): the people this key exists for are
+ * teenagers who rarely open a mailbox, and an account upgraded to pay must not
+ * become harder to get back into than the anonymous one it was. The key is 16
+ * characters from a 32-letter alphabet (80 random bits), behind a captcha and
+ * a strict per-IP limit, so it is a credential at least as strong as a
+ * password — which is what it now is, for every account.
  *
  * The key is matched by SHA-256 against `users.recovery_code_hash`; it is not
- * stored anywhere in the clear, and it is no longer the account's password
- * either — it identifies the account, and the session is issued admin-side. That
- * split is why a read of the users table is no longer a working credential.
+ * stored anywhere in the clear, and it is not the account's password either —
+ * it identifies the account, and the session is issued admin-side against the
+ * account's current address, synthetic or real.
  *
- * Responses (200): { status: "recovered" | "sent" | "invalid" }.
+ * Responses (200): { status: "recovered" | "invalid" }.
  */
 export async function POST(request: Request) {
-  const { origin } = new URL(request.url);
-
   let body: { code?: string; captchaToken?: string };
   try {
     body = await request.json();
@@ -41,19 +39,19 @@ export async function POST(request: Request) {
   if (!isValidRecoveryKey(code)) {
     return NextResponse.json({ status: "invalid" });
   }
-  // The token is NOT verified here, because which side may redeem it depends on
-  // the branch below and a Turnstile token is SINGLE-USE:
-  //   real email      -> handed to Supabase with signInWithOtp, which redeems it.
-  //                      Verifying it here first would consume it and leave
-  //                      Supabase with `timeout-or-duplicate`.
-  //   synthetic (anon) -> nothing downstream ever sees the token, so this route
-  //                      is the only thing that can enforce it. Verified there.
-  // Absence is still refused up front — that costs no redemption.
+  // Absence is refused up front — that costs no redemption.
   if (!body.captchaToken) {
     return NextResponse.json({ error: "captcha_failed" }, { status: 403 });
   }
   if (!(await checkStrictRateLimit("auth_recovery", clientIp(request), 10, "15 minutes"))) {
     return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
+  // Verified here, once, and before the key is looked up: nothing downstream
+  // (the admin link, verifyOtp) ever sees the token, so this route is the only
+  // place that can spend it, and no account is touched for a request without
+  // a valid one.
+  if (!(await verifyTurnstile(body.captchaToken))) {
+    return NextResponse.json({ error: "captcha_failed" }, { status: 403 });
   }
 
   // Look up the account by the key's hash (service role). The cleartext key is
@@ -85,41 +83,10 @@ export async function POST(request: Request) {
   const email = authData?.user?.email ?? null;
   if (!email) return NextResponse.json({ status: "invalid" });
 
-  // Real email on file -> magic link (Supabase checks the captcha token itself).
-  //
-  // Through the SSR client, not a bare supabase-js one. A bare client defaults
-  // to the IMPLICIT flow, whose link returns `#access_token=…` instead of the
-  // `?code=` /auth/callback exchanges — so every one of these links ended on
-  // "invalid or expired". The SSR client is PKCE and writes the code verifier
-  // onto this response, which is what the callback needs in this browser.
-  if (hasRealEmail(email)) {
-    const supabase = await createClient();
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        shouldCreateUser: false,
-        emailRedirectTo: `${origin}/auth/callback?next=/account`,
-        captchaToken: body.captchaToken,
-      },
-    });
-    if (error) return NextResponse.json({ error: error.message }, { status: 502 });
-    return NextResponse.json({ status: "sent" });
-  }
-
-  // Synthetic (email-less) account -> mint the session admin-side. We have
-  // already proven possession of the key by matching its hash; asking Supabase to
-  // re-verify a password would only work because the key USED to be that
-  // password, which is precisely the coupling this design removes. Session
-  // cookies land on this response via the SSR client.
-  //
-  // This branch hands the token to nobody, so it is the only place that can
-  // spend it — and it must, or an email-less account could be recovered with no
-  // captcha at all. Safe to redeem here: the magic-link branch above has
-  // already returned.
-  if (!(await verifyTurnstile(body.captchaToken))) {
-    return NextResponse.json({ error: "captcha_failed" }, { status: 403 });
-  }
-
+  // Mint the session admin-side against the account's address — synthetic for
+  // an anonymous account, real for an upgraded one. Possession of the key was
+  // proven by matching its hash. Session cookies land on this response via the
+  // SSR client.
   const supabase = await createClient();
   const minted = await mintSessionFor(supabase, email);
   if (!minted) return NextResponse.json({ status: "invalid" });

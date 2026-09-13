@@ -18,7 +18,7 @@ import {
   withCount,
 } from "@/components/ui/list-filter";
 import { sortByName } from "@/lib/search";
-import { useTranslate } from "@/components/ui/locale";
+import { useTranslate, trNow } from "@/components/ui/locale";
 import { netFetch, getJsonCached, invalidateCached } from "@/lib/net/client-fetch";
 
 type ClassOpt = { id: string; name: string };
@@ -33,7 +33,7 @@ async function postJson(url: string, body: unknown, method = "POST") {
     { timeoutMs: 15_000 },
   );
   const data = await res.json().catch(() => null);
-  if (!res.ok) throw new Error(data?.error ?? `Request failed (${res.status}).`);
+  if (!res.ok) throw new Error(data?.error ?? trNow("common.requestFailed", { status: res.status }));
   return data;
 }
 

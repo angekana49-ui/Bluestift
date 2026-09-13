@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, createSchoolsAdminClient } from "@/lib/supabase/admin";
+import { apiT } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 
@@ -101,10 +102,10 @@ async function questionsForTaking(userId: string, challengeId: string, classIds:
     .maybeSingle();
   const asg = asgData as { class_id: string; due_at: string | null } | null;
   if (!asg || !classIds.has(asg.class_id)) {
-    return NextResponse.json({ error: "This assignment isn't for you." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.assignmentNotForYou") }, { status: 403 });
   }
   if (asg.due_at && new Date(asg.due_at).getTime() < Date.now()) {
-    return NextResponse.json({ error: "The deadline for this assignment has passed." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.assignmentDeadlinePassed") }, { status: 403 });
   }
 
   const admin = createAdminClient();
@@ -116,7 +117,7 @@ async function questionsForTaking(userId: string, challengeId: string, classIds:
     .eq("user_id", userId)
     .maybeSingle();
   if ((at as { status: string } | null)?.status === "completed") {
-    return NextResponse.json({ error: "You've already submitted this assignment." }, { status: 409 });
+    return NextResponse.json({ error: await apiT("api.assignmentAlreadySubmitted") }, { status: 409 });
   }
 
   const { data: qData } = await admin

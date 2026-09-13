@@ -21,7 +21,7 @@ function insightsToDoc(insights: ClassInsight[], sims: Simulation[], schoolName:
   for (const i of insights) {
     lines.push(`## ${i.className} · ${i.subjectName}`);
     lines.push(`- ${tr("school.overview.kpiAvgMastery")}: ${pct(i.avgMastery)}`);
-    if (i.masteryTrend != null) lines.push(`- Trend: ${i.masteryTrend >= 0 ? "+" : ""}${Math.round(i.masteryTrend * 100)}%`);
+    if (i.masteryTrend != null) lines.push(`- ${tr("school.insights.trendLabel")}: ${i.masteryTrend >= 0 ? "+" : ""}${Math.round(i.masteryTrend * 100)}%`);
     if (i.topGaps.length > 0) lines.push(`- ${tr("school.insights.topGapsLabel")}: ${i.topGaps.slice(0, 6).join(", ")}`);
     if (i.topRecommendation) lines.push(`- ${tr("school.insights.recommendationLabel")}: ${i.topRecommendation}`);
   }
@@ -115,7 +115,7 @@ export function SchoolInsights({ schoolName }: { schoolName?: string }) {
       );
       const data = await res.json();
       if (!res.ok) {
-        setError(data?.error ?? `Request failed (${res.status}).`);
+        setError(data?.error ?? tr("common.requestFailed", { status: res.status }));
         return;
       }
       setSims((s) => [data as Simulation, ...s]);

@@ -5,7 +5,7 @@ import { useAppTheme } from "@/components/ui/theme";
 import { netFetch, getJsonCached, invalidateCached } from "@/lib/net/client-fetch";
 import { panelCard, textInput, ctaButton, ghostButton } from "@/components/ui/forms";
 import { RayaName } from "@/components/ui/brand";
-import { useTranslate } from "@/components/ui/locale";
+import { useTranslate, trNow } from "@/components/ui/locale";
 
 type Instruction = {
   id: string;
@@ -27,7 +27,7 @@ async function postJson(url: string, body: unknown, method = "POST") {
     { timeoutMs: 15_000 },
   );
   const data = await res.json().catch(() => null);
-  if (!res.ok) throw new Error(data?.error ?? `Request failed (${res.status}).`);
+  if (!res.ok) throw new Error(data?.error ?? trNow("common.requestFailed", { status: res.status }));
   return data;
 }
 

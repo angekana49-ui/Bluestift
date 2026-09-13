@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { netFetch } from "@/lib/net/client-fetch";
@@ -30,6 +30,8 @@ import {
 } from "@/components/ui/auth-chrome";
 import { useTranslate } from "@/components/ui/locale";
 import { LinkSentDialog } from "@/components/ui/link-sent-dialog";
+import { FormAlert, invalidField } from "@/components/ui/form-alert";
+import { useAccountUpgrade, type UpgradeNotice } from "@/components/account-upgrade/use-account-upgrade";
 import { PasswordField } from "@/components/ui/password-field";
 import { passwordProblem } from "@/lib/password";
 import { isNameTooShort } from "@/lib/names";
@@ -54,6 +56,11 @@ import type { MessageKey } from "@/lib/i18n";
 
 type Track = "raya" | "schools";
 type SchoolRole = "teacher" | "school";
+/** A problem with one of the two names, shown under the field it is about. */
+type NameNotice = { field: "username" | "display"; text: string; hint?: string };
+
+/** How long the "is this username free?" question may hold the Continue button. */
+const USERNAME_CHECK_MS = 6000;
 
 // The age question sits second on purpose — right after the path, before we ask
 // for a name or anything else. Nothing is collected from a child we're about to
@@ -126,12 +133,17 @@ export function OnboardingForm({
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [emailSent, setEmailSent] = useState(false);
+  /** Anonymous → verified: the request, its refusals, and the address it went to. */
+  const upgrade = useAccountUpgrade();
+  const emailSent = upgrade.sentTo !== null;
+  /** The link was used — here or on another device. */
+  const [upgraded, setUpgraded] = useState(false);
   /** The "check your inbox" popup, open while the confirmation link is out. */
   const [linkDialog, setLinkDialog] = useState(false);
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [nameNotice, setNameNotice] = useState<NameNotice | null>(null);
 
   const steps = track === "schools" ? SCHOOL_STEPS : RAYA_STEPS;
   const stepKey = steps[stepIndex];
@@ -139,13 +151,37 @@ export function OnboardingForm({
   // Both names, at least MIN_NAME_LENGTH characters each, any characters at all
   // (lib/names.ts). The database holds the same floor (users_username_min_length,
   // users_display_name_min_length) and a case-insensitive unique username.
-  const identityReady = !isNameTooShort(username) && !isNameTooShort(displayName);
-  const identityError = (): string | null =>
-    !username.trim() || !displayName.trim()
-      ? tr("onb.err.nameRequired")
-      : identityReady
-        ? null
-        : tr("onb.err.nameShort");
+  // Each problem names its own field, so the alert sits under that field.
+  const identityIssue = (): NameNotice | null => {
+    if (!username.trim()) return { field: "username", text: tr("onb.err.nameRequired") };
+    if (isNameTooShort(username)) return { field: "username", text: tr("onb.err.usernameShort") };
+    if (!displayName.trim()) return { field: "display", text: tr("onb.err.nameRequired") };
+    if (isNameTooShort(displayName)) return { field: "display", text: tr("onb.err.displayShort") };
+    return null;
+  };
+  const takenNotice = (): NameNotice => ({
+    field: "username",
+    text: tr("onb.err.usernameTaken"),
+    hint: tr("onb.err.usernameTakenHint"),
+  });
+
+  /** Back to the name step, with the problem under the field it concerns. */
+  function flagName(notice: NameNotice) {
+    setError(null);
+    setNameNotice(notice);
+    setStepIndex((steps as readonly string[]).indexOf("name"));
+  }
+
+  // A taken username used to come back as one small red line at the foot of
+  // the form, three screens after the name was typed. The alert now opens
+  // under the field, and the field takes the focus, so the fix is one keystroke
+  // away from where the eye already is.
+  useEffect(() => {
+    if (!nameNotice || stepKey !== "name") return;
+    const input = document.getElementById(nameNotice.field === "username" ? "onb-username" : "onb-display");
+    input?.focus({ preventScroll: true });
+    document.getElementById("onb-name-alert")?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [nameNotice, stepKey]);
 
   // In age-only mode there is exactly one question, so the counter says so
   // rather than pretending the user is partway through a fresh setup.
@@ -167,6 +203,7 @@ export function OnboardingForm({
    */
   function pickTrack(t: Track) {
     setError(null);
+    setNameNotice(null);
     if (t === "schools" && isAnonymous) {
       setSchoolsGate(true);
       return;
@@ -178,6 +215,7 @@ export function OnboardingForm({
 
   function back() {
     setError(null);
+    setNameNotice(null);
     if (phase === "email") {
       setPhase("steps");
       setStepIndex(lastStep);
@@ -193,7 +231,7 @@ export function OnboardingForm({
       case "age":
         return /^\d{4}$/.test(birthYear.trim()) ? null : tr("onb.err.age");
       case "name":
-        return identityError();
+        return null; // next() handles it, per field — see identityIssue
       case "level":
         return level ? null : tr("onb.err.level");
       case "srole":
@@ -240,8 +278,39 @@ export function OnboardingForm({
     }
   }
 
+  /**
+   * Ask whether the username is free as the name step is left, rather than at
+   * the save three screens on. An answer we cannot get (offline, slow, or a
+   * database without the function) lets the step go on: the save still meets
+   * the unique index and comes back to this field if the name is taken.
+   */
+  async function usernameFree(): Promise<boolean> {
+    setBusy(true);
+    try {
+      const answer = await Promise.race([
+        supabase.rpc("username_available", { p_username: username.trim() }),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), USERNAME_CHECK_MS)),
+      ]);
+      if (answer && !answer.error && answer.data === false) {
+        flagName(takenNotice());
+        return false;
+      }
+      return true;
+    } catch {
+      return true;
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function next() {
     if (busy) return;
+    if (stepKey === "name") {
+      const issue = identityIssue();
+      if (issue) return flagName(issue);
+      setNameNotice(null);
+      if (!(await usernameFree())) return;
+    }
     const err = validate();
     if (err) return setError(err);
     setError(null);
@@ -264,14 +333,10 @@ export function OnboardingForm({
   async function commit() {
     const u = username.trim();
     const d = displayName.trim();
-    // Jump back to whichever index "name" now sits at — it moved when the age
-    // question was inserted, and a hard-coded 1 would land on the wrong screen.
-    const nameStep = (steps as readonly string[]).indexOf("name");
-    const nameErr = identityError();
-    if (nameErr) {
-      setStepIndex(nameStep);
-      return setError(nameErr);
-    }
+    // flagName jumps back to whichever index "name" now sits at — it moved when
+    // the age question was inserted, and a hard-coded 1 would land elsewhere.
+    const nameIssue = identityIssue();
+    if (nameIssue) return flagName(nameIssue);
     setBusy(true);
     setError(null);
 
@@ -284,6 +349,8 @@ export function OnboardingForm({
         username: u,
         display_name: d,
         school_level: isRaya ? level : null,
+        // A request, not the verdict: the database's guard_account_state picks
+        // verified or unverified from auth.users, whatever the browser sends.
         account_state: emailVerified ? "active_verified" : "active_unverified",
         onboarding_completed_at: new Date().toISOString(),
       })
@@ -292,14 +359,11 @@ export function OnboardingForm({
 
     if (updErr) {
       setBusy(false);
-      if (updErr.code === "23505") {
-        setStepIndex(nameStep);
-        return setError(tr("onb.err.usernameTaken"));
-      }
+      // Taken between the name step's check and this save, or not checked.
+      if (updErr.code === "23505") return flagName(takenNotice());
       // The database's own names floor, if this form's check was ever bypassed.
       if (updErr.code === "23514") {
-        setStepIndex(nameStep);
-        return setError(tr("onb.err.nameShort"));
+        return flagName(identityIssue() ?? { field: "username", text: tr("onb.err.nameShort") });
       }
       return setError(updErr.message);
     }
@@ -341,37 +405,18 @@ export function OnboardingForm({
   }
 
   /**
-   * Turn the anonymous account into a real one: an address, and — if they want
-   * one — a password, set in the same call so there is no second trip.
+   * Upgrade the anonymous account to a verified one: an address and a password,
+   * on the same account, so nothing it holds moves (lib/account-upgrade.ts).
    *
-   * The password is OPTIONAL here on purpose. This screen already hands over a
-   * recovery key and asks the person to prove they wrote it down; making them
-   * invent a password too, at the end of a six-step setup, is where people
-   * abandon. Whoever wants one now can have it, and /account has the same field
-   * for everyone else later.
+   * The whole screen stays OPTIONAL: it already hands over a recovery key and
+   * asks for proof it was written down, and that alone lets the person carry
+   * on. Whoever upgrades gives both an address and a password — the password is
+   * what lets them sign in with that address later — and keeps the key.
    */
   async function linkEmail() {
-    const e = email.trim();
-    if (!e || busy) return;
-    const pwProblem = password ? passwordProblem(password, e) : null;
-    if (pwProblem) return setError(tr(pwProblem));
-    setBusy(true);
+    if (!email.trim() || busy || upgrade.busy) return;
     setError(null);
-    // Route the confirmation link through /auth/callback (like every other email
-    // entry point) so clicking it exchanges the code, records email verification,
-    // and lands the user exactly where the flow gate says — onboarding if they
-    // haven't finished, their home otherwise. Without this the link falls back to
-    // Supabase's Site URL and the redirect (and verification) is lost.
-    const emailRedirectTo =
-      typeof window !== "undefined" ? `${window.location.origin}/auth/callback?next=/account` : undefined;
-    const { error: linkErr } = await supabase.auth.updateUser(
-      password ? { email: e, password } : { email: e },
-      { emailRedirectTo },
-    );
-    setBusy(false);
-    if (linkErr) return setError(linkErr.message);
-    setEmailSent(true);
-    setLinkDialog(true);
+    if (await upgrade.submit(email, password)) setLinkDialog(true);
   }
 
   function enterApp() {
@@ -475,12 +520,25 @@ export function OnboardingForm({
         <EmailStep
           recoveryCode={recoveryCode}
           email={email}
-          setEmail={setEmail}
+          setEmail={(v) => {
+            setEmail(v);
+            if (upgrade.notice?.field === "email") upgrade.clearNotice();
+          }}
           password={password}
-          setPassword={setPassword}
+          setPassword={(v) => {
+            setPassword(v);
+            if (upgrade.notice?.field === "password") upgrade.clearNotice();
+          }}
           emailSent={emailSent}
-          busy={busy}
+          sentTo={upgrade.sentTo}
+          upgraded={upgraded}
+          notice={upgrade.notice}
+          busy={busy || upgrade.busy}
           onLink={linkEmail}
+          onChangeAddress={() => {
+            upgrade.reset();
+            setLinkDialog(false);
+          }}
           onBack={back}
           onContinue={() => setPhase("welcome")}
         />
@@ -606,28 +664,40 @@ export function OnboardingForm({
                 </span>
                 <input
                   id="onb-username"
-                  style={{ ...fieldInput, paddingLeft: 32, marginBottom: 4 }}
+                  style={{ ...fieldInput, paddingLeft: 32, marginBottom: 4, ...(nameNotice?.field === "username" ? invalidField : null) }}
                   placeholder={tr("onb.name.usernamePlaceholder")}
                   value={username}
                   maxLength={40}
                   autoCapitalize="none"
                   autoCorrect="off"
                   spellCheck={false}
-                  onChange={(e) => setUsername(e.target.value.replace(/^@+/, ""))}
+                  aria-invalid={nameNotice?.field === "username" || undefined}
+                  aria-describedby={nameNotice?.field === "username" ? "onb-name-alert" : undefined}
+                  onChange={(e) => {
+                    setUsername(e.target.value.replace(/^@+/, ""));
+                    if (nameNotice?.field === "username") setNameNotice(null);
+                  }}
                 />
               </div>
+              {nameNotice?.field === "username" && <NameAlert notice={nameNotice} />}
               <p style={{ margin: "0 0 16px", fontSize: 14, color: "#64748b" }}>{tr("onb.name.usernameHint")}</p>
               <label htmlFor="onb-display" style={fieldLabel}>
                 {tr("onb.name.displayLabel")}
               </label>
               <input
                 id="onb-display"
-                style={{ ...fieldInput, marginBottom: 4 }}
+                style={{ ...fieldInput, marginBottom: 4, ...(nameNotice?.field === "display" ? invalidField : null) }}
                 placeholder={tr("onb.name.displayPlaceholder")}
                 value={displayName}
                 maxLength={80}
-                onChange={(e) => setDisplayName(e.target.value)}
+                aria-invalid={nameNotice?.field === "display" || undefined}
+                aria-describedby={nameNotice?.field === "display" ? "onb-name-alert" : undefined}
+                onChange={(e) => {
+                  setDisplayName(e.target.value);
+                  if (nameNotice?.field === "display") setNameNotice(null);
+                }}
               />
+              {nameNotice?.field === "display" && <NameAlert notice={nameNotice} />}
               <p style={{ margin: "0 0 16px", fontSize: 14, color: "#64748b" }}>{tr("onb.name.displayHint")}</p>
             </>
           )}
@@ -742,10 +812,14 @@ export function OnboardingForm({
       {linkDialog && (
         <LinkSentDialog
           supabase={supabase}
-          email={email.trim()}
-          confirmedKey="auth.linkSent.confirmedHere"
+          email={upgrade.sentTo ?? email.trim()}
+          confirmedKey="upgrade.confirmedHere"
+          checkConfirmed={upgrade.checkConfirmed}
           onClose={() => setLinkDialog(false)}
-          onConfirmed={() => setLinkDialog(false)}
+          onConfirmed={() => {
+            setLinkDialog(false);
+            setUpgraded(true);
+          }}
         />
       )}
     </AuthSplit>
@@ -762,8 +836,12 @@ function EmailStep({
   password,
   setPassword,
   emailSent,
+  sentTo,
+  upgraded,
+  notice,
   busy,
   onLink,
+  onChangeAddress,
   onBack,
   onContinue,
 }: {
@@ -773,8 +851,12 @@ function EmailStep({
   password: string;
   setPassword: (v: string) => void;
   emailSent: boolean;
+  sentTo: string | null;
+  upgraded: boolean;
+  notice: UpgradeNotice | null;
   busy: boolean;
   onLink: () => void;
+  onChangeAddress: () => void;
   onBack: () => void;
   onContinue: () => void;
 }) {
@@ -815,27 +897,29 @@ function EmailStep({
       <h1 style={heading}>{tr("onb.email.heading")}</h1>
       <p style={sub}>{tr("onb.email.sub")}</p>
 
-      <label style={fieldLabel}>{tr("onb.email.label")}</label>
+      <label htmlFor="onb-upgrade-email" style={fieldLabel}>{tr("onb.email.label")}</label>
       <input
-        style={{ ...fieldInput, marginBottom: 14 }}
+        id="onb-upgrade-email"
+        style={{ ...fieldInput, marginBottom: 14, ...(notice?.field === "email" ? invalidField : null) }}
         type="email"
         autoComplete="email"
         placeholder={tr("onb.email.placeholder")}
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         disabled={busy || emailSent}
+        aria-invalid={notice?.field === "email" || undefined}
       />
 
-      {/* Optional, and labelled as such. The recovery key below is this
-          account's guaranteed way back; a password is the convenient one, and
-          nobody should be stopped here for declining it. */}
+      {/* An address and a password go together: the password is what signs the
+          person in with that address later. The whole upgrade stays optional —
+          the recovery key below is enough to carry on. */}
       <PasswordField
         value={password}
         onChange={setPassword}
-        label={tr("onb.email.pwLabel")}
+        label={tr("upgrade.pwLabel")}
         placeholder={tr("pw.placeholder")}
         autoComplete="new-password"
-        hint={tr("onb.email.pwHint")}
+        hint={tr("upgrade.pwHint")}
         problem={pwProblem ? tr(pwProblem) : null}
         disabled={busy || emailSent}
         onEnter={onLink}
@@ -843,14 +927,32 @@ function EmailStep({
 
       <button
         onClick={onLink}
-        disabled={busy || emailSent || !email.trim()}
-        style={{ ...secondaryBtn, width: "100%", marginTop: 12, opacity: busy || emailSent || !email.trim() ? 0.6 : 1 }}
+        disabled={busy || emailSent || !email.trim() || !password}
+        style={{
+          ...secondaryBtn,
+          width: "100%",
+          marginTop: 12,
+          opacity: busy || emailSent || !email.trim() || !password ? 0.6 : 1,
+        }}
       >
-        {emailSent ? tr("onb.email.sentBtn") : tr("onb.email.linkBtn")}
+        {upgraded ? tr("upgrade.verifiedBadge") : emailSent ? tr("onb.email.sentBtn") : busy ? "…" : tr("upgrade.submit")}
       </button>
-      {emailSent && (
+      {notice && <FormAlert text={notice.text} hint={notice.hint} />}
+      {emailSent && !upgraded && (
         <p style={{ fontSize: 15, color: "#047857", margin: "8px 0 0", lineHeight: 1.5 }}>
-          {tr("onb.email.checkInbox")}
+          {tr("upgrade.checkInbox.a")} <strong>{sentTo}</strong>. {tr("upgrade.checkInbox.b")}{" "}
+          <button
+            type="button"
+            onClick={onChangeAddress}
+            style={{ background: "none", border: "none", padding: 0, color: "#2f7fe0", fontWeight: 600, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}
+          >
+            {tr("upgrade.changeAddress")}
+          </button>
+        </p>
+      )}
+      {upgraded && (
+        <p style={{ fontSize: 15, color: "#047857", fontWeight: 600, margin: "8px 0 0", lineHeight: 1.5 }}>
+          {tr("upgrade.doneHere")}
         </p>
       )}
 
@@ -962,6 +1064,12 @@ function EmailStep({
 
 
 // -------------------------------------------------------------- Fragments ---
+
+/** A name problem, directly under its field (ui/form-alert). */
+function NameAlert({ notice }: { notice: NameNotice }) {
+  return <FormAlert id="onb-name-alert" text={notice.text} hint={notice.hint} />;
+}
+
 // Line icons (currentColor) — accent blue when idle, white when a card is
 // selected. The two path cards use real product logos instead (see above).
 function Icon({ on = false, color, children }: { on?: boolean; color?: string; children: React.ReactNode }) {

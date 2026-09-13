@@ -14,7 +14,7 @@ import { FilePreview, type Attachment } from "@/components/attachment";
 import { type BrandedDoc } from "@/lib/document";
 import { DocumentActions } from "@/components/ui/doc-actions";
 import { useDarkMode, useAppTheme, AppThemeProvider } from "@/components/ui/theme";
-import { LocaleProvider, useTranslate } from "@/components/ui/locale";
+import { LocaleProvider, useTranslate, trNow } from "@/components/ui/locale";
 import { useLocale } from "@/lib/use-locale";
 import { RayaShell } from "@/components/raya/raya-shell";
 import { RightPanel, IconButton, PageBody } from "@/components/ui/shell";
@@ -38,11 +38,11 @@ function reportToMd(r: {
 }): string {
   const highlights = Array.isArray(r.highlights) ? (r.highlights as string[]) : [];
   return [
-    r.squad_score != null ? `## Squad score\n${r.squad_score}/100` : "",
-    `## Summary\n${r.summary ?? "—"}`,
-    `## Key learnings\n${r.key_learnings ?? "—"}`,
-    highlights.length ? `## Highlights\n${highlights.map((h) => `- ${h}`).join("\n")}` : "",
-    `## Recommendations\n${r.recommendations ?? "—"}`,
+    r.squad_score != null ? `## ${trNow("doc.report.squadScore")}\n${r.squad_score}/100` : "",
+    `## ${trNow("doc.report.summary")}\n${r.summary ?? "—"}`,
+    `## ${trNow("doc.report.keyLearnings")}\n${r.key_learnings ?? "—"}`,
+    highlights.length ? `## ${trNow("doc.report.highlights")}\n${highlights.map((h) => `- ${h}`).join("\n")}` : "",
+    `## ${trNow("doc.report.recommendations")}\n${r.recommendations ?? "—"}`,
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -52,9 +52,9 @@ function reportToMd(r: {
 function reportDoc(roomName: string, r: Parameters<typeof reportToMd>[0]): BrandedDoc {
   return {
     brand: "raya",
-    title: `${roomName} — session report`,
+    title: trNow("doc.report.title", { room: roomName }),
     meta: new Date().toLocaleDateString(),
-    audience: `${roomName} room`,
+    audience: trNow("doc.roomAudience", { room: roomName }),
     body: reportToMd(r),
   };
 }
@@ -722,7 +722,7 @@ function RoomViewBody({
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
         <h1 style={{ fontSize: 23, fontWeight: 800, margin: 0, color: t.text, fontFamily: "var(--font-display)" }}>{roomName}</h1>
         <span style={{ color: t.muted, fontSize: 16 }}>
-          {subject ?? "—"} · {memberCount} member{memberCount === 1 ? "" : "s"}
+          {subject ?? "—"} · {tr(memberCount === 1 ? "room.memberCountOne" : "room.memberCountMany", { count: memberCount })}
         </span>
         {timerBadge}
         <RoomVisibility

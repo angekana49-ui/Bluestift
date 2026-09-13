@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getAdminMembership } from "@/lib/school-admin";
 import { extractFileText, storageSafeName } from "@/lib/extract";
 import { contentLengthExceeds, tooLarge, MAX_DOC_BYTES } from "@/lib/upload-limits";
+import { apiT } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -25,9 +26,9 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const membership = await getAdminMembership(user.id);
-  if (!membership) return NextResponse.json({ error: "School staff only." }, { status: 403 });
+  if (!membership) return NextResponse.json({ error: await apiT("api.staffOnly") }, { status: 403 });
 
-  const oversized = contentLengthExceeds(request, MAX_DOC_BYTES);
+  const oversized = await contentLengthExceeds(request, MAX_DOC_BYTES);
   if (oversized) return oversized;
 
   let form: FormData;
@@ -39,9 +40,9 @@ export async function POST(request: Request) {
   const file = form.get("file");
   let conversationId = form.get("conversationId");
   if (!(file instanceof File)) {
-    return NextResponse.json({ error: "file required" }, { status: 400 });
+    return NextResponse.json({ error: await apiT("api.fileRequired") }, { status: 400 });
   }
-  const big = tooLarge(file, MAX_DOC_BYTES);
+  const big = await tooLarge(file, MAX_DOC_BYTES);
   if (big) return big;
 
   // Resolve the conversation: verify ownership, or create one.
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
       .eq("context_type", "school_analytics")
       .eq("school_id", membership.schoolId)
       .maybeSingle();
-    if (!conv) return NextResponse.json({ error: "conversation not found" }, { status: 403 });
+    if (!conv) return NextResponse.json({ error: await apiT("api.conversationNotFound") }, { status: 403 });
   } else {
     const { data: conv, error: convErr } = await supabase
       .schema("learning")
@@ -129,7 +130,7 @@ export async function DELETE(request: Request) {
     .select("file_path")
     .maybeSingle();
   if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
-  if (!row) return NextResponse.json({ error: "not found" }, { status: 404 });
+  if (!row) return NextResponse.json({ error: await apiT("api.notFound") }, { status: 404 });
 
   if (row.file_path) {
     try {

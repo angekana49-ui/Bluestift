@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getProfOverview } from "@/lib/school-admin";
+import { apiT } from "@/lib/i18n/server";
 
 /** A teacher's home aggregate: their classes + at-risk feed (read-only). */
 export async function GET() {
@@ -11,6 +12,6 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const overview = await getProfOverview(user.id);
-  if (!overview) return NextResponse.json({ error: "School staff only." }, { status: 403 });
+  if (!overview) return NextResponse.json({ error: await apiT("api.staffOnly") }, { status: 403 });
   return NextResponse.json({ overview });
 }

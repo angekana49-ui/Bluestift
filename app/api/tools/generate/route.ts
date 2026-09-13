@@ -11,6 +11,7 @@ import {
   startOfMonthIso,
 } from "@/lib/entitlements";
 import { captureServer } from "@/lib/analytics/server";
+import { apiT } from "@/lib/i18n/server";
 
 const MAX_SOURCE_CHARS = 8000;
 const SUPPORTED = new Set(["quiz", "summary", "flashcards", "mind_map"]);
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
   const toolType = body.tool_type ?? "";
   if (!SUPPORTED.has(toolType)) {
     return NextResponse.json(
-      { error: "This tool is coming soon. Available: quiz, summary." },
+      { error: await apiT("api.thisToolIsComingSoonAvailable") },
       { status: 400 },
     );
   }
@@ -75,7 +76,7 @@ export async function POST(request: Request) {
   if (inline) parts.push(inline);
   const source = parts.join("\n\n").trim().slice(0, MAX_SOURCE_CHARS);
   if (!source) {
-    return NextResponse.json({ error: "empty source text" }, { status: 400 });
+    return NextResponse.json({ error: await apiT("api.emptySourceText") }, { status: 400 });
   }
   const primaryMediaId = body.source_media_id ?? mediaIds[0] ?? null;
 
@@ -83,7 +84,7 @@ export async function POST(request: Request) {
   const { ent, tier } = await resolveRayaEntitlements(user.id);
   // Mind map is a Plus+ generator; audio_summary/infographic (Max) aren't wired.
   if (toolType === "mind_map") {
-    const denied = gateFeature(ent.mindMap, { feature: "mind_map", upgradeTo: "Plus", scope: "tools", userId: user.id, tier });
+    const denied = await gateFeature(ent.mindMap, { feature: "mind_map", upgradeTo: "Plus", scope: "tools", userId: user.id, tier });
     if (denied) return denied;
   }
   // Generations/month — derived from tool_outputs (no separate counter table).
@@ -95,7 +96,7 @@ export async function POST(request: Request) {
     .eq("user_id", user.id)
     .neq("status", "failed")
     .gte("created_at", startOfMonthIso());
-  const overGen = gateQuota(genUsed ?? 0, ent.generationsPerMonth, {
+  const overGen = await gateQuota(genUsed ?? 0, ent.generationsPerMonth, {
     metric: "generations",
     period: "month",
     upgradeTo: "Plus",
@@ -206,7 +207,7 @@ export async function POST(request: Request) {
       .update({ status: "failed", error_message: message })
       .eq("id", id);
     return NextResponse.json(
-      { id, status: "failed", error: clientError(e, "generation failed") },
+      { id, status: "failed", error: clientError(e, await apiT("api.generationFailed")) },
       { status: 502 },
     );
   }

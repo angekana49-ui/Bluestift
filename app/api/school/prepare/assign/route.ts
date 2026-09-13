@@ -5,6 +5,7 @@ import { createAdminClient, createSchoolsAdminClient } from "@/lib/supabase/admi
 import { assertClassAccess, getAdminMembership } from "@/lib/school-admin";
 import { resolveSchoolEntitlements, gateQuota, startOfMonthIso } from "@/lib/entitlements";
 import { captureServer } from "@/lib/analytics/server";
+import { apiT } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 
@@ -25,7 +26,7 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const membership = await getAdminMembership(user.id);
-  if (!membership) return NextResponse.json({ error: "School staff only." }, { status: 403 });
+  if (!membership) return NextResponse.json({ error: await apiT("api.staffOnly") }, { status: 403 });
 
   let body: { resourceId?: string; classId?: string; dueAt?: string | null };
   try {
@@ -36,18 +37,18 @@ export async function POST(request: Request) {
   const resourceId = (body.resourceId ?? "").trim();
   const classId = (body.classId ?? "").trim();
   if (!resourceId || !classId) {
-    return NextResponse.json({ error: "A resource and a class are required." }, { status: 400 });
+    return NextResponse.json({ error: await apiT("api.aResourceAndAClassAre") }, { status: 400 });
   }
   if (!(await assertClassAccess(user.id, classId))) {
-    return NextResponse.json({ error: "Not your class." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.notYourClass") }, { status: 403 });
   }
 
   // due_at is optional; reject an unparseable / past date.
   let dueAt: string | null = null;
   if (body.dueAt) {
     const d = new Date(body.dueAt);
-    if (Number.isNaN(d.getTime())) return NextResponse.json({ error: "Invalid due date." }, { status: 400 });
-    if (d.getTime() < Date.now()) return NextResponse.json({ error: "The due date is in the past." }, { status: 400 });
+    if (Number.isNaN(d.getTime())) return NextResponse.json({ error: await apiT("api.invalidDueDate") }, { status: 400 });
+    if (d.getTime() < Date.now()) return NextResponse.json({ error: await apiT("api.theDueDateIsInThe") }, { status: 400 });
     dueAt = d.toISOString();
   }
 
@@ -65,12 +66,12 @@ export async function POST(request: Request) {
     questions: unknown;
   } | null;
   if (!resource || resource.school_id !== membership.schoolId) {
-    return NextResponse.json({ error: "Resource not found." }, { status: 404 });
+    return NextResponse.json({ error: await apiT("api.resourceNotFound") }, { status: 404 });
   }
 
   const stored = toStoredQuestions(Array.isArray(resource.questions) ? (resource.questions as GenQuestion[]) : []);
   if (stored.length === 0) {
-    return NextResponse.json({ error: "This resource has no usable questions to assign." }, { status: 400 });
+    return NextResponse.json({ error: await apiT("api.thisResourceHasNoUsableQuestions") }, { status: 400 });
   }
   const format = stored.every((q) => q.type === "mcq")
     ? "mcq"
@@ -94,7 +95,7 @@ export async function POST(request: Request) {
       .eq("scope", "assignment")
       .in("format", ["open", "exam"])
       .gte("created_at", startOfMonthIso());
-    const overGrading = gateQuota(gradedUsed ?? 0, ent.aiGradingPerMonthPerProf, {
+    const overGrading = await gateQuota(gradedUsed ?? 0, ent.aiGradingPerMonthPerProf, {
       metric: "AI-graded assignments",
       period: "month",
       upgradeTo: "Plus",
@@ -121,7 +122,7 @@ export async function POST(request: Request) {
     })
     .select("id")
     .single();
-  if (cErr || !challenge) return NextResponse.json({ error: cErr?.message ?? "Could not create the assignment." }, { status: 500 });
+  if (cErr || !challenge) return NextResponse.json({ error: cErr?.message ?? (await apiT("api.assignmentCreateFailed")) }, { status: 500 });
 
   const qRows = stored.map((q, i) => ({
     challenge_id: challenge.id,

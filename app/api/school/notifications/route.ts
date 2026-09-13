@@ -6,6 +6,7 @@ import {
   getSchoolOverview,
   getProfInsights,
 } from "@/lib/school-admin";
+import { apiT } from "@/lib/i18n/server";
 
 export type SchoolNotification = {
   id: string;
@@ -29,7 +30,7 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const membership = await getAdminMembership(user.id);
-  if (!membership) return NextResponse.json({ error: "School staff only." }, { status: 403 });
+  if (!membership) return NextResponse.json({ error: await apiT("api.staffOnly") }, { status: 403 });
 
   const items: SchoolNotification[] = [];
 
@@ -42,16 +43,17 @@ export async function GET() {
       items.push({
         id: `req-${r.id}`,
         kind: "request",
-        title: "Teacher join request",
-        detail: `${r.name} asked to join your school.`,
+        title: await apiT("api.notif.joinRequestTitle"),
+        detail: await apiT("api.notif.joinRequestDetail", { name: r.name }),
       });
     }
     if (overview && overview.totals.alerts > 0) {
+      const count = overview.totals.alerts;
       items.push({
         id: "risk-school",
         kind: "risk",
-        title: `${overview.totals.alerts} student${overview.totals.alerts === 1 ? "" : "s"} at risk`,
-        detail: `${overview.totals.active} active over the last 7 days.`,
+        title: await apiT(count === 1 ? "api.notif.atRiskOne" : "api.notif.atRiskMany", { count }),
+        detail: await apiT("api.notif.activeLastWeek", { count: overview.totals.active }),
       });
     }
   } else {
@@ -60,7 +62,7 @@ export async function GET() {
       items.push({
         id: `alert-${a.userId}`,
         kind: "risk",
-        title: `${a.name} needs attention`,
+        title: await apiT("api.notif.needsAttention", { name: a.name }),
         detail: `${a.className}${a.statusLabel ? ` · ${a.statusLabel}` : ""}`,
       });
     }

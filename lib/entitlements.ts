@@ -6,6 +6,7 @@ import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { billingIsLive } from "@/lib/billing/payments";
 import { captureServer } from "@/lib/analytics/server";
 import type { MessageKey } from "@/lib/i18n";
+import { apiT } from "@/lib/i18n/server";
 
 /** What the marketing-copy functions below need to translate their output.
  *  Callers get one from getServerTranslate() (lib/i18n/server.ts) — the only
@@ -974,13 +975,51 @@ export function sinceDaysIso(days: number, now = new Date()): string {
 // ---- Gate helpers -----------------------------------------------------------
 
 /**
- * How a period reads in a sentence shown to a customer. "this week"/"this
- * month" work verbatim; "this day" does not, and this is the message someone
- * sees at the moment they are blocked.
+ * The metrics a quota is counted in, as the blocked person reads them. Keyed by
+ * the `metric` the routes already pass (it is also the analytics name, so it
+ * stays English there); a metric missing here is shown as passed.
  */
-function periodPhrase(period?: string): string {
-  if (!period) return "";
-  return period === "day" ? " today" : ` this ${period}`;
+const METRIC_KEYS: Record<string, MessageKey> = {
+  rooms: "api.metric.rooms",
+  "room participants": "api.metric.roomParticipants",
+  generations: "api.metric.generations",
+  uploads: "api.metric.uploads",
+  "what-if simulations": "api.metric.whatIfSimulations",
+  exports: "api.metric.exports",
+  messages: "api.metric.messages",
+  "private sessions with Raya": "api.metric.privateSessions",
+  simulations: "api.metric.simulations",
+  "room challenges": "api.metric.roomChallenges",
+  reports: "api.metric.reports",
+  "Prepare generations": "api.metric.prepareGenerations",
+  "AI-graded assignments": "api.metric.aiGradedAssignments",
+};
+
+/**
+ * The sentence someone reads at the moment they are blocked. One key per period
+ * because the period moves inside the sentence from language to language — and
+ * "this day" was never English ("today" is).
+ */
+async function quotaMessage(opts: { metric: string; period?: string; upgradeTo?: string }, limit: number | null): Promise<string> {
+  const key: MessageKey =
+    opts.period === "day"
+      ? "api.gate.quotaDay"
+      : opts.period === "week"
+        ? "api.gate.quotaWeek"
+        : opts.period === "month"
+          ? "api.gate.quotaMonth"
+          : "api.gate.quota";
+  const metricKey = METRIC_KEYS[opts.metric];
+  const metric = metricKey ? await apiT(metricKey) : opts.metric;
+  const reached = await apiT(key, { metric, limit: limit ?? "" });
+  const upgrade = opts.upgradeTo
+    ? await apiT("api.gate.upgradeTo", { plan: opts.upgradeTo })
+    : await apiT("api.gate.upgradeHigher");
+  return `${reached} ${upgrade}`;
+}
+
+async function featureMessage(upgradeTo?: string): Promise<string> {
+  return upgradeTo ? apiT("api.gate.featureRequires", { plan: upgradeTo }) : apiT("api.gate.featureUpgrade");
 }
 
 /** True when a numeric limit is set and already reached. null = unlimited. */
@@ -1024,10 +1063,10 @@ function emitGateEvent(
  * is logged, not blocked, so we can see what free users are reaching for. Pass
  * `userId`/`tier` to attribute the analytics signal.
  */
-export function gateFeature(
+export async function gateFeature(
   allowed: boolean,
   opts: { feature: string; upgradeTo?: string; scope?: string; userId?: string; tier?: string },
-): NextResponse | null {
+): Promise<NextResponse | null> {
   if (allowed) return null;
   emitGateEvent("feature_locked", opts.feature, opts);
   if (!ENTITLEMENTS_ENFORCE) {
@@ -1039,7 +1078,7 @@ export function gateFeature(
   }
   return NextResponse.json(
     {
-      error: `This feature requires ${opts.upgradeTo ?? "an upgrade"}.`,
+      error: await featureMessage(opts.upgradeTo),
       code: "feature_locked",
       feature: opts.feature,
     },
@@ -1053,11 +1092,11 @@ export function gateFeature(
  * `limit == null` (unlimited) is always allowed. Pass `userId`/`tier` to
  * attribute the analytics signal.
  */
-export function gateQuota(
+export async function gateQuota(
   used: number,
   limit: number | null,
   opts: { metric: string; period?: string; upgradeTo?: string; scope?: string; userId?: string; tier?: string },
-): NextResponse | null {
+): Promise<NextResponse | null> {
   if (!overQuota(used, limit)) return null;
   emitGateEvent("quota_reached", opts.metric, { ...opts, used, limit });
   if (!ENTITLEMENTS_ENFORCE) {
@@ -1070,7 +1109,7 @@ export function gateQuota(
   }
   return NextResponse.json(
     {
-      error: `You've reached your ${opts.metric} limit${periodPhrase(opts.period)} (${limit}). Upgrade to ${opts.upgradeTo ?? "a higher plan"} for more.`,
+      error: await quotaMessage(opts, limit),
       code: "quota_reached",
       metric: opts.metric,
       used,
@@ -1095,10 +1134,10 @@ export class EntitlementError extends Error {
  * lacks the feature AND enforcement is on; in monitor mode it only logs. Use in
  * "use server" actions where returning a NextResponse isn't possible.
  */
-export function assertFeature(
+export async function assertFeature(
   allowed: boolean,
   opts: { feature: string; upgradeTo?: string; scope?: string; userId?: string; tier?: string },
-): void {
+): Promise<void> {
   if (allowed) return;
   emitGateEvent("feature_locked", opts.feature, opts);
   if (!ENTITLEMENTS_ENFORCE) {
@@ -1109,17 +1148,17 @@ export function assertFeature(
     return;
   }
   throw new EntitlementError(
-    `This feature requires ${opts.upgradeTo ?? "an upgrade"}.`,
+    await featureMessage(opts.upgradeTo),
     "feature_locked",
   );
 }
 
 /** Server-action variant of gateQuota: throws when over quota and enforcing. */
-export function assertQuota(
+export async function assertQuota(
   used: number,
   limit: number | null,
   opts: { metric: string; period?: string; upgradeTo?: string; scope?: string; userId?: string; tier?: string },
-): void {
+): Promise<void> {
   if (!overQuota(used, limit)) return;
   emitGateEvent("quota_reached", opts.metric, { ...opts, used, limit });
   if (!ENTITLEMENTS_ENFORCE) {
@@ -1131,7 +1170,7 @@ export function assertQuota(
     return;
   }
   throw new EntitlementError(
-    `You've reached your ${opts.metric} limit${periodPhrase(opts.period)} (${limit}). Upgrade to ${opts.upgradeTo ?? "a higher plan"} for more.`,
+    await quotaMessage(opts, limit),
     "quota_reached",
   );
 }

@@ -11,8 +11,12 @@ import { useTranslate } from "@/components/ui/locale";
 import { panelCard, cardTitle, textInput, ctaButton, neutralButton } from "@/components/ui/forms";
 import { FilePicker } from "@/components/ui/file-picker";
 import { LinkSentDialog } from "@/components/ui/link-sent-dialog";
+import { FormAlert, invalidField } from "@/components/ui/form-alert";
+import { useAccountUpgrade } from "@/components/account-upgrade/use-account-upgrade";
 import { PasswordField } from "@/components/ui/password-field";
 import { passwordProblem } from "@/lib/password";
+import type { AccountStatus } from "@/lib/auth";
+import type { MessageKey } from "@/lib/i18n";
 import { status } from "@/components/ui/tokens";
 import { avatarInitials } from "@/lib/name";
 import { RecoveryKeyCode } from "@/components/ui/recovery-key-code";
@@ -35,7 +39,9 @@ type Profile = {
 export type RecoveryKeyInfo = { hasKey: boolean; issuedAt: string | null; hasKeyword: boolean };
 
 type Props = {
-  user: { id: string; email: string | null; isAnonymous: boolean } | null;
+  /** `status` comes from auth.users (accountStatusOf), where confirmation is
+   *  actually recorded — not from the profile row, which only mirrors it. */
+  user: { id: string; email: string | null; isAnonymous: boolean; status: AccountStatus } | null;
   profile: Profile;
   recoveryKey?: RecoveryKeyInfo;
   /** Card width cap. Defaults to 560 (login); the Settings column passes a wider
@@ -61,6 +67,8 @@ export function AuthPanel({
   const input = { ...textInput(t), width: "auto" as const, flex: 1, minWidth: 200 };
 
   const [email, setEmail] = useState("");
+  const [upgradePassword, setUpgradePassword] = useState("");
+  const upgrade = useAccountUpgrade();
   const [recoveryCode, setRecoveryCode] = useState("");
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -106,25 +114,37 @@ export function AuthPanel({
     }
   }
 
+  /** Signed out (/login): an email link signs into an existing account. */
   async function sendEmailLink() {
     if (!email) return;
-    if (!user?.isAnonymous && !captchaToken) return setMsg(tr("auth.err.captcha"));
+    if (!captchaToken) return setMsg(tr("auth.err.captcha"));
     setBusy(true);
     setMsg(null);
-    const { error } = user?.isAnonymous
-      ? await supabase.auth.updateUser({ email }, { emailRedirectTo })
-      : await supabase.auth.signInWithOtp({
-          email,
-          options: {
-            emailRedirectTo,
-            shouldCreateUser: true,
-            captchaToken: captchaToken ?? undefined,
-          },
-        });
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo,
+        shouldCreateUser: true,
+        captchaToken,
+      },
+    });
     setBusy(false);
     resetCaptcha();
     if (error) return setMsg(error.message);
     setLinkSentTo(email);
+  }
+
+  /**
+   * Signed in and anonymous: upgrade THIS account to a verified one — an
+   * address and a password on the same user id, so nothing it holds moves
+   * (lib/account-upgrade.ts). Not supabase.auth.updateUser: see there for why
+   * that route can never finish on these accounts.
+   */
+  async function startUpgrade() {
+    if (!email.trim() || !upgradePassword) return;
+    setMsg(null);
+    const sentTo = await upgrade.submit(email, upgradePassword);
+    if (sentTo) setLinkSentTo(sentTo);
   }
 
   async function recoverWithKey() {
@@ -228,14 +248,23 @@ export function AuthPanel({
       supabase={supabase}
       email={linkSentTo || undefined}
       theme={t}
+      // An upgrade lands admin-side, maybe on another device: ask the server.
+      checkConfirmed={user?.isAnonymous ? upgrade.checkConfirmed : undefined}
+      confirmedKey={user?.isAnonymous ? "upgrade.confirmedHere" : undefined}
       onClose={() => setLinkSentTo(null)}
-      onConfirmed={() => {
+      onConfirmed={async () => {
         if (!user) return window.location.assign("/auth/continue");
         setLinkSentTo(null);
+        // This browser's token still names the old address until it is
+        // refreshed; refresh it, then re-read the page, whose status badge
+        // comes from Auth.
+        await supabase.auth.refreshSession().catch(() => null);
         router.refresh();
       }}
     />
   );
+
+  const upgradeProblem = upgradePassword ? passwordProblem(upgradePassword, email.trim() || undefined) : null;
 
   const infoRow = (label: string, value: React.ReactNode) => (
     <div style={{ borderTop: `1px solid ${t.cardBorder}`, paddingTop: 12 }}>
@@ -353,7 +382,7 @@ export function AuthPanel({
             {user.email ?? "—"} {user.isAnonymous && <em style={{ color: t.mutedLight }}>{tr("auth.account.anonymous")}</em>}
           </>,
         )}
-        {infoRow(tr("auth.account.typeLabel"), <code>{profile?.account_type ?? "?"}</code>)}
+        {infoRow(tr("auth.account.statusLabel"), <AccountStatusBadge status={user.status} />)}
         <PasswordCard email={user.email} canSet={!user.isAnonymous} />
         <RecoveryKeyCard hasKey={recoveryKey.hasKey} issuedAt={recoveryKey.issuedAt} hasKeyword={recoveryKey.hasKeyword} />
 
@@ -382,16 +411,59 @@ export function AuthPanel({
               <strong style={{ color: t.text }}>{tr("auth.account.unsafe.strong")}</strong>
               {tr("auth.account.unsafe.b")}
             </p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              <input style={input} type="email" placeholder={tr("auth.login.emailPlaceholder")} value={email} onChange={(e) => setEmail(e.target.value)} />
-              <button
-                style={{ ...btn, opacity: busy || !email ? 0.5 : 1 }}
-                onClick={sendEmailLink}
-                disabled={busy || !email}
-              >
-                {tr("auth.account.keepProgress")}
-              </button>
-            </div>
+            {upgrade.sentTo ? (
+              <p style={{ fontSize: 15, color: t.text, lineHeight: 1.6, margin: 0 }}>
+                {tr("upgrade.checkInbox.a")} <strong>{upgrade.sentTo}</strong>. {tr("upgrade.checkInbox.b")}{" "}
+                <button
+                  type="button"
+                  onClick={upgrade.reset}
+                  style={{ background: "none", border: "none", padding: 0, color: status.aiIndigo, fontWeight: 600, fontSize: 15, cursor: "pointer" }}
+                >
+                  {tr("upgrade.changeAddress")}
+                </button>
+              </p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 420 }}>
+                <label style={{ fontSize: 14, fontWeight: 600, color: t.text }}>
+                  {tr("auth.account.emailLabel")}
+                  <input
+                    style={{ ...textInput(t), marginTop: 5, ...(upgrade.notice?.field === "email" ? invalidField : null) }}
+                    type="email"
+                    autoComplete="email"
+                    placeholder={tr("auth.login.emailPlaceholder")}
+                    value={email}
+                    aria-invalid={upgrade.notice?.field === "email" || undefined}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (upgrade.notice?.field === "email") upgrade.clearNotice();
+                    }}
+                  />
+                </label>
+                <PasswordField
+                  value={upgradePassword}
+                  onChange={(v) => {
+                    setUpgradePassword(v);
+                    if (upgrade.notice?.field === "password") upgrade.clearNotice();
+                  }}
+                  label={tr("upgrade.pwLabel")}
+                  placeholder={tr("pw.placeholder")}
+                  autoComplete="new-password"
+                  hint={tr("upgrade.pwHint")}
+                  problem={upgradeProblem ? tr(upgradeProblem) : null}
+                  disabled={upgrade.busy}
+                  theme={t}
+                  onEnter={startUpgrade}
+                />
+                <button
+                  style={{ ...btn, alignSelf: "flex-start", opacity: upgrade.busy || !email.trim() || !upgradePassword ? 0.5 : 1 }}
+                  onClick={startUpgrade}
+                  disabled={upgrade.busy || !email.trim() || !upgradePassword}
+                >
+                  {upgrade.busy ? "…" : tr("auth.account.keepProgress")}
+                </button>
+                {upgrade.notice && <FormAlert text={upgrade.notice.text} hint={upgrade.notice.hint} />}
+              </div>
+            )}
           </div>
         )}
 
@@ -406,6 +478,52 @@ export function AuthPanel({
 
       {msg && <p style={{ marginTop: 12, color: t.muted, fontSize: 16 }}>{msg}</p>}
       {linkDialog}
+    </div>
+  );
+}
+
+/**
+ * The account's status in words, where it used to print the raw column
+ * (`anonymous`, `verified`) in a code font, in English, whatever the language.
+ * Tones match what each state means for the person: amber for an account one
+ * cleared browser away from being lost, green for a confirmed address.
+ */
+const STATUS_TONE: Record<AccountStatus, { dot: string; bg: string; border: string; text: string; darkText: string }> = {
+  anonymous: { dot: "#f59e0b", bg: "rgba(245,158,11,0.12)", border: "rgba(245,158,11,0.45)", text: "#92400e", darkText: "#fcd34d" },
+  unverified: { dot: "#64748b", bg: "rgba(100,116,139,0.12)", border: "rgba(100,116,139,0.4)", text: "#334155", darkText: "#cbd5e1" },
+  verified: { dot: "#16a34a", bg: "rgba(22,163,74,0.12)", border: "rgba(22,163,74,0.4)", text: "#166534", darkText: "#86efac" },
+};
+
+const STATUS_KEYS: Record<AccountStatus, { label: MessageKey; hint: MessageKey }> = {
+  anonymous: { label: "auth.account.status.anonymous", hint: "auth.account.status.anonymousHint" },
+  unverified: { label: "auth.account.status.unverified", hint: "auth.account.status.unverifiedHint" },
+  verified: { label: "auth.account.status.verified", hint: "auth.account.status.verifiedHint" },
+};
+
+function AccountStatusBadge({ status: s }: { status: AccountStatus }) {
+  const { theme: t } = useResolvedTheme();
+  const tr = useTranslate();
+  const tone = STATUS_TONE[s];
+  return (
+    <div>
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "3px 12px",
+          borderRadius: 99,
+          fontSize: 15,
+          fontWeight: 700,
+          background: tone.bg,
+          border: `1px solid ${tone.border}`,
+          color: t.dark ? tone.darkText : tone.text,
+        }}
+      >
+        <span aria-hidden style={{ width: 8, height: 8, borderRadius: "50%", background: tone.dot, flexShrink: 0 }} />
+        {tr(STATUS_KEYS[s].label)}
+      </span>
+      <div style={{ fontSize: 14, color: t.muted, marginTop: 6, lineHeight: 1.5 }}>{tr(STATUS_KEYS[s].hint)}</div>
     </div>
   );
 }

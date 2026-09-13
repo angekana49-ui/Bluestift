@@ -64,13 +64,15 @@ describe("a captcha token is redeemed exactly once", () => {
     expect(src).toContain("if (!body.captchaToken)");
   });
 
-  it("recovery verifies only on the branch that hands the token to nobody", () => {
+  it("recovery verifies the token itself, once, before touching any account", () => {
     const src = read("app/api/auth/recover/route.ts");
-    // Exactly one verification, and it sits AFTER the magic-link branch has
-    // returned — i.e. it only ever runs for a synthetic (email-less) account,
-    // which nothing downstream would otherwise captcha-gate at all.
+    // The key signs in directly for every account (owner decision 2026-09-13),
+    // so no branch hands the token to Supabase any more: this route is the
+    // only redeemer, and it redeems before the key is even looked up.
     expect(src.match(/verifyTurnstile\(/g)).toHaveLength(1);
-    expect(src.indexOf("signInWithOtp")).toBeLessThan(src.indexOf("verifyTurnstile("));
-    expect(src).toContain("mintSessionFor");
+    expect(src).not.toContain("signInWithOtp");
+    expect(src.indexOf("verifyTurnstile(")).toBeGreaterThan(-1);
+    expect(src.indexOf("verifyTurnstile(")).toBeLessThan(src.indexOf("findUserIdByRecoveryKey("));
+    expect(src).toContain("mintSessionFor(supabase, email)");
   });
 });

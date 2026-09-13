@@ -8,9 +8,13 @@ import { AssignmentsView } from "@/components/assignments-view";
 import { getPlanLabel } from "@/lib/billing";
 import { softValue } from "@/lib/page-data";
 import { initialsOf } from "@/lib/name";
+import { getServerTranslate } from "@/lib/i18n/server";
 
 // A surface of Raya: homework set by a school, done in the student's own space.
-export const metadata: Metadata = { title: { absolute: "Assignments · Raya" } };
+export async function generateMetadata(): Promise<Metadata> {
+  const tr = await getServerTranslate();
+  return { title: { absolute: `${tr("nav.assignments")} · Raya` } };
+}
 
 export default async function AssignmentsPage() {
   const supabase = await createClient();

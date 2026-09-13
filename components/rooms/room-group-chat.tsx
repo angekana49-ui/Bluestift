@@ -223,10 +223,10 @@ export function RoomGroupChat({
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center", maxWidth: 460, marginTop: 26 }}>
             {[
-              { label: tr("room.greetingNoName"), disabled: expired, onClick: () => onSend("Hi everyone") },
+              { label: tr("room.greetingNoName"), disabled: expired, onClick: () => onSend(tr("room.helloMessage")) },
               // Hybrid: a subject-aware opener when the room has one, else nothing here.
               ...(subject?.trim()
-                ? [{ label: `${tr("room.startOnPrefix")} ${subject.trim()}`, disabled: expired, onClick: () => onSend(`Let's start on ${subject.trim()}`) }]
+                ? [{ label: `${tr("room.startOnPrefix")} ${subject.trim()}`, disabled: expired, onClick: () => onSend(tr("room.startOnMessage", { subject: subject.trim() })) }]
                 : []),
               { label: tr("room.askRayaToHelp"), disabled: expired || busy, onClick: () => onAskRaya() },
             ].map((chip, i) => (

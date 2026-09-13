@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getClassRoster } from "@/lib/school-admin";
+import { apiT } from "@/lib/i18n/server";
 
 /** Roster (with per-student risk) of a class the caller administers. */
 export async function GET(request: Request) {
@@ -14,6 +15,6 @@ export async function GET(request: Request) {
   if (!classId) return NextResponse.json({ error: "classId is required." }, { status: 400 });
 
   const roster = await getClassRoster(user.id, classId);
-  if (!roster) return NextResponse.json({ error: "Class not found or not yours." }, { status: 404 });
+  if (!roster) return NextResponse.json({ error: await apiT("api.classNotFoundOrNotYours") }, { status: 404 });
   return NextResponse.json(roster);
 }

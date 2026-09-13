@@ -5,6 +5,7 @@ import { detectZone, formatMoney, type Zone } from "@/lib/billing/regions";
 import { MIN_B2B_SEATS, termTotal } from "@/lib/billing/terms";
 import { invalidateEntitlements, normalizeRayaTier, normalizeSchoolTier } from "@/lib/entitlements";
 import { isPlatformOwner } from "@/lib/ops";
+import { apiT } from "@/lib/i18n/server";
 
 /**
  * Billing data layer (schools schema, service_role — untyped like the rest of
@@ -365,7 +366,7 @@ export type PilotSeatsResult = { ok: true; seats: number } | { ok: false; error:
 export async function setPilotSeats(userId: string, seats: number): Promise<PilotSeatsResult | null> {
   const m = await getAdminMembership(userId);
   if (!m || m.role !== "admin_master") return null;
-  if (!Number.isInteger(seats) || seats > 100_000) return { ok: false, error: "Enter a whole number of students." };
+  if (!Number.isInteger(seats) || seats > 100_000) return { ok: false, error: await apiT("api.enterAWholeNumberOfStudents") };
 
   const schools = createSchoolsAdminClient();
   const nowIso = new Date().toISOString();
@@ -378,20 +379,20 @@ export async function setPilotSeats(userId: string, seats: number): Promise<Pilo
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (!trial) return { ok: false, error: "Your school has no running pilot." };
+  if (!trial) return { ok: false, error: await apiT("api.yourSchoolHasNoRunningPilot") };
 
   const { count } = await schools
     .from("student_identities")
     .select("user_id", { count: "exact", head: true })
     .eq("school_id", m.schoolId);
   const floor = Math.max(MIN_B2B_SEATS, count ?? 0);
-  if (seats < floor) return { ok: false, error: `Enter at least ${floor} students.`, floor };
+  if (seats < floor) return { ok: false, error: await apiT("api.enterAtLeastStudents", { floor }), floor };
 
   const { error } = await schools
     .from("subscriptions")
     .update({ seat_limit: seats, updated_at: nowIso })
     .eq("id", (trial as { id: string }).id);
-  if (error) return { ok: false, error: "Could not update the headcount." };
+  if (error) return { ok: false, error: await apiT("api.couldNotUpdateTheHeadcount") };
   return { ok: true, seats };
 }
 
@@ -650,14 +651,14 @@ export async function activateSubscription(
     price_unit: string | null;
     billing_period: string | null;
   } | null;
-  if (!plan) return { ok: false, error: "Unknown or inactive plan." };
+  if (!plan) return { ok: false, error: await apiT("api.planUnknown") };
 
   const perSeat = plan.price_unit === "per_seat";
   const seatLimit = input.seatLimit ?? null;
   if (perSeat) {
     // Contracted headcount is required: it both caps joins and multiplies price.
     if (seatLimit == null || seatLimit <= 0) {
-      return { ok: false, error: "Enter the number of students to contract." };
+      return { ok: false, error: await apiT("api.contractSeatsRequired") };
     }
     // Floor: at least MIN_B2B_SEATS (minimum deal size), and never fewer than the
     // students already enrolled (the no-leak floor).
@@ -668,11 +669,11 @@ export async function activateSubscription(
     const headcount = count ?? 0;
     const floor = Math.max(MIN_B2B_SEATS, headcount);
     if (seatLimit < floor) {
-      const why =
+      const error =
         headcount > MIN_B2B_SEATS
-          ? `your school already has ${headcount} students enrolled`
-          : `the minimum contract is ${MIN_B2B_SEATS} students`;
-      return { ok: false, error: `Contract at least ${floor} seats — ${why}.` };
+          ? await apiT("api.contractAtLeastEnrolled", { floor, headcount })
+          : await apiT("api.contractAtLeastMinimum", { floor, min: MIN_B2B_SEATS });
+      return { ok: false, error };
     }
   }
 
@@ -715,7 +716,7 @@ export async function activateSubscription(
     })
     .select("id")
     .single();
-  if (error || !ins) return { ok: false, error: "Could not activate the plan." };
+  if (error || !ins) return { ok: false, error: await apiT("api.planActivateFailed") };
 
   await schools
     .from("schools")
@@ -789,9 +790,9 @@ export async function operatorActivateUserPlan(
   if (!(await isPlatformOwner(operatorUserId))) return null;
 
   const plan = await loadActivatablePlan(input.planId);
-  if (!plan) return { ok: false, error: "Unknown or inactive plan." };
+  if (!plan) return { ok: false, error: await apiT("api.planUnknown") };
   if (plan.category && plan.category !== "b2c") {
-    return { ok: false, error: "That's a school plan — activate it on a school, not a user." };
+    return { ok: false, error: await apiT("api.thatsASchoolPlanActivateIt") };
   }
 
   const { startIso, endIso, months } = activationTerm(input.months);
@@ -818,7 +819,7 @@ export async function operatorActivateUserPlan(
     })
     .select("id")
     .single();
-  if (error || !ins) return { ok: false, error: "Could not activate the plan." };
+  if (error || !ins) return { ok: false, error: await apiT("api.planActivateFailed") };
 
   invalidateEntitlements({ userId: targetUserId });
   return { ok: true, subscriptionId: (ins as { id: string }).id, expiresAt: endIso };
@@ -839,9 +840,9 @@ export async function operatorActivateSchoolPlan(
   if (!(await isPlatformOwner(operatorUserId))) return null;
 
   const plan = await loadActivatablePlan(input.planId);
-  if (!plan) return { ok: false, error: "Unknown or inactive plan." };
+  if (!plan) return { ok: false, error: await apiT("api.planUnknown") };
   if (plan.category && plan.category !== "b2b") {
-    return { ok: false, error: "That's an individual plan — activate it on a user, not a school." };
+    return { ok: false, error: await apiT("api.thatsAnIndividualPlanActivateIt") };
   }
 
   const schools = createSchoolsAdminClient();
@@ -849,7 +850,7 @@ export async function operatorActivateSchoolPlan(
   const seatLimit = input.seatLimit ?? null;
   if (perSeat) {
     if (seatLimit == null || seatLimit <= 0) {
-      return { ok: false, error: "Enter the number of students to contract." };
+      return { ok: false, error: await apiT("api.contractSeatsRequired") };
     }
     const { count } = await schools
       .from("student_identities")
@@ -858,11 +859,11 @@ export async function operatorActivateSchoolPlan(
     const headcount = count ?? 0;
     const floor = Math.max(MIN_B2B_SEATS, headcount);
     if (seatLimit < floor) {
-      const why =
+      const error =
         headcount > MIN_B2B_SEATS
-          ? `this school already has ${headcount} students enrolled`
-          : `the minimum contract is ${MIN_B2B_SEATS} students`;
-      return { ok: false, error: `Contract at least ${floor} seats — ${why}.` };
+          ? await apiT("api.contractAtLeastEnrolledThisSchool", { floor, headcount })
+          : await apiT("api.contractAtLeastMinimum", { floor, min: MIN_B2B_SEATS });
+      return { ok: false, error };
     }
   }
 
@@ -891,7 +892,7 @@ export async function operatorActivateSchoolPlan(
     })
     .select("id")
     .single();
-  if (error || !ins) return { ok: false, error: "Could not activate the plan." };
+  if (error || !ins) return { ok: false, error: await apiT("api.planActivateFailed") };
 
   await schools
     .from("schools")

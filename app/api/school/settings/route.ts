@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { getAdminMembership, SCHOOL_TYPES } from "@/lib/school-admin";
 import { MIN_NAME_LENGTH, isNameTooShort } from "@/lib/names";
+import { apiT } from "@/lib/i18n/server";
 
 const SCHOOL_TYPE_SET: readonly string[] = SCHOOL_TYPES;
 
@@ -17,7 +18,7 @@ export async function PATCH(request: Request) {
 
   const membership = await getAdminMembership(user.id);
   if (!membership || membership.role !== "admin_master") {
-    return NextResponse.json({ error: "Only the school admin can edit school info." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.onlyTheSchoolAdminCanEdit2") }, { status: 403 });
   }
 
   let body: {
@@ -39,7 +40,7 @@ export async function PATCH(request: Request) {
   if (body.name !== undefined) {
     const name = body.name.trim().slice(0, 120);
     if (isNameTooShort(name)) {
-      return NextResponse.json({ error: `The school name needs at least ${MIN_NAME_LENGTH} characters.` }, { status: 400 });
+      return NextResponse.json({ error: await apiT("api.theSchoolNameNeedsAtLeast", { minNameLength: MIN_NAME_LENGTH }) }, { status: 400 });
     }
     patch.name = name;
   }
@@ -47,7 +48,7 @@ export async function PATCH(request: Request) {
   // it can be corrected but not removed.
   if (body.city !== undefined) {
     const city = body.city.trim().slice(0, 80);
-    if (!city) return NextResponse.json({ error: "The school's city can't be empty." }, { status: 400 });
+    if (!city) return NextResponse.json({ error: await apiT("api.theSchoolsCityCantBeEmpty") }, { status: 400 });
     patch.city = city;
   }
   if (body.countryCode !== undefined)
@@ -56,7 +57,7 @@ export async function PATCH(request: Request) {
     // school_type has a DB CHECK — only these tokens (or null) are allowed.
     const t = body.schoolType.trim().toLowerCase();
     if (t && !SCHOOL_TYPE_SET.includes(t)) {
-      return NextResponse.json({ error: "Invalid school type." }, { status: 400 });
+      return NextResponse.json({ error: await apiT("api.invalidSchoolType") }, { status: 400 });
     }
     patch.school_type = t || null;
   }
@@ -64,7 +65,7 @@ export async function PATCH(request: Request) {
   if (body.phone !== undefined) patch.phone = body.phone.trim().slice(0, 40) || null;
 
   if (Object.keys(patch).length === 0) {
-    return NextResponse.json({ error: "Nothing to update." }, { status: 400 });
+    return NextResponse.json({ error: await apiT("api.nothingToUpdate") }, { status: 400 });
   }
   patch.updated_at = new Date().toISOString();
 

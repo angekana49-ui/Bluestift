@@ -247,7 +247,7 @@ describe("the empty states stay distinguishable", () => {
     expect(src).toMatch(/export function ListNoMatch/);
     // It names the query back, so a typo is visible.
     expect(src).toMatch(/\{search\.query\.trim\(\)\}/);
-    expect(src).toMatch(/Clear search/);
+    expect(src).toMatch(/tr\("list\.clearSearch"\)/);
   });
 
   it("a query cannot outlive the field that set it", () => {

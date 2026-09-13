@@ -3,6 +3,7 @@ import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { assertClassAccess, getAdminMembership } from "@/lib/school-admin";
+import { apiT } from "@/lib/i18n/server";
 
 type InstrRow = {
   id: string;
@@ -25,7 +26,7 @@ export async function GET(request: Request) {
   const classId = new URL(request.url).searchParams.get("classId");
   if (!classId) return NextResponse.json({ error: "classId is required." }, { status: 400 });
   if (!(await assertClassAccess(user.id, classId))) {
-    return NextResponse.json({ error: "Not your class." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.notYourClass") }, { status: 403 });
   }
 
   const schools = createSchoolsAdminClient();
@@ -86,10 +87,10 @@ export async function POST(request: Request) {
   const content = (body.content ?? "").trim().slice(0, 500);
   const subjectId = body.subjectId ? String(body.subjectId) : null;
   if (!classId || !content) {
-    return NextResponse.json({ error: "A class and instruction text are required." }, { status: 400 });
+    return NextResponse.json({ error: await apiT("api.aClassAndInstructionTextAre") }, { status: 400 });
   }
   if (!(await assertClassAccess(user.id, classId))) {
-    return NextResponse.json({ error: "Not your class." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.notYourClass") }, { status: 403 });
   }
 
   const schools = createSchoolsAdminClient();
@@ -102,7 +103,7 @@ export async function POST(request: Request) {
       .maybeSingle();
     const s = subj as { is_global: boolean; school_id: string | null } | null;
     if (!s || (!s.is_global && s.school_id !== membership.schoolId)) {
-      return NextResponse.json({ error: "Unknown subject." }, { status: 404 });
+      return NextResponse.json({ error: await apiT("api.unknownSubject") }, { status: 404 });
     }
     // A prof may only steer the subject(s) they actually teach for this class.
     // School membership alone is insufficient: otherwise any assigned prof
@@ -116,7 +117,7 @@ export async function POST(request: Request) {
         .eq("subject_id", subjectId)
         .maybeSingle();
       if (!assignment) {
-        return NextResponse.json({ error: "You are not assigned to this subject." }, { status: 403 });
+        return NextResponse.json({ error: await apiT("api.youAreNotAssignedToThis") }, { status: 403 });
       }
     }
   }
@@ -166,7 +167,7 @@ export async function PATCH(request: Request) {
     .maybeSingle();
   const row = existing as { class_id: string; school_id: string } | null;
   if (!row || row.school_id !== membership.schoolId || !(await assertClassAccess(user.id, row.class_id))) {
-    return NextResponse.json({ error: "Instruction not found." }, { status: 404 });
+    return NextResponse.json({ error: await apiT("api.instructionNotFound") }, { status: 404 });
   }
 
   const patch: { is_active?: boolean; content?: string; updated_at: string } = {
@@ -196,7 +197,7 @@ export async function DELETE(request: Request) {
     .maybeSingle();
   const row = existing as { class_id: string; school_id: string } | null;
   if (!row || row.school_id !== membership.schoolId || !(await assertClassAccess(user.id, row.class_id))) {
-    return NextResponse.json({ error: "Instruction not found." }, { status: 404 });
+    return NextResponse.json({ error: await apiT("api.instructionNotFound") }, { status: 404 });
   }
 
   const { error: delErr } = await schools.from("class_instructions").delete().eq("id", id);
@@ -215,7 +216,7 @@ async function authStaff() {
   }
   const membership = await getAdminMembership(user.id);
   if (!membership) {
-    return { error: NextResponse.json({ error: "School staff only." }, { status: 403 }) } as const;
+    return { error: NextResponse.json({ error: await apiT("api.staffOnly") }, { status: 403 }) } as const;
   }
   return { user, membership, error: null } as const;
 }

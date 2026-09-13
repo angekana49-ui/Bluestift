@@ -310,14 +310,23 @@ describe("each origin's surfaces name the space they belong to", () => {
     ["app/chat/layout.tsx", "Raya"],
     ["app/tools/page.tsx", "Tools · Raya"],
     ["app/rooms/layout.tsx", "Rooms · Raya"],
-    ["app/profile/page.tsx", "My Kernel · Raya"],
-    ["app/assignments/page.tsx", "Assignments · Raya"],
-    ["app/account/page.tsx", "Settings · Raya"],
     ["app/school/layout.tsx", "Bluestift Schools"],
   ];
 
   it.each(SURFACES)("%s titles itself %s", (file, title) => {
     expect(read(file)).toContain(`title: { absolute: "${title}" }`);
+  });
+
+  // Surfaces whose name is a word rather than a product name: translated, with
+  // the space they belong to still spelled out after it.
+  const TRANSLATED: [file: string, key: string][] = [
+    ["app/profile/page.tsx", "nav.kernel"],
+    ["app/assignments/page.tsx", "nav.assignments"],
+    ["app/account/page.tsx", "nav.settings"],
+  ];
+
+  it.each(TRANSLATED)("%s titles itself with %s · Raya", (file, key) => {
+    expect(read(file)).toContain(`title: { absolute: \`\${tr("${key}")} · Raya\` }`);
   });
 
   it("never leaves a surface on the bare umbrella name", () => {

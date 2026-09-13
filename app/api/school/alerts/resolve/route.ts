@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAdminMembership, reachableStudents } from "@/lib/school-admin";
 import { getAlertOwners } from "@/lib/kernel/risk";
 import { kernel, KernelError } from "@/lib/kernel/client";
+import { apiT } from "@/lib/i18n/server";
 
 /**
  * Acknowledge a pedagogical-safety alert (or reopen one closed by mistake).
@@ -24,7 +25,7 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const membership = await getAdminMembership(user.id);
-  if (!membership) return NextResponse.json({ error: "School staff only." }, { status: 403 });
+  if (!membership) return NextResponse.json({ error: await apiT("api.staffOnly") }, { status: 403 });
 
   let body: { alertIds?: string[]; resolved?: boolean };
   try {
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "alertIds is required" }, { status: 400 });
   }
   if (alertIds.length > 50) {
-    return NextResponse.json({ error: "Too many alerts in one call." }, { status: 400 });
+    return NextResponse.json({ error: await apiT("api.tooManyAlertsInOneCall") }, { status: 400 });
   }
 
   // Every id is still checked — authorizing the first and trusting the rest is
@@ -53,9 +54,9 @@ export async function POST(request: Request) {
   const reachable = await reachableStudents(user.id, [...owners.values()]);
   for (const alertId of alertIds) {
     const owner = owners.get(alertId);
-    if (!owner) return NextResponse.json({ error: "Alert not found." }, { status: 404 });
+    if (!owner) return NextResponse.json({ error: await apiT("api.alertNotFound") }, { status: 404 });
     if (!reachable.has(owner)) {
-      return NextResponse.json({ error: "Not your student." }, { status: 403 });
+      return NextResponse.json({ error: await apiT("api.notYourStudent") }, { status: 403 });
     }
   }
 
@@ -80,8 +81,8 @@ export async function POST(request: Request) {
       {
         error:
           done.length > 0
-            ? "Some alerts were not acknowledged. Refresh to see the current state."
-            : "Could not reach the kernel — nothing was acknowledged. Try again.",
+            ? await apiT("api.alertsPartlyAcknowledged")
+            : await apiT("api.alertsKernelUnreachable"),
         resolvedIds: done,
       },
       { status },

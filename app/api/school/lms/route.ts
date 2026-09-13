@@ -3,6 +3,7 @@ import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { getAdminMembership, getLmsConnections, LMS_PROVIDERS } from "@/lib/school-admin";
+import { apiT } from "@/lib/i18n/server";
 
 /**
  * LMS connection registry. Real provider OAuth/sync is NOT wired yet — a
@@ -17,7 +18,7 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const connections = await getLmsConnections(user.id);
-  if (connections == null) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+  if (connections == null) return NextResponse.json({ error: await apiT("api.adminOnly") }, { status: 403 });
   return NextResponse.json({ connections });
 }
 
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
 
   const membership = await getAdminMembership(user.id);
   if (!membership || membership.role !== "admin_master") {
-    return NextResponse.json({ error: "Admin only." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.adminOnly") }, { status: 403 });
   }
 
   let body: { provider?: string; externalOrgName?: string };
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
   }
   const provider = body.provider ?? "";
   if (!(LMS_PROVIDERS as readonly string[]).includes(provider)) {
-    return NextResponse.json({ error: "Unknown LMS provider." }, { status: 400 });
+    return NextResponse.json({ error: await apiT("api.unknownLmsProvider") }, { status: 400 });
   }
   const externalOrgName = (body.externalOrgName ?? "").trim().slice(0, 120) || null;
 
@@ -79,7 +80,7 @@ export async function DELETE(request: Request) {
 
   const membership = await getAdminMembership(user.id);
   if (!membership || membership.role !== "admin_master") {
-    return NextResponse.json({ error: "Admin only." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.adminOnly") }, { status: 403 });
   }
 
   const id = new URL(request.url).searchParams.get("id");
@@ -93,7 +94,7 @@ export async function DELETE(request: Request) {
     .eq("id", id)
     .eq("school_id", membership.schoolId)
     .maybeSingle();
-  if (!conn) return NextResponse.json({ error: "Connection not found." }, { status: 404 });
+  if (!conn) return NextResponse.json({ error: await apiT("api.connectionNotFound") }, { status: 404 });
 
   await schools.from("lms_class_mappings").delete().eq("lms_connection_id", id);
   const { error } = await schools.from("lms_connections").delete().eq("id", id);

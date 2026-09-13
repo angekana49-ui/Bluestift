@@ -1,6 +1,7 @@
 import "server-only";
 import { createAdminClient, type createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { firstNameOf, sendBrandedEmail, sendSchoolLinkedEmail, getUserEmail, siteUrl } from "@/lib/email";
+import { apiT } from "@/lib/i18n/server";
 
 type SchoolsClient = ReturnType<typeof createSchoolsAdminClient>;
 
@@ -25,16 +26,17 @@ export async function notifyAdminsOfRequest(
     .eq("school_id", schoolId)
     .eq("role", "admin_master");
   const adminIds = ((data as { user_id: string }[] | null) ?? []).map((r) => r.user_id);
-  const name = schoolName ?? "your school";
-  const who = requesterEmail ? `${requesterEmail} ` : "A teacher ";
+  // In the requesting teacher's language: the one this request carries, and the
+  // one a school's staff most likely share.
+  const v = { school: schoolName ?? (await apiT("email.joinRequest.yourSchool")), who: requesterEmail ?? "" };
   const email = {
-    subject: `New request to join ${name}`,
-    heading: `New request to join ${name}`,
+    subject: await apiT("email.joinRequest.subject", v),
+    heading: await apiT("email.joinRequest.subject", v),
     lines: [
-      `${who}asked to join ${name} on Bluestift Schools and is waiting for your approval.`,
-      "Open the Team page to approve or decline the request.",
+      requesterEmail ? await apiT("email.joinRequest.line1Email", v) : await apiT("email.joinRequest.line1", v),
+      await apiT("email.joinRequest.line2"),
     ],
-    cta: { label: "Review requests", url: `${siteUrl("schools")}/school` },
+    cta: { label: await apiT("email.joinRequest.cta"), url: `${siteUrl("schools")}/school` },
   };
   await Promise.all(
     adminIds.map(async (id) => {

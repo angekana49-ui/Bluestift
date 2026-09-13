@@ -12,6 +12,7 @@ import {
   startOfMonthIso,
 } from "@/lib/entitlements";
 import { captureServer } from "@/lib/analytics/server";
+import { apiT } from "@/lib/i18n/server";
 
 // Transcription / PDF reading can take a moment.
 export const runtime = "nodejs";
@@ -51,7 +52,7 @@ export async function POST(request: Request) {
   // Free is capped smaller (5 MB) than the 25 MB hard ceiling.
   const maxBytes = Math.min(MAX_DOC_BYTES, ent.packetMaxMb * 1024 * 1024);
 
-  const oversized = contentLengthExceeds(request, maxBytes);
+  const oversized = await contentLengthExceeds(request, maxBytes);
   if (oversized) return oversized;
 
   // Uploads/month — doc capacity is a metered lever (chat never is). Counted
@@ -62,7 +63,7 @@ export async function POST(request: Request) {
     .select("id", { count: "exact", head: true })
     .eq("user_id", user.id)
     .gte("created_at", startOfMonthIso());
-  const overUp = gateQuota(upUsed ?? 0, ent.uploadsPerMonth, {
+  const overUp = await gateQuota(upUsed ?? 0, ent.uploadsPerMonth, {
     metric: "uploads",
     period: "month",
     upgradeTo: "Plus",
@@ -80,20 +81,20 @@ export async function POST(request: Request) {
   }
   const file = form.get("file");
   if (!(file instanceof File)) {
-    return NextResponse.json({ error: "no file" }, { status: 400 });
+    return NextResponse.json({ error: await apiT("api.noFile") }, { status: 400 });
   }
-  const big = tooLarge(file, maxBytes);
+  const big = await tooLarge(file, maxBytes);
   if (big) return big;
   const kind = kindOf(file);
   if (kind === "unsupported") {
     return NextResponse.json(
-      { error: "Unsupported file. Use text (.txt/.md), PDF, or audio." },
+      { error: await apiT("api.unsupportedFileUseTextTxtMd") },
       { status: 400 },
     );
   }
   // Audio extraction (transcription) is a Plus+ feature.
   if (kind === "audio") {
-    const denied = gateFeature(ent.audioExtraction, {
+    const denied = await gateFeature(ent.audioExtraction, {
       feature: "audio_extraction",
       upgradeTo: "Plus",
       scope: "tools",
@@ -140,13 +141,13 @@ export async function POST(request: Request) {
     text = text.trim();
   } catch (e) {
     return NextResponse.json(
-      { error: clientError(e, "extraction failed") },
+      { error: clientError(e, await apiT("api.extractionFailed")) },
       { status: 502 },
     );
   }
   if (!text) {
     return NextResponse.json(
-      { error: "No text could be extracted from this file." },
+      { error: await apiT("api.noTextCouldBeExtractedFrom") },
       { status: 422 },
     );
   }

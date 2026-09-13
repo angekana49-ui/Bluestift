@@ -5,6 +5,7 @@ import { createAdminClient, createSchoolsAdminClient } from "@/lib/supabase/admi
 import { hasRealEmail } from "@/lib/auth";
 import { notifyAdminsOfRequest } from "@/lib/school-join";
 import { checkStrictUserRateLimit } from "@/lib/rate-limit";
+import { apiT } from "@/lib/i18n/server";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -39,12 +40,12 @@ export async function POST(request: Request) {
 
   if (!hasRealEmail(user.email)) {
     return NextResponse.json(
-      { error: "Add a verified email before joining a school as a teacher.", code: "email_required" },
+      { error: await apiT("api.addAVerifiedEmailBeforeJoining2"), code: "email_required" },
       { status: 403 },
     );
   }
   if (!(await checkStrictUserRateLimit("school_request_access", user.id, 5, "60 minutes"))) {
-    return NextResponse.json({ error: "Too many requests. Please try again later.", code: "rate_limited" }, { status: 429 });
+    return NextResponse.json({ error: await apiT("api.tooManyRequestsPleaseTryAgain"), code: "rate_limited" }, { status: 429 });
   }
 
   let body: { email?: string };
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
   }
   const email = (body.email ?? "").trim().toLowerCase().slice(0, 160);
   if (!EMAIL_RE.test(email)) {
-    return NextResponse.json({ error: "Enter your school's or your administrator's email." }, { status: 400 });
+    return NextResponse.json({ error: await apiT("api.enterYourSchoolsOrYourAdministrators") }, { status: 400 });
   }
 
   // All the work happens after the response. A match does lookups, inserts and

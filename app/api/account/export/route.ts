@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { buildDataExport } from "@/lib/compliance/export";
 import { recordDataRequest } from "@/lib/compliance/erasure";
 import { checkStrictUserRateLimit } from "@/lib/rate-limit";
+import { apiT } from "@/lib/i18n/server";
 
 /**
  * "Download my data" — GDPR art. 15 (access) and art. 20 (portability) served
@@ -24,7 +25,7 @@ export async function GET() {
   // above what anyone exercising the right would ever need.
   if (!(await checkStrictUserRateLimit("data_export", user.id, 5, "1 hour"))) {
     return NextResponse.json(
-      { error: "You've requested several exports recently — try again shortly." },
+      { error: await apiT("api.youveRequestedSeveralExportsRecentlyTry") },
       { status: 429 },
     );
   }

@@ -10,6 +10,7 @@ import {
 } from "@/lib/recovery-keyword";
 import { checkStrictUserRateLimit } from "@/lib/rate-limit";
 import { captureServer } from "@/lib/analytics/server";
+import { apiT } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 
@@ -79,7 +80,7 @@ export async function POST(request: Request) {
   if (stored) {
     if (!(await checkStrictUserRateLimit("recovery_keyword_try", user.id, 10, "60 minutes"))) {
       return NextResponse.json(
-        { error: "Too many tries. Wait an hour and try again." },
+        { error: await apiT("api.tooManyTriesWaitAnHour") },
         { status: 429 },
       );
     }
@@ -87,7 +88,7 @@ export async function POST(request: Request) {
       // Deliberately not "wrong word" vs "no word": both are the same refusal,
       // and there is nothing useful to tell someone who is guessing.
       return NextResponse.json(
-        { error: "That's not the word on this account.", reason: "keyword" },
+        { error: await apiT("api.thatsNotTheWordOnThis"), reason: "keyword" },
         { status: 403 },
       );
     }
@@ -96,7 +97,7 @@ export async function POST(request: Request) {
     // validation message rather than a refusal.
     return NextResponse.json(
       {
-        error: `Choose a word of at least ${KEYWORD_MIN_LENGTH} letters you'll remember.`,
+        error: await apiT("api.chooseAWordOfAtLeast", { keywordMinLength: KEYWORD_MIN_LENGTH }),
         reason: "keyword_required",
       },
       { status: 400 },
@@ -108,14 +109,14 @@ export async function POST(request: Request) {
   // need more than a handful a day.
   if (!(await checkStrictUserRateLimit("recovery_key_issue", user.id, 5, "24 hours"))) {
     return NextResponse.json(
-      { error: "Too many new keys today — try again tomorrow." },
+      { error: await apiT("api.tooManyNewKeysTodayTry") },
       { status: 429 },
     );
   }
 
   const code = await issueRecoveryKey(user.id);
   if (!code) {
-    return NextResponse.json({ error: "Could not generate a key." }, { status: 500 });
+    return NextResponse.json({ error: await apiT("api.couldNotGenerateAKey") }, { status: 500 });
   }
 
   // Persist the chosen word only once the key it guards actually exists. The
@@ -134,7 +135,7 @@ export async function POST(request: Request) {
       // the user can set the word by generating again, and must know to.
       return NextResponse.json({
         code,
-        warning: "Your key is active, but we couldn't save your word — set it by generating again.",
+        warning: await apiT("api.yourKeyIsActiveButWe"),
       });
     }
   }
@@ -150,7 +151,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           code,
-          warning: "Your new key is active, but you'll need to sign in again with it.",
+          warning: await apiT("api.yourNewKeyIsActiveBut"),
         },
         { status: 200 },
       );

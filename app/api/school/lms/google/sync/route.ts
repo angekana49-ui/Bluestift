@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { getAdminMembership } from "@/lib/school-admin";
 import { listCourses, refreshAccessToken } from "@/lib/lms/google";
+import { apiT } from "@/lib/i18n/server";
 
 type Conn = {
   id: string;
@@ -22,7 +23,7 @@ export async function POST() {
 
   const membership = await getAdminMembership(user.id);
   if (!membership || membership.role !== "admin_master") {
-    return NextResponse.json({ error: "Admin only." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.adminOnly") }, { status: 403 });
   }
 
   const schools = createSchoolsAdminClient();
@@ -33,14 +34,14 @@ export async function POST() {
     .eq("provider", "google_classroom")
     .maybeSingle();
   const conn = connData as Conn | null;
-  if (!conn) return NextResponse.json({ error: "Google Classroom is not connected." }, { status: 404 });
+  if (!conn) return NextResponse.json({ error: await apiT("api.googleClassroomIsNotConnected") }, { status: 404 });
 
   // Refresh the access token if it's missing or expiring within a minute.
   let accessToken = conn.access_token ?? "";
   const expired = !conn.token_expires_at || new Date(conn.token_expires_at).getTime() - Date.now() < 60_000;
   if (expired) {
     if (!conn.refresh_token) {
-      return NextResponse.json({ error: "Session expired — reconnect Google Classroom." }, { status: 401 });
+      return NextResponse.json({ error: await apiT("api.sessionExpiredReconnectGoogleClassroom") }, { status: 401 });
     }
     try {
       const t = await refreshAccessToken(conn.refresh_token);
@@ -53,7 +54,7 @@ export async function POST() {
         })
         .eq("id", conn.id);
     } catch (e) {
-      return NextResponse.json({ error: clientError(e, "refresh failed").slice(0, 80) }, { status: 502 });
+      return NextResponse.json({ error: clientError(e, await apiT("api.refreshFailed")).slice(0, 80) }, { status: 502 });
     }
   }
 
@@ -62,7 +63,7 @@ export async function POST() {
     courses = await listCourses(accessToken);
   } catch (e) {
     await schools.from("lms_connections").update({ sync_status: "failed", sync_error: String(e).slice(0, 200) }).eq("id", conn.id);
-    return NextResponse.json({ error: clientError(e, "sync failed").slice(0, 120) }, { status: 502 });
+    return NextResponse.json({ error: clientError(e, await apiT("api.syncFailed")).slice(0, 120) }, { status: 502 });
   }
 
   // Reconcile: insert mappings for new courses, keep existing (and their class_id) as-is.

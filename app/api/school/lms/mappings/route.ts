@@ -3,6 +3,7 @@ import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { getAdminMembership } from "@/lib/school-admin";
+import { apiT } from "@/lib/i18n/server";
 
 /** Map an external LMS class to an internal class (admin_master only). */
 export async function POST(request: Request) {
@@ -14,7 +15,7 @@ export async function POST(request: Request) {
 
   const membership = await getAdminMembership(user.id);
   if (!membership || membership.role !== "admin_master") {
-    return NextResponse.json({ error: "Admin only." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.adminOnly") }, { status: 403 });
   }
 
   let body: { connectionId?: string; externalClassId?: string; externalClassName?: string; classId?: string };
@@ -35,8 +36,8 @@ export async function POST(request: Request) {
     schools.from("lms_connections").select("id").eq("id", connectionId).eq("school_id", membership.schoolId).maybeSingle(),
     schools.from("classes").select("id, name").eq("id", classId).eq("school_id", membership.schoolId).maybeSingle(),
   ]);
-  if (!conn) return NextResponse.json({ error: "Unknown connection." }, { status: 404 });
-  if (!cls) return NextResponse.json({ error: "Unknown class." }, { status: 404 });
+  if (!conn) return NextResponse.json({ error: await apiT("api.unknownConnection") }, { status: 404 });
+  if (!cls) return NextResponse.json({ error: await apiT("api.unknownClass") }, { status: 404 });
 
   const { data, error } = await schools
     .from("lms_class_mappings")
@@ -69,7 +70,7 @@ export async function PATCH(request: Request) {
 
   const membership = await getAdminMembership(user.id);
   if (!membership || membership.role !== "admin_master") {
-    return NextResponse.json({ error: "Admin only." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.adminOnly") }, { status: 403 });
   }
 
   let body: { id?: string; classId?: string };
@@ -88,14 +89,14 @@ export async function PATCH(request: Request) {
     .eq("id", id)
     .maybeSingle();
   const connId = (map as { lms_connection_id?: string } | null)?.lms_connection_id;
-  if (!connId) return NextResponse.json({ error: "Mapping not found." }, { status: 404 });
+  if (!connId) return NextResponse.json({ error: await apiT("api.mappingNotFound") }, { status: 404 });
 
   const [{ data: conn }, { data: cls }] = await Promise.all([
     schools.from("lms_connections").select("id").eq("id", connId).eq("school_id", membership.schoolId).maybeSingle(),
     schools.from("classes").select("id, name").eq("id", classId).eq("school_id", membership.schoolId).maybeSingle(),
   ]);
-  if (!conn) return NextResponse.json({ error: "Not yours." }, { status: 403 });
-  if (!cls) return NextResponse.json({ error: "Unknown class." }, { status: 404 });
+  if (!conn) return NextResponse.json({ error: await apiT("api.notYours") }, { status: 403 });
+  if (!cls) return NextResponse.json({ error: await apiT("api.unknownClass") }, { status: 404 });
 
   const { error } = await schools.from("lms_class_mappings").update({ class_id: classId }).eq("id", id);
   if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
@@ -111,7 +112,7 @@ export async function DELETE(request: Request) {
 
   const membership = await getAdminMembership(user.id);
   if (!membership || membership.role !== "admin_master") {
-    return NextResponse.json({ error: "Admin only." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.adminOnly") }, { status: 403 });
   }
   const id = new URL(request.url).searchParams.get("id");
   if (!id) return NextResponse.json({ error: "missing id" }, { status: 400 });
@@ -124,14 +125,14 @@ export async function DELETE(request: Request) {
     .eq("id", id)
     .maybeSingle();
   const connId = (map as { lms_connection_id?: string } | null)?.lms_connection_id;
-  if (!connId) return NextResponse.json({ error: "Mapping not found." }, { status: 404 });
+  if (!connId) return NextResponse.json({ error: await apiT("api.mappingNotFound") }, { status: 404 });
   const { data: conn } = await schools
     .from("lms_connections")
     .select("id")
     .eq("id", connId)
     .eq("school_id", membership.schoolId)
     .maybeSingle();
-  if (!conn) return NextResponse.json({ error: "Not yours." }, { status: 403 });
+  if (!conn) return NextResponse.json({ error: await apiT("api.notYours") }, { status: 403 });
 
   const { error } = await schools.from("lms_class_mappings").delete().eq("id", id);
   if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });

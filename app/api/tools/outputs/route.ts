@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
+import { apiT } from "@/lib/i18n/server";
 
 /**
  * Archive / delete for one Tools Studio generation (summary, quiz, flashcards,
@@ -41,7 +42,7 @@ export async function PATCH(request: Request) {
     .select("id")
     .maybeSingle();
   if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
-  if (!data) return NextResponse.json({ error: "not found" }, { status: 404 });
+  if (!data) return NextResponse.json({ error: await apiT("api.notFound") }, { status: 404 });
 
   return NextResponse.json({ ok: true, archived_at });
 }
@@ -65,7 +66,7 @@ export async function DELETE(request: Request) {
     .select("id")
     .maybeSingle();
   if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
-  if (!data) return NextResponse.json({ error: "not found" }, { status: 404 });
+  if (!data) return NextResponse.json({ error: await apiT("api.notFound") }, { status: 404 });
 
   return NextResponse.json({ ok: true });
 }

@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { extractFileText, storageSafeName } from "@/lib/extract";
 import { assertRoomOpen } from "@/lib/rooms";
 import { contentLengthExceeds, tooLarge, MAX_DOC_BYTES } from "@/lib/upload-limits";
+import { apiT } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -26,7 +27,7 @@ export async function POST(request: Request) {
   const gated = await ageGateResponse(user.id);
   if (gated) return gated;
 
-  const oversized = contentLengthExceeds(request, MAX_DOC_BYTES);
+  const oversized = await contentLengthExceeds(request, MAX_DOC_BYTES);
   if (oversized) return oversized;
 
   let form: FormData;
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
   if (typeof roomId !== "string" || !(file instanceof File)) {
     return NextResponse.json({ error: "roomId and file required" }, { status: 400 });
   }
-  const big = tooLarge(file, MAX_DOC_BYTES);
+  const big = await tooLarge(file, MAX_DOC_BYTES);
   if (big) return big;
 
   // Authorize: caller must be a room member (RLS lets you read your own row).
@@ -52,13 +53,13 @@ export async function POST(request: Request) {
     .eq("user_id", user.id)
     .maybeSingle();
   if (!membership) {
-    return NextResponse.json({ error: "You must be a room member." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.roomMemberOnly") }, { status: 403 });
   }
 
   // A timed room that has ended is read-only — no new shared documents.
   const { open } = await assertRoomOpen(supabase, roomId);
   if (!open) {
-    return NextResponse.json({ error: "This room has ended — it's now read-only." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.roomEnded") }, { status: 403 });
   }
 
   // Extract text (best-effort — a file with no text still uploads).

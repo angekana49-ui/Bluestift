@@ -14,6 +14,7 @@ import {
   EntitlementError,
 } from "@/lib/entitlements";
 import { captureServer } from "@/lib/analytics/server";
+import { apiT } from "@/lib/i18n/server";
 
 /**
  * Shape returned by a room action when it is blocked. `feature_locked` and
@@ -37,13 +38,13 @@ export async function createRoom(input: {
   durationMinutes?: number | null;
 }): Promise<{ roomId: string } | RoomGateError> {
   const name = input.name.trim();
-  if (!name) throw new Error("Room name is required.");
+  if (!name) throw new Error(await apiT("api.roomNameIsRequired"));
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new Error(await apiT("api.notSignedIn"));
 
   // --- Entitlements: rooms/month quota, visibility, mandatory timer ---------
   const { ent, tier } = await resolveRayaEntitlements(user.id);
@@ -94,7 +95,7 @@ export async function createRoom(input: {
   // Gates throw EntitlementError when enforcing; surface it as a structured result
   // (a thrown error would be masked in prod, so the client couldn't show the modal).
   try {
-    assertQuota(roomsUsed ?? 0, ent.roomsPerMonth, {
+    await assertQuota(roomsUsed ?? 0, ent.roomsPerMonth, {
       metric: "rooms",
       period: "month",
       upgradeTo: "Plus",
@@ -175,7 +176,7 @@ export async function setRoomVisibility(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new Error(await apiT("api.notSignedIn"));
 
   const admin = createAdminClient();
   const { data: room } = await admin
@@ -184,20 +185,20 @@ export async function setRoomVisibility(
     .select("id, created_by, visibility")
     .eq("id", roomId)
     .maybeSingle();
-  if (!room) throw new Error("Room not found.");
-  if (room.created_by !== user.id) throw new Error("Only the room's creator can change this.");
+  if (!room) throw new Error(await apiT("api.roomNotFound"));
+  if (room.created_by !== user.id) throw new Error(await apiT("api.onlyTheRoomsCreatorCanChange"));
   if (room.visibility === visibility) return;
 
   if (visibility === "public") {
     if (await roomHoldsMinor(roomId)) {
       return {
-        error: "This room stays private: it has a member under 18.",
+        error: await apiT("api.roomPrivateMinor"),
         code: "minor_public_room",
       };
     }
     const { ent, tier } = await resolveRayaEntitlements(user.id);
     try {
-      assertFeature(ent.roomVisibilityChoice, {
+      await assertFeature(ent.roomVisibilityChoice, {
         feature: "room_visibility",
         upgradeTo: "Plus",
         scope: "rooms",
@@ -220,7 +221,7 @@ export async function setRoomVisibility(
   // because that is the only thing they refuse this for.
   if (error) {
     return {
-      error: "This room stays private: it has a member under 18.",
+      error: await apiT("api.roomPrivateMinor"),
       code: "minor_public_room",
     };
   }
@@ -239,7 +240,7 @@ export async function joinRoom(roomId: string): Promise<void | RoomGateError> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new Error(await apiT("api.notSignedIn"));
 
   const admin = createAdminClient();
   const { data: room } = await admin
@@ -248,7 +249,7 @@ export async function joinRoom(roomId: string): Promise<void | RoomGateError> {
     .select("id, created_by, visibility")
     .eq("id", roomId)
     .maybeSingle();
-  if (!room) throw new Error("Room not found.");
+  if (!room) throw new Error(await apiT("api.roomNotFound"));
 
   /*
    * A member under 18 only ever belongs to a private room.
@@ -272,7 +273,7 @@ export async function joinRoom(roomId: string): Promise<void | RoomGateError> {
     if (isMinorBirthYear(joinerProfile?.birth_year)) {
       return {
         error:
-          "This room is public. Rooms that include a member under 18 stay private — ask for an invite link instead.",
+          await apiT("api.thisRoomIsPublicRoomsThat"),
         code: "minor_public_room",
       };
     }
@@ -295,7 +296,7 @@ export async function joinRoom(roomId: string): Promise<void | RoomGateError> {
       .select("user_id", { count: "exact", head: true })
       .eq("room_id", roomId);
     try {
-      assertQuota(members ?? 0, ent.roomMaxParticipants, {
+      await assertQuota(members ?? 0, ent.roomMaxParticipants, {
         metric: "room participants",
         upgradeTo: "Plus",
         scope: "rooms",
@@ -330,13 +331,13 @@ export async function postRoomMessage(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new Error(await apiT("api.notSignedIn"));
   // The room page is age-gated; the action behind it has to be too.
   await assertAgeCleared(user.id);
 
   // Timed rooms turn read-only once the countdown ends.
   const { open } = await assertRoomOpen(supabase, roomId);
-  if (!open) throw new Error("This room has ended — it's now read-only.");
+  if (!open) throw new Error(await apiT("api.roomEnded"));
 
   const { error } = await supabase
     .schema("learning")

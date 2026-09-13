@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ageBand, allowsOptionalProcessing } from "@/lib/compliance/age";
 import { forgetOptionalProcessing } from "@/lib/compliance/optional-processing";
+import { apiT } from "@/lib/i18n/server";
 
 /**
  * The "use my content to improve Raya" opt-in.
@@ -45,7 +46,7 @@ export async function POST(request: Request) {
   // Granting is what the band gates.
   if (body.consent && !allowsOptionalProcessing(ageBand(row?.birth_year ?? null))) {
     return NextResponse.json(
-      { error: "This option isn't available on accounts belonging to under-18s." },
+      { error: await apiT("api.thisOptionIsntAvailableOnAccounts") },
       { status: 403 },
     );
   }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { apiT } from "@/lib/i18n/server";
 
 /**
  * Archive / delete for one challenge — a solo self-test (`room_id` null) or a
@@ -66,7 +67,7 @@ export async function PATCH(request: Request) {
 
   const admin = createAdminClient();
   const { challenge, allowed } = await authorize(admin, user.id, id);
-  if (!challenge) return NextResponse.json({ error: "not found" }, { status: 404 });
+  if (!challenge) return NextResponse.json({ error: await apiT("api.notFound") }, { status: 404 });
   if (!allowed) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
   const archived_at = body.action === "archive" ? new Date().toISOString() : null;
@@ -88,7 +89,7 @@ export async function DELETE(request: Request) {
 
   const admin = createAdminClient();
   const { challenge, allowed } = await authorize(admin, user.id, id);
-  if (!challenge) return NextResponse.json({ error: "not found" }, { status: 404 });
+  if (!challenge) return NextResponse.json({ error: await apiT("api.notFound") }, { status: 404 });
   if (!allowed) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   // A Schools "Prepare" assignment materializes as one of these (scope
   // "assignment", room_id null — created_by is the prof, so it can otherwise
@@ -98,7 +99,7 @@ export async function DELETE(request: Request) {
   // Archiving still works; only the hard delete is blocked.
   if (challenge.scope === "assignment") {
     return NextResponse.json(
-      { error: "This is a class assignment, not a personal test — archive it instead of deleting it." },
+      { error: await apiT("api.thisIsAClassAssignmentNot") },
       { status: 409 },
     );
   }

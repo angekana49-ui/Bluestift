@@ -101,7 +101,7 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
         </div>
 
         <footer style={{ padding: "14px 24px 18px", marginTop: 8, borderTop: "1px solid rgba(15,23,42,0.08)", fontSize: 14, color: "#8a97a8", display: "flex", gap: 6, flexWrap: "wrap" }}>
-          <span>{footerLine((data.brand as DocBrand) in DOC_BRANDS ? (data.brand as DocBrand) : "raya")} ·</span>
+          <span>{footerLine((data.brand as DocBrand) in DOC_BRANDS ? (data.brand as DocBrand) : "raya", undefined, tr)} ·</span>
           {/* Opens in a new tab, matching the branded document viewer's own
               footer link (components/ui/document.tsx) — it leaves the document
               someone is reading (here, the whole page) for the marketing site,

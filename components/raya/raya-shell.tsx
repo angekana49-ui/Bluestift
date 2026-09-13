@@ -33,6 +33,7 @@ import {
 import type { AppTheme } from "@/components/ui/tokens";
 import { RayaName } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
+import { planLabelText } from "@/lib/i18n";
 
 /** Raya student-app nav → real routes. `key` matches each page's `active` prop;
  *  `labelKey` is resolved through the message catalogue at render time. */
@@ -100,6 +101,7 @@ export function RayaShell({
 }) {
   const router = useRouter();
   const tr = useTranslate();
+  const planText = profileSubtitle ? planLabelText(profileSubtitle, tr) : undefined;
   const [supabase] = useState(() => createClient());
   const [collapsed, setCollapsed] = useState(false);
   const [chatHistOpen, setChatHistOpen] = useState(true);
@@ -186,7 +188,7 @@ export function RayaShell({
           key: "plan",
           icon: <IconBilling />,
           label: tr("settings.row.plan"),
-          value: profileSubtitle,
+          value: planText,
           onSelect: () => go("/account#plan"),
         },
         {
@@ -315,7 +317,7 @@ export function RayaShell({
             collapsed={effectiveCollapsed}
             initials={profileInitials}
             name={profileName}
-            subtitle={profileSubtitle}
+            subtitle={planText}
             avatarBg={profileAvatarBg}
             avatarUrl={profileAvatarUrl}
             onClick={() => setSettingsOpen(true)}

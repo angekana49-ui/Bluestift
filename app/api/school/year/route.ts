@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { getAdminMembership, getSchoolYears, rotateStaffCodeForYear } from "@/lib/school-admin";
 import { academicYear } from "@/lib/school-constants";
+import { apiT } from "@/lib/i18n/server";
 
 /**
  * Every year the school has on record — the year picker above "Classes & codes".
@@ -19,7 +20,7 @@ export async function GET() {
 
   const membership = await getAdminMembership(user.id);
   if (!membership || membership.role !== "admin_master") {
-    return NextResponse.json({ error: "Admin only." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.adminOnly") }, { status: 403 });
   }
   return NextResponse.json({ years: await getSchoolYears(user.id) });
 }
@@ -47,7 +48,7 @@ export async function POST() {
 
   const membership = await getAdminMembership(user.id);
   if (!membership || membership.role !== "admin_master") {
-    return NextResponse.json({ error: "Admin only." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.adminOnly") }, { status: 403 });
   }
 
   const schools = createSchoolsAdminClient();
@@ -75,7 +76,7 @@ export async function POST() {
   });
   if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
   const row = ((data as { out_id: string; out_label: string }[] | null) ?? [])[0];
-  if (!row) return NextResponse.json({ error: "Could not start the year." }, { status: 500 });
+  if (!row) return NextResponse.json({ error: await apiT("api.couldNotStartTheYear") }, { status: 500 });
 
   // Same staff roll as the automatic rollover: last year's codes stop working and
   // the year gets a fresh one for returning teachers to enter.

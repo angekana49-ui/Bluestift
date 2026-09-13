@@ -7,6 +7,7 @@ import { confirmMembershipForYear, getAdminMembership, makeStaffCode } from "@/l
 import { checkStrictUserRateLimit } from "@/lib/rate-limit";
 import { firstNameOf, sendAccountCreatedEmail, sendBrandedEmail, siteUrl } from "@/lib/email";
 import { isNameTooShort } from "@/lib/names";
+import { apiT } from "@/lib/i18n/server";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -58,7 +59,7 @@ export async function POST(request: Request) {
 
   const membership = await getAdminMembership(user.id);
   if (!membership || membership.role !== "admin_master") {
-    return NextResponse.json({ error: "Admin only." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.adminOnly") }, { status: 403 });
   }
 
   let body: { identifier?: string };
@@ -69,7 +70,7 @@ export async function POST(request: Request) {
   }
   const identifier = (body.identifier ?? "").trim().toLowerCase().slice(0, 200);
   if (!identifier.includes("@")) {
-    return NextResponse.json({ error: "Enter the teacher's email address." }, { status: 400 });
+    return NextResponse.json({ error: await apiT("api.teacherEmailRequired") }, { status: 400 });
   }
 
   // Each attempt answers "does an account exist for this address", so the rate
@@ -77,7 +78,7 @@ export async function POST(request: Request) {
   // against a real admin adding their staff one morning, useless for a sweep.
   if (!(await checkStrictUserRateLimit("school_prof_lookup", user.id, 40, "1 hour"))) {
     return NextResponse.json(
-      { error: "Too many lookups — try again shortly." },
+      { error: await apiT("api.tooManyLookupsTryAgainShortly") },
       { status: 429 },
     );
   }
@@ -98,11 +99,11 @@ export async function POST(request: Request) {
 
   if (!found) {
     if (!EMAIL_RE.test(identifier) || /[%_]/.test(identifier.split("@")[1] ?? "")) {
-      return NextResponse.json({ error: "Enter the teacher's email address." }, { status: 400 });
+      return NextResponse.json({ error: await apiT("api.teacherEmailRequired") }, { status: 400 });
     }
     if (!(await checkStrictUserRateLimit("school_prof_create", user.id, MAX_CREATED_PER_DAY, "24 hours"))) {
       return NextResponse.json(
-        { error: "You've created many teacher accounts today. Please try again tomorrow." },
+        { error: await apiT("api.youveCreatedManyTeacherAccountsToday") },
         { status: 429 },
       );
     }
@@ -124,11 +125,11 @@ export async function POST(request: Request) {
       // ours to create — and not ours to attach either.
       if (createErr && /already|registered|exists/i.test(createErr.message)) {
         return NextResponse.json(
-          { error: "That email already has an account. Share an invite code with them instead." },
+          { error: await apiT("api.thatEmailAlreadyHasAnAccount") },
           { status: 409 },
         );
       }
-      return NextResponse.json({ error: clientError(createErr, "Could not create the account.") }, { status: 500 });
+      return NextResponse.json({ error: clientError(createErr, await apiT("api.couldNotCreateTheAccount")) }, { status: 500 });
     }
     const newUserId = created.user.id;
 
@@ -140,7 +141,7 @@ export async function POST(request: Request) {
     if (memberErr || !memberRow) {
       // Never leave an account behind that the school did not manage to take on.
       await admin.auth.admin.deleteUser(newUserId).catch(() => undefined);
-      return NextResponse.json({ error: clientError(memberErr, "Could not add the teacher.") }, { status: 500 });
+      return NextResponse.json({ error: clientError(memberErr, await apiT("api.couldNotAddTheTeacher")) }, { status: 500 });
     }
     await confirmMembershipForYear((memberRow as { id: string }).id, membership.currentYearId);
 
@@ -166,7 +167,7 @@ export async function POST(request: Request) {
     .limit(1)
     .maybeSingle();
   if (existing) {
-    return NextResponse.json({ error: "That user is already in your school." }, { status: 409 });
+    return NextResponse.json({ error: await apiT("api.thatUserIsAlreadyInYour") }, { status: 409 });
   }
 
   // A code for THIS invitation, not the school's shared one. Auto-approve
@@ -212,24 +213,26 @@ export async function POST(request: Request) {
   }
   if (!code || !codeId) {
     return NextResponse.json(
-      { error: inviteError ? clientError(inviteError) : "Could not create the invitation." },
+      { error: inviteError ? clientError(inviteError) : await apiT("api.invitationCreateFailed") },
       { status: 500 },
     );
   }
 
-  const name = found.display_name || found.username || "there";
+  // In the inviting admin's language — the invited teacher joins the same staff.
+  const name = found.display_name || found.username;
+  const v = { school: membership.schoolName ?? "", name: name ?? "", code };
   const sent = await sendBrandedEmail({
     brand: "schools",
     to: found.email ?? identifier,
-    subject: `${membership.schoolName} invited you to join them on Bluestift`,
-    heading: `${membership.schoolName} invited you`,
+    subject: await apiT("email.teacherInvite.subject", v),
+    heading: await apiT("email.teacherInvite.heading", v),
     lines: [
-      `Hi ${name},`,
-      `${membership.schoolName} has invited you to join their team on Bluestift Schools as a teacher.`,
-      `Open Schools and enter this code to accept: ${code}`,
-      "If you weren't expecting this, you can ignore it — nothing changes on your account unless you enter the code.",
+      name ? await apiT("email.teacherInvite.hiName", v) : await apiT("email.teacherInvite.hi"),
+      await apiT("email.teacherInvite.line1", v),
+      await apiT("email.teacherInvite.line2", v),
+      await apiT("email.teacherInvite.line3"),
     ],
-    cta: { label: "Accept the invitation", url: `${siteUrl("schools")}/school` },
+    cta: { label: await apiT("email.teacherInvite.cta"), url: `${siteUrl("schools")}/school` },
   });
 
   return NextResponse.json({
@@ -255,7 +258,7 @@ export async function DELETE(request: Request) {
 
   const membership = await getAdminMembership(user.id);
   if (!membership || membership.role !== "admin_master") {
-    return NextResponse.json({ error: "Admin only." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.adminOnly") }, { status: 403 });
   }
 
   const adminId = new URL(request.url).searchParams.get("adminId");
@@ -272,7 +275,7 @@ export async function DELETE(request: Request) {
     .eq("school_id", membership.schoolId)
     .eq("role", "prof")
     .maybeSingle();
-  if (!target) return NextResponse.json({ error: "Teacher not found." }, { status: 404 });
+  if (!target) return NextResponse.json({ error: await apiT("api.teacherNotFound") }, { status: 404 });
 
   // Drop the prof's assignments first in case the FK is not ON DELETE CASCADE.
   await schools.from("assignments").delete().eq("prof_id", adminId);
@@ -287,6 +290,6 @@ export async function DELETE(request: Request) {
     .select("id")
     .maybeSingle();
   if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
-  if (!data) return NextResponse.json({ error: "Teacher not found." }, { status: 404 });
+  if (!data) return NextResponse.json({ error: await apiT("api.teacherNotFound") }, { status: 404 });
   return NextResponse.json({ ok: true, adminId });
 }

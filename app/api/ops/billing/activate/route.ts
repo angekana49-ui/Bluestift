@@ -8,6 +8,7 @@ import {
   PAYMENT_METHODS,
   type ActivateInput,
 } from "@/lib/billing";
+import { apiT } from "@/lib/i18n/server";
 
 const PAYMENT_METHOD_SET: readonly string[] = PAYMENT_METHODS;
 
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
   }
 
   const planId = typeof body.planId === "string" ? body.planId.trim() : "";
-  if (!planId) return NextResponse.json({ error: "A plan is required." }, { status: 400 });
+  if (!planId) return NextResponse.json({ error: await apiT("api.planRequired") }, { status: 400 });
 
   const paymentMethod =
     typeof body.paymentMethod === "string" && PAYMENT_METHOD_SET.includes(body.paymentMethod)
@@ -70,7 +71,7 @@ export async function POST(request: Request) {
 
   if (body.target === "school") {
     const schoolId = typeof body.schoolId === "string" ? body.schoolId.trim() : "";
-    if (!schoolId) return NextResponse.json({ error: "A school id is required." }, { status: 400 });
+    if (!schoolId) return NextResponse.json({ error: await apiT("api.aSchoolIdIsRequired") }, { status: 400 });
     const result = await operatorActivateSchoolPlan(user.id, schoolId, input);
     if (!result) return NextResponse.json({ error: "unauthorized" }, { status: 403 });
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
@@ -78,7 +79,7 @@ export async function POST(request: Request) {
   }
 
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
-  if (!email) return NextResponse.json({ error: "A user email is required." }, { status: 400 });
+  if (!email) return NextResponse.json({ error: await apiT("api.aUserEmailIsRequired") }, { status: 400 });
 
   // "no wildcards" was an assumption about what the operator types, not a
   // property of the input. `%` and `_` ARE wildcards to ilike, so `%@%` matches
@@ -86,7 +87,7 @@ export async function POST(request: Request) {
   // Neither character belongs in an unquoted address, so the fix is to refuse
   // them rather than to escape them into a filter grammar.
   if (/[%_]/.test(email)) {
-    return NextResponse.json({ error: "No account with that email." }, { status: 404 });
+    return NextResponse.json({ error: await apiT("api.noAccountWithEmail") }, { status: 404 });
   }
 
   const admin = createAdminClient();
@@ -95,7 +96,7 @@ export async function POST(request: Request) {
   // just silently 404.
   const { data: found } = await admin.from("users").select("id, email").ilike("email", email).maybeSingle();
   const targetUserId = (found as { id: string; email: string | null } | null)?.id ?? null;
-  if (!targetUserId) return NextResponse.json({ error: "No account with that email." }, { status: 404 });
+  if (!targetUserId) return NextResponse.json({ error: await apiT("api.noAccountWithEmail") }, { status: 404 });
 
   const result = await operatorActivateUserPlan(user.id, targetUserId, input);
   if (!result) return NextResponse.json({ error: "unauthorized" }, { status: 403 });

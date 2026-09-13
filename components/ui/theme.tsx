@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { getTheme, type AppTheme } from "./tokens";
+import { useTranslate } from "./locale";
 import { APP_THEME_COLORS, syncThemeColor } from "@/lib/theme-color";
 import {
   THEME_KEY,
@@ -149,10 +150,11 @@ export function ThemeToggle({
   theme: AppTheme;
   onToggle: () => void;
 }) {
+  const tr = useTranslate();
   return (
     <span
       role="button"
-      aria-label="Toggle theme"
+      aria-label={tr("settings.theme.toggle")}
       onClick={onToggle}
       style={{
         position: "relative",

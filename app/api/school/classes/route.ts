@@ -11,6 +11,7 @@ import {
   isArchivedClass,
 } from "@/lib/school-admin";
 import { isSchoolReadOnly } from "@/lib/billing";
+import { apiT } from "@/lib/i18n/server";
 
 /** Create a class under the admin's school, tied to its current school year. */
 export async function POST(request: Request) {
@@ -22,14 +23,14 @@ export async function POST(request: Request) {
 
   const membership = await getAdminMembership(user.id);
   if (!membership || membership.role !== "admin_master") {
-    return NextResponse.json({ error: "Only the school admin can add classes." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.onlyTheSchoolAdminCanAdd") }, { status: 403 });
   }
   const school = await getAdminSchool(user.id);
-  if (!school) return NextResponse.json({ error: "You don't administer a school." }, { status: 403 });
+  if (!school) return NextResponse.json({ error: await apiT("api.noSchoolAdministered") }, { status: 403 });
   // A pilot that ended with no plan activated leaves the school read-only.
   if (await isSchoolReadOnly(school.id)) {
     return NextResponse.json(
-      { error: "Your pilot has ended. Activate a plan in Billing to add classes again.", code: "pilot_ended" },
+      { error: await apiT("api.yourPilotHasEndedActivateA"), code: "pilot_ended" },
       { status: 402 },
     );
   }
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid json" }, { status: 400 });
   }
   const name = (body.name ?? "").trim().slice(0, 80);
-  if (!name) return NextResponse.json({ error: "A class name is required." }, { status: 400 });
+  if (!name) return NextResponse.json({ error: await apiT("api.classNameRequired") }, { status: 400 });
   const level = (body.level ?? "").trim().slice(0, 40) || null;
 
   // Effectif (n): the school-set class size. The hard cap is n + CLASS_OVERFLOW.
@@ -65,7 +66,7 @@ export async function POST(request: Request) {
     .maybeSingle();
   if (clash) {
     return NextResponse.json(
-      { error: "A class with that name already exists this year." },
+      { error: await apiT("api.classNameTaken") },
       { status: 409 },
     );
   }
@@ -85,7 +86,7 @@ export async function POST(request: Request) {
   if (error) {
     if (/duplicate|unique|23505/i.test(error.message)) {
       return NextResponse.json(
-        { error: "A class with that name already exists this year." },
+        { error: await apiT("api.classNameTaken") },
         { status: 409 },
       );
     }
@@ -137,10 +138,10 @@ async function resolveEditableClass(
 ): Promise<{ row: EditableClass; currentYearId: string | null } | NextResponse> {
   const membership = await getAdminMembership(userId);
   if (!membership || membership.role !== "admin_master") {
-    return NextResponse.json({ error: "Only the school admin can edit classes." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.onlyTheSchoolAdminCanEdit") }, { status: 403 });
   }
   const school = await getAdminSchool(userId);
-  if (!school) return NextResponse.json({ error: "You don't administer a school." }, { status: 403 });
+  if (!school) return NextResponse.json({ error: await apiT("api.noSchoolAdministered") }, { status: 403 });
 
   const schools = createSchoolsAdminClient();
   const { data: cls } = await schools
@@ -150,11 +151,11 @@ async function resolveEditableClass(
     .maybeSingle();
   const row = cls as EditableClass | null;
   if (!row || row.school_id !== membership.schoolId) {
-    return NextResponse.json({ error: "Class not found." }, { status: 404 });
+    return NextResponse.json({ error: await apiT("api.classNotFound") }, { status: 404 });
   }
   if (isArchivedClass(row.school_year_id, school.currentYearId)) {
     return NextResponse.json(
-      { error: "This class belongs to an archived year. Past years are a record and can't be changed." },
+      { error: await apiT("api.thisClassBelongsToAnArchived") },
       { status: 409 },
     );
   }
@@ -205,7 +206,7 @@ export async function PATCH(request: Request) {
 
   if ("name" in body) {
     const name = (body.name ?? "").trim().slice(0, 80);
-    if (!name) return NextResponse.json({ error: "A class name is required." }, { status: 400 });
+    if (!name) return NextResponse.json({ error: await apiT("api.classNameRequired") }, { status: 400 });
     if (name.toLowerCase() !== row.name.toLowerCase()) {
       // Same rule as creation: no two classes share a name in one (school, year).
       // Scoped to this year, so reusing an archived year's name is fine.
@@ -219,7 +220,7 @@ export async function PATCH(request: Request) {
       const { data: clash } = await clashQuery.limit(1).maybeSingle();
       if (clash) {
         return NextResponse.json(
-          { error: "A class with that name already exists this year." },
+          { error: await apiT("api.classNameTaken") },
           { status: 409 },
         );
       }
@@ -244,7 +245,7 @@ export async function PATCH(request: Request) {
   if (error) {
     if (/duplicate|unique|23505/i.test(error.message)) {
       return NextResponse.json(
-        { error: "A class with that name already exists this year." },
+        { error: await apiT("api.classNameTaken") },
         { status: 409 },
       );
     }
@@ -296,8 +297,11 @@ export async function DELETE(request: Request) {
     .from("student_identities")
     .select("user_id", { count: "exact", head: true })
     .eq("class_id", classId);
-  const blocked = deleteBlockReason(false, count ?? 0);
-  if (blocked) return NextResponse.json({ error: blocked }, { status: 409 });
+  if (deleteBlockReason(false, count ?? 0)) {
+    const students = count ?? 0;
+    const error = await apiT(students === 1 ? "api.classHasStudentsOne" : "api.classHasStudentsMany", { count: students });
+    return NextResponse.json({ error }, { status: 409 });
+  }
 
   // Structure that exists only to point at this class. Ordered before the class
   // itself so a foreign key can't refuse the delete for a row we own anyway.
@@ -311,7 +315,7 @@ export async function DELETE(request: Request) {
   const { error } = await schools.from("classes").delete().eq("id", classId);
   if (error) {
     return NextResponse.json(
-      { error: "This class is still referenced elsewhere and can't be removed." },
+      { error: await apiT("api.thisClassIsStillReferencedElsewhere") },
       { status: 409 },
     );
   }

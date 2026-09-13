@@ -126,7 +126,7 @@ export function DocumentView({
           flexWrap: "wrap",
         }}
       >
-        <span>{footerLine(brand, audience)} ·</span>
+        <span>{footerLine(brand, audience, tr)} ·</span>
         <a href={`https://${b.url}`} target="_blank" rel="noopener noreferrer" style={{ color: b.accent, textDecoration: "none" }}>
           {b.url}
         </a>

@@ -3,6 +3,7 @@ import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { assertClassAccess, getAdminMembership, getStudentFollowups } from "@/lib/school-admin";
+import { apiT } from "@/lib/i18n/server";
 
 /**
  * Personalized follow-up notes on a student, shared across the class team
@@ -23,7 +24,7 @@ export async function GET(request: Request) {
   }
 
   const followups = await getStudentFollowups(user.id, classId, studentId);
-  if (followups === null) return NextResponse.json({ error: "Not your class." }, { status: 403 });
+  if (followups === null) return NextResponse.json({ error: await apiT("api.notYourClass") }, { status: 403 });
   return NextResponse.json({ followups });
 }
 
@@ -42,10 +43,10 @@ export async function POST(request: Request) {
   const studentUserId = (body.studentUserId ?? "").trim();
   const content = (body.content ?? "").trim().slice(0, 2000);
   if (!classId || !studentUserId || !content) {
-    return NextResponse.json({ error: "A student and note text are required." }, { status: 400 });
+    return NextResponse.json({ error: await apiT("api.aStudentAndNoteTextAre") }, { status: 400 });
   }
   if (!(await assertClassAccess(user.id, classId))) {
-    return NextResponse.json({ error: "Not your class." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.notYourClass") }, { status: 403 });
   }
 
   const schools = createSchoolsAdminClient();
@@ -56,7 +57,7 @@ export async function POST(request: Request) {
     .eq("class_id", classId)
     .eq("user_id", studentUserId)
     .maybeSingle();
-  if (!idRow) return NextResponse.json({ error: "Unknown student for this class." }, { status: 404 });
+  if (!idRow) return NextResponse.json({ error: await apiT("api.unknownStudentForThisClass") }, { status: 404 });
 
   const { data, error: insErr } = await schools
     .from("student_followups")
@@ -92,7 +93,7 @@ export async function PATCH(request: Request) {
 
   const row = await loadNote(id, membership.schoolId);
   if (!row || !(await assertClassAccess(user.id, row.class_id))) {
-    return NextResponse.json({ error: "Note not found." }, { status: 404 });
+    return NextResponse.json({ error: await apiT("api.noteNotFound") }, { status: 404 });
   }
 
   const schools = createSchoolsAdminClient();
@@ -114,7 +115,7 @@ export async function DELETE(request: Request) {
 
   const row = await loadNote(id, membership.schoolId);
   if (!row || !(await assertClassAccess(user.id, row.class_id))) {
-    return NextResponse.json({ error: "Note not found." }, { status: 404 });
+    return NextResponse.json({ error: await apiT("api.noteNotFound") }, { status: 404 });
   }
 
   const schools = createSchoolsAdminClient();
@@ -143,6 +144,6 @@ async function authStaff() {
   } = await supabase.auth.getUser();
   if (!user) return { error: NextResponse.json({ error: "unauthorized" }, { status: 401 }) } as const;
   const membership = await getAdminMembership(user.id);
-  if (!membership) return { error: NextResponse.json({ error: "School staff only." }, { status: 403 }) } as const;
+  if (!membership) return { error: NextResponse.json({ error: await apiT("api.staffOnly") }, { status: 403 }) } as const;
   return { user, membership, error: null } as const;
 }

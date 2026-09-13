@@ -11,6 +11,7 @@ import {
   type SchoolBilling,
 } from "@/lib/billing";
 import { sendBrandedEmail, getUserEmail, siteUrl } from "@/lib/email";
+import { apiT, getServerLocale } from "@/lib/i18n/server";
 
 /** Receipt to the admin confirming a plan is now active (best-effort, non-blocking). */
 async function sendActivationReceipt(
@@ -22,21 +23,27 @@ async function sendActivationReceipt(
 ) {
   const to = await getUserEmail(adminUserId);
   if (!to) return;
-  const planName = billing?.planName ?? "Your plan";
+  const locale = await getServerLocale();
+  const planName = billing?.planName ?? (await apiT("email.planActive.yourPlan"));
   const amount = billing?.history.find((h) => h.id === subscriptionId)?.amount ?? null;
-  const until = new Date(expiresAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  const until = new Date(expiresAt).toLocaleDateString(locale === "en" ? "en-GB" : locale, {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  const v = { plan: planName, school: schoolName };
   const lines = [
-    `${planName} is now active for ${schoolName} on Bluestift Schools.`,
-    amount != null ? `Amount recorded: $${amount.toFixed(2)}.` : "",
-    `Your subscription runs until ${until}.`,
+    await apiT("email.planActive.line1", v),
+    amount != null ? await apiT("email.planActive.amount", { amount: `$${amount.toFixed(2)}` }) : "",
+    await apiT("email.planActive.until", { date: until }),
   ].filter(Boolean);
   await sendBrandedEmail({
     brand: "schools",
     to,
-    subject: `${planName} is active — ${schoolName}`,
-    heading: `${planName} is active`,
+    subject: await apiT("email.planActive.subject", v),
+    heading: await apiT("email.planActive.heading", v),
     lines,
-    cta: { label: "View billing", url: `${siteUrl("schools")}/school` },
+    cta: { label: await apiT("email.planActive.cta"), url: `${siteUrl("schools")}/school` },
   });
 }
 
@@ -51,7 +58,7 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const billing = await getSchoolBilling(user.id);
-  if (!billing) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+  if (!billing) return NextResponse.json({ error: await apiT("api.adminOnly") }, { status: 403 });
   return NextResponse.json(billing);
 }
 
@@ -74,7 +81,7 @@ export async function PATCH(request: Request) {
   }
 
   const result = await setPilotSeats(user.id, Number(body.pilotSeats));
-  if (!result) return NextResponse.json({ error: "Only the school admin can manage billing." }, { status: 403 });
+  if (!result) return NextResponse.json({ error: await apiT("api.billingAdminOnly") }, { status: 403 });
   if (!result.ok) return NextResponse.json({ error: result.error, floor: result.floor ?? null }, { status: 400 });
   return NextResponse.json({ billing: await getSchoolBilling(user.id) });
 }
@@ -94,7 +101,7 @@ export async function POST(request: Request) {
 
   const membership = await getAdminMembership(user.id);
   if (!membership || membership.role !== "admin_master") {
-    return NextResponse.json({ error: "Only the school admin can manage billing." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.billingAdminOnly") }, { status: 403 });
   }
 
   let body: {
@@ -112,7 +119,7 @@ export async function POST(request: Request) {
   }
 
   const planId = typeof body.planId === "string" ? body.planId.trim() : "";
-  if (!planId) return NextResponse.json({ error: "A plan is required." }, { status: 400 });
+  if (!planId) return NextResponse.json({ error: await apiT("api.planRequired") }, { status: 400 });
 
   const paymentMethod =
     typeof body.paymentMethod === "string" && PAYMENT_METHOD_SET.includes(body.paymentMethod)
@@ -138,7 +145,7 @@ export async function POST(request: Request) {
   // invoice, PO) and the subscription flips active. Self-serve online payment
   // (card / mobile money / PayPal) is a separate flow — see /api/billing/checkout.
   const result = await activateSubscription(user.id, input);
-  if (!result) return NextResponse.json({ error: "Only the school admin can manage billing." }, { status: 403 });
+  if (!result) return NextResponse.json({ error: await apiT("api.billingAdminOnly") }, { status: 403 });
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
 
   const billing = await getSchoolBilling(user.id);

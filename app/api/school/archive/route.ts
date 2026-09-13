@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getYearArchive } from "@/lib/school-admin";
+import { apiT } from "@/lib/i18n/server";
 
 /**
  * The school's record for one year: everything it produced and collected in the
@@ -18,6 +19,6 @@ export async function GET(request: Request) {
   if (!yearId) return NextResponse.json({ error: "yearId is required." }, { status: 400 });
 
   const archive = await getYearArchive(user.id, yearId);
-  if (!archive) return NextResponse.json({ error: "Year not found." }, { status: 404 });
+  if (!archive) return NextResponse.json({ error: await apiT("api.yearNotFound") }, { status: 404 });
   return NextResponse.json(archive);
 }

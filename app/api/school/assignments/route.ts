@@ -4,6 +4,7 @@ import { randomInt } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { getAdminMembership } from "@/lib/school-admin";
+import { apiT } from "@/lib/i18n/server";
 
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const makeCode = (n = 8) =>
@@ -19,7 +20,7 @@ export async function POST(request: Request) {
 
   const membership = await getAdminMembership(user.id);
   if (!membership || membership.role !== "admin_master") {
-    return NextResponse.json({ error: "Admin only." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.adminOnly") }, { status: 403 });
   }
 
   let body: { profAdminId?: string; classId?: string; subjectId?: string };
@@ -42,10 +43,10 @@ export async function POST(request: Request) {
     schools.from("subjects").select("id, is_global, school_id").eq("id", subjectId).maybeSingle(),
   ]);
   const subjRow = subj as { id: string; is_global: boolean; school_id: string | null } | null;
-  if (!prof) return NextResponse.json({ error: "Unknown prof." }, { status: 404 });
-  if (!cls) return NextResponse.json({ error: "Unknown class." }, { status: 404 });
+  if (!prof) return NextResponse.json({ error: await apiT("api.unknownProf") }, { status: 404 });
+  if (!cls) return NextResponse.json({ error: await apiT("api.unknownClass") }, { status: 404 });
   if (!subjRow || (!subjRow.is_global && subjRow.school_id !== membership.schoolId)) {
-    return NextResponse.json({ error: "Unknown subject." }, { status: 404 });
+    return NextResponse.json({ error: await apiT("api.unknownSubject") }, { status: 404 });
   }
 
   const { data: created, error } = await schools
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
     .single();
   if (error) {
     if (/duplicate|unique|23505/i.test(error.message)) {
-      return NextResponse.json({ error: "That prof is already assigned to this class + subject." }, { status: 409 });
+      return NextResponse.json({ error: await apiT("api.thatProfIsAlreadyAssignedTo") }, { status: 409 });
     }
     return NextResponse.json({ error: clientError(error) }, { status: 500 });
   }

@@ -1649,6 +1649,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_upgrades: {
+        Row: {
+          created_at: string
+          email: string
+          expires_at: string
+          token_hash: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          expires_at: string
+          token_hash: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          expires_at?: string
+          token_hash?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       class_enrollments: {
         Row: {
           adjustments_count: number
@@ -2103,6 +2127,9 @@ export type Database = {
           username: string
         }[]
       }
+      auth_email_taken: { Args: { p_email: string; p_user_id: string | null }; Returns: boolean }
+      sync_account_status: { Args: { p_user_id: string }; Returns: undefined }
+      username_available: { Args: { p_username: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

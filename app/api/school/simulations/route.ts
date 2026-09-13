@@ -5,6 +5,7 @@ import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { assertClassAccess, buildInsightsBaseline, getAdminMembership, getSimulations } from "@/lib/school-admin";
 import { generateJson } from "@/lib/raya/llm";
 import { resolveSchoolEntitlements, gateQuota, sinceDaysIso } from "@/lib/entitlements";
+import { apiT } from "@/lib/i18n/server";
 
 /**
  * NOTE: the Kernel has no simulation endpoint yet, so the projection is computed
@@ -25,7 +26,7 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const simulations = await getSimulations(user.id);
-  if (simulations == null) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+  if (simulations == null) return NextResponse.json({ error: await apiT("api.adminOnly") }, { status: 403 });
   return NextResponse.json({ simulations });
 }
 
@@ -38,7 +39,7 @@ export async function POST(request: Request) {
 
   const membership = await getAdminMembership(user.id);
   if (!membership || membership.role !== "admin_master") {
-    return NextResponse.json({ error: "Admin only." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.adminOnly") }, { status: 403 });
   }
 
   // Prof simulations are quota-metered per week (Standard 3 / Plus+ ∞). Counted
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
     .select("id", { count: "exact", head: true })
     .eq("created_by", membership.adminId)
     .gte("created_at", sinceDaysIso(7));
-  const overSim = gateQuota(simUsed ?? 0, ent.simulationsPerWeekPerProf, {
+  const overSim = await gateQuota(simUsed ?? 0, ent.simulationsPerWeekPerProf, {
     metric: "simulations",
     period: "week",
     upgradeTo: "Plus",
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
   // Optional class scope — must be a class the admin can access.
   const classId = body.classId || null;
   if (classId && !(await assertClassAccess(user.id, classId))) {
-    return NextResponse.json({ error: "No access to that class." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.noAccessToThatClass") }, { status: 403 });
   }
 
   const { subjectName, className, baseline } = await buildInsightsBaseline(
@@ -90,7 +91,7 @@ export async function POST(request: Request) {
       raw.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim(),
     ) as Record<string, unknown>;
   } catch (e) {
-    return NextResponse.json({ error: clientError(e, "projection failed") }, { status: 502 });
+    return NextResponse.json({ error: clientError(e, await apiT("api.projectionFailed")) }, { status: 502 });
   }
 
   const parameters = {

@@ -5,6 +5,7 @@ import { rayaComplete } from "@/lib/raya/llm";
 import { kernel, clampHistory } from "@/lib/kernel/client";
 import { setLatestAnalysis, invalidateProfile } from "@/lib/kernel/profile-cache";
 import type { KernelMessage } from "@/lib/kernel/types";
+import { apiT } from "@/lib/i18n/server";
 
 /**
  * Conversation history for the solo /chat surface.
@@ -79,7 +80,7 @@ export async function POST(request: Request) {
     .eq("id", id)
     .maybeSingle();
   if (!conv || conv.user_id !== user.id || conv.is_private_room_channel) {
-    return NextResponse.json({ error: "not found" }, { status: 404 });
+    return NextResponse.json({ error: await apiT("api.notFound") }, { status: 404 });
   }
 
   const { data: msgs } = await supabase
@@ -111,7 +112,7 @@ export async function POST(request: Request) {
     ], "fast");
     title = cleanTitle(text);
   } catch {
-    return NextResponse.json({ error: "llm error" }, { status: 502 });
+    return NextResponse.json({ error: await apiT("api.llmError") }, { status: 502 });
   }
   if (!title) return NextResponse.json({ error: "empty title" }, { status: 502 });
 
@@ -184,7 +185,7 @@ export async function PATCH(request: Request) {
     .eq("id", id)
     .maybeSingle();
   if (!conv || conv.user_id !== user.id || conv.is_private_room_channel) {
-    return NextResponse.json({ error: "not found" }, { status: 404 });
+    return NextResponse.json({ error: await apiT("api.notFound") }, { status: 404 });
   }
 
   if (action === "archive" || action === "unarchive") {

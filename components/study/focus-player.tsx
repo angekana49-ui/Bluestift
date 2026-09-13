@@ -915,12 +915,12 @@ export function MindMapView({
   // The route: a decorative Départ, the theme, each branch, then Arrivée.
   const nodes = useMemo<{ role: MapRole; label: string; children: string[] }[]>(
     () => [
-      { role: "start", label: "Départ", children: [] },
+      { role: "start", label: tr("player.mapStart"), children: [] },
       { role: "root", label: mindMap.title || title, children: [] },
       ...(mindMap.branches ?? []).map((b) => ({ role: "branch" as MapRole, label: b.label, children: b.children })),
-      { role: "end", label: "Arrivée", children: [] },
+      { role: "end", label: tr("player.mapEnd"), children: [] },
     ],
-    [mindMap, title],
+    [mindMap, title, tr],
   );
 
   const CARD_W = 202;

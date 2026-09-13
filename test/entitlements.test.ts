@@ -380,14 +380,14 @@ describe("monitor mode (no payment provider configured)", () => {
     expect(ENTITLEMENTS_ENFORCE).toBe(false);
   });
 
-  it("gate helpers never block while in monitor mode", () => {
-    expect(gateFeature(false, { feature: "voice_input" })).toBeNull();
-    expect(gateQuota(99, 5, { metric: "exports" })).toBeNull();
+  it("gate helpers never block while in monitor mode", async () => {
+    expect(await gateFeature(false, { feature: "voice_input" })).toBeNull();
+    expect(await gateQuota(99, 5, { metric: "exports" })).toBeNull();
   });
 
-  it("assert helpers never throw while in monitor mode", () => {
-    expect(() => assertFeature(false, { feature: "private_room" })).not.toThrow();
-    expect(() => assertQuota(99, 3, { metric: "rooms" })).not.toThrow();
+  it("assert helpers never throw while in monitor mode", async () => {
+    await expect(assertFeature(false, { feature: "private_room" })).resolves.toBeUndefined();
+    await expect(assertQuota(99, 3, { metric: "rooms" })).resolves.toBeUndefined();
   });
 });
 
@@ -536,7 +536,7 @@ describe("enforcement mode (ENTITLEMENTS_ENFORCE=true)", () => {
 
   it("blocks a reached quota with a 429 worded for a daily period", async () => {
     const { gateQuota } = await loadEnforcing();
-    const res = gateQuota(30, 30, { metric: "messages", period: "day", upgradeTo: "Plus" });
+    const res = await gateQuota(30, 30, { metric: "messages", period: "day", upgradeTo: "Plus" });
     expect(res).not.toBeNull();
     expect(res?.status).toBe(429);
     const body = await res?.json();
@@ -548,12 +548,27 @@ describe("enforcement mode (ENTITLEMENTS_ENFORCE=true)", () => {
 
   it("keeps the weekly and monthly wording it already had", async () => {
     const { gateQuota } = await loadEnforcing();
-    const week = await gateQuota(5, 5, { metric: "exports", period: "week" })?.json();
+    const week = await (await gateQuota(5, 5, { metric: "exports", period: "week" }))?.json();
     expect(week.error).toContain("your exports limit this week (5)");
   });
 
   it("lets an unlimited plan through even while enforcing", async () => {
     const { gateQuota } = await loadEnforcing();
-    expect(gateQuota(9_999, null, { metric: "messages", period: "day" })).toBeNull();
+    expect(await gateQuota(9_999, null, { metric: "messages", period: "day" })).toBeNull();
+  });
+
+  it("words the block in the reader's language", async () => {
+    vi.doMock("next/headers", () => ({
+      cookies: async () => ({ get: (name: string) => (name === "bluestift-locale" ? { value: "fr" } : undefined) }),
+    }));
+    try {
+      const { gateQuota } = await loadEnforcing();
+      const body = await (await gateQuota(30, 30, { metric: "messages", period: "day", upgradeTo: "Plus" }))?.json();
+      expect(body.error).toBe("Vous avez atteint votre limite de messages pour aujourd'hui (30). Passez à Plus pour en avoir plus.");
+      // The analytics name stays English, whatever the reader sees.
+      expect(body.metric).toBe("messages");
+    } finally {
+      vi.doUnmock("next/headers");
+    }
   });
 });

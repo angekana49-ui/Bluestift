@@ -10,6 +10,7 @@ import {
   isPlausibleBirthYear,
 } from "@/lib/compliance/age";
 import { forgetOptionalProcessing } from "@/lib/compliance/optional-processing";
+import { apiT } from "@/lib/i18n/server";
 
 /**
  * The age declaration (COPPA age screen / GDPR art. 8).
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
   }
   const birthYear = Number(body.birthYear);
   if (!isPlausibleBirthYear(birthYear)) {
-    return NextResponse.json({ error: "Enter the year you were born." }, { status: 400 });
+    return NextResponse.json({ error: await apiT("api.enterTheYearYouWereBorn") }, { status: 400 });
   }
 
   const admin = createAdminClient();
@@ -69,7 +70,7 @@ export async function POST(request: Request) {
   // age screen — a correction goes through support, where a human sees it.
   if (existing?.age_declared_at) {
     return NextResponse.json(
-      { error: "Your age is already on file. Contact support if it needs correcting." },
+      { error: await apiT("api.yourAgeIsAlreadyOnFile") },
       { status: 409 },
     );
   }
@@ -108,7 +109,7 @@ export async function POST(request: Request) {
   // that row. Answering "allowed" here sent the account onward to be gated
   // straight back to /onboarding.
   if (!stored?.length) {
-    return NextResponse.json({ error: clientError(null, "Your profile could not be found.") }, { status: 500 });
+    return NextResponse.json({ error: clientError(null, await apiT("api.yourProfileCouldNotBeFound")) }, { status: 500 });
   }
 
   // The band just changed, and the read path memoises it for five minutes.

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { assertClassAccess, assertStudentInClass } from "@/lib/school-admin";
 import { buildStudentRecord } from "@/lib/compliance/school-record";
 import { recordDataRequest } from "@/lib/compliance/erasure";
+import { apiT } from "@/lib/i18n/server";
 
 /**
  * Download one student's education record (FERPA inspect-and-review).
@@ -47,12 +48,12 @@ export async function GET(request: Request) {
     assertStudentInClass({ studentUserId: studentId, classId }),
   ]);
   if (!classOk || !enrolled) {
-    return NextResponse.json({ error: "Not found or not yours." }, { status: 404 });
+    return NextResponse.json({ error: await apiT("api.notFoundOrNotYours") }, { status: 404 });
   }
 
   const record = await buildStudentRecord({ studentUserId: studentId, classId });
   if (!record) {
-    return NextResponse.json({ error: "Not found or not yours." }, { status: 404 });
+    return NextResponse.json({ error: await apiT("api.notFoundOrNotYours") }, { status: 404 });
   }
   const partial = Array.isArray(record._errors) && record._errors.length > 0;
 

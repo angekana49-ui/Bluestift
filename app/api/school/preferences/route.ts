@@ -3,6 +3,7 @@ import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { getAdminMembership, getStaffPreferences, type StaffPreferences } from "@/lib/school-admin";
+import { apiT } from "@/lib/i18n/server";
 
 /**
  * Per-staff teaching preferences (default class/subject, report tone, whether
@@ -67,6 +68,6 @@ async function authStaff() {
   } = await supabase.auth.getUser();
   if (!user) return { error: NextResponse.json({ error: "unauthorized" }, { status: 401 }) } as const;
   const membership = await getAdminMembership(user.id);
-  if (!membership) return { error: NextResponse.json({ error: "School staff only." }, { status: 403 }) } as const;
+  if (!membership) return { error: NextResponse.json({ error: await apiT("api.staffOnly") }, { status: 403 }) } as const;
   return { user, membership, error: null } as const;
 }

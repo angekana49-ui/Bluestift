@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { assertClassAccess, getAdminMembership } from "@/lib/school-admin";
+import { apiT } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 
@@ -17,7 +18,7 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const membership = await getAdminMembership(user.id);
-  if (!membership) return NextResponse.json({ error: "School staff only." }, { status: 403 });
+  if (!membership) return NextResponse.json({ error: await apiT("api.staffOnly") }, { status: 403 });
 
   const assignmentId = new URL(request.url).searchParams.get("assignmentId");
   if (!assignmentId) return NextResponse.json({ error: "assignmentId is required." }, { status: 400 });
@@ -37,7 +38,7 @@ export async function GET(request: Request) {
     due_at: string | null;
   } | null;
   if (!asg || asg.school_id !== membership.schoolId || !(await assertClassAccess(user.id, asg.class_id))) {
-    return NextResponse.json({ error: "Assignment not found." }, { status: 404 });
+    return NextResponse.json({ error: await apiT("api.assignmentNotFound") }, { status: 404 });
   }
 
   const [{ data: idData }, { data: classData }] = await Promise.all([

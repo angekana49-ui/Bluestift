@@ -4,6 +4,7 @@ import { type ReactNode } from "react";
 import { useDarkMode, AppThemeProvider } from "@/components/ui/theme";
 import { LocaleProvider } from "@/components/ui/locale";
 import { useLocale } from "@/lib/use-locale";
+import { lookup } from "@/lib/i18n";
 import { RayaShell, type RayaNav } from "@/components/raya/raya-shell";
 
 /**
@@ -43,7 +44,7 @@ export function RayaScaffold({
         <RayaShell
           theme={value.theme}
           active={active}
-          profileName={studentName || "My account"}
+          profileName={studentName || lookup(localeValue.locale, "menu.myAccount")}
           profileInitials={studentInitials}
           profileSubtitle={studentPlan}
           profileAvatarUrl={studentAvatarUrl}

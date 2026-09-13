@@ -3,6 +3,7 @@ import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { assertAdminMaster } from "@/lib/school-admin";
+import { apiT } from "@/lib/i18n/server";
 
 type ClassRow = { id: string; school_id: string; school_year_id: string | null };
 
@@ -34,9 +35,9 @@ export async function POST(request: Request) {
     .eq("id", classId)
     .maybeSingle();
   const classRow = classData as ClassRow | null;
-  if (!classRow) return NextResponse.json({ error: "Class not found." }, { status: 404 });
+  if (!classRow) return NextResponse.json({ error: await apiT("api.classNotFound") }, { status: 404 });
   if (!(await assertAdminMaster(user.id, classRow.school_id))) {
-    return NextResponse.json({ error: "Not your class." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.notYourClass") }, { status: 403 });
   }
 
   // Retire the current code + mint the new one atomically (single transaction),
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
   });
   if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
   const row = ((data as { out_id: string; out_code: string; out_is_active: boolean }[] | null) ?? [])[0];
-  if (!row) return NextResponse.json({ error: "Could not allocate a code." }, { status: 500 });
+  if (!row) return NextResponse.json({ error: await apiT("api.couldNotAllocateACode") }, { status: 500 });
   return NextResponse.json({ id: row.out_id, code: row.out_code, isActive: row.out_is_active });
 }
 
@@ -78,12 +79,12 @@ export async function PATCH(request: Request) {
     .eq("id", codeId)
     .maybeSingle();
   const codeRow = codeData as { id: string; class_id: string; retired_at: string | null } | null;
-  if (!codeRow) return NextResponse.json({ error: "Code not found." }, { status: 404 });
+  if (!codeRow) return NextResponse.json({ error: await apiT("api.codeNotFound") }, { status: 404 });
 
   // A retired code was replaced by a newer one — it can never come back.
   if (isActive && codeRow.retired_at) {
     return NextResponse.json(
-      { error: "This code was replaced and can no longer be reactivated." },
+      { error: await apiT("api.thisCodeWasReplacedAndCan") },
       { status: 409 },
     );
   }
@@ -95,7 +96,7 @@ export async function PATCH(request: Request) {
     .maybeSingle();
   const schoolId = (classData as { school_id?: string } | null)?.school_id;
   if (!schoolId || !(await assertAdminMaster(user.id, schoolId))) {
-    return NextResponse.json({ error: "Not your code." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.notYourCode") }, { status: 403 });
   }
 
   const { error } = await schools

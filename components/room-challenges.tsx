@@ -308,25 +308,25 @@ export function RoomChallenges({
   function resultDoc(): BrandedDoc {
     const body = [
       active?.description ? `${active.description}\n` : "",
-      "## Score",
+      `## ${tr("tools.selfTest.scoreHeading")}`,
       `${result?.correct ?? 0}/${result?.total ?? 0} · ${Math.round((result?.score ?? 0) * 100)}%`,
     ]
       .filter(Boolean)
       .join("\n");
     return {
       brand: "raya",
-      title: active?.title ? `${active.title} — result` : "Challenge result",
+      title: active?.title ? tr("doc.resultTitle", { title: active.title }) : tr("doc.challengeResult"),
       meta: new Date().toLocaleDateString(),
-      audience: `${roomName} room`,
+      audience: tr("doc.roomAudience", { room: roomName }),
       body,
     };
   }
   function analysisDoc(): BrandedDoc {
     return {
       brand: "raya",
-      title: analysis?.title ?? "Analysis",
+      title: analysis?.title ?? tr("room.challenges.analysisSubtitle"),
       meta: new Date().toLocaleDateString(),
-      audience: `${roomName} room`,
+      audience: tr("doc.roomAudience", { room: roomName }),
       body: analysis?.body ?? "",
     };
   }

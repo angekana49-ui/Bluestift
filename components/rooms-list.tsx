@@ -88,7 +88,7 @@ export function RoomsList({
   function pickSubject(s: string) {
     const next = subject === s ? "" : s;
     setSubject(next);
-    if (next && !name.trim()) setName(`${next} study room`);
+    if (next && !name.trim()) setName(tr("rooms.defaultName", { subject: next }));
   }
 
   const chip = (on: boolean): React.CSSProperties => ({

@@ -5,6 +5,7 @@
 
 import { DOC_BRANDS, footerLine, parseDoc, stripInline, mapInlineMath, latexToUnicode, type DocBrand } from "@/lib/doc-format";
 import { getClientEntitlements } from "@/lib/entitlements-client";
+import { trNow } from "@/components/ui/locale";
 
 /**
  * The two export decisions, derived from the user's entitlements. Fail-open and
@@ -55,7 +56,7 @@ export async function downloadBrandedText(doc: BrandedDoc) {
     doc.meta ? doc.meta : null,
     "",
     stripInline(doc.body).trim(),
-    ...(watermark ? ["", "—", `${footerLine(doc.brand, doc.audience)} · ${b.url}`] : []),
+    ...(watermark ? ["", "—", `${footerLine(doc.brand, doc.audience, trNow)} · ${b.url}`] : []),
   ].filter((l) => l !== null);
   triggerDownload(
     new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" }),
@@ -321,7 +322,7 @@ export async function downloadBrandedPdf(doc: BrandedDoc) {
 
   // ── Footer on every page ── (attribution only when watermarked; paid tiers
   // drop it. Page numbers stay regardless — they're navigation, not branding.)
-  const foot = footerLine(doc.brand, doc.audience);
+  const foot = footerLine(doc.brand, doc.audience, trNow);
   const pages = pdf.getNumberOfPages();
   for (let p = 1; p <= pages; p++) {
     pdf.setPage(p);

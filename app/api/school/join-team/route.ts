@@ -8,6 +8,7 @@ import { confirmMembershipForYear, needsYearReconfirmation } from "@/lib/school-
 import { hasRealEmail } from "@/lib/auth";
 import { notifyAdminsOfRequest, notifyTeacherLinked } from "@/lib/school-join";
 import { checkStrictRateLimit } from "@/lib/rate-limit";
+import { apiT } from "@/lib/i18n/server";
 
 // Local shapes for the untyped `schools` schema.
 type CodeRow = { id: string; school_id: string; auto_approve: boolean; single_use?: boolean };
@@ -59,7 +60,7 @@ export async function POST(request: Request) {
   if (!hasRealEmail(user.email)) {
     return NextResponse.json(
       {
-        error: "Add a verified email before joining a school as a teacher. You can link it in Settings.",
+        error: await apiT("api.addAVerifiedEmailBeforeJoining"),
         code: "email_required",
       },
       { status: 403 },
@@ -76,7 +77,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid json" }, { status: 400 });
   }
   const code = typeof body.code === "string" ? body.code.trim().toUpperCase() : "";
-  if (!code) return NextResponse.json({ error: "A code is required." }, { status: 400 });
+  if (!code) return NextResponse.json({ error: await apiT("api.aCodeIsRequired") }, { status: 400 });
 
   const schools = createSchoolsAdminClient();
 
@@ -92,7 +93,7 @@ export async function POST(request: Request) {
     .maybeSingle();
   const codeRow = (codeData ?? null) as CodeRow | null;
   if (!codeRow) {
-    return NextResponse.json({ error: "Invalid or inactive code." }, { status: 404 });
+    return NextResponse.json({ error: await apiT("api.invalidOrInactiveCode") }, { status: 404 });
   }
 
   const { name: schoolName, currentYearId } = await schoolOf(schools, codeRow.school_id);

@@ -37,7 +37,7 @@ export function SchoolLink({ initial }: { initial: SchoolLinkInfo | null }) {
       );
       const data = await res.json();
       if (!res.ok) {
-        setError(data?.error ?? `Request failed (${res.status}).`);
+        setError(data?.error ?? tr("common.requestFailed", { status: res.status }));
         return;
       }
       setLink(data as SchoolLinkInfo);

@@ -13,6 +13,7 @@ import {
 } from "@/lib/school-admin";
 import { rayaComplete, type ChatMsg } from "@/lib/raya/llm";
 import { resolveSchoolEntitlements, gateQuota, sinceDaysIso } from "@/lib/entitlements";
+import { apiT } from "@/lib/i18n/server";
 
 const SYSTEM = `You are Raya for Schools. Write a concise performance report for a school
 administrator, in the administrator's language, using ONLY the DATA below — never invent
@@ -40,7 +41,7 @@ export async function GET() {
 
   const membership = await getAdminMembership(user.id);
   if (!membership) {
-    return NextResponse.json({ error: "School staff only." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.staffOnly") }, { status: 403 });
   }
 
   try {
@@ -83,7 +84,7 @@ export async function POST(request: Request) {
 
   const membership = await getAdminMembership(user.id);
   if (!membership) {
-    return NextResponse.json({ error: "School staff only." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.staffOnly") }, { status: 403 });
   }
 
   // Report generation is quota-metered per prof per week (Standard 1 / Plus+ ∞).
@@ -94,7 +95,7 @@ export async function POST(request: Request) {
     .select("id", { count: "exact", head: true })
     .eq("created_by", membership.adminId)
     .gte("created_at", sinceDaysIso(7));
-  const overRep = gateQuota(repUsed ?? 0, ent.reportsPerWeekPerProf, {
+  const overRep = await gateQuota(repUsed ?? 0, ent.reportsPerWeekPerProf, {
     metric: "reports",
     period: "week",
     upgradeTo: "Plus",
@@ -115,7 +116,7 @@ export async function POST(request: Request) {
   // Whole-school and subject-wide reports stay admin-only; a prof may report on a
   // class they're assigned to (gated below by assertClassAccess).
   if (scope !== "class" && membership.role !== "admin_master") {
-    return NextResponse.json({ error: "Admin only for this scope." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.adminOnlyForThisScope") }, { status: 403 });
   }
 
   let context: string;
@@ -123,21 +124,21 @@ export async function POST(request: Request) {
   if (scope === "class") {
     if (!body.classId) return NextResponse.json({ error: "classId is required." }, { status: 400 });
     if (!(await assertClassAccess(user.id, body.classId))) {
-      return NextResponse.json({ error: "Not your class." }, { status: 403 });
+      return NextResponse.json({ error: await apiT("api.notYourClass") }, { status: 403 });
     }
     const cc = await buildClassContext(user.id, body.classId);
-    if (!cc) return NextResponse.json({ error: "Class not found or not yours." }, { status: 404 });
+    if (!cc) return NextResponse.json({ error: await apiT("api.classNotFoundOrNotYours") }, { status: 404 });
     context = cc.context;
     title = `${cc.className} — performance report`;
   } else if (scope === "subject") {
     if (!body.subjectId) return NextResponse.json({ error: "subjectId is required." }, { status: 400 });
     const sc = await buildSubjectContext(user.id, body.subjectId);
-    if (!sc) return NextResponse.json({ error: "Subject not found or not yours." }, { status: 404 });
+    if (!sc) return NextResponse.json({ error: await apiT("api.subjectNotFoundOrNotYours") }, { status: 404 });
     context = sc.context;
     title = `${sc.subjectName} — subject report`;
   } else {
     const ctx = await buildSchoolContext(user.id);
-    if (ctx == null) return NextResponse.json({ error: "no school" }, { status: 403 });
+    if (ctx == null) return NextResponse.json({ error: await apiT("api.noSchool") }, { status: 403 });
     context = ctx;
     title = `${membership.schoolName} — performance report`;
   }
@@ -159,7 +160,7 @@ export async function POST(request: Request) {
     content = out.text.trim();
     if (!content) throw new Error("empty report");
   } catch (e) {
-    return NextResponse.json({ error: clientError(e, "generation failed") }, { status: 502 });
+    return NextResponse.json({ error: clientError(e, await apiT("api.generationFailed")) }, { status: 502 });
   }
 
   // Best-effort persistence — reports.scope/format/status may have CHECKs; if the
@@ -207,7 +208,7 @@ export async function PATCH(request: Request) {
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const membership = await getAdminMembership(user.id);
-  if (!membership) return NextResponse.json({ error: "School staff only." }, { status: 403 });
+  if (!membership) return NextResponse.json({ error: await apiT("api.staffOnly") }, { status: 403 });
 
   let body: { id?: string; action?: string };
   try {
@@ -229,7 +230,7 @@ export async function PATCH(request: Request) {
     .maybeSingle();
   const row = report as { school_id: string; created_by: string } | null;
   if (!row || row.school_id !== membership.schoolId) {
-    return NextResponse.json({ error: "not found" }, { status: 404 });
+    return NextResponse.json({ error: await apiT("api.notFound") }, { status: 404 });
   }
   // created_by is the school_admins row id (membership.adminId), not the auth
   // user id — same gotcha as app/api/school/prepare.

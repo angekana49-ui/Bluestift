@@ -1,5 +1,6 @@
 import "server-only";
 import { NextResponse } from "next/server";
+import { apiT } from "@/lib/i18n/server";
 
 /**
  * Upload size ceilings, enforced in-route because the `user-media` bucket has no
@@ -21,9 +22,9 @@ export const MAX_AUDIO_BYTES = 25 * 1024 * 1024; // 25 MB
  */
 const CONTENT_LENGTH_SLACK = 1024 * 1024; // 1 MB
 
-function tooLargeResponse(maxBytes: number): NextResponse {
+async function tooLargeResponse(maxBytes: number): Promise<NextResponse> {
   return NextResponse.json(
-    { error: `File too large (max ${Math.round(maxBytes / 1024 / 1024)} MB).` },
+    { error: await apiT("api.fileTooLarge", { mb: Math.round(maxBytes / 1024 / 1024) }) },
     { status: 413 },
   );
 }
@@ -33,10 +34,10 @@ function tooLargeResponse(maxBytes: number): NextResponse {
  * `request.formData()` buffers the body. Cheap first line of defense; returns a
  * 413 response when over budget, else null.
  */
-export function contentLengthExceeds(
+export async function contentLengthExceeds(
   request: Request,
   maxBytes: number,
-): NextResponse | null {
+): Promise<NextResponse | null> {
   const len = Number(request.headers.get("content-length") ?? "");
   if (Number.isFinite(len) && len > maxBytes + CONTENT_LENGTH_SLACK) {
     return tooLargeResponse(maxBytes);
@@ -45,6 +46,6 @@ export function contentLengthExceeds(
 }
 
 /** Authoritative size check on the parsed File/Blob. Returns a 413 or null. */
-export function tooLarge(file: Blob, maxBytes: number): NextResponse | null {
+export async function tooLarge(file: Blob, maxBytes: number): Promise<NextResponse | null> {
   return file.size > maxBytes ? tooLargeResponse(maxBytes) : null;
 }

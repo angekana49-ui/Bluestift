@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { needsAgeGate } from "@/lib/compliance/guard";
-import { recoveryKeyState, hasRealEmail } from "@/lib/auth";
+import { recoveryKeyState, hasRealEmail, accountStatusOf } from "@/lib/auth";
 import { getPlanLabel } from "@/lib/billing";
 import { softValue } from "@/lib/page-data";
 import { AuthPanel } from "@/components/auth-panel";
@@ -20,7 +20,10 @@ import { getServerTranslate } from "@/lib/i18n/server";
 
 // Raya's, not the umbrella's: this page renders inside RayaScaffold, and no
 // Schools surface links to it — staff settings live in /school's own tab.
-export const metadata: Metadata = { title: { absolute: "Settings · Raya" } };
+export async function generateMetadata(): Promise<Metadata> {
+  const tr = await getServerTranslate();
+  return { title: { absolute: `${tr("nav.settings")} · Raya` } };
+}
 
 export default async function AccountPage() {
   const supabase = await createClient();
@@ -71,6 +74,7 @@ export default async function AccountPage() {
               id: user.id,
               email: realEmail ? user.email ?? null : null,
               isAnonymous: !realEmail,
+              status: accountStatusOf(user),
             }}
             profile={profile}
             recoveryKey={keyState}

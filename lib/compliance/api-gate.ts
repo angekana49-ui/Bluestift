@@ -1,6 +1,7 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { getAgeStatus } from "./gate";
+import { apiT } from "@/lib/i18n/server";
 
 /**
  * The age gate, for API routes.
@@ -24,7 +25,7 @@ export async function ageGateResponse(userId: string): Promise<NextResponse | nu
   if (decision.allowed) return null;
   return NextResponse.json(
     {
-      error: "Tell us the year you were born before using Raya.",
+      error: await apiT("api.tellUsTheYearYouWere"),
       reason: decision.reason,
       redirect: "/onboarding",
     },
@@ -35,5 +36,5 @@ export async function ageGateResponse(userId: string): Promise<NextResponse | nu
 /** Same rule for server actions, which cannot return a response object. */
 export async function assertAgeCleared(userId: string): Promise<void> {
   const { decision } = await getAgeStatus(userId);
-  if (!decision.allowed) throw new Error("Finish onboarding before using this.");
+  if (!decision.allowed) throw new Error(await apiT("api.finishOnboardingBeforeUsingThis"));
 }

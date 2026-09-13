@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, adminRpc } from "@/lib/supabase/admin";
 import { ensureRecoverable } from "@/lib/auth";
 import { clientIp } from "@/lib/request-ip";
+import { apiT } from "@/lib/i18n/server";
 
 /**
  * Per-IP anti-burst on account creation. NOT a lifetime cap — a rolling window,
@@ -62,7 +63,7 @@ export async function POST(request: Request) {
   });
   if (ipErr || allowed !== true) {
     return NextResponse.json(
-      { error: "Account creation is temporarily unavailable. Please try again later." },
+      { error: await apiT("api.accountCreationIsTemporarilyUnavailablePlease") },
       { status: ipErr ? 503 : 429 },
     );
   }
@@ -75,7 +76,7 @@ export async function POST(request: Request) {
   });
   if (anonErr || !anon.user) {
     return NextResponse.json(
-      { error: anonErr?.message ?? "Could not start an anonymous session." },
+      { error: anonErr?.message ?? (await apiT("api.anonSessionFailed")) },
       { status: 400 },
     );
   }
@@ -101,7 +102,7 @@ export async function POST(request: Request) {
       if (otpErr) throw otpErr;
     } catch (e) {
       return NextResponse.json(
-        { error: clientError(e, "Could not finalize the session.") },
+        { error: clientError(e, await apiT("api.couldNotFinalizeTheSession")) },
         { status: 500 },
       );
     }

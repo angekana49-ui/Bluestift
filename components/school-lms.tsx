@@ -5,7 +5,7 @@ import type { LmsConnection, LmsMapping } from "@/lib/school-admin";
 import { useAppTheme } from "@/components/ui/theme";
 import { netFetch, getJsonCached, invalidateCached } from "@/lib/net/client-fetch";
 import { panelCard, textInput, ctaButton, ghostButton, formActions } from "@/components/ui/forms";
-import { useTranslate } from "@/components/ui/locale";
+import { useTranslate, trNow } from "@/components/ui/locale";
 
 type ClassOpt = { id: string; name: string };
 
@@ -20,7 +20,7 @@ async function req(url: string, method: string, body?: unknown, timeoutMs = 15_0
     { timeoutMs },
   );
   const data = await res.json().catch(() => null);
-  if (!res.ok) throw new Error(data?.error ?? `Request failed (${res.status}).`);
+  if (!res.ok) throw new Error(data?.error ?? trNow("common.requestFailed", { status: res.status }));
   return data;
 }
 

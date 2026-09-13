@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { generateJson } from "@/lib/raya/llm";
 import { reportGradedSubmission } from "@/lib/kernel/graded";
+import { apiT } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -33,7 +34,8 @@ async function gradeOpen(items: OpenItem[]): Promise<Map<string, { score: number
       out.set(it.questionId, { score: typeof g?.score === "number" ? clamp01(g.score) : null, feedback: g?.feedback ?? "" });
     });
   } catch {
-    for (const it of items) out.set(it.questionId, { score: null, feedback: "Automatic grading was unavailable for this answer." });
+    const feedback = await apiT("api.gradingUnavailable");
+    for (const it of items) out.set(it.questionId, { score: null, feedback });
   }
   return out;
 }
@@ -81,10 +83,10 @@ export async function POST(request: Request) {
   const asg = asgData as { class_id: string; due_at: string | null } | null;
   const myClasses = new Set(((idData as { class_id: string | null }[] | null) ?? []).map((r) => r.class_id).filter(Boolean) as string[]);
   if (!asg || !myClasses.has(asg.class_id)) {
-    return NextResponse.json({ error: "This assignment isn't for you." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.assignmentNotForYou") }, { status: 403 });
   }
   if (asg.due_at && new Date(asg.due_at).getTime() < Date.now()) {
-    return NextResponse.json({ error: "The deadline for this assignment has passed." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.assignmentDeadlinePassed") }, { status: 403 });
   }
 
   const admin = createAdminClient();
@@ -96,7 +98,7 @@ export async function POST(request: Request) {
     .eq("user_id", user.id)
     .maybeSingle();
   if ((existing as { status: string } | null)?.status === "completed") {
-    return NextResponse.json({ error: "You've already submitted this assignment." }, { status: 409 });
+    return NextResponse.json({ error: await apiT("api.assignmentAlreadySubmitted") }, { status: 409 });
   }
 
   // Authoritative questions (server-only — the client never receives the answers).
@@ -107,7 +109,7 @@ export async function POST(request: Request) {
     .eq("challenge_id", challengeId);
   if (qErr) return NextResponse.json({ error: clientError(qErr) }, { status: 500 });
   if (!questions || questions.length === 0) {
-    return NextResponse.json({ error: "assignment has no questions" }, { status: 400 });
+    return NextResponse.json({ error: await apiT("api.assignmentHasNoQuestions") }, { status: 400 });
   }
 
   const answerById = new Map(answers.map((a) => [a.questionId, a]));

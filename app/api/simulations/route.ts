@@ -7,6 +7,7 @@ import { generateJson } from "@/lib/raya/llm";
 import type { LoadProfileResponse } from "@/lib/kernel/types";
 import type { Json } from "@/types/database.types";
 import { resolveRayaEntitlements, gateQuota, sinceDaysIso } from "@/lib/entitlements";
+import { apiT } from "@/lib/i18n/server";
 
 /**
  * Student-facing what-if simulation — the learner's own mirror of the Schools
@@ -84,7 +85,7 @@ export async function POST(request: Request) {
     .select("id", { count: "exact", head: true })
     .eq("user_id", user.id)
     .gte("created_at", sinceDaysIso(7));
-  const overSim = gateQuota(simUsed ?? 0, ent.kernelAnalysisPerWeek, {
+  const overSim = await gateQuota(simUsed ?? 0, ent.kernelAnalysisPerWeek, {
     metric: "what-if simulations",
     period: "week",
     upgradeTo: "Plus",
@@ -116,7 +117,7 @@ export async function POST(request: Request) {
     ) as Record<string, unknown>;
   } catch (e) {
     return NextResponse.json(
-      { error: clientError(e, "projection failed") },
+      { error: clientError(e, await apiT("api.projectionFailed")) },
       { status: 502 },
     );
   }

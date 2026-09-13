@@ -142,7 +142,7 @@ export default function Footer({ theme: t, variant = "full" }: { theme: Theme; v
             color: t.footerMuted,
           }}
         >
-          <span>© 2026 <BluestiftName>BlueStift</BluestiftName>. All rights reserved.</span>
+          <span>© 2026 <BluestiftName>BlueStift</BluestiftName>. {tr("site.footer.rights")}</span>
           <span>hello@thebluestift.com</span>
         </div>
       </div>

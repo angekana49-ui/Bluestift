@@ -6,6 +6,7 @@ import { generateJson } from "@/lib/raya/llm";
 import { extractFileText } from "@/lib/extract";
 import { assertRoomOpen } from "@/lib/rooms";
 import { resolveRayaEntitlements, gateQuota } from "@/lib/entitlements";
+import { apiT } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -104,7 +105,7 @@ export async function POST(request: Request) {
   // the check right before generation catches it.
   if (!name && !goal && !topic && !source && !(roomId && useRoomChat)) {
     return NextResponse.json(
-      { error: "Provide a name, a goal, a topic, or a source file." },
+      { error: await apiT("api.provideANameAGoalA") },
       { status: 400 },
     );
   }
@@ -121,12 +122,12 @@ export async function POST(request: Request) {
       .eq("user_id", user.id)
       .maybeSingle();
     if (!membership) {
-      return NextResponse.json({ error: "You must be a room member." }, { status: 403 });
+      return NextResponse.json({ error: await apiT("api.roomMemberOnly") }, { status: 403 });
     }
     // A timed room that has ended is read-only — no new challenges.
     const { open } = await assertRoomOpen(supabase, roomId);
     if (!open) {
-      return NextResponse.json({ error: "This room has ended — it's now read-only." }, { status: 403 });
+      return NextResponse.json({ error: await apiT("api.roomEnded") }, { status: 403 });
     }
 
     // Opt-in: ground the questions in what the room has actually been
@@ -168,7 +169,7 @@ export async function POST(request: Request) {
         .from("challenges")
         .select("id", { count: "exact", head: true })
         .eq("room_id", roomId);
-      const overCh = gateQuota(chUsed ?? 0, ent.roomChallengesPerRoom, {
+      const overCh = await gateQuota(chUsed ?? 0, ent.roomChallengesPerRoom, {
         metric: "room challenges",
         upgradeTo: "Plus",
         scope: "rooms",
@@ -192,7 +193,7 @@ export async function POST(request: Request) {
     // Only reachable when useRoomChat was the sole signal and the room chat
     // turned out empty — everything else was already rejected by the gate above.
     return NextResponse.json(
-      { error: "The room has no recent discussion to build from yet — add a topic, a goal, or a source file." },
+      { error: await apiT("api.theRoomHasNoRecentDiscussion") },
       { status: 400 },
     );
   }
@@ -205,7 +206,7 @@ export async function POST(request: Request) {
     if (questions.length === 0) throw new Error("no questions generated");
   } catch (e) {
     return NextResponse.json(
-      { error: clientError(e, "generation failed") },
+      { error: clientError(e, await apiT("api.generationFailed")) },
       { status: 502 },
     );
   }

@@ -5,28 +5,26 @@ import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { confirmMembershipForYear, getAdminMembership } from "@/lib/school-admin";
 import { sendBrandedEmail, getUserEmail, siteUrl } from "@/lib/email";
 import { notifyTeacherLinked } from "@/lib/school-join";
+import { apiT } from "@/lib/i18n/server";
 
 /** Tell a teacher their join request was decided (best-effort, non-blocking). */
 async function notifyDecision(teacherUserId: string, schoolName: string, approved: boolean) {
   const to = await getUserEmail(teacherUserId);
   if (!to) return;
+  // In the deciding admin's language: a school's staff share one, and the
+  // teacher's own choice is not something this request can see.
+  const v = { school: schoolName };
   const email = approved
     ? {
-        subject: `You've joined ${schoolName}`,
-        heading: `You've joined ${schoolName}`,
-        lines: [
-          `Your request to join ${schoolName} on Bluestift Schools was approved.`,
-          "You can now open the school dashboard and start working with your classes.",
-        ],
-        cta: { label: "Open your dashboard", url: `${siteUrl("schools")}/school` },
+        subject: await apiT("email.joinApproved.subject", v),
+        heading: await apiT("email.joinApproved.subject", v),
+        lines: [await apiT("email.joinApproved.line1", v), await apiT("email.joinApproved.line2")],
+        cta: { label: await apiT("email.joinApproved.cta"), url: `${siteUrl("schools")}/school` },
       }
     : {
-        subject: `Your request to ${schoolName}`,
-        heading: `Update on your request to ${schoolName}`,
-        lines: [
-          `Your request to join ${schoolName} on Bluestift Schools wasn't approved this time.`,
-          "If you think this is a mistake, reach out to your school administrator.",
-        ],
+        subject: await apiT("email.joinDeclined.subject", v),
+        heading: await apiT("email.joinDeclined.heading", v),
+        lines: [await apiT("email.joinDeclined.line1", v), await apiT("email.joinDeclined.line2")],
       };
   await sendBrandedEmail({ brand: "schools", to, ...email });
 }
@@ -46,7 +44,7 @@ export async function POST(request: Request) {
 
   const membership = await getAdminMembership(user.id);
   if (!membership || membership.role !== "admin_master") {
-    return NextResponse.json({ error: "Admin only." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.adminOnly") }, { status: 403 });
   }
 
   let body: { requestId?: string; action?: "approve" | "reject" };
@@ -68,10 +66,10 @@ export async function POST(request: Request) {
     .maybeSingle();
   const reqRow = (reqData ?? null) as RequestRow | null;
   if (!reqRow || reqRow.school_id !== membership.schoolId) {
-    return NextResponse.json({ error: "Request not found." }, { status: 404 });
+    return NextResponse.json({ error: await apiT("api.requestNotFound") }, { status: 404 });
   }
   if (reqRow.status !== "pending") {
-    return NextResponse.json({ error: "That request was already decided." }, { status: 409 });
+    return NextResponse.json({ error: await apiT("api.thatRequestWasAlreadyDecided") }, { status: 409 });
   }
 
   let adminId: string | null = null;

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { getAdminMembership } from "@/lib/school-admin";
 import { contentLengthExceeds, tooLarge } from "@/lib/upload-limits";
+import { apiT } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 const MAX_LOGO_BYTES = 5 * 1024 * 1024;
@@ -35,10 +36,10 @@ export async function POST(request: Request) {
 
   const membership = await getAdminMembership(user.id);
   if (!membership || membership.role !== "admin_master") {
-    return NextResponse.json({ error: "Only the school admin can change the logo." }, { status: 403 });
+    return NextResponse.json({ error: await apiT("api.onlyTheSchoolAdminCanChange") }, { status: 403 });
   }
 
-  const oversized = contentLengthExceeds(request, MAX_LOGO_BYTES);
+  const oversized = await contentLengthExceeds(request, MAX_LOGO_BYTES);
   if (oversized) return oversized;
 
   let form: FormData;
@@ -49,15 +50,15 @@ export async function POST(request: Request) {
   }
   const file = form.get("file");
   if (!(file instanceof File)) {
-    return NextResponse.json({ error: "file required" }, { status: 400 });
+    return NextResponse.json({ error: await apiT("api.fileRequired") }, { status: 400 });
   }
   if (!(file.type in IMAGE_EXTENSIONS)) {
-    return NextResponse.json({ error: "Please choose an image." }, { status: 400 });
+    return NextResponse.json({ error: await apiT("api.pleaseChooseAnImage") }, { status: 400 });
   }
-  const tooBig = tooLarge(file, MAX_LOGO_BYTES);
+  const tooBig = await tooLarge(file, MAX_LOGO_BYTES);
   if (tooBig) return tooBig;
   if (!(await hasValidImageSignature(file, file.type))) {
-    return NextResponse.json({ error: "Invalid image file." }, { status: 400 });
+    return NextResponse.json({ error: await apiT("api.invalidImageFile") }, { status: 400 });
   }
 
   const admin = createAdminClient();

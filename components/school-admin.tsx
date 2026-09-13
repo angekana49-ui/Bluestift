@@ -26,8 +26,9 @@ import { type BrandedDoc } from "@/lib/document";
 import { COUNTRIES, SCHOOL_TYPES } from "@/lib/school-constants";
 import { schoolTabPath, schoolTabTitle } from "@/lib/school-tabs";
 import { useDarkMode, useAppTheme, AppThemeProvider } from "@/components/ui/theme";
-import { LocaleProvider, useTranslate } from "@/components/ui/locale";
-import type { MessageKey } from "@/lib/i18n";
+import { LocaleProvider, useTranslate, trNow } from "@/components/ui/locale";
+import { planLabelText, type MessageKey } from "@/lib/i18n";
+import type { AccountStatus } from "@/lib/auth";
 import { useLocale } from "@/lib/use-locale";
 import { SchoolsShell, type SchoolNavItem } from "@/components/school/schools-shell";
 import { RightPanel } from "@/components/ui/shell";
@@ -82,7 +83,7 @@ import type {
  * exactly what /account renders (theme + AuthPanel + billing), so the teacher's
  * profile chip opens Settings in place instead of bouncing to the Raya scaffold. */
 export type StaffAccount = {
-  user: { id: string; email: string | null; isAnonymous: boolean };
+  user: { id: string; email: string | null; isAnonymous: boolean; status: AccountStatus };
   profile: {
     username: string | null;
     display_name: string | null;
@@ -163,7 +164,7 @@ async function postJson(url: string, body: unknown, method = "POST") {
     { timeoutMs: 15_000 },
   );
   const data = await res.json().catch(() => null);
-  if (!res.ok) throw new Error(data?.error ?? `Request failed (${res.status}).`);
+  if (!res.ok) throw new Error(data?.error ?? trNow("common.requestFailed", { status: res.status }));
   return data;
 }
 
@@ -196,6 +197,7 @@ function CountrySelect({
   style?: React.CSSProperties;
 }) {
   const { input } = useSchoolStyles();
+  const tr = useTranslate();
   return (
     <select
       style={{ ...input, ...style }}
@@ -203,7 +205,7 @@ function CountrySelect({
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled}
     >
-      <option value="">Select a country…</option>
+      <option value="">{tr("layer.school.countryNone")}</option>
       {COUNTRIES.map((c) => (
         <option key={c.code} value={c.code}>
           {c.name}
@@ -789,6 +791,7 @@ function AddSchoolByCode() {
  */
 function useTabInUrl(tab: string) {
   const first = useRef(true);
+  const tr = useTranslate();
   useEffect(() => {
     if (first.current) {
       first.current = false;
@@ -799,8 +802,8 @@ function useTabInUrl(tab: string) {
     window.history.replaceState(null, "", schoolTabPath(tab));
     // The <title> was rendered on the server and a replaceState does not
     // re-render it, so it is set here or it stays on the tab we arrived on.
-    document.title = schoolTabTitle(tab);
-  }, [tab]);
+    document.title = schoolTabTitle(tab, tr);
+  }, [tab, tr]);
 }
 
 type ProfTab =
@@ -929,7 +932,7 @@ function ProfView({
     memberships[0]?.schoolName ||
     tr("school.renewYear.fallbackSchool");
   // Profile chip (like Raya): name + photo, with "Teacher · <forfait>" under it.
-  const profileForfait = planLabel ? `${tr("school.role.teacher")} · ${planLabel}` : tr("school.role.teacher");
+  const profileForfait = planLabel ? `${tr("school.role.teacher")} · ${planLabelText(planLabel, tr)}` : tr("school.role.teacher");
 
   // "Raya" is a brand name — it is never translated (see the brand-names rule).
   const navItems: SchoolNavItem[] = [
@@ -2186,7 +2189,7 @@ function Dashboard({
       onNav={goTab}
       schoolName={dash.school.name}
       profileName={adminName || dash.school.name}
-      profileSubtitle={planLabel ? `${tr("school.role.admin")} · ${planLabel}` : tr("school.role.admin")}
+      profileSubtitle={planLabel ? `${tr("school.role.admin")} · ${planLabelText(planLabel, tr)}` : tr("school.role.admin")}
       headerTitle={dash.school.name}
       headerSubtitle={contextLabel}
       headerLogoUrl={dash.school.logoUrl}

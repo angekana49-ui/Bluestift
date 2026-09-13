@@ -5,6 +5,7 @@ import { ageGateResponse } from "@/lib/compliance/api-gate";
 import { transcribeAudio } from "@/lib/raya/llm";
 import { contentLengthExceeds, tooLarge, MAX_AUDIO_BYTES } from "@/lib/upload-limits";
 import { resolveRayaEntitlements, gateFeature } from "@/lib/entitlements";
+import { apiT } from "@/lib/i18n/server";
 
 /**
  * Speech-to-text for voice messages (OpenAI Whisper served by Groq).
@@ -22,10 +23,10 @@ export async function POST(request: Request) {
 
   // Voice input is a Plus+ feature.
   const { ent, tier } = await resolveRayaEntitlements(user.id);
-  const denied = gateFeature(ent.voiceInput, { feature: "voice_input", upgradeTo: "Plus", scope: "raya", userId: user.id, tier });
+  const denied = await gateFeature(ent.voiceInput, { feature: "voice_input", upgradeTo: "Plus", scope: "raya", userId: user.id, tier });
   if (denied) return denied;
 
-  const oversized = contentLengthExceeds(request, MAX_AUDIO_BYTES);
+  const oversized = await contentLengthExceeds(request, MAX_AUDIO_BYTES);
   if (oversized) return oversized;
 
   let form: FormData;
@@ -36,9 +37,9 @@ export async function POST(request: Request) {
   }
   const audio = form.get("audio");
   if (!(audio instanceof Blob)) {
-    return NextResponse.json({ error: "no audio" }, { status: 400 });
+    return NextResponse.json({ error: await apiT("api.noAudio") }, { status: 400 });
   }
-  const big = tooLarge(audio, MAX_AUDIO_BYTES);
+  const big = await tooLarge(audio, MAX_AUDIO_BYTES);
   if (big) return big;
   const language = (form.get("language") as string | null) ?? undefined;
 
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ text });
   } catch (e) {
     return NextResponse.json(
-      { error: clientError(e, "transcription error") },
+      { error: clientError(e, await apiT("api.transcriptionError")) },
       { status: 502 },
     );
   }

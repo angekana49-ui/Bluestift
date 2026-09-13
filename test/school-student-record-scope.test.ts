@@ -33,7 +33,7 @@ describe("the record route", () => {
   });
 
   it("answers the same refusal either way, so an id cannot be probed", () => {
-    const refusals = route.match(/Not found or not yours\./g) ?? [];
+    const refusals = route.match(/apiT\("api\.notFoundOrNotYours"\)/g) ?? [];
     expect(refusals.length).toBeGreaterThanOrEqual(2);
   });
 

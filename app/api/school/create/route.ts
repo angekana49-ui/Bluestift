@@ -11,6 +11,7 @@ import { MIN_B2B_SEATS, SCHOOL_PILOT_DAYS, pilotEndDate } from "@/lib/billing/te
 import { checkStrictUserRateLimit } from "@/lib/rate-limit";
 import { firstNameOf, sendPilotStartedEmail } from "@/lib/email";
 import { MIN_NAME_LENGTH, isNameTooShort, normalizeName } from "@/lib/names";
+import { apiT } from "@/lib/i18n/server";
 
 /** A plain address check — enough to refuse a typo, not a deliverability test. */
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
   if (!hasRealEmail(user.email)) {
     return NextResponse.json(
       {
-        error: "Add a verified email before creating a school — staff accounts need one. You can link it in Settings.",
+        error: await apiT("api.addAVerifiedEmailBeforeCreating"),
         code: "email_required",
       },
       { status: 403 },
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
   // someone scripting schools into existence.
   if (!(await checkStrictUserRateLimit("school_create", user.id, 3, "24 hours"))) {
     return NextResponse.json(
-      { error: "You've created several schools today. Please try again tomorrow.", code: "rate_limited" },
+      { error: await apiT("api.youveCreatedSeveralSchoolsTodayPlease"), code: "rate_limited" },
       { status: 429 },
     );
   }
@@ -76,28 +77,28 @@ export async function POST(request: Request) {
   const name = (body.name ?? "").trim().slice(0, 120);
   if (isNameTooShort(name)) {
     return NextResponse.json(
-      { error: `The school name needs at least ${MIN_NAME_LENGTH} characters.`, code: "name" },
+      { error: await apiT("api.theSchoolNameNeedsAtLeast", { minNameLength: MIN_NAME_LENGTH }), code: "name" },
       { status: 400 },
     );
   }
   const countryCode = (body.countryCode ?? "").trim().toUpperCase().slice(0, 2) || null;
-  if (!countryCode) return NextResponse.json({ error: "Choose the school's country.", code: "country" }, { status: 400 });
+  if (!countryCode) return NextResponse.json({ error: await apiT("api.chooseTheSchoolsCountry"), code: "country" }, { status: 400 });
   const rawType = (body.schoolType ?? "").trim().toLowerCase();
   const schoolType = (SCHOOL_TYPES as readonly string[]).includes(rawType) ? rawType : null;
   // Required: country + name alone do not identify a school. Every state has its
   // Lincoln High and its Roosevelt High; the city is what tells them apart.
   const city = (body.city ?? "").trim().slice(0, 80);
-  if (!city) return NextResponse.json({ error: "Enter the school's city.", code: "city" }, { status: 400 });
+  if (!city) return NextResponse.json({ error: await apiT("api.enterTheSchoolsCity"), code: "city" }, { status: 400 });
   const phone = (body.phone ?? "").trim().slice(0, 40) || null;
   const email = (body.email ?? "").trim().slice(0, 160) || null;
   if (email && !EMAIL_RE.test(email)) {
-    return NextResponse.json({ error: "The school email doesn't look right." }, { status: 400 });
+    return NextResponse.json({ error: await apiT("api.theSchoolEmailDoesntLookRight") }, { status: 400 });
   }
 
   const effectif = Number(body.effectif);
   if (!Number.isInteger(effectif) || effectif < MIN_B2B_SEATS || effectif > 100_000) {
     return NextResponse.json(
-      { error: `Declare how many students the school has — at least ${MIN_B2B_SEATS}.`, code: "effectif" },
+      { error: await apiT("api.declareHowManyStudentsTheSchool", { minB2bSeats: MIN_B2B_SEATS }), code: "effectif" },
       { status: 400 },
     );
   }
@@ -115,7 +116,7 @@ export async function POST(request: Request) {
     : { data: null };
   const plan = planData as { id: string; name: string; tier: string | null; category: string | null } | null;
   if (!plan || plan.category !== "b2b") {
-    return NextResponse.json({ error: "Choose a plan for your pilot.", code: "plan" }, { status: 400 });
+    return NextResponse.json({ error: await apiT("api.chooseAPlanForYourPilot"), code: "plan" }, { status: 400 });
   }
 
   /**
@@ -146,7 +147,7 @@ export async function POST(request: Request) {
     if (clash) {
       return NextResponse.json(
         {
-          error: `You already have ${clash.name} in ${clash.city}. Open it from your schools instead of creating it again.`,
+          error: await apiT("api.youAlreadyHaveInOpenIt", { name: clash.name, city: clash.city ?? city }),
           code: "duplicate_school",
           schoolId: clash.id,
         },
