@@ -5,6 +5,7 @@ import { getAdminMembership } from "@/lib/school-admin";
 import {
   getSchoolBilling,
   activateSubscription,
+  setPilotSeats,
   PAYMENT_METHODS,
   type ActivateInput,
   type SchoolBilling,
@@ -52,6 +53,30 @@ export async function GET() {
   const billing = await getSchoolBilling(user.id);
   if (!billing) return NextResponse.json({ error: "Admin only." }, { status: 403 });
   return NextResponse.json(billing);
+}
+
+/**
+ * Change the running pilot's declared headcount — its seat cap. Free: it is a
+ * declaration, not a purchase (lib/billing.ts setPilotSeats holds the floor).
+ */
+export async function PATCH(request: Request) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  let body: { pilotSeats?: unknown };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "invalid json" }, { status: 400 });
+  }
+
+  const result = await setPilotSeats(user.id, Number(body.pilotSeats));
+  if (!result) return NextResponse.json({ error: "Only the school admin can manage billing." }, { status: 403 });
+  if (!result.ok) return NextResponse.json({ error: result.error, floor: result.floor ?? null }, { status: 400 });
+  return NextResponse.json({ billing: await getSchoolBilling(user.id) });
 }
 
 /**

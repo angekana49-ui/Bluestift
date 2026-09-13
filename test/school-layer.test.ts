@@ -54,6 +54,28 @@ describe("creating a school", () => {
   });
 });
 
+describe("during the pilot", () => {
+  const billing = read("lib/billing.ts");
+
+  it("caps new students at the headcount the admin declared, not at infinity", () => {
+    // "x / effectif": students enrolled over the headcount set at the offer step.
+    expect(billing).toMatch(
+      /if \(sub\?\.status === "trial"\) \{\s*return sub\.seat_limit != null\s*\? \{ limited: true, seats: sub\.seat_limit, used, reason: "pilot" \}/,
+    );
+  });
+
+  it("lets the admin raise that headcount for free, never under the minimum or the enrolled students", () => {
+    expect(billing).toContain("export async function setPilotSeats(");
+    expect(billing).toContain("const floor = Math.max(MIN_B2B_SEATS, count ?? 0);");
+    expect(read("app/api/school/billing/route.ts")).toContain("setPilotSeats(user.id, Number(body.pilotSeats))");
+  });
+
+  it("no longer tells a capped pilot its seats are unlimited", () => {
+    const tab = read("components/school-billing.tsx");
+    expect(tab).toContain('billing.pilotSeats != null ? "school.billing.pilotAccessCapped" : "school.billing.pilotAccessB"');
+  });
+});
+
 describe("after the pilot", () => {
   const billing = read("lib/billing.ts");
 
@@ -97,6 +119,8 @@ describe("the layer is translated, not just translatable", () => {
     (k) =>
       k.startsWith("layer.") ||
       k.startsWith("plan.feature.") ||
+      k.startsWith("school.billing.pilotSeats") ||
+      k === "school.billing.pilotAccessCapped" ||
       k.startsWith("onb.path.schools.") ||
       k.startsWith("school.billing.readOnly"),
   );

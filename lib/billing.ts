@@ -293,22 +293,40 @@ export async function resolveSeatGate(schoolId: string): Promise<SeatGate> {
     .eq("id", schoolId)
     .maybeSingle();
   const pilotUntil = (sData as { pilot_until: string | null } | null)?.pilot_until ?? null;
-  if (pilotUntil && pilotUntil >= today) {
-    return { limited: false, seats: null, used, reason: "pilot" };
-  }
+  const inPilot = Boolean(pilotUntil && pilotUntil >= today);
 
   const { data: subData, error: subErr } = await schools
     .from("subscriptions")
-    .select("plan_id, seat_limit")
+    .select("plan_id, seat_limit, status")
     .eq("school_id", schoolId)
     .in("status", ["active", "trial"])
     .or(stillRunning(nowIso))
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  const sub = subData as { plan_id: string | null; seat_limit: number | null } | null;
+  const sub = subData as { plan_id: string | null; seat_limit: number | null; status: string } | null;
   // A failed read is not "no plan": degrade to ungated, like every other branch.
-  if (subErr) return { limited: false, seats: null, used, reason: "no_subscription" };
+  if (subErr) return { limited: false, seats: null, used, reason: inPilot ? "pilot" : "no_subscription" };
+
+  /**
+   * The pilot's cap is the headcount the admin declared when creating the
+   * school, stored on the pilot's `trial` row (owner decision, 2026-09-13).
+   * It used to be unlimited, which made the form's "your pilot runs for this
+   * headcount" untrue and let a school enrol far past it, only to meet a
+   * contract floor of its real headcount on the day it paid. The admin can
+   * raise it from Billing at no cost (setPilotSeats).
+   *
+   * A paid plan activated DURING the pilot cancels the trial row, so the
+   * newest running row is the plan and its own cap applies below. A pilot
+   * granted by hand with no trial row has no declared headcount to cap at, and
+   * stays open.
+   */
+  if (sub?.status === "trial") {
+    return sub.seat_limit != null
+      ? { limited: true, seats: sub.seat_limit, used, reason: "pilot" }
+      : { limited: false, seats: null, used, reason: "pilot" };
+  }
+  if (!sub && inPilot) return { limited: false, seats: null, used, reason: "pilot" };
   if (!sub) {
     // A school that had a pilot, let it run out and never activated a plan is
     // READ-ONLY: its dashboard stays open, but it takes no new students (a cap
@@ -331,6 +349,50 @@ export async function resolveSeatGate(schoolId: string): Promise<SeatGate> {
   const seats = sub.seat_limit ?? planSeat;
   if (seats == null) return { limited: false, seats: null, used, reason: "uncapped" };
   return { limited: true, seats, used, reason: "plan" };
+}
+
+export type PilotSeatsResult = { ok: true; seats: number } | { ok: false; error: string; floor?: number };
+
+/**
+ * Change the declared headcount of the admin's running pilot — the pilot's
+ * seat cap (resolveSeatGate). Admin_master only; returns null otherwise.
+ *
+ * Free, because it is a declaration, not a purchase. The floor is the same one
+ * a paid contract has, for the same reason: at least MIN_B2B_SEATS, and never
+ * below the students already enrolled — lowering the cap under them would
+ * describe a school that does not exist.
+ */
+export async function setPilotSeats(userId: string, seats: number): Promise<PilotSeatsResult | null> {
+  const m = await getAdminMembership(userId);
+  if (!m || m.role !== "admin_master") return null;
+  if (!Number.isInteger(seats) || seats > 100_000) return { ok: false, error: "Enter a whole number of students." };
+
+  const schools = createSchoolsAdminClient();
+  const nowIso = new Date().toISOString();
+  const { data: trial } = await schools
+    .from("subscriptions")
+    .select("id")
+    .eq("school_id", m.schoolId)
+    .eq("status", "trial")
+    .or(stillRunning(nowIso))
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!trial) return { ok: false, error: "Your school has no running pilot." };
+
+  const { count } = await schools
+    .from("student_identities")
+    .select("user_id", { count: "exact", head: true })
+    .eq("school_id", m.schoolId);
+  const floor = Math.max(MIN_B2B_SEATS, count ?? 0);
+  if (seats < floor) return { ok: false, error: `Enter at least ${floor} students.`, floor };
+
+  const { error } = await schools
+    .from("subscriptions")
+    .update({ seat_limit: seats, updated_at: nowIso })
+    .eq("id", (trial as { id: string }).id);
+  if (error) return { ok: false, error: "Could not update the headcount." };
+  return { ok: true, seats };
 }
 
 /** True once a school's pilot is over and no plan is running — see resolveSeatGate. */
@@ -433,6 +495,8 @@ export type SchoolBilling = {
   expiresAt: string | null;
   /** The pilot is over and no plan is running: no new students or classes. */
   readOnly: boolean;
+  /** The running pilot's declared headcount (its seat cap), editable by the admin; null outside a pilot. */
+  pilotSeats: number | null;
   history: BillingHistoryItem[];
   plans: BillingPlan[]; // b2b catalog for upgrade/activation
 };
@@ -526,6 +590,7 @@ export async function getSchoolBilling(userId: string): Promise<SchoolBilling | 
     pilotUntil: school?.pilot_until ?? null,
     expiresAt: school?.subscription_expires_at ?? null,
     readOnly: gate.reason === "pilot_ended",
+    pilotSeats: current?.status === "trial" ? current.seat_limit : null,
     history,
     plans,
   };

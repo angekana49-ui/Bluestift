@@ -44,6 +44,8 @@ type Billing = {
   expiresAt: string | null;
   /** Pilot over, no plan running: no new students or classes (lib/billing.ts). */
   readOnly?: boolean;
+  /** The running pilot's declared headcount — its seat cap; null outside a pilot. */
+  pilotSeats?: number | null;
   history: HistoryItem[];
   plans: Plan[];
 };
@@ -159,7 +161,9 @@ export function SchoolBilling() {
         </div>
         <div style={{ fontSize: 15, color: t.muted }}>
           {onPilot
-            ? `${tr("school.billing.pilotAccessA")} ${fmtDate(billing.pilotUntil)} ${tr("school.billing.pilotAccessB")}`
+            ? `${tr("school.billing.pilotAccessA")} ${fmtDate(billing.pilotUntil)} ${tr(
+                billing.pilotSeats != null ? "school.billing.pilotAccessCapped" : "school.billing.pilotAccessB",
+              )}`
             : billing.expiresAt
               ? `${tr("school.billing.renewsExpires")} ${fmtDate(billing.expiresAt)}`
               : // No dated pilot and no subscription: resolveSeatGate's
@@ -191,8 +195,14 @@ export function SchoolBilling() {
           </div>
           {seats.limit != null && seats.remaining === 0 && (
             <p style={{ fontSize: 14, color: "#f87171", margin: "6px 0 0" }}>
-              {tr("school.billing.seatLimitReached")}
+              {tr(billing.pilotSeats != null ? "school.billing.pilotSeatsReached" : "school.billing.seatLimitReached")}
             </p>
+          )}
+          {/* During the pilot the cap is the admin's own declaration, so the
+              admin can move it — at no cost, never below the students already
+              enrolled. */}
+          {billing.pilotSeats != null && (
+            <PilotSeatsEditor current={billing.pilotSeats} floor={Math.max(MIN_B2B_SEATS, seats.used)} onSaved={setBilling} />
           )}
         </div>
       </div>
@@ -275,6 +285,102 @@ export function SchoolBilling() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function PilotSeatsEditor({
+  current,
+  floor,
+  onSaved,
+}: {
+  current: number;
+  floor: number;
+  onSaved: (b: Billing) => void;
+}) {
+  const { theme: t } = useAppTheme();
+  const tr = useTranslate();
+  const input = textInput(t);
+  const btn = ctaButton(t);
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState(String(current));
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save() {
+    const seats = Number(value);
+    if (!Number.isInteger(seats) || seats < floor) {
+      setError(`${tr("school.billing.pilotSeatsMinA")} ${floor} ${tr("school.billing.pilotSeatsMinB")}`);
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await netFetch(
+        "/api/school/billing",
+        { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ pilotSeats: seats }) },
+        { timeoutMs: 15_000 },
+      );
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? tr("school.billing.pilotSeatsFailed"));
+      if (data?.billing) onSaved(data.billing as Billing);
+      invalidateCached("school:billing");
+      setOpen(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : tr("school.billing.pilotSeatsFailed"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div style={{ marginTop: 12, fontSize: 15, color: t.muted, lineHeight: 1.5 }}>
+      {!open ? (
+        <div style={{ display: "flex", gap: 10, alignItems: "baseline", flexWrap: "wrap" }}>
+          <span>
+            {tr("school.billing.pilotSeatsLabel")} <strong style={{ color: t.text }}>{current}</strong>
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setValue(String(current));
+              setError(null);
+              setOpen(true);
+            }}
+            style={{ background: "none", border: "none", padding: 0, color: "#2f7fe0", fontWeight: 600, fontSize: 15, cursor: "pointer" }}
+          >
+            {tr("school.billing.pilotSeatsChange")}
+          </button>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gap: 8, maxWidth: 360 }}>
+          <label style={{ color: t.text, fontWeight: 600 }}>{tr("school.billing.pilotSeatsLabel")}</label>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              style={{ ...input, flex: 1 }}
+              type="number"
+              inputMode="numeric"
+              min={floor}
+              step={1}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              disabled={busy}
+            />
+            <button style={{ ...btn, opacity: busy ? 0.7 : 1 }} onClick={save} disabled={busy}>
+              {tr("school.billing.pilotSeatsSave")}
+            </button>
+            <button
+              style={{ ...btn, background: t.cardBg2, color: t.text, border: `1px solid ${t.cardBorder}` }}
+              onClick={() => setOpen(false)}
+              disabled={busy}
+            >
+              {tr("school.billing.cancel")}
+            </button>
+          </div>
+          <span style={{ fontSize: 14 }}>{tr("school.billing.pilotSeatsHint")}</span>
+          {error && <span style={{ color: "#f87171", fontSize: 14 }}>{error}</span>}
+        </div>
+      )}
     </div>
   );
 }
