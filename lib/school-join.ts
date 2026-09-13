@@ -1,6 +1,6 @@
 import "server-only";
-import type { createSchoolsAdminClient } from "@/lib/supabase/admin";
-import { sendBrandedEmail, getUserEmail, siteUrl } from "@/lib/email";
+import { createAdminClient, type createSchoolsAdminClient } from "@/lib/supabase/admin";
+import { firstNameOf, sendBrandedEmail, sendSchoolLinkedEmail, getUserEmail, siteUrl } from "@/lib/email";
 
 type SchoolsClient = ReturnType<typeof createSchoolsAdminClient>;
 
@@ -42,4 +42,23 @@ export async function notifyAdminsOfRequest(
       if (to) await sendBrandedEmail({ brand: "schools", to, ...email });
     }),
   );
+}
+
+/**
+ * Tell a teacher their EXISTING account is now on a school's team — the
+ * "school-linked" template. Sent at the moment the membership actually exists:
+ * an auto-approve code redeemed (/api/school/join-team) or a request approved
+ * (/api/school/requests). Not for a year renewal, which links nothing new, and
+ * not for students (often minors, often without an email).
+ */
+export async function notifyTeacherLinked(userId: string, schoolName: string): Promise<void> {
+  const to = await getUserEmail(userId);
+  if (!to) return;
+  const { data } = await createAdminClient().from("users").select("display_name").eq("id", userId).maybeSingle();
+  await sendSchoolLinkedEmail({
+    to,
+    firstname: firstNameOf(data?.display_name, to),
+    schoolName,
+    role: "teacher",
+  });
 }

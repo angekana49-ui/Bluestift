@@ -16,13 +16,38 @@ import { join } from "node:path";
  * them to act. These tests hold both halves: that this route stops writing
  * membership, and that the route which does write it still asks for a code.
  */
-const profs = readFileSync(join(process.cwd(), "app/api/school/profs/route.ts"), "utf8");
+const profs = readFileSync(join(process.cwd(), "app/api/school/profs/route.ts"), "utf8").replace(/\r\n/g, "\n");
 const post = profs.slice(profs.indexOf("export async function POST"), profs.indexOf("export async function DELETE"));
 const del = profs.slice(profs.indexOf("export async function DELETE"));
 
+/**
+ * Since 2026-09-13 (owner decision) the route has two halves. An address with
+ * NO account gets one created by the school and joins the team at once — there
+ * is no one's existing identity to attach, only an account the school just
+ * made. Everyone who already has an account still has to accept. The tests
+ * below keep that second half exactly as strict as before, and pin the first
+ * half to the account created in the same branch.
+ */
+const createBranch = post.slice(post.indexOf("if (!found) {"), post.indexOf("created: true"));
+const existingPath = post.slice(post.indexOf("created: true"));
+
 describe("inviting a teacher", () => {
-  it("never writes a membership", () => {
-    expect(post).not.toMatch(/from\("school_admins"\)[\s\S]{0,120}\.insert\(/);
+  it("never writes a membership for an EXISTING account", () => {
+    expect(existingPath).not.toMatch(/from\("school_admins"\)[\s\S]{0,120}\.insert\(/);
+  });
+
+  it("writes one only for the account it has just created, in the same branch", () => {
+    expect(createBranch).toContain("auth.admin.createUser(");
+    expect(createBranch.indexOf("auth.admin.createUser(")).toBeLessThan(createBranch.indexOf('.from("school_admins")'));
+    expect(createBranch).toMatch(/\.insert\(\{ user_id: newUserId,/);
+    // Never on an address that already belongs to someone.
+    expect(createBranch).toContain("already has an account");
+  });
+
+  it("caps account creation per admin and never shows anyone the password", () => {
+    expect(createBranch).toContain('checkStrictUserRateLimit("school_prof_create"');
+    expect(createBranch).toContain("randomBytes(");
+    expect(post).not.toMatch(/password[^\n]*json/i);
   });
 
   it("still reads school_admins — to refuse someone already in the school", () => {

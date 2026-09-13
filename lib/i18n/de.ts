@@ -2536,6 +2536,10 @@ export const de: Partial<Messages> = {
   "school.team.invitationSentA": "Einladung gesendet an",
   "school.team.invitationSentB": ". Sie treten bei, sobald sie den Code eingeben.",
   "school.team.emailNotSetUp": "E-Mail ist hier nicht eingerichtet, schick ihnen diesen Code selbst:",
+  "school.team.accountCreatedA": "Konto erstellt und deinem Team hinzugefügt:",
+  "school.team.accountCreatedB": ". Per E-Mail wurde erklärt, wie die Anmeldung funktioniert.",
+  "school.team.accountCreatedNoEmail":
+    ". E-Mail ist hier nicht eingerichtet: Sag der Person, sie soll sich mit dieser Adresse anmelden und „Passwort vergessen?“ nutzen.",
   "school.team.inviteFailed": "Die Einladung konnte nicht gesendet werden.",
   "school.team.removeTeacherFailed": "Die Lehrkraft konnte nicht entfernt werden.",
   "school.team.createInviteFailed": "Der Einladungscode konnte nicht erstellt werden.",

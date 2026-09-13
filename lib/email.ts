@@ -63,7 +63,14 @@ export async function sendEmail(opts: {
     const res = await fetch(RESEND_ENDPOINT, {
       method: "POST",
       headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
-      body: JSON.stringify({ from, to: [opts.to], subject: opts.subject, html: opts.html, text: opts.text }),
+      body: JSON.stringify({
+        from,
+        to: [opts.to],
+        reply_to: replyTo(),
+        subject: opts.subject,
+        html: opts.html,
+        text: opts.text,
+      }),
     });
     if (!res.ok) {
       const detail = await res.text().catch(() => "");
@@ -73,6 +80,171 @@ export async function sendEmail(opts: {
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "send failed" };
   }
+}
+
+// ---- Published Resend templates ---------------------------------------------
+
+/**
+ * The templates designed and published in the Resend dashboard, by id. Their
+ * HTML lives there, not here; this module only chooses one and fills it in.
+ */
+const RESEND_TEMPLATES = {
+  pilotStarted: "da4aa2f6-1674-4d81-8dab-765fd7bf9605",
+  accountCreated: "ba08106c-4966-43a4-8eb1-22bdd7206950",
+  schoolLinked: "c8f32e8d-f55d-468e-a6c1-dd03164aca5e",
+} as const;
+
+export type EmailTemplate = keyof typeof RESEND_TEMPLATES;
+
+/**
+ * Where a reply goes. Every template ends with "reply to this email", and the
+ * From address is a no-reply one, so without this the replies the templates
+ * ask for would be sent into nothing.
+ */
+function replyTo(): string {
+  return process.env.EMAIL_REPLY_TO ?? "hello@thebluestift.com";
+}
+
+/**
+ * Resend pastes template variables into the HTML AS-IS. Verified on 2026-09-13
+ * against the live API: a school named `<b>X</b>` arrived as markup. School
+ * and teacher names are typed by users, so every value is escaped here, once,
+ * before it can reach an inbox.
+ */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/** "Ada Lovelace" → "Ada"; an address's local part as the last resort. */
+export function firstNameOf(name: string | null | undefined, email?: string | null): string {
+  const fromName = (name ?? "").trim().split(/\s+/)[0];
+  if (fromName) return fromName.slice(0, 40);
+  const local = (email ?? "").split("@")[0]?.split(/[._+-]+/)[0] ?? "";
+  return local ? local.charAt(0).toUpperCase() + local.slice(1, 40) : "there";
+}
+
+/**
+ * Send a published template.
+ *
+ * The From header stays the project's (fromHeader), not the template's default,
+ * so every email keeps one sending identity. The SUBJECT is sent from here too,
+ * in plain text: the template's subject would take the same unescaped variables
+ * as the body, and an escaped one would show "&amp;" in the inbox. Values are
+ * strings or numbers, as Resend requires. Never throws, like sendEmail.
+ */
+export async function sendTemplateEmail(opts: {
+  to: string;
+  template: EmailTemplate;
+  subject: string;
+  variables: Record<string, string | number>;
+  brand?: EmailBrand;
+}): Promise<SendResult> {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return { ok: false, skipped: true };
+  if (!hasRealEmail(opts.to)) return { ok: false, skipped: true };
+  const variables = Object.fromEntries(
+    Object.entries(opts.variables).map(([k, v]) => [k, typeof v === "number" ? v : escapeHtml(v)]),
+  );
+  try {
+    const res = await fetch(RESEND_ENDPOINT, {
+      method: "POST",
+      headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        from: fromHeader(opts.brand ?? "bluestift"),
+        to: [opts.to],
+        reply_to: replyTo(),
+        subject: opts.subject,
+        template: { id: RESEND_TEMPLATES[opts.template], variables },
+      }),
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      return { ok: false, error: `Resend ${res.status}: ${detail.slice(0, 200)}` };
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "send failed" };
+  }
+}
+
+/** "27 October 2026" — the templates are written in English. */
+function longDate(isoDate: string): string {
+  return new Date(`${isoDate.slice(0, 10)}T12:00:00Z`).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+/** Trigger 1 — a school was created and its pilot started. */
+export function sendPilotStartedEmail(opts: {
+  to: string;
+  adminFirstname: string;
+  schoolName: string;
+  pilotDays: number;
+  pilotUntil: string;
+}): Promise<SendResult> {
+  return sendTemplateEmail({
+    to: opts.to,
+    template: "pilotStarted",
+    brand: "schools",
+    subject: `${opts.schoolName} is live on Bluestift`,
+    variables: {
+      admin_firstname: opts.adminFirstname,
+      school_name: opts.schoolName,
+      pilot_duration_days: opts.pilotDays,
+      pilot_end_date: longDate(opts.pilotUntil),
+      dashboard_url: `${siteUrl("schools")}/school`,
+    },
+  });
+}
+
+/** Trigger 2 — a school created a teacher's account and put them on its team. */
+export function sendAccountCreatedEmail(opts: {
+  to: string;
+  firstname: string;
+  schoolName: string;
+  role: string;
+}): Promise<SendResult> {
+  return sendTemplateEmail({
+    to: opts.to,
+    template: "accountCreated",
+    brand: "schools",
+    subject: "Your Bluestift account is ready",
+    variables: {
+      firstname: opts.firstname,
+      school_name: opts.schoolName,
+      role: opts.role,
+      email: opts.to,
+      login_url: `${siteUrl("schools")}/login`,
+    },
+  });
+}
+
+/** Trigger 3 — an existing account was linked to a school. */
+export function sendSchoolLinkedEmail(opts: {
+  to: string;
+  firstname: string;
+  schoolName: string;
+  role: string;
+}): Promise<SendResult> {
+  return sendTemplateEmail({
+    to: opts.to,
+    template: "schoolLinked",
+    brand: "schools",
+    subject: `You are now a member of ${opts.schoolName}`,
+    variables: {
+      firstname: opts.firstname,
+      school_name: opts.schoolName,
+      role: opts.role,
+      dashboard_url: `${siteUrl("schools")}/school`,
+    },
+  });
 }
 
 /**

@@ -123,9 +123,10 @@ export function SchoolTeam({ classes }: { classes: ClassOpt[] }) {
   }
 
   /**
-   * Inviting does NOT add anyone. The teacher accepts with the code, and only
-   * then do they appear in the list above — so nothing is appended here, and
-   * the confirmation says what actually happened.
+   * Inviting an EXISTING account does not add anyone: the teacher accepts with
+   * the code, and only then appears in the list above. An address with no
+   * account is different — the school creates it and it joins the team at once
+   * (/api/school/profs) — so that case reloads the roster and says so.
    */
   async function addProf(e: React.FormEvent) {
     e.preventDefault();
@@ -136,19 +137,38 @@ export function SchoolTeam({ classes }: { classes: ClassOpt[] }) {
       const r = (await postJson("/api/school/profs", { identifier: profId })) as {
         email: string | null;
         name: string;
-        code: string;
-        codeId: string;
+        created?: boolean;
+        code?: string;
+        codeId?: string;
         emailed: boolean;
       };
+      if (r.created) {
+        setInviteSent(
+          `${tr("school.team.accountCreatedA")} ${r.email ?? profId}${tr(
+            r.emailed ? "school.team.accountCreatedB" : "school.team.accountCreatedNoEmail",
+          )}`,
+        );
+        setProfId("");
+        invalidateCached("school:team");
+        const { data } = await getJsonCached<TeamData>("/api/school/team", {
+          cacheKey: "school:team",
+          onUpdate: applyTeamLists,
+        });
+        if (data) applyTeamLists(data);
+        return;
+      }
+      if (!r.code || !r.codeId) throw new Error(tr("school.team.inviteFailed"));
+      const code = r.code;
+      const codeId = r.codeId;
       setInviteSent(
         r.emailed
           ? `${tr("school.team.invitationSentA")} ${r.email ?? profId}${tr("school.team.invitationSentB")}`
-          : `${tr("school.team.emailNotSetUp")} ${r.code}`,
+          : `${tr("school.team.emailNotSetUp")} ${code}`,
       );
       setProfId("");
       // The new code belongs on the list below, where it can be copied or
       // deactivated like any other.
-      setInvites((v) => [{ id: r.codeId, code: r.code, autoApprove: true, isActive: true }, ...v]);
+      setInvites((v) => [{ id: codeId, code, autoApprove: true, isActive: true }, ...v]);
       invalidateCached("school:team");
     } catch (err) {
       setError(err instanceof Error ? err.message : tr("school.team.inviteFailed"));

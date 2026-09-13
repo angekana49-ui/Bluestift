@@ -2853,6 +2853,10 @@ export const en = {
   "school.team.invitationSentA": "Invitation sent to",
   "school.team.invitationSentB": ". They join once they enter the code.",
   "school.team.emailNotSetUp": "Email isn't set up here, so send them this code yourself:",
+  "school.team.accountCreatedA": "Account created and added to your team:",
+  "school.team.accountCreatedB": ". They've been emailed how to sign in.",
+  "school.team.accountCreatedNoEmail":
+    ". Email isn't set up here, so tell them to sign in with this address and use \"Forgot your password?\".",
   "school.team.inviteFailed": "Could not send the invitation.",
   "school.team.removeTeacherFailed": "Could not remove the teacher.",
   "school.team.createInviteFailed": "Could not create the invite code.",

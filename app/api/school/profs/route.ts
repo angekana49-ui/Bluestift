@@ -1,21 +1,40 @@
 import { NextResponse } from "next/server";
+import { randomBytes } from "node:crypto";
 import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, createSchoolsAdminClient } from "@/lib/supabase/admin";
-import { getAdminMembership, makeStaffCode } from "@/lib/school-admin";
+import { confirmMembershipForYear, getAdminMembership, makeStaffCode } from "@/lib/school-admin";
 import { checkStrictUserRateLimit } from "@/lib/rate-limit";
-import { sendBrandedEmail, siteUrl } from "@/lib/email";
+import { firstNameOf, sendAccountCreatedEmail, sendBrandedEmail, siteUrl } from "@/lib/email";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
- * INVITE a teacher to the admin_master's school, by email. They must already
- * have a Bluestift account, and they must accept — nothing is written to
- * `school_admins` here.
+ * Accounts one admin may create for teachers in a day. A school onboarding its
+ * whole staff one morning fits; a school used to mail strangers does not.
+ */
+const MAX_CREATED_PER_DAY = 25;
+
+/**
+ * INVITE a teacher to the admin_master's school, by email. Two cases, and they
+ * are deliberately not treated alike.
  *
- * It used to add them outright. Anyone can create a school in one signup, so
- * that let a stranger attach any account to a school of their own without ever
- * asking: the victim opened /school and found themselves staff somewhere they
- * had never heard of, listed by name to whoever put them there. Membership in
- * an organisation is not something one party should be able to decide alone.
+ * AN EXISTING ACCOUNT must accept — nothing is written to `school_admins` for it
+ * here. It used to be added outright. Anyone can create a school, so that let a
+ * stranger attach any account to a school of their own without ever asking: the
+ * victim opened /school and found themselves staff somewhere they had never
+ * heard of, listed by name to whoever put them there. Membership in an
+ * organisation is not something one party should be able to decide alone.
+ *
+ * NO ACCOUNT YET: the school provisions one — created, added to the team, and
+ * announced with the "account-created" template (owner decision, 2026-09-13).
+ * The objection above does not carry over: there is no one's existing history,
+ * classes or identity to attach, only a fresh account the school made for its
+ * own staff, the way a school's IT hands out a mailbox. What remains is abuse of
+ * the send itself, so creation has its own daily cap per admin. The password is
+ * random and never shown to anyone: the only way in is "Reset password", whose
+ * link goes to that inbox, so the school never holds a credential for it. The
+ * person still meets onboarding (and its terms) at their first sign-in.
  *
  * The acceptance runs through machinery that already exists rather than new
  * schema: a fresh auto-approve code is minted for this invitation, emailed to
@@ -74,11 +93,66 @@ export async function POST(request: Request) {
   if (!found && !/[%_]/.test(identifier)) {
     ({ data: found } = await admin.from("users").select(cols).ilike("email", identifier).maybeSingle());
   }
-  if (!found) {
-    return NextResponse.json({ error: "No Bluestift account with that email." }, { status: 404 });
-  }
-
   const schools = createSchoolsAdminClient();
+
+  if (!found) {
+    if (!EMAIL_RE.test(identifier) || /[%_]/.test(identifier.split("@")[1] ?? "")) {
+      return NextResponse.json({ error: "Enter the teacher's email address." }, { status: 400 });
+    }
+    if (!(await checkStrictUserRateLimit("school_prof_create", user.id, MAX_CREATED_PER_DAY, "24 hours"))) {
+      return NextResponse.json(
+        { error: "You've created many teacher accounts today. Please try again tomorrow." },
+        { status: 429 },
+      );
+    }
+
+    const firstname = firstNameOf(null, identifier);
+    const { data: created, error: createErr } = await admin.auth.admin.createUser({
+      email: identifier,
+      password: randomBytes(36).toString("base64url"),
+      email_confirm: true,
+      // handle_new_user seeds public.users.display_name from this.
+      user_metadata: { display_name: firstname },
+    });
+    if (createErr || !created.user) {
+      // An auth account whose profile row is missing: it exists, so it is not
+      // ours to create — and not ours to attach either.
+      if (createErr && /already|registered|exists/i.test(createErr.message)) {
+        return NextResponse.json(
+          { error: "That email already has an account. Share an invite code with them instead." },
+          { status: 409 },
+        );
+      }
+      return NextResponse.json({ error: clientError(createErr, "Could not create the account.") }, { status: 500 });
+    }
+    const newUserId = created.user.id;
+
+    const { data: memberRow, error: memberErr } = await schools
+      .from("school_admins")
+      .insert({ user_id: newUserId, school_id: membership.schoolId, role: "prof" })
+      .select("id")
+      .single();
+    if (memberErr || !memberRow) {
+      // Never leave an account behind that the school did not manage to take on.
+      await admin.auth.admin.deleteUser(newUserId).catch(() => undefined);
+      return NextResponse.json({ error: clientError(memberErr, "Could not add the teacher.") }, { status: 500 });
+    }
+    await confirmMembershipForYear((memberRow as { id: string }).id, membership.currentYearId);
+
+    const sent = await sendAccountCreatedEmail({
+      to: identifier,
+      firstname,
+      schoolName: membership.schoolName,
+      role: "teacher",
+    });
+    return NextResponse.json({
+      invited: true,
+      created: true,
+      email: identifier,
+      name: firstname,
+      emailed: sent.ok === true,
+    });
+  }
   const { data: existing } = await schools
     .from("school_admins")
     .select("id")

@@ -1,6 +1,7 @@
 {
   "crons": [
     { "path": "/api/cron/anon-lifecycle", "schedule": "0 3 * * *" },
-    { "path": "/api/cron/kernel-health", "schedule": "30 6 * * *" }
+    { "path": "/api/cron/kernel-health", "schedule": "30 6 * * *" },
+    { "path": "/api/cron/pilot-reminder", "schedule": "0 8 * * *" }
   ]
 }

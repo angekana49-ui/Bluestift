@@ -6,7 +6,7 @@ import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { setActiveSchoolCookie } from "@/lib/school-active";
 import { confirmMembershipForYear, needsYearReconfirmation } from "@/lib/school-admin";
 import { hasRealEmail } from "@/lib/auth";
-import { notifyAdminsOfRequest } from "@/lib/school-join";
+import { notifyAdminsOfRequest, notifyTeacherLinked } from "@/lib/school-join";
 import { checkStrictRateLimit } from "@/lib/rate-limit";
 
 // Local shapes for the untyped `schools` schema.
@@ -144,6 +144,7 @@ export async function POST(request: Request) {
     await spendIfSingleUse(schools, codeRow);
     // Land the teacher in the school they just joined.
     await setActiveSchoolCookie(codeRow.school_id);
+    after(() => notifyTeacherLinked(user.id, schoolName ?? "your school"));
     return NextResponse.json({ status: "joined", schoolName });
   }
 

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { confirmMembershipForYear, getAdminMembership } from "@/lib/school-admin";
 import { sendBrandedEmail, getUserEmail, siteUrl } from "@/lib/email";
+import { notifyTeacherLinked } from "@/lib/school-join";
 
 /** Tell a teacher their join request was decided (best-effort, non-blocking). */
 async function notifyDecision(teacherUserId: string, schoolName: string, approved: boolean) {
@@ -74,6 +75,10 @@ export async function POST(request: Request) {
   }
 
   let adminId: string | null = null;
+  // A request that creates the membership is a new link ("school-linked"
+  // template). One that finds it already there is a returning teacher's year
+  // renewal, and keeps the plain "approved" note.
+  let linkedNow = false;
   if (action === "approve") {
     // Idempotent membership: reuse the row if they somehow already joined. A
     // returning teacher ALWAYS lands here — the yearly staff code sends them
@@ -95,6 +100,7 @@ export async function POST(request: Request) {
         .single();
       if (error) return NextResponse.json({ error: clientError(error) }, { status: 500 });
       adminId = (created as { id: string }).id;
+      linkedNow = true;
     }
 
     // Confirm them for the running year. Deliberately NOT their classes and
@@ -116,7 +122,8 @@ export async function POST(request: Request) {
 
   // Let the teacher know the outcome. Awaited (not fire-and-forget) so it isn't
   // dropped when the serverless function ends; sendEmail never throws.
-  await notifyDecision(reqRow.user_id, membership.schoolName, action === "approve");
+  if (linkedNow) await notifyTeacherLinked(reqRow.user_id, membership.schoolName);
+  else await notifyDecision(reqRow.user_id, membership.schoolName, action === "approve");
 
   return NextResponse.json({
     id: requestId,

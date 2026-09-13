@@ -9,7 +9,7 @@ import { currentAcademicYear } from "@/lib/school-constants";
 import { hasRealEmail } from "@/lib/auth";
 import { MIN_B2B_SEATS, SCHOOL_PILOT_DAYS, pilotEndDate } from "@/lib/billing/terms";
 import { checkStrictUserRateLimit } from "@/lib/rate-limit";
-import { sendBrandedEmail, siteUrl } from "@/lib/email";
+import { firstNameOf, sendPilotStartedEmail } from "@/lib/email";
 
 /** A plain address check — enough to refuse a typo, not a deliverability test. */
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -170,20 +170,18 @@ export async function POST(request: Request) {
   // Land the creator in the school they just made (multi-school active pointer).
   await setActiveSchoolCookie(schoolId);
 
+  // The "pilot-started" template (Resend). Its promise of a reminder before the
+  // pilot ends is kept by /api/cron/pilot-reminder.
   const to = user.email as string;
-  const until = new Date(pilotEndsAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  // display_name only: the seeded username ("user_1a2b3c4d") is not a name.
+  const { data: me } = await supabase.from("users").select("display_name").eq("id", user.id).maybeSingle();
   after(() =>
-    sendBrandedEmail({
-      brand: "schools",
+    sendPilotStartedEmail({
       to,
-      subject: `Your ${SCHOOL_PILOT_DAYS}-day pilot has started — ${name}`,
-      heading: `${name} is on Bluestift Schools`,
-      lines: [
-        `Your free ${SCHOOL_PILOT_DAYS}-day pilot has started on ${plan.name}, for ${effectif} students.`,
-        `It runs until ${until}. Nothing is charged during the pilot.`,
-        "To keep adding students and classes after that date, activate a plan from the Billing tab.",
-      ],
-      cta: { label: "Open your school", url: `${siteUrl("schools")}/school` },
+      adminFirstname: firstNameOf(me?.display_name, to),
+      schoolName: name,
+      pilotDays: SCHOOL_PILOT_DAYS,
+      pilotUntil,
     }),
   );
 
