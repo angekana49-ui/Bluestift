@@ -20,25 +20,24 @@ import { prefsUsable, readPref, writePref } from "@/lib/shared-pref";
  * for a fifth control, and a visitor who reads French shouldn't have to hunt
  * for a menu to discover the site speaks it.
  *
- * It is deliberately NOT a hard gate — an interstitial in front of the content
- * costs bounce rate. That was always the intent, but the implementation used to
- * contradict it: a centred `aria-modal` dialog over a dimmed, blurred backdrop,
- * which is an interstitial by any definition. The very first thing a new
- * visitor saw was a dialog, before a single word of the page. It is now a bar
- * that settles at the bottom of the viewport:
+ * A CENTRED popup (owner decision, 2026-09-13). It had become a bar at the
+ * bottom edge, stacked above the analytics consent banner, and in practice it
+ * read as misplaced — half a card wedged between the page and another banner,
+ * and on a phone the one thing that should be answered first was the easiest
+ * to miss. So it is asked in the middle of the screen, once, and made cheap to
+ * answer or skip:
  *
- *  - the page is readable immediately, and stays clickable — the fixed wrapper
- *    is `pointer-events: none`, so only the bar itself catches clicks;
- *  - the browser's own language is detected and pre-selected, making this a
+ *  - the browser's own language is detected and pre-selected, so this is a
  *    one-click confirmation rather than a question;
- *  - Escape dismisses it, and dismissal is remembered;
+ *  - Escape, the ×, or a click on the backdrop dismisses it, and dismissal is
+ *    remembered like an answer;
  *  - it never shows twice, and never shows at all to someone who already has a
- *    language (e.g. set inside the app — `LOCALE_KEY` is shared).
+ *    language (e.g. set inside the app — `LOCALE_KEY` is shared);
+ *  - on a phone the four languages sit on a 2×2 grid of full-width buttons, not
+ *    a row of chips that wraps unevenly.
  *
- * It also no longer takes focus on appear. Stealing the caret is defensible for
- * a modal, which owns the screen until answered; for a bar sitting beside the
- * content it would just interrupt someone who has started reading. Keyboard
- * users reach it by Tab, and it is last in the DOM.
+ * Focus moves to the suggested language when it opens (a dialog owns the screen
+ * until answered) and returns where it was when it closes.
  *
  * SSR-safe: it renders nothing until an effect has read localStorage, so the
  * server and first client render agree.
@@ -47,11 +46,12 @@ export function LanguagePrompt({ theme: t }: { theme: Theme }) {
   const { locale, setLocale } = useAppLocale();
   const [open, setOpen] = useState(false);
   const [suggested, setSuggested] = useState<Locale | null>(null);
-  const firstBtn = useRef<HTMLButtonElement | null>(null);
+  const primaryBtn = useRef<HTMLButtonElement | null>(null);
+  const returnFocus = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     // Both keys live in a cookie as well as localStorage (lib/shared-pref.ts),
-    // which is what stops this bar from reappearing on every origin once the
+    // which is what stops this prompt from reappearing on every origin once the
     // products split: "already asked" has to travel with the visitor, or a
     // three-origin visit would ask three times.
     // Nothing can be stored (private mode, an embedded webview): stay quiet.
@@ -86,12 +86,18 @@ export function LanguagePrompt({ theme: t }: { theme: Theme }) {
 
   useEffect(() => {
     if (!open) return;
-    // No focus() here on purpose — see the note on focus above.
+    returnFocus.current = document.activeElement as HTMLElement | null;
+    // After the entrance animation has begun, so the ring lands on a visible button.
+    const focusTimer = window.setTimeout(() => primaryBtn.current?.focus({ preventScroll: true }), 60);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") dismiss();
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      window.clearTimeout(focusTimer);
+      window.removeEventListener("keydown", onKey);
+      returnFocus.current?.focus?.({ preventScroll: true });
+    };
   }, [open, dismiss]);
 
   if (!open) return null;
@@ -111,54 +117,51 @@ export function LanguagePrompt({ theme: t }: { theme: Theme }) {
     de: "Schließen",
   };
   const shown = suggested ?? normalizeLocale(locale);
+  const primaryCode = suggested ?? LOCALES[0].code;
 
   return (
-    // Fixed, but transparent to the pointer: the visitor can keep reading and
-    // clicking the page underneath. Only the bar re-enables pointer events.
+    // Centred in the viewport. The backdrop is light — enough to say "answer
+    // this first", not a blackout — and clicking it counts as "not now".
     <div
       className="pub-lang-wrap"
+      onClick={dismiss}
       style={{
         position: "fixed",
-        left: 0,
-        right: 0,
-        // ConsentBanner (components/analytics/ConsentBanner.tsx) can be showing
-        // at the same time, on the same first visit — it publishes its own
-        // rendered height as --bs-consent-h while it's up, so this bar stacks
-        // above it instead of landing at the same `bottom: 0` and getting
-        // buried under the banner's much higher z-index. Falls back to flush
-        // with the viewport edge whenever the consent banner isn't showing.
-        bottom: "var(--bs-consent-h, 0px)",
+        inset: 0,
         zIndex: 200,
         display: "flex",
+        alignItems: "center",
         justifyContent: "center",
-        padding: 16,
-        pointerEvents: "none",
+        // Side gutter on every screen, and the safe areas of notched phones.
+        padding: "max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left))",
+        background: "rgba(8, 14, 28, 0.32)",
       }}
     >
       <div
-        role="region"
-        aria-label={headingFor[shown]}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pub-lang-title"
         className="pub-lang-bar"
-        // Two rows rather than one: label + dismiss, then the languages. Laid
-        // out on a single line, the label competes with four chips for width and
-        // the chips collapse into a tall vertical stack on a phone.
+        onClick={(e) => e.stopPropagation()}
         style={{
-          pointerEvents: "auto",
-          display: "flex",
-          flexDirection: "column",
-          gap: 10,
           width: "100%",
-          maxWidth: 520,
+          maxWidth: 400,
+          maxHeight: "100%",
+          overflowY: "auto",
+          boxSizing: "border-box",
           background: t.cardBg,
           color: t.text,
           border: `1px solid ${t.cardBorder}`,
-          borderRadius: 18,
+          borderRadius: 20,
           boxShadow: t.cardShadowLg,
-          padding: "13px 15px",
+          padding: "18px 18px 20px",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-          <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14.5, letterSpacing: "-0.01em" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 14 }}>
+          <span
+            id="pub-lang-title"
+            style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, letterSpacing: "-0.01em", lineHeight: 1.3 }}
+          >
             {headingFor[shown]}
           </span>
           <button
@@ -167,14 +170,14 @@ export function LanguagePrompt({ theme: t }: { theme: Theme }) {
             className="pub-focus"
             style={{
               flex: "none",
-              width: 26,
-              height: 26,
+              width: 32,
+              height: 32,
               borderRadius: 999,
               cursor: "pointer",
               background: "transparent",
               border: "none",
               color: t.muted,
-              fontSize: 17,
+              fontSize: 20,
               lineHeight: 1,
             }}
           >
@@ -182,27 +185,28 @@ export function LanguagePrompt({ theme: t }: { theme: Theme }) {
           </button>
         </div>
 
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {LOCALES.map((l, i) => {
-            const isSuggested = l.code === suggested;
+        <div className="pub-lang-grid">
+          {LOCALES.map((l) => {
+            const isPrimary = l.code === primaryCode;
             return (
               <button
                 key={l.code}
-                ref={i === 0 ? firstBtn : undefined}
+                ref={isPrimary ? primaryBtn : undefined}
                 onClick={() => choose(l.code)}
-                className="pub-press"
+                className="pub-press pub-focus"
                 style={{
-                  padding: "7px 14px",
-                  borderRadius: 999,
+                  width: "100%",
+                  minHeight: 44,
+                  padding: "10px 12px",
+                  borderRadius: 12,
                   cursor: "pointer",
-                  fontSize: 14,
+                  fontSize: 15,
                   fontWeight: 600,
-                  whiteSpace: "nowrap",
                   // The detected language is the primary action — one click and
                   // the visitor is reading the site in their own language.
-                  background: isSuggested ? t.ctaBg : "transparent",
-                  color: isSuggested ? t.ctaText : t.text,
-                  border: `1px solid ${isSuggested ? t.ctaBg : t.cardBorder}`,
+                  background: isPrimary && suggested ? t.ctaBg : "transparent",
+                  color: isPrimary && suggested ? t.ctaText : t.text,
+                  border: `1px solid ${isPrimary && suggested ? t.ctaBg : t.cardBorder}`,
                 }}
               >
                 {l.label}

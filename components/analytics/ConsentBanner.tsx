@@ -30,12 +30,11 @@ export function ConsentBanner() {
   }, []);
 
   // Publish the banner's real footprint as a CSS var so anything else that
-  // also anchors to the bottom of the viewport (the public site's first-visit
-  // LanguagePrompt) can stack above it instead of guessing a pixel offset —
-  // or, worse, both landing at `bottom: 0` and overlapping outright, which is
-  // exactly what used to hide the language bar behind this banner's much
-  // higher z-index on most laptop/mobile widths. Falls back to 0px (flush
-  // with the viewport edge) wherever this banner isn't showing.
+  // anchors to the bottom of the viewport can stack above it instead of
+  // guessing a pixel offset — or both landing at `bottom: 0` and overlapping,
+  // under this banner's much higher z-index. (The first-visit LanguagePrompt
+  // used it while it was a bottom bar; it is a centred popup now and no longer
+  // needs it.) Unset wherever this banner isn't showing.
   useEffect(() => {
     const el = boxRef.current;
     if (!show || !el) {

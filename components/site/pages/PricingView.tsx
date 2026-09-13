@@ -381,10 +381,18 @@ function PlanCard({
  * The rows come from lib/entitlements, off the same objects the gates read, so
  * no cell here can promise something the product would refuse.
  *
- * The label column is sticky. A four-column grid does not fit a phone and the
- * table scrolls sideways; without a pinned first column, scrolling to the Max
- * cell takes the name of the row off screen with it, and the reader is left
- * holding a number with nothing attached to it.
+ * Two layouts, switched in CSS (.pub-compare-table / .pub-compare-stack):
+ *
+ * - From 641px, the table. Its label column is sticky, so on a tablet where the
+ *   grid still scrolls sideways the name of the row stays next to its values.
+ * - On a phone, a stack: each row is a small card, its label on top and one
+ *   line per plan underneath. The sticky column could not survive there — at
+ *   ~210px it covered more than half a 375px screen, the values slid beneath
+ *   it, and what the reader got was a row name beside half a number.
+ *
+ * Same data, same order, rendered twice rather than reflowed with one grid,
+ * because a table that turns into cards has to change its structure, not just
+ * its widths, to be read as a list.
  */
 function CompareTable({ t, groups, heads }: { t: Theme; groups: CompareGroup[]; heads: string[] }) {
   const tr = useTranslate();
@@ -427,7 +435,72 @@ function CompareTable({ t, groups, heads }: { t: Theme; groups: CompareGroup[]; 
         {tr("pricing.compare.sub")}
       </p>
 
+      {/* Phones: one card per row, one line per plan. */}
+      <div className="pub-compare-stack">
+        {groups.map((g) => (
+          <div key={g.title} style={{ marginBottom: 22 }}>
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 800,
+                letterSpacing: "0.09em",
+                textTransform: "uppercase",
+                color: t.mutedLight,
+                margin: "0 4px 10px",
+              }}
+            >
+              {g.title}
+            </div>
+            <div style={{ display: "grid", gap: 10 }}>
+              {g.rows.map((r) => (
+                <div
+                  key={r.label}
+                  style={{ background: t.cardBg, border: border, borderRadius: 14, padding: "12px 14px", boxShadow: t.cardShadowSm }}
+                >
+                  <div style={{ fontSize: 15, fontWeight: 600, color: t.text, lineHeight: 1.4 }}>{r.label}</div>
+                  {r.hint && (
+                    <div style={{ marginTop: 3, fontSize: 13, color: t.mutedLight, lineHeight: 1.45 }}>{r.hint}</div>
+                  )}
+                  <dl style={{ margin: "10px 0 0", display: "grid", gap: 6 }}>
+                    {heads.map((h, i) => (
+                      <div
+                        key={h}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "baseline",
+                          gap: 12,
+                          paddingTop: 6,
+                          borderTop: border,
+                        }}
+                      >
+                        <dt
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 800,
+                            letterSpacing: "0.06em",
+                            textTransform: "uppercase",
+                            color: t.muted,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {h}
+                        </dt>
+                        <dd style={{ margin: 0, fontSize: 14, fontWeight: 600, color: t.text, textAlign: "right", overflowWrap: "anywhere" }}>
+                          {r.cells[i] ?? <span style={{ color: t.mutedLight, fontWeight: 400 }}>—</span>}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
       <div
+        className="pub-compare-table"
         style={{
           overflowX: "auto",
           background: t.cardBg,

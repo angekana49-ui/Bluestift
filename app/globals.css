@@ -1567,35 +1567,65 @@ a {
   }
 }
 
-/* The fixed wrapper's `bottom` follows --bs-consent-h (see LanguagePrompt.tsx)
-   so the bar steps down smoothly if the analytics consent banner is answered
-   — and so dismissed — while this bar is still open, instead of teleporting. */
-.pub-lang-wrap {
-  transition: bottom var(--dur-enter) var(--ease-out);
+/* /pricing's comparison (PricingView.tsx CompareTable): the table from 641px,
+   a stack of row cards on a phone, where the table's sticky label column would
+   cover half the screen and hide the values. */
+.pub-compare-stack {
+  display: none;
+}
+@media (max-width: 640px) {
+  .pub-compare-table {
+    display: none;
+  }
+  .pub-compare-stack {
+    display: block;
+  }
 }
 
-/* The first-visit language bar, settling in from the bottom edge rather than
-   appearing on top of the page. Same reasoning as the hero: it mounts already
-   in view, so it animates unconditionally and can never be left hidden. */
+/* The first-visit language popup (LanguagePrompt.tsx), centred in the
+   viewport. The backdrop fades in and the card rises a few pixels into place.
+   Same reasoning as the hero: it mounts already in view, so it animates
+   unconditionally and can never be left hidden. */
+.pub-lang-wrap {
+  animation: langBackdropIn var(--dur-enter) var(--ease-out) 400ms both;
+}
 .pub-lang-bar {
-  animation: langBarIn var(--dur-enter) var(--ease-out) 500ms both;
+  animation: langBarIn var(--dur-enter) var(--ease-out) 450ms both;
+}
+@keyframes langBackdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 @keyframes langBarIn {
   from {
     opacity: 0;
-    transform: translateY(14px);
+    transform: translateY(10px) scale(0.98);
   }
   to {
     opacity: 1;
     transform: none;
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .pub-lang-bar {
-    animation: none;
+/* Four languages as a 2×2 grid of full-width buttons: even on every width, and
+   thumb-sized on a phone. One column only where two would not fit a label. */
+.pub-lang-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+@media (max-width: 300px) {
+  .pub-lang-grid {
+    grid-template-columns: 1fr;
   }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pub-lang-bar,
   .pub-lang-wrap {
-    transition: none;
+    animation: none;
   }
 }
 
