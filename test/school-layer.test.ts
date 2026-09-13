@@ -94,7 +94,11 @@ describe("the layer is translated, not just translatable", () => {
   // language its admin reads, and an English paragraph about pricing in the
   // middle of a French form is exactly where trust is lost.
   const keys = (Object.keys(en) as MessageKey[]).filter(
-    (k) => k.startsWith("layer.") || k.startsWith("onb.path.schools.") || k.startsWith("school.billing.readOnly"),
+    (k) =>
+      k.startsWith("layer.") ||
+      k.startsWith("plan.feature.") ||
+      k.startsWith("onb.path.schools.") ||
+      k.startsWith("school.billing.readOnly"),
   );
 
   it("covers the whole flow", () => {
@@ -107,6 +111,30 @@ describe("the layer is translated, not just translatable", () => {
       expect(missing, `${locale} is missing`).toEqual([]);
     });
   }
+});
+
+describe("the school form", () => {
+  const form = read("components/school-layer/school-setup.tsx");
+
+  it("is two steps under the onboarding's gauge", () => {
+    expect(form).toContain("useState<1 | 2>(1)");
+    expect(form).toContain('{tr("onb.stepLabel")} {step} {tr("onb.of")} 2');
+  });
+
+  it("starts the pilot from ONE button, not one per plan card", () => {
+    expect(form.match(/layer\.plans\.startA/g)).toHaveLength(1);
+    expect(form.match(/"\/api\/school\/create"/g)).toHaveLength(1);
+  });
+
+  it("shows a plan without a price, but never lets it be chosen", () => {
+    expect(form).toContain("const isQuoted = (p: LayerPlan) => p.price == null || p.tier === \"custom\"");
+    expect(form).toContain("const canLaunch = Boolean(plan && !isQuoted(plan)");
+    expect(form).toMatch(/if \(quoted\) \{[\s\S]*?<button type="button" disabled[\s\S]*?href=\{`mailto:\$\{TEAM_EMAIL\}/);
+  });
+
+  it("translates plan features, falling back to the database's words if the list changed", () => {
+    expect(form).toContain("featureKeys && featureKeys.length === plan.features.length");
+  });
 });
 
 describe("onboarding's two filters", () => {
