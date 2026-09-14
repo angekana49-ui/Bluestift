@@ -1,6 +1,8 @@
 import "server-only";
 import { CONSENT_COOKIE } from "@/lib/analytics/consent";
 import { optionalProcessingAllowed } from "@/lib/compliance/optional-processing";
+import { posthogHost } from "@/lib/analytics/posthog-host";
+import type { ProductEvent } from "@/lib/analytics/events";
 
 // Server-side product analytics (PostHog). Used for events that only exist on the
 // server — most importantly the entitlement "monitor mode" signals: in monitor
@@ -11,14 +13,21 @@ import { optionalProcessingAllowed } from "@/lib/compliance/optional-processing"
 // affect a request.
 
 const KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
-const HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://eu.i.posthog.com";
+// Straight to PostHog, not through /ingest: a server has no content blocker to
+// get past, and a hop back through our own deployment would only add latency.
+const HOST = posthogHost();
 
 // posthog-node is imported lazily and only once analytics is configured, so the
 // dependency never loads in tests or before setup. flushAt:1 queues each event to
 // send immediately; the actual network delivery is drained via `flush()` inside an
 // `after()` callback (see captureServer) so a frozen serverless function can't drop it.
 type PostHogNode = {
-  capture: (m: { distinctId: string; event: string; properties?: Record<string, unknown> }) => void;
+  capture: (m: {
+    distinctId: string;
+    event: string;
+    properties?: Record<string, unknown>;
+    timestamp?: Date;
+  }) => void;
   flush: () => Promise<void>;
 };
 let clientPromise: Promise<PostHogNode | null> | null = null;
@@ -48,11 +57,15 @@ async function hasConsent(): Promise<boolean> {
  * Emit a server-side event for `userId`. No-ops unless analytics is configured,
  * we have a user to attribute it to, AND consent was granted. Best-effort: call
  * as `void captureServer(...)` so it never blocks (or breaks) the request.
+ *
+ * `timestamp` is for an event that happened before we were allowed to record
+ * it — see `signed_up` in app/api/account/age/route.ts. Default: now.
  */
 export async function captureServer(
   userId: string | null | undefined,
-  event: string,
+  event: ProductEvent,
   properties?: Record<string, unknown>,
+  options?: { timestamp?: Date },
 ): Promise<void> {
   try {
     if (!KEY || !userId) return;
@@ -63,7 +76,7 @@ export async function captureServer(
     if (!(await optionalProcessingAllowed(userId))) return;
     const client = await getClient();
     if (!client) return;
-    client.capture({ distinctId: userId, event, properties });
+    client.capture({ distinctId: userId, event, properties, timestamp: options?.timestamp });
     // Drain the send AFTER the response is flushed to the user: `after()` keeps the
     // serverless function alive until the network delivery resolves, so events aren't
     // lost when the function would otherwise freeze. Outside a request scope (or on any

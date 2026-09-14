@@ -12,6 +12,7 @@ import { checkStrictUserRateLimit } from "@/lib/rate-limit";
 import { firstNameOf, sendPilotStartedEmail } from "@/lib/email";
 import { MIN_NAME_LENGTH, isNameTooShort, normalizeName } from "@/lib/names";
 import { apiT } from "@/lib/i18n/server";
+import { captureServer } from "@/lib/analytics/server";
 
 /** A plain address check — enough to refuse a typo, not a deliverability test. */
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -216,6 +217,17 @@ export async function POST(request: Request) {
 
   // Land the creator in the school they just made (multi-school active pointer).
   await setActiveSchoolCookie(schoolId);
+
+  // The school's name and city identify it — neither goes to the analytics
+  // processor. Size and plan are what the funnel needs.
+  void captureServer(user.id, "school_created", {
+    plan_tier: plan.tier,
+    seats: effectif,
+    country: countryCode,
+    school_type: schoolType,
+    pilot_days: SCHOOL_PILOT_DAYS,
+    first_school: mineIds.length === 0,
+  });
 
   // The "pilot-started" template (Resend). Its promise of a reminder before the
   // pilot ends is kept by /api/cron/pilot-reminder.

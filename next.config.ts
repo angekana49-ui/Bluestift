@@ -122,6 +122,14 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["mammoth", "xlsx"],
   htmlLimitedBots: HTML_LIMITED_BOTS,
   /**
+   * The PostHog SDK posts to `/ingest/e/`, `/ingest/flags/` — with the trailing
+   * slash. Next's own slash-stripping redirect runs before routing (and before
+   * the proxy), so each batch would first bounce through a 308 to an address
+   * PostHog does not expect. Turned off here; the proxy re-applies the same
+   * redirect to everything else (proxy.ts), so pages keep one canonical address.
+   */
+  skipTrailingSlashRedirect: true,
+  /**
    * The Schools dashboard's tabs, as addresses (lib/school-tabs.ts).
    *
    * A rewrite, not a redirect: the point is that the address bar KEEPS saying

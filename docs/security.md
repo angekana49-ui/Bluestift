@@ -180,7 +180,7 @@ policy now lives in `proxy.ts`, built per request around a fresh 16-byte nonce
 (`lib/security/csp.ts`), and `script-src` reads:
 
 ```
-script-src 'self' 'nonce-<per-request>' 'strict-dynamic' <turnstile> <posthog>
+script-src 'self' 'nonce-<per-request>' 'strict-dynamic' <turnstile>
 ```
 
 `'strict-dynamic'` is the part that matters. Without it a browser trusts any

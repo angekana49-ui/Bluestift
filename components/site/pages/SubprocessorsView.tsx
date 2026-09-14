@@ -80,7 +80,8 @@ export function SubprocessorsView({ signedIn }: { signedIn: boolean }) {
                 "PostHog",
                 tr("subprocessors.row.posthog.purpose"),
                 tr("subprocessors.row.posthog.data"),
-                tr("subprocessors.loc.eu"),
+                // US cloud — must match lib/analytics/posthog-host.ts.
+                tr("subprocessors.loc.us"),
               ],
               [
                 "Cloudflare",

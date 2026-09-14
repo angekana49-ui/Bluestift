@@ -11,6 +11,7 @@ import {
 } from "@/lib/compliance/age";
 import { forgetOptionalProcessing } from "@/lib/compliance/optional-processing";
 import { apiT } from "@/lib/i18n/server";
+import { captureServer } from "@/lib/analytics/server";
 
 /**
  * The age declaration (COPPA age screen / GDPR art. 8).
@@ -114,6 +115,34 @@ export async function POST(request: Request) {
 
   // The band just changed, and the read path memoises it for five minutes.
   forgetOptionalProcessing(user.id);
+
+  /**
+   * `signed_up` is sent HERE, not where the account is created.
+   *
+   * At creation nobody's age is known, and the analytics gate treats an unknown
+   * age as a minor's — so an event sent then is always dropped. This is the
+   * first moment an account can be recorded at all: the age step, seconds into
+   * onboarding. It carries the account's real creation time, so charts put the
+   * sign-up on the day it happened.
+   *
+   * One shot like the declaration itself (the 409 above), so one event per
+   * account. What it cannot see, by construction: anyone who leaves before the
+   * age step, and every minor.
+   */
+  if (isAdult) {
+    const createdAt = user.created_at ? new Date(user.created_at) : null;
+    const known = createdAt && Number.isFinite(createdAt.getTime()) ? createdAt : undefined;
+    void captureServer(
+      user.id,
+      "signed_up",
+      {
+        method: user.is_anonymous ? "anonymous" : (user.app_metadata?.provider ?? "email"),
+        // An account made before the age question existed, asked it on return.
+        declared_later: known ? Date.now() - known.getTime() > 24 * 60 * 60 * 1000 : false,
+      },
+      { timestamp: known },
+    );
+  }
 
   // Decided from what we just stored, alongside any school that already vouches
   // for this student — a child who joined a class first is not blocked.

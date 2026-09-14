@@ -28,6 +28,7 @@ import {
 } from "@/lib/kernel/profile-cache";
 import type { KernelMessage } from "@/lib/kernel/types";
 import { apiT } from "@/lib/i18n/server";
+import { captureServer } from "@/lib/analytics/server";
 
 // Streaming LLM turn: give the function room to finish long replies on Vercel.
 export const maxDuration = 60;
@@ -329,6 +330,18 @@ export async function POST(request: Request) {
   // word rulebook — and a small model handed a rulebook follows it literally,
   // which is most of what made the tutor read as mechanical.
   const routing = routeTier(profile, alerts);
+
+  // Counted here — stored, not a replay, not yet answered — so a retry after a
+  // lost response is one message, and a model outage still shows what was asked.
+  void captureServer(user.id, "raya_message_sent", {
+    surface: roomId ? "room" : "raya",
+    new_conversation: !body.conversationId,
+    with_files: fileIds.length > 0,
+    mode,
+    model_tier: routing.tier,
+    tier,
+  });
+
   let model: string;
   let deltas: AsyncGenerator<string>;
   let usage: TokenUsage;

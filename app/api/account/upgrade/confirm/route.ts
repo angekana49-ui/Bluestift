@@ -4,6 +4,7 @@ import { confirmAccountUpgrade } from "@/lib/account-upgrade";
 import { resolvePostAuth } from "@/lib/routing";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/request-ip";
+import { captureServer } from "@/lib/analytics/server";
 
 export const runtime = "nodejs";
 
@@ -36,6 +37,10 @@ export async function POST(request: Request) {
     token: typeof body.token === "string" ? body.token : "",
   });
   if (!result.ok) return NextResponse.json({ code: result.code }, { status: result.status });
+
+  // Anonymous → verified, on the same account. Best-effort by nature: the link
+  // is often opened on another device, whose consent cookie is its own.
+  void captureServer(result.userId, "account_verified", { same_device: result.signedIn });
 
   // Onboarding if it isn't finished, their home otherwise. Without a session on
   // this device there is nowhere to send them but the sign-in page.

@@ -10,6 +10,7 @@ import { createPayment, setPaymentProviderRef } from "@/lib/billing/payments-dat
 import { MIN_B2B_SEATS, termTotal } from "@/lib/billing/terms";
 import { siteUrl } from "@/lib/email";
 import { apiT } from "@/lib/i18n/server";
+import { captureServer } from "@/lib/analytics/server";
 
 /**
  * Start a self-serve online checkout (card / mobile money / PayPal via the active
@@ -218,6 +219,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: await apiT("api.thisMethodIsntAvailableForOnline") }, { status: 400 });
     }
     if (checkout.providerRef) await setPaymentProviderRef(paymentId, checkout.providerRef);
+    // The last step analytics can see: the payment itself is confirmed by the
+    // provider's webhook, a request with no visitor and so no consent to read.
+    void captureServer(user.id, "checkout_started", {
+      audience,
+      plan: plan.name,
+      channel,
+      provider: provider.id,
+      months,
+      seats: seatLimit,
+      amount,
+      currency,
+    });
     return NextResponse.json({ url: checkout.url, paymentId });
   } catch {
     return NextResponse.json({ error: await apiT("api.couldNotReachThePaymentProvider") }, { status: 502 });

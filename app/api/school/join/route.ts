@@ -8,6 +8,7 @@ import { checkStrictUserRateLimit } from "@/lib/rate-limit";
 import { ageBand, isMinor } from "@/lib/compliance/age";
 import { forgetOptionalProcessing } from "@/lib/compliance/optional-processing";
 import { apiT } from "@/lib/i18n/server";
+import { captureServer } from "@/lib/analytics/server";
 
 // Local shapes for the untyped `schools` schema (not in generated types).
 type CodeRow = { class_id: string; school_year_id: string | null };
@@ -217,6 +218,10 @@ export async function POST(request: Request) {
     .eq("id", schoolId)
     .maybeSingle();
   const schoolName = ((schoolData ?? null) as SchoolRow | null)?.name ?? null;
+
+  // Most people joining a class are minors, and the age gate inside
+  // captureServer drops those — this counts the adults (and 18+ students).
+  void captureServer(user.id, "class_joined", { new_to_school: newToSchool, moved_class: !alreadyInThisClass && !newToSchool });
 
   return NextResponse.json({
     schoolName,

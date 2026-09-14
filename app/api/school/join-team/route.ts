@@ -9,6 +9,7 @@ import { hasRealEmail } from "@/lib/auth";
 import { notifyAdminsOfRequest, notifyTeacherLinked } from "@/lib/school-join";
 import { checkStrictRateLimit } from "@/lib/rate-limit";
 import { apiT } from "@/lib/i18n/server";
+import { captureServer } from "@/lib/analytics/server";
 
 // Local shapes for the untyped `schools` schema.
 type CodeRow = { id: string; school_id: string; auto_approve: boolean; single_use?: boolean };
@@ -128,6 +129,7 @@ export async function POST(request: Request) {
       await confirmMembershipForYear(member.id, currentYearId);
       await spendIfSingleUse(schools, codeRow);
       await setActiveSchoolCookie(codeRow.school_id);
+      void captureServer(user.id, "school_team_joined", { outcome: "renewed" });
       return NextResponse.json({ status: "renewed", schoolName });
     }
     // Otherwise the admin validates, through the same request queue as a new
@@ -146,6 +148,7 @@ export async function POST(request: Request) {
     // Land the teacher in the school they just joined.
     await setActiveSchoolCookie(codeRow.school_id);
     after(() => notifyTeacherLinked(user.id, schoolName ?? "your school"));
+    void captureServer(user.id, "school_team_joined", { outcome: "joined" });
     return NextResponse.json({ status: "joined", schoolName });
   }
 
@@ -177,6 +180,9 @@ export async function POST(request: Request) {
 
   // Fresh request — let the admins know, after the response is sent.
   after(() => notifyAdminsOfRequest(schools, codeRow.school_id, schoolName, user.email ?? null));
+  // The approval itself is the admin's request, on the admin's consent — so the
+  // teacher's side of the funnel ends at asking.
+  void captureServer(user.id, "school_team_joined", { outcome: "requested" });
 
   return NextResponse.json({ status: "requested", schoolName });
 }

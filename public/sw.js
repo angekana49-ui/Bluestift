@@ -177,6 +177,9 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
   // Never touch the API — see the header comment.
   if (url.pathname.startsWith("/api/")) return;
+  // Nor the analytics relay: its scripts end in .js and would otherwise be
+  // cached as shell assets, pinning an old SDK extension until VERSION moves.
+  if (url.pathname.startsWith("/ingest/")) return;
 
   // Content-hashed build output. The filename IS the version, so a hit can
   // never be stale and revalidating it could only ever waste a request.

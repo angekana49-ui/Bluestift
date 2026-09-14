@@ -8,12 +8,12 @@ import { netFetch } from "@/lib/net/client-fetch";
 import {
   analyticsAvailable,
   capturing,
-  disableAnalytics,
+  lockOutMinor,
+  MINOR_LOCKOUT_EVENT,
   onPostHogReady,
   posthogIfLoaded,
   restoreAnalyticsConsent,
 } from "@/lib/analytics/posthog-lazy";
-import { setConsent } from "@/lib/analytics/consent";
 import { scrubUrl } from "@/lib/analytics/scrub-url";
 import { ConsentBanner } from "./ConsentBanner";
 
@@ -99,15 +99,16 @@ function useMinorLockout(): boolean {
 
   useEffect(() => {
     let active = true;
+    // An age declared later in this same page life (onboarding) — see lockOutMinor.
+    const onLockout = () => setMinor(true);
+    window.addEventListener(MINOR_LOCKOUT_EVENT, onLockout);
     (async () => {
       try {
         const res = await netFetch("/api/account/age", {}, { timeoutMs: 10_000 });
         if (!res.ok) return;
         const { band } = (await res.json()) as { band: string | null };
         if (!active || band === "adult") return;
-        setMinor(true);
-        setConsent("denied");
-        disableAnalytics();
+        lockOutMinor();
       } catch {
         // Unreachable check → leave the banner alone. The server-side gate
         // still holds, so this failing can't turn analytics ON for a minor.
@@ -115,6 +116,7 @@ function useMinorLockout(): boolean {
     })();
     return () => {
       active = false;
+      window.removeEventListener(MINOR_LOCKOUT_EVENT, onLockout);
     };
   }, []);
 

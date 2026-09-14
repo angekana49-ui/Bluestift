@@ -3,6 +3,7 @@ import { updateSession } from "@/lib/supabase/proxy";
 import { buildCsp, makeNonce } from "@/lib/security/csp";
 import { exemptFromOriginCheck, originAllowed } from "@/lib/security/same-origin";
 import { crossOriginTarget, isPermanentMove } from "@/lib/origins";
+import { trailingSlashTarget } from "@/lib/trailing-slash";
 
 /**
  * The request pipeline: everything that must happen to EVERY request, in the
@@ -42,6 +43,19 @@ export async function proxy(request: NextRequest) {
     })
   ) {
     return new NextResponse(null, { status: 403 });
+  }
+
+  /**
+   * `/about/` → `/about`, as Next did before `skipTrailingSlashRedirect` was
+   * turned on for PostHog's sake (lib/trailing-slash.ts). 308 like Next's, so a
+   * POST keeps its method and body. Built from the raw URL: a clone of
+   * `nextUrl` remembers the slash and would put it straight back.
+   */
+  const withoutSlash = trailingSlashTarget(request.nextUrl.pathname);
+  if (withoutSlash) {
+    const target = new URL(request.url);
+    target.pathname = withoutSlash;
+    return NextResponse.redirect(target, 308);
   }
 
   /**
@@ -98,8 +112,10 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match all request paths except static assets and images.
+     * Match all request paths except static assets, images, and `/ingest` —
+     * the analytics relay (app/ingest/[...path]/route.ts), which needs no
+     * nonce, no session refresh and no cookie writes on its responses.
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|ingest/|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

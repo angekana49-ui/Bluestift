@@ -689,8 +689,10 @@ forces them down on a live deployment. See `lib/entitlements.ts`),
 `NEXT_PUBLIC_POSTHOG_KEY` +
 `NEXT_PUBLIC_POSTHOG_HOST` (PostHog analytics — **opt-in**: nothing is captured
 until the visitor accepts the consent banner. Unset ⇒ analytics fully disabled,
-no banner. Host defaults to `https://eu.i.posthog.com`; see
-`components/analytics/PostHogProvider.tsx`).
+no banner. Host defaults to `https://us.i.posthog.com` — the project is on the
+US cloud, and a key only works on the cluster that issued it. The browser sends
+to `/ingest` on our own origin, relayed without cookies; see
+`lib/analytics/posthog-host.ts` and `app/ingest/[...path]/route.ts`).
 
 Dashboard: enable Anonymous + Email providers; Turnstile secret (Attack
 Protection); Resend SMTP; URL config (Site URL + redirect allowlist); expose

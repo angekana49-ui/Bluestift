@@ -35,6 +35,8 @@ import { useAccountUpgrade, type UpgradeNotice } from "@/components/account-upgr
 import { PasswordField } from "@/components/ui/password-field";
 import { passwordProblem } from "@/lib/password";
 import { isNameTooShort } from "@/lib/names";
+import { getConsent } from "@/lib/analytics/consent";
+import { lockOutMinor } from "@/lib/analytics/posthog-lazy";
 import type { MessageKey } from "@/lib/i18n";
 
 /**
@@ -260,11 +262,14 @@ export function OnboardingForm({
         },
         { timeoutMs: 15_000 },
       );
-      const data = (await res.json()) as { allowed?: boolean; error?: string };
+      const data = (await res.json()) as { allowed?: boolean; error?: string; band?: string | null };
       if (!res.ok) {
         setError(data.error ?? `${tr("onb.err.saveFailed")} (${res.status}).`);
         return false;
       }
+      // A minor can't consent to analytics, and a "yes" given on the way in
+      // was given before we knew. Revoked here, in this page life.
+      if (data.band !== "adult") lockOutMinor();
       if (!data.allowed) {
         setError(data.error ?? tr("onb.err.saveFailed"));
         return false;
@@ -392,6 +397,13 @@ export function OnboardingForm({
           ]
         : []),
     ]);
+
+    // The server checks the row it just saw saved and decides (consent, age)
+    // whether an event goes out. `keepalive` because the Schools track leaves
+    // this page on the very next line. Not asked at all without consent.
+    if (getConsent() === "granted") {
+      void netFetch("/api/analytics/onboarding", { method: "POST", keepalive: true }, { timeoutMs: 5_000 }).catch(() => {});
+    }
 
     // FILTER 2 — staff who joins a school, or staff who runs one. Schools goes
     // straight on to the layer for that role; its last card is the welcome.

@@ -1,7 +1,8 @@
 "use client";
 
 import type { PostHog } from "posthog-js";
-import { getConsent } from "./consent";
+import { getConsent, setConsent } from "./consent";
+import { POSTHOG_INGEST_PATH, posthogUiHost } from "./posthog-host";
 import { scrubPath, scrubQuery } from "./scrub-url";
 
 /**
@@ -17,7 +18,6 @@ import { scrubPath, scrubQuery } from "./scrub-url";
  */
 
 const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
-const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://eu.i.posthog.com";
 
 let instance: PostHog | null = null;
 let loading: Promise<PostHog | null> | null = null;
@@ -50,7 +50,11 @@ export function loadPostHog(): Promise<PostHog | null> {
   loading = import("posthog-js")
     .then(({ default: posthog }) => {
       posthog.init(POSTHOG_KEY, {
-        api_host: POSTHOG_HOST,
+        // Our own origin, rewritten to PostHog (lib/analytics/posthog-host.ts):
+        // a content blocker that drops `*.posthog.com` would otherwise silence
+        // exactly the visitors who did say yes.
+        api_host: POSTHOG_INGEST_PATH,
+        ui_host: posthogUiHost(process.env.NEXT_PUBLIC_POSTHOG_HOST),
         // Only create a person profile once a user is identified (privacy-friendlier;
         // anonymous visitors stay anonymous until they sign in).
         person_profiles: "identified_only",
@@ -132,6 +136,29 @@ export async function enableAnalytics(): Promise<PostHog | null> {
 /** Opt out. Nothing to do if the SDK was never downloaded. */
 export function disableAnalytics(): void {
   instance?.opt_out_capturing();
+}
+
+/** Fired on `window` by {@link lockOutMinor}; PostHogProvider hides the banner on it. */
+export const MINOR_LOCKOUT_EVENT = "bs:analytics-minor-lockout";
+
+/**
+ * The account was just found to belong to a minor: revoke consent and stop
+ * capturing NOW, not on the next full page load.
+ *
+ * PostHogProvider checks the age once, on mount. Onboarding asks the age inside
+ * that same page life — so a visitor who accepted the banner on the way in and
+ * then declared themselves 15 kept sending page views until something reloaded
+ * the page. The server gate never let a server event through; this closes the
+ * browser half.
+ */
+export function lockOutMinor(): void {
+  setConsent("denied");
+  disableAnalytics();
+  try {
+    window.dispatchEvent(new Event(MINOR_LOCKOUT_EVENT));
+  } catch {
+    // no window (SSR) — nothing is capturing there anyway
+  }
 }
 
 /**

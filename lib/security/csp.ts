@@ -17,10 +17,14 @@
  *
  * That is what makes Turnstile keep working, incidentally: the widget's script
  * is injected by our own bundle (components/turnstile.tsx), so it inherits
- * trust rather than needing a nonce we cannot give it. The Cloudflare and
- * PostHog origins stay in the list anyway, for browsers old enough to ignore
+ * trust rather than needing a nonce we cannot give it. The Cloudflare origin
+ * stays in the list anyway, for browsers old enough to ignore
  * `'strict-dynamic'` — they fall back to origin matching, which is weaker but
  * is what those browsers were already getting.
+ *
+ * PostHog is in NO directive. The SDK talks to `/ingest` on our own origin
+ * (app/ingest/[...path]/route.ts), so `'self'` covers it; naming the PostHog
+ * host here again would only re-open the route around the relay.
  *
  * WHY STYLES STILL CARRY `'unsafe-inline'`, and why that is not an oversight.
  * A nonce applies to `<style>` ELEMENTS. It does nothing for `style="…"`
@@ -70,14 +74,13 @@ export function makeNonce(): string {
  */
 export function buildCsp(nonce: string, isDev: boolean): string {
   const supabase = originOf(process.env.NEXT_PUBLIC_SUPABASE_URL);
-  const posthog = originOf(process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://eu.i.posthog.com");
   const supabaseWs = supabase.replace(/^https:/, "wss:");
 
   return [
     "default-src 'self'",
-    // 'self' and the two origins are the pre-'strict-dynamic' fallback; a
-    // modern browser ignores all three and goes by the nonce alone.
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""} ${TURNSTILE} ${posthog}`,
+    // 'self' and the origin are the pre-'strict-dynamic' fallback; a modern
+    // browser ignores both and goes by the nonce alone.
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""} ${TURNSTILE}`,
     // See the note above: this covers `style="…"`, which no nonce can.
     "style-src 'self' 'unsafe-inline'",
     // Deliberately broad: avatars, school logos and shared documents arrive as
@@ -86,7 +89,7 @@ export function buildCsp(nonce: string, isDev: boolean): string {
     "img-src 'self' data: blob: https:",
     // next/font self-hosts at build time, so no external font origin.
     "font-src 'self' data:",
-    `connect-src 'self' ${supabase} ${supabaseWs} ${posthog}${isDev ? " ws: http://localhost:*" : ""}`,
+    `connect-src 'self' ${supabase} ${supabaseWs}${isDev ? " ws: http://localhost:*" : ""}`,
     // The Turnstile widget renders in an iframe.
     `frame-src ${TURNSTILE}`,
     // Voice notes are recorded to a blob before upload.

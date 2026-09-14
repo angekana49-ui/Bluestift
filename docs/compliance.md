@@ -195,7 +195,15 @@ Two independent gates, on purpose:
   consent cookie. Memoised 5 minutes; staleness fails closed for a child.
 - **Client** — `PostHogProvider` asks `/api/account/age` on mount and, for a
   minor, revokes stored consent and never renders the banner, so the SDK is not
-  downloaded at all.
+  downloaded at all. The onboarding age step does the same the moment a minor
+  band comes back (`lockOutMinor`), because it runs inside a page life the
+  on-mount check already passed: until 2026-09-14 a visitor who had accepted
+  the banner and then declared a minor age kept sending page views until the
+  next full reload.
+
+Every named product event is server-side and listed in
+[`lib/analytics/events.ts`](../lib/analytics/events.ts); none carries text a
+person wrote, a name, an email or a city (`test/analytics-events.test.ts`).
 
 The rule is **stricter than GDPR art. 8 requires**: no optional processing for
 anyone under 18, rather than resolving each student's country and its national

@@ -10,6 +10,7 @@ import { persistAndGather, linkAttachments, replayReply } from "@/lib/raya/chat-
 import { FORMATTING_RULES } from "@/lib/raya/prompt";
 import { appGuideLayerForStaff } from "@/lib/raya/app-guide-layer";
 import { apiT } from "@/lib/i18n/server";
+import { captureServer } from "@/lib/analytics/server";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -173,6 +174,14 @@ export async function POST(request: Request) {
   if (existingReply != null) {
     return replayReply(existingReply, convId, userMsgId);
   }
+
+  // Same event as the learner's chat, told apart by surface — one funnel step.
+  void captureServer(user.id, "raya_message_sent", {
+    surface: "schools",
+    role: membership.role,
+    new_conversation: !requestedConvId,
+    with_files: fileIds.length > 0,
+  });
 
   const history: ChatMsg[] = hist.map((m) => ({
     role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
