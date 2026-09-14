@@ -16,6 +16,8 @@ const eslintConfig = [
       ".archive/**",
       ".next/**",
       "graphify-out/**",
+      // The Remotion explainer: its own package, its own dependencies.
+      "video/**",
     ],
   },
   ...compat.extends("next/core-web-vitals", "next/typescript"),

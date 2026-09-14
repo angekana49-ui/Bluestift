@@ -1,0 +1,24 @@
+{
+  "name": "bluestift-video",
+  "private": true,
+  "description": "The 'How it works' explainer for the landing page, rendered with Remotion from the site's own product shots.",
+  "scripts": {
+    "sync:css": "node scripts/sync-css.mjs",
+    "voice:draft": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/voice-draft.ps1",
+    "music:draft": "node scripts/music-draft.mjs",
+    "manifest": "node scripts/voice-manifest.mjs",
+    "prepare:assets": "npm run sync:css && npm run voice:draft && npm run manifest && npm run music:draft",
+    "studio": "npm run sync:css && remotion studio src/index.ts",
+    "render": "npm run sync:css && remotion render src/index.ts HowItWorks out/how-it-works-en.mp4",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.524",
+    "@remotion/google-fonts": "4.0.524",
+    "remotion": "4.0.524"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.0",
+    "typescript": "^5.8.3"
+  }
+}

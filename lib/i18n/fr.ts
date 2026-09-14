@@ -88,6 +88,7 @@ export const fr: Partial<Messages> = {
     "Partagée, c’est ce qui a été compris — jamais ce qui a été écrit. L’élève reste libre d’être perdu ; l’enseignant voit enfin où.",
   "site.hero.ctaPrimary": "Essai gratuit",
   "site.hero.ctaSecondary": "Voir comment ça marche",
+  "site.hero.videoClose": "Fermer la vidéo",
   "site.hero.chip.scope": "Toute matière, tout niveau",
   "site.hero.chip.noCard": "Sans carte bancaire",
   "site.hero.chip.solo": "Seul, ou avec votre classe",

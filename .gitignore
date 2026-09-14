@@ -28,6 +28,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 
+# the Remotion explainer (video/): dependencies, renders and generated assets —
+# everything in public/ (marks copied from the site, draft voice, draft music)
+# and src/generated/ is rebuilt by `npm run prepare:assets`
+/video/node_modules/
+/video/out/
+/video/public/
+/video/src/generated/
+
 # graphify knowledge-graph output (regenerable, not source)
 /graphify-out/
 

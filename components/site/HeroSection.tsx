@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import type { Theme } from "./theme";
+import HowItWorksVideo from "./HowItWorksVideo";
 import { RayaText } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
 import BrowserFrame from "./DeviceFrame";
@@ -17,6 +19,7 @@ const CHIP_KEYS = ["site.hero.chip.scope", "site.hero.chip.noCard", "site.hero.c
 
 export default function HeroSection({ theme: t }: { theme: Theme }) {
   const tr = useTranslate();
+  const [videoOpen, setVideoOpen] = useState(false);
   return (
     <section
       style={{
@@ -94,14 +97,26 @@ export default function HeroSection({ theme: t }: { theme: Theme }) {
           >
             {tr("site.hero.ctaPrimary")}
           </a>
+          {/* Plays the explainer over the page. Still a link to the section that
+              explains the same thing, so without JavaScript — or with a modifier
+              key held — it does what it always did. */}
           <a
             href="#how-it-works"
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+              e.preventDefault();
+              setVideoOpen(true);
+            }}
             className="pub-press"
-            style={{ background: t.chipBg, border: `1px solid ${t.chipBorder}`, borderRadius: 999, padding: "13px 22px", fontSize: 16, fontWeight: 500, color: t.text, textDecoration: "none" }}
+            style={{ display: "inline-flex", alignItems: "center", gap: 8, background: t.chipBg, border: `1px solid ${t.chipBorder}`, borderRadius: 999, padding: "13px 22px", fontSize: 16, fontWeight: 500, color: t.text, textDecoration: "none" }}
           >
+            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden style={{ flex: "none" }}>
+              <path d="M8 5.5v13a1 1 0 0 0 1.52.85l10.4-6.5a1 1 0 0 0 0-1.7L9.52 4.65A1 1 0 0 0 8 5.5Z" fill="currentColor" />
+            </svg>
             {tr("site.hero.ctaSecondary")}
           </a>
         </div>
+        <HowItWorksVideo open={videoOpen} onClose={() => setVideoOpen(false)} />
 
         <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 24, flexWrap: "wrap" }}>
           {CHIP_KEYS.map((k) => (

@@ -1,0 +1,68 @@
+{
+  "title": "How Raya works",
+  "voices": {
+    "A": { "role": "lead, warm and bright", "draft": "Microsoft Zira Desktop" },
+    "B": { "role": "relay, warm and upbeat", "draft": "Microsoft Hazel Desktop" }
+  },
+  "scenes": [
+    {
+      "id": "intro",
+      "minSeconds": 8,
+      "lines": [
+        { "speaker": "A", "text": "Every student gets stuck sometimes." },
+        { "speaker": "B", "text": "Most AI just hands over the answer." },
+        { "speaker": "A", "text": "Raya does something better." }
+      ]
+    },
+    {
+      "id": "chat",
+      "eyebrow": "Chat",
+      "headline": "A tutor that asks before it answers",
+      "minSeconds": 24,
+      "lines": [
+        { "speaker": "B", "text": "Ask Raya anything, in any subject, at any level, in your own language." },
+        { "speaker": "A", "text": "Instead of solving it for you, Raya asks the one question that gets you moving." },
+        { "speaker": "B", "text": "A hint only after you've tried, one step at a time. So when it clicks, it's yours." }
+      ]
+    },
+    {
+      "id": "rooms",
+      "eyebrow": "Study Rooms",
+      "headline": "Learn together, with Raya on call",
+      "minSeconds": 18,
+      "lines": [
+        { "speaker": "A", "text": "Studying with friends? Open a Study Room." },
+        { "speaker": "B", "text": "Share a document, work through it together, and bring Raya in when the group needs a nudge." }
+      ]
+    },
+    {
+      "id": "tools",
+      "eyebrow": "Tools",
+      "headline": "Your notes, turned into practice",
+      "minSeconds": 16,
+      "lines": [
+        { "speaker": "A", "text": "Got notes, a PDF, or a voice memo?" },
+        { "speaker": "B", "text": "Tools turns them into summaries, quizzes, flashcards and mind maps, in seconds." }
+      ]
+    },
+    {
+      "id": "kernel",
+      "eyebrow": "My Kernel",
+      "headline": "A private map of what you truly understand",
+      "minSeconds": 24,
+      "lines": [
+        { "speaker": "B", "text": "Behind it all is your Kernel, a private map of what you've truly understood." },
+        { "speaker": "A", "text": "Concept by concept, it sees what's solid, what's growing, and what's starting to slip." },
+        { "speaker": "B", "text": "So every session starts right where you need it." }
+      ]
+    },
+    {
+      "id": "outro",
+      "minSeconds": 10,
+      "lines": [
+        { "speaker": "A", "text": "Raya. The tutor that helps you think." },
+        { "speaker": "B", "text": "Start free today. No card needed." }
+      ]
+    }
+  ]
+}

@@ -178,6 +178,7 @@ export const en = {
     "Shared means what you understood — never what you typed. The student stays free to be lost; the teacher finally sees where.",
   "site.hero.ctaPrimary": "Try it free",
   "site.hero.ctaSecondary": "See how it works",
+  "site.hero.videoClose": "Close video",
   // "Free to start" was saying what the primary CTA above it already says.
   // What replaced it is the positioning decision itself — no level targeting,
   // no geography, no subject list (kernel `subject` is a free string and the

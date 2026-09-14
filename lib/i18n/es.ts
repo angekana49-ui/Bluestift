@@ -91,6 +91,7 @@ export const es: Partial<Messages> = {
     "Compartida es lo que se entendió — nunca lo que se escribió. El alumno sigue libre de perderse; el docente por fin ve dónde.",
   "site.hero.ctaPrimary": "Probar gratis",
   "site.hero.ctaSecondary": "Ver cómo funciona",
+  "site.hero.videoClose": "Cerrar vídeo",
   "site.hero.chip.scope": "Toda materia, todo nivel",
   "site.hero.chip.noCard": "Sin tarjeta",
   "site.hero.chip.solo": "Solo, o con tu clase",

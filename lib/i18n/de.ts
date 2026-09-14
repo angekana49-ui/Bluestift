@@ -88,6 +88,7 @@ export const de: Partial<Messages> = {
     "Geteilt wird, was verstanden wurde — nie, was getippt wurde. Lernende dürfen weiter feststecken; die Lehrkraft sieht endlich, wo.",
   "site.hero.ctaPrimary": "Gratis testen",
   "site.hero.ctaSecondary": "So funktioniert es",
+  "site.hero.videoClose": "Video schließen",
   "site.hero.chip.scope": "Jedes Fach, jedes Niveau",
   "site.hero.chip.noCard": "Keine Karte nötig",
   "site.hero.chip.solo": "Allein oder mit deiner Klasse",

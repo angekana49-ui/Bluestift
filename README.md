@@ -116,6 +116,7 @@ lib/
 supabase/migrations/    schema history
 docs/                   architecture and handoff notes
 test/                   vitest — pure logic only, no DB
+video/                  the "How it works" explainer, rendered with Remotion from the site's own product shots (own package — see video/README.md)
 ```
 
 ### Database schemas
