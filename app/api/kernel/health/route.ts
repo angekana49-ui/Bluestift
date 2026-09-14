@@ -6,7 +6,25 @@ import { kernel, KernelError } from "@/lib/kernel/client";
  * which 503s with a body when the Kernel's DB access is degraded). Always
  * returns 200 with an `ok` flag so the client can read it easily.
  */
+/**
+ * The answer is reused for a few seconds per instance. This route is public and
+ * each call costs two requests to the Kernel, so without a cache anyone could
+ * turn it into a way to hammer the Kernel from our own servers. An uptime probe
+ * polls every minute or so and loses nothing to a 15-second-old answer.
+ */
+const CACHE_MS = 15_000;
+let cached: { ok: boolean; at: number } | null = null;
+
 export async function GET() {
+  if (cached && Date.now() - cached.at < CACHE_MS) {
+    return NextResponse.json({ ok: cached.ok });
+  }
+  const ok = await probe();
+  cached = { ok, at: Date.now() };
+  return NextResponse.json({ ok });
+}
+
+async function probe(): Promise<boolean> {
   let healthError: string | null = null;
   try {
     await kernel.health();
@@ -28,12 +46,10 @@ export async function GET() {
   }
 
   const readyStatus = (ready as { status?: string } | null)?.status;
-  const ok = !healthError && !readyError && readyStatus !== "degraded";
-
   // This endpoint is intentionally public for uptime probes. Do not expose the
   // internal Kernel URL, dependency payloads, or transport errors to anyone who
   // can reach it; those belong in server-side observability only.
-  return NextResponse.json({ ok });
+  return !healthError && !readyError && readyStatus !== "degraded";
 }
 
 function describe(e: unknown): string {

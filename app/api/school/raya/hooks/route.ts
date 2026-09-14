@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateJson } from "@/lib/raya/llm";
+import { withinExpensiveLimit } from "@/lib/abuse-limits";
 import { getAdminMembership, buildSchoolContext, buildProfContext } from "@/lib/school-admin";
 
 export const runtime = "nodejs";
@@ -21,6 +22,8 @@ export async function GET() {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return empty;
+    // Over the ceiling, the client keeps its static hooks — nothing to refuse.
+    if (!(await withinExpensiveLimit("hooks", user.id))) return empty;
 
     const membership = await getAdminMembership(user.id);
     if (!membership) return empty;

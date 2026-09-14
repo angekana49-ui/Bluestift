@@ -1,3 +1,4 @@
+import { limitExpensive } from "@/lib/abuse-limits";
 import { NextResponse } from "next/server";
 import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
@@ -47,6 +48,8 @@ export async function GET() {
 export async function POST(request: Request) {
   const { user, membership, error } = await authStaff();
   if (error) return error;
+  const limited = await limitExpensive("schoolPrepare", user.id);
+  if (limited) return limited;
 
   // Prepare is quota-metered per prof per month (Standard 30 / Plus 150 / Custom ∞).
   // Counted from teacher_resources authored by this staff member this month.

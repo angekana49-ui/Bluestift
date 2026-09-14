@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createContentAdminClient } from "@/lib/supabase/admin";
 import { verifyTurnstile } from "@/lib/turnstile";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { clientIp } from "@/lib/request-ip";
+import { apiT } from "@/lib/i18n/server";
 
 const TYPES = new Set(["bug", "praise", "feature", "suggestion", "other"]);
 
@@ -29,6 +32,11 @@ export async function POST(req: Request) {
       : null;
   if (!message && !rating) {
     return NextResponse.json({ error: "empty_feedback" }, { status: 400 });
+  }
+  // Captcha farms solve Turnstile for cents; a per-IP ceiling bounds what
+  // one address can post regardless (lib/rate-limit.ts, fails open).
+  if (!(await checkRateLimit("form_feedback", clientIp(req), 20))) {
+    return NextResponse.json({ error: await apiT("api.tooManyRequestsPleaseTryAgain") }, { status: 429 });
   }
   if (!(await verifyTurnstile(body.token))) {
     return NextResponse.json({ error: "captcha_failed" }, { status: 403 });

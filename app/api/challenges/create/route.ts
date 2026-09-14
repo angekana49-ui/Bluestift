@@ -1,3 +1,4 @@
+import { limitExpensive } from "@/lib/abuse-limits";
 import { NextResponse } from "next/server";
 import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
@@ -59,6 +60,8 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const limited = await limitExpensive("challengeCreate", user.id);
+  if (limited) return limited;
 
   let form: FormData;
   try {

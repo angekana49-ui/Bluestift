@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateJson } from "@/lib/raya/llm";
+import { withinExpensiveLimit } from "@/lib/abuse-limits";
 
 export const runtime = "nodejs";
 export const maxDuration = 15;
@@ -20,6 +21,8 @@ export async function GET() {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return empty;
+    // Over the ceiling, the client keeps its static hooks — nothing to refuse.
+    if (!(await withinExpensiveLimit("hooks", user.id))) return empty;
 
     const [{ data: prof }, { data: convs }, { data: chals }] = await Promise.all([
       supabase.from("users").select("display_name, username").eq("id", user.id).maybeSingle(),

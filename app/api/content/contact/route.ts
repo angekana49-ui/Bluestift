@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { createContentAdminClient } from "@/lib/supabase/admin";
 import { verifyTurnstile } from "@/lib/turnstile";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { clientIp } from "@/lib/request-ip";
+import { apiT } from "@/lib/i18n/server";
 
 /** Public contact form -> content.contact_messages (source: form). */
 export async function POST(req: Request) {
@@ -23,6 +26,11 @@ export async function POST(req: Request) {
   if (!message) return NextResponse.json({ error: "message_required" }, { status: 400 });
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: "invalid_email" }, { status: 400 });
+  }
+  // Captcha farms solve Turnstile for cents; a per-IP ceiling bounds what
+  // one address can post regardless (lib/rate-limit.ts, fails open).
+  if (!(await checkRateLimit("form_contact", clientIp(req), 10))) {
+    return NextResponse.json({ error: await apiT("api.tooManyRequestsPleaseTryAgain") }, { status: 429 });
   }
   if (!(await verifyTurnstile(body.token))) {
     return NextResponse.json({ error: "captcha_failed" }, { status: 403 });

@@ -3367,6 +3367,7 @@ export const fr: Partial<Messages> = {
   "api.noSchool": "Aucun établissement.",
   "api.addAVerifiedEmailBeforeJoining2": "Ajoutez un e-mail vérifié avant de rejoindre un établissement en tant qu'enseignant.",
   "api.tooManyRequestsPleaseTryAgain": "Trop de demandes. Réessayez plus tard.",
+  "api.dailyLimitReachedTryTomorrow": "Limite du jour atteinte. Réessayez demain.",
   "api.enterYourSchoolsOrYourAdministrators": "Indiquez l'e-mail de votre établissement ou de votre administrateur.",
   "api.requestNotFound": "Demande introuvable.",
   "api.thatRequestWasAlreadyDecided": "Cette demande a déjà été traitée.",

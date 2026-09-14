@@ -3369,6 +3369,7 @@ export const de: Partial<Messages> = {
   "api.noSchool": "Keine Schule.",
   "api.addAVerifiedEmailBeforeJoining2": "Füge eine bestätigte E-Mail hinzu, bevor du einer Schule als Lehrkraft beitrittst.",
   "api.tooManyRequestsPleaseTryAgain": "Zu viele Anfragen. Bitte versuch es später erneut.",
+  "api.dailyLimitReachedTryTomorrow": "Tageslimit erreicht. Versuch es morgen wieder.",
   "api.enterYourSchoolsOrYourAdministrators": "Gib die E-Mail deiner Schule oder deiner Schuladministration ein.",
   "api.requestNotFound": "Anfrage nicht gefunden.",
   "api.thatRequestWasAlreadyDecided": "Über diese Anfrage wurde bereits entschieden.",

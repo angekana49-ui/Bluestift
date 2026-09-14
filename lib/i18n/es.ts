@@ -3371,6 +3371,7 @@ export const es: Partial<Messages> = {
   "api.noSchool": "Sin centro.",
   "api.addAVerifiedEmailBeforeJoining2": "Añade un correo verificado antes de unirte a un centro como docente.",
   "api.tooManyRequestsPleaseTryAgain": "Demasiadas solicitudes. Vuelve a intentarlo más tarde.",
+  "api.dailyLimitReachedTryTomorrow": "Has llegado al límite de hoy. Vuelve a intentarlo mañana.",
   "api.enterYourSchoolsOrYourAdministrators": "Indica el correo de tu centro o de tu administración.",
   "api.requestNotFound": "Solicitud no encontrada.",
   "api.thatRequestWasAlreadyDecided": "Esa solicitud ya se resolvió.",

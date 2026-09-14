@@ -15,6 +15,7 @@ import {
 } from "@/lib/entitlements";
 import { captureServer } from "@/lib/analytics/server";
 import { apiT } from "@/lib/i18n/server";
+import { checkStrictUserRateLimit } from "@/lib/rate-limit";
 
 /**
  * Shape returned by a room action when it is blocked. `feature_locked` and
@@ -45,6 +46,13 @@ export async function createRoom(input: {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error(await apiT("api.notSignedIn"));
+  // The rooms/month quota below only counts until billing is live, so on its own
+  // it lets a script create rooms without end. This ceiling is always on.
+  const [burst, day] = await Promise.all([
+    checkStrictUserRateLimit("room_create", user.id, 5, "1 minute"),
+    checkStrictUserRateLimit("room_create_day", user.id, 30, "24 hours"),
+  ]);
+  if (!burst || !day) throw new Error(await apiT("api.tooManyRequestsPleaseTryAgain"));
 
   // --- Entitlements: rooms/month quota, visibility, mandatory timer ---------
   const { ent, tier } = await resolveRayaEntitlements(user.id);
@@ -241,6 +249,12 @@ export async function joinRoom(roomId: string): Promise<void | RoomGateError> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error(await apiT("api.notSignedIn"));
+  // Holding a room's id is enough to join it, so this is also the rate at which
+  // an account can try ids. They are UUIDs, so guessing is hopeless anyway; the
+  // ceiling stops a script walking Discover into every public room at once.
+  if (!(await checkStrictUserRateLimit("room_join", user.id, 30, "10 minutes"))) {
+    throw new Error(await apiT("api.tooManyRequestsPleaseTryAgain"));
+  }
 
   const admin = createAdminClient();
   const { data: room } = await admin
@@ -324,7 +338,10 @@ export async function postRoomMessage(
   roomId: string,
   content: string,
 ): Promise<void> {
-  const text = content.trim();
+  // The same ceiling as a message to Raya (app/api/raya/chat). A server action
+  // is an endpoint anyone signed in can call directly, so the UI's textarea is
+  // not the limit — this is.
+  const text = content.trim().slice(0, 4000);
   if (!text) return;
 
   const supabase = await createClient();
@@ -332,6 +349,13 @@ export async function postRoomMessage(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error(await apiT("api.notSignedIn"));
+  // Burst and daily ceilings, the chat routes' numbers: every member of the room
+  // receives each message, so a loop here floods other people, not just a table.
+  const [burst, day] = await Promise.all([
+    checkStrictUserRateLimit("room_message", user.id, 30, "1 minute"),
+    checkStrictUserRateLimit("room_message_day", user.id, 600, "24 hours"),
+  ]);
+  if (!burst || !day) throw new Error(await apiT("api.tooManyRequestsPleaseTryAgain"));
   // The room page is age-gated; the action behind it has to be too.
   await assertAgeCleared(user.id);
 

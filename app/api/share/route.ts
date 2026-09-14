@@ -6,6 +6,7 @@ import { resolveRayaEntitlements, gateQuota, sinceDaysIso } from "@/lib/entitlem
 import { captureServer } from "@/lib/analytics/server";
 import { siteUrl } from "@/lib/email";
 import { apiT } from "@/lib/i18n/server";
+import { limitExpensive } from "@/lib/abuse-limits";
 
 export const runtime = "nodejs";
 
@@ -21,6 +22,11 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // A share link publishes text on our domain. The export quota below only
+  // counts until billing is live, so this is what stops a script turning
+  // /s/<token> into free hosting.
+  const limited = await limitExpensive("share", user.id);
+  if (limited) return limited;
 
   let body: { title?: string; body?: string; brand?: string };
   try {

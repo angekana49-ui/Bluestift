@@ -538,6 +538,73 @@ is near any plausible ceiling today. The check is not for today.
 a named school without tens of millions of guesses — and a hit enrols the
 guesser and exposes no other child's data.
 
+## Eighth pass: before the schools arrive (2026-09-14)
+
+The invitation emails to schools were scheduled, so the question changed from
+"is anything exposed" to "what does a crowd, or one person with a script, cost
+us". The answer was: more than it should, in one specific way.
+
+### 23. Plan quotas were the only ceiling on most paid calls — fixed
+
+`gateQuota` blocks only once billing is live (`ENTITLEMENTS_ENFORCE`), and until
+then it counts and lets everything through. That is right for a plan limit and
+wrong for abuse: apart from the chat routes, which had their own ceiling, any
+account — anonymous ones included — could generate study material, transcribe
+audio, run simulations, grade, analyse and upload in a loop, at our expense.
+
+`lib/abuse-limits.ts` gives every such route a per-user burst and daily ceiling
+that has nothing to do with plans and is always on: tools generate and extract,
+transcription, the three upload routes and the school logo, Kernel analyse,
+memorize and profile, simulations (both sides), challenge create and grading,
+assignment submission, room reports, Prepare, school reports, conversation
+titles, share links. The welcome-screen hooks, a model call on a GET, degrade to
+their static copy over the ceiling instead of refusing. The numbers are far above
+a heavy human day and far below a loop, and the limiter is the strict,
+fail-closed form, as for chat.
+
+`test/abuse-limits.test.ts` makes this hold for the future: every route importing
+`lib/raya/llm` or `lib/kernel/client` must call a limiter or be listed as exempt
+with a reason. Three are: the Kernel health cron (cron secret), the public health
+probe (below), and alert acknowledgement (staff-only, cheap, count-capped).
+
+### 24. The public Kernel health probe was an amplifier — fixed
+
+`/api/kernel/health` is unauthenticated on purpose, for uptime monitors, and each
+call made two requests to the Kernel. Anyone could hammer the Kernel through our
+own servers. The answer is now cached for fifteen seconds per instance.
+
+### 25. Public forms relied on the captcha alone — fixed
+
+Contact, feedback, the survey and its follow-up, the newsletter and research
+contributions checked Turnstile and nothing else. Captcha-solving services cost
+cents. Each now has a per-IP hourly ceiling checked before the captcha, so a flood
+costs one database call rather than one Cloudflare call each. These use the
+fail-open limiter, like the wall: anti-spam on a public form must not lock out a
+school over a database hiccup, and the numbers leave room for a whole class on
+one NAT (sixty an hour for the survey).
+
+### 26. Room actions were unmetered endpoints — fixed
+
+`createRoom`, `joinRoom` and `postRoomMessage` are server actions, which anyone
+signed in can call directly. None had a ceiling, the room-per-month quota only
+counts, and a room message had no length limit. They now have per-user ceilings
+(messages at the chat's 30 a minute and 600 a day), and a message is cut at the
+chat's 4,000 characters.
+
+### Checked in this pass and found sound
+
+- Production headers: CSP with a per-request nonce and `strict-dynamic`, HSTS,
+  `X-Frame-Options: DENY`, `nosniff`, a restrictive `Permissions-Policy`.
+- `npm audit --omit=dev`: no known vulnerability.
+- No credential in the tracked tree.
+- Email authentication for the sending domain: Resend DKIM, SPF on the sending
+  subdomain, DMARC at `p=quarantine`.
+- Staff and share codes: 8 characters from a 32-letter alphabet, share tokens 72
+  random bits, both with rate-limited redemption where redemption exists.
+- The cron bearer check is constant-time and closed when the secret is unset.
+- The origin redirects added the same day (lib/origins.ts) can only point at a
+  configured origin, whatever `Host` a request claims.
+
 ## What was checked and found sound
 
 Worth writing down, so the next audit does not re-derive it:

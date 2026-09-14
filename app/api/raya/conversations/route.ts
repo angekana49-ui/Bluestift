@@ -6,6 +6,7 @@ import { kernel, clampHistory } from "@/lib/kernel/client";
 import { setLatestAnalysis, invalidateProfile } from "@/lib/kernel/profile-cache";
 import type { KernelMessage } from "@/lib/kernel/types";
 import { apiT } from "@/lib/i18n/server";
+import { limitExpensive } from "@/lib/abuse-limits";
 
 /**
  * Conversation history for the solo /chat surface.
@@ -70,6 +71,8 @@ export async function POST(request: Request) {
   }
   const id = body.conversationId;
   if (!id) return NextResponse.json({ error: "missing conversationId" }, { status: 400 });
+  const limited = await limitExpensive("conversationTitle", user.id);
+  if (limited) return limited;
 
   // Owner + kind gate: private room channels keep the room's name, so they never
   // get an auto-title. RLS also scopes this read to the caller.
@@ -215,6 +218,9 @@ export async function PATCH(request: Request) {
   }
 
   // ── memorize ────────────────────────────────────────────────
+  // The Kernel reads the whole thread: the one expensive verb in this menu.
+  const limited = await limitExpensive("memorize", user.id);
+  if (limited) return limited;
   const { data: msgs } = await supabase
     .schema("learning")
     .from("messages")

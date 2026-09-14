@@ -1,3 +1,4 @@
+import { limitExpensive } from "@/lib/abuse-limits";
 import { NextResponse } from "next/server";
 import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
@@ -33,6 +34,8 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const limited = await limitExpensive("logo", user.id);
+  if (limited) return limited;
 
   const membership = await getAdminMembership(user.id);
   if (!membership || membership.role !== "admin_master") {

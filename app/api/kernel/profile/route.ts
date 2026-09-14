@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { reportError } from "@/lib/observability/report";
 import { kernel, KernelError } from "@/lib/kernel/client";
+import { limitExpensive } from "@/lib/abuse-limits";
 
 /**
  * Authenticated /load_profile proxy: returns the student's own cognitive
@@ -17,6 +18,10 @@ export async function GET() {
   if (!user) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+  // Every call is a round trip to the Kernel. Far above a person opening their
+  // profile page; far below a script reloading it.
+  const limited = await limitExpensive("kernelProfile", user.id);
+  if (limited) return limited;
 
   // This call is about exactly one student, and that student is right here, so
   // it travels on their own token rather than the service secret.

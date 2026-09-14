@@ -3715,6 +3715,7 @@ export const en = {
   "api.noSchool": "no school",
   "api.addAVerifiedEmailBeforeJoining2": "Add a verified email before joining a school as a teacher.",
   "api.tooManyRequestsPleaseTryAgain": "Too many requests. Please try again later.",
+  "api.dailyLimitReachedTryTomorrow": "You've hit today's limit for this. Try again tomorrow.",
   "api.enterYourSchoolsOrYourAdministrators": "Enter your school's or your administrator's email.",
   "api.requestNotFound": "Request not found.",
   "api.thatRequestWasAlreadyDecided": "That request was already decided.",
