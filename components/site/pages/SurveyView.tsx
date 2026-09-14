@@ -12,6 +12,7 @@ import type { WallPost } from "@/lib/content";
 import { IconTeacher, IconStudent, IconUser, IconHeart, IconFlame, IconPencil, IconCheck } from "@/components/site/icons";
 import { RayaName } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
+import { useSiteHomeHref } from "@/lib/use-site-home";
 import type { MessageKey } from "@/lib/i18n";
 
 type IconEl = ComponentType<{ size?: number; filled?: boolean }>;
@@ -405,6 +406,7 @@ function SurveyFlow({ t, profile, onDone }: { t: Theme; profile: "teacher" | "st
 // ─── Done screen ─────────────────────────────────────────────
 function DoneScreen({ t, responseId, onFreeWall }: { t: Theme; responseId: string | null; onFreeWall: () => void }) {
   const tr = useTranslate();
+  const siteHome = useSiteHomeHref();
   const [email, setEmail] = useState("");
   const [saved, setSaved] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
@@ -456,7 +458,7 @@ function DoneScreen({ t, responseId, onFreeWall }: { t: Theme; responseId: strin
           <IconPencil size={15} />
           {tr("survey.done.shareFreely")}
         </button>
-        <Link href="/" style={{ border: `1px solid ${t.cardBorder}`, borderRadius: 8, padding: "10px 28px", fontSize: 15, color: t.link, textDecoration: "none" }}>
+        <Link href={siteHome} style={{ border: `1px solid ${t.cardBorder}`, borderRadius: 8, padding: "10px 28px", fontSize: 15, color: t.link, textDecoration: "none" }}>
           {tr("survey.done.backHome")}
         </Link>
       </div>

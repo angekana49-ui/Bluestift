@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useAppTheme } from "@/components/ui/theme";
+import { siteHomeFrom } from "@/lib/origins";
 import { netFetch } from "@/lib/net/client-fetch";
 import { SettingsCard } from "@/components/raya/raya-app";
 import { getConsent, setConsent } from "@/lib/analytics/consent";
@@ -40,7 +40,6 @@ export function SettingsDataCard({
 }) {
   const { theme: t } = useAppTheme();
   const tr = useTranslate();
-  const router = useRouter();
   const isMinor = band !== "adult";
 
   const [analytics, setAnalytics] = useState<"granted" | "denied" | null>(null);
@@ -108,8 +107,10 @@ export function SettingsDataCard({
         return;
       }
       // The account no longer exists — leave for a page that doesn't need one.
-      router.replace("/");
-      router.refresh();
+      // The landing page, by its full address on a product origin, where `/` is
+      // the product's own home (lib/origins.ts). A full load, too: nothing held
+      // in memory for the deleted account should outlive it.
+      window.location.replace(siteHomeFrom(window.location.host));
     } catch {
       setError(tr("kernel.memory.serverUnreachable"));
     } finally {

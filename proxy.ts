@@ -2,17 +2,19 @@ import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/proxy";
 import { buildCsp, makeNonce } from "@/lib/security/csp";
 import { exemptFromOriginCheck, originAllowed } from "@/lib/security/same-origin";
+import { crossOriginTarget, isPermanentMove } from "@/lib/origins";
 
 /**
  * The request pipeline: everything that must happen to EVERY request, in the
  * one place that sees every request.
  *
  *   1. refuse cross-site writes,
- *   2. mint this request's CSP nonce,
- *   3. refresh the Supabase session,
- *   4. stamp the policy on the way out.
+ *   2. send a page to the origin that owns it,
+ *   3. mint this request's CSP nonce,
+ *   4. refresh the Supabase session,
+ *   5. stamp the policy on the way out.
  *
- * Step 2 is why steps 3 and 4 are entangled. Next.js does not take a nonce as
+ * Step 3 is why steps 4 and 5 are entangled. Next.js does not take a nonce as
  * configuration — it reads one out of the `Content-Security-Policy` header on
  * the INCOMING request and applies it to the script tags it emits. So the nonce
  * has to be on the request Next renders from, which is the same request the
@@ -40,6 +42,30 @@ export async function proxy(request: NextRequest) {
     })
   ) {
     return new NextResponse(null, { status: 403 });
+  }
+
+  /**
+   * A page asked for on an origin that does not own it goes to the one that
+   * does (lib/origins.ts). Reads only: a POST — a server action, a form — is
+   * answered where it was sent rather than bounced mid-write.
+   */
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  const moveTo =
+    request.method === "GET" || request.method === "HEAD"
+      ? crossOriginTarget({ host, pathname: request.nextUrl.pathname, search: request.nextUrl.search })
+      : null;
+  if (moveTo) {
+    /**
+     * A client-side navigation cannot follow a redirect to another origin: the
+     * router's fetch is refused by CORS, logs "Failed to fetch RSC payload" and
+     * retries as a full page load. Answering the router with something that is
+     * not a Flight payload skips the failed fetch — it goes straight to a full
+     * page load of the same address, which lands on the redirect below.
+     */
+    if (request.headers.has("rsc")) {
+      return new NextResponse(null, { status: 204, headers: { "cache-control": "no-store" } });
+    }
+    return NextResponse.redirect(moveTo, isPermanentMove(host, moveTo) ? 308 : 307);
   }
 
   const nonce = makeNonce();

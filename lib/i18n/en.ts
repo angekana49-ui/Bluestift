@@ -89,7 +89,7 @@ export const en = {
   // split into fragments (`.a` / `.em` / `.b`) rather than storing markup.
   // The five top-nav labels below are deliberately identical in every locale
   // — the user's call: a little English in the header hurts no one.
-  "site.nav.product": "Product",
+  "site.nav.home": "Home",
   "site.nav.research": "Research",
   "site.nav.survey": "Survey",
   "site.nav.pricing": "Pricing",

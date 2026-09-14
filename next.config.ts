@@ -44,75 +44,15 @@ function hostOf(url: string | undefined): string {
  */
 
 /**
- * Paths each product origin owns, once the split happens (docs/domains.md).
- * Everything not listed — the marketing pages, /research, /survey, /s, the
- * checkout pages — belongs to the site and stays on the apex.
+ * The moves BETWEEN origins — apex → product, product → site, product →
+ * product — are not here. They live in lib/origins.ts and run in proxy.ts,
+ * because a redirect written here fires before the proxy, and a client-side
+ * navigation cannot follow a redirect to another origin: the router's fetch is
+ * refused by CORS. Only the proxy can see that a request came from the router
+ * and answer it differently.
+ *
+ * What stays here is what never leaves its origin.
  */
-const PRODUCT_PATHS = {
-  raya: ["/chat", "/rooms", "/assignments", "/tools", "/profile"],
-  schools: ["/school"],
-};
-
-/**
- * 308s from the apex to the product origins.
- *
- * They exist so links already in the wild — a shared /chat URL, a "Review
- * requests" email sent before the split, an installed home-screen icon — keep
- * working forever rather than for a migration window.
- *
- * Two guards keep this inert until it should fire:
- *
- *  - a rule is only emitted when its product origin is CONFIGURED, so the
- *    redirects switch on in the same act that creates the destination. Today,
- *    with the vars unset, `redirects()` returns nothing at all.
- *  - every rule is conditioned on the apex host. Without that, a request to
- *    raya.thebluestift.com/chat would match `/chat` and be redirected to
- *    raya.thebluestift.com/chat — a redirect loop, served to the product's own
- *    users, on the day of the migration.
- *
- * Each prefix needs two rules because `/chat/:path*` does not match a bare
- * `/chat`; `:path*` requires the segment separator in front of it.
- */
-/** Origin of a configured URL, or "" so an unset env var adds nothing. */
-function originOf(url: string | undefined): string {
-  if (!url) return "";
-  try {
-    return new URL(url).origin;
-  } catch {
-    return "";
-  }
-}
-
-function productRedirects() {
-  const apex = hostOf(process.env.NEXT_PUBLIC_SITE_URL);
-  if (!apex) return [];
-
-  const targets = [
-    { origin: originOf(process.env.NEXT_PUBLIC_RAYA_URL), paths: PRODUCT_PATHS.raya },
-    { origin: originOf(process.env.NEXT_PUBLIC_SCHOOLS_URL), paths: PRODUCT_PATHS.schools },
-  ];
-
-  return targets.flatMap(({ origin, paths }) =>
-    // An origin equal to the apex means the product has not moved yet; a rule
-    // would send the apex to itself.
-    !origin || hostOf(origin) === apex
-      ? []
-      : paths.flatMap((path) => [
-          {
-            source: path,
-            destination: `${origin}${path}`,
-            permanent: true,
-            has: [{ type: "host" as const, value: apex }],
-          },
-          {
-            source: `${path}/:rest*`,
-            destination: `${origin}${path}/:rest*`,
-            permanent: true,
-            has: [{ type: "host" as const, value: apex }],
-          },
-        ]),
-  );
-}
 
 /**
  * The bare root of a product origin, sent to that product's own home instead
@@ -128,7 +68,7 @@ function productRedirects() {
  * not read a pitch for it.
  *
  * NOT permanent: this is a per-origin UX default that could reasonably change
- * later, not a canonical content move like productRedirects() above — and a
+ * later, not a canonical content move like the apex's /chat → Raya — and a
  * permanent (308) redirect here would get cached by the browser past the
  * point a fix could reach it.
  */
@@ -212,7 +152,6 @@ const nextConfig: NextConfig = {
       // shortcut — and those outlive the rename.
       { source: "/homework", destination: "/assignments", permanent: true },
       { source: "/homework/:rest*", destination: "/assignments/:rest*", permanent: true },
-      ...(await productRedirects()),
       ...productHomeRedirects(),
     ];
   },

@@ -5,19 +5,21 @@ import Link from "next/link";
 import type { Theme } from "./theme";
 import ThemeToggle, { ThemeToggleCompact } from "./ThemeToggle";
 import { useTranslate } from "@/components/ui/locale";
+import { useSiteHomeHref } from "@/lib/use-site-home";
 import type { MessageKey } from "@/lib/i18n";
 import { MEASURE } from "./layout";
 
 // "Privacy" and "Feedback" are valid sections (for SitePage's `active`) but
-// intentionally not in LINKS below — neither page has a nav pill, so nothing
-// highlights for them. That is the point: a page with no entry of its own must
+// intentionally not in LINKS below — neither page has a nav pill, so no pill
+// highlights for them (their rows in the small-screen menu, MENU_EXTRA, do).
+// That is the point: a page with no entry of its own must
 // name itself here rather than borrow a neighbour's. Feedback used to pass
-// "Product", which lit the Product pill and told the visitor they were on the
-// landing page while they were filling in a feedback form.
+// "Product" (the landing's pill, now "Home"), which told the visitor they were
+// on the landing page while they were filling in a feedback form.
 // NOTE `label` stays the ENGLISH identity (pages pass it as `active`); only
 // `labelKey` is what the visitor actually reads.
 export type NavLink =
-  | "Product"
+  | "Home"
   | "Research"
   | "Survey"
   | "Pricing"
@@ -26,7 +28,9 @@ export type NavLink =
   | "Feedback";
 
 const LINKS: { label: NavLink; labelKey: MessageKey; href: string }[] = [
-  { label: "Product", labelKey: "site.nav.product", href: "/" },
+  // "Home", not "Product": the page is the umbrella over two products, and a
+  // pill called Product did not say which one it was about.
+  { label: "Home", labelKey: "site.nav.home", href: "/" },
   { label: "Research", labelKey: "site.nav.research", href: "/research" },
   { label: "Survey", labelKey: "site.nav.survey", href: "/survey" },
   { label: "Pricing", labelKey: "site.nav.pricing", href: "/pricing" },
@@ -42,15 +46,17 @@ const LINKS: { label: NavLink; labelKey: MessageKey; href: string }[] = [
 const NAV_COLLAPSE = 900;
 
 /**
- * What the brand menu holds below that width: the five pills, plus Legal.
+ * What the brand menu holds below that width: the five pills, plus Feedback and
+ * Legal.
  *
- * Legal is not in the bar at any width and lives in the footer's fourth column,
- * which on a phone is the bottom of a ten-screen page — so the one destination
- * a parent or a school actually goes looking for was the hardest one to reach.
- * It costs a row here.
+ * Neither is in the bar at any width; both live in the footer, which on a phone
+ * is the bottom of a ten-screen page — so the one destination a parent or a
+ * school actually goes looking for, and the one a visitor with something to
+ * tell us needs, were the hardest to reach. They cost a row each here.
  */
-const MENU_EXTRA: { labelKey: MessageKey; href: string }[] = [
-  { labelKey: "settings.row.legal", href: "/legal" },
+const MENU_EXTRA: { label: NavLink; labelKey: MessageKey; href: string }[] = [
+  { label: "Feedback", labelKey: "site.footer.link.feedback", href: "/feedback" },
+  { label: "Privacy", labelKey: "settings.row.legal", href: "/legal" },
 ];
 
 /** Chevron for the brand menu: down when closed, up when open. */
@@ -105,6 +111,14 @@ export default function Navbar({
 }) {
   const tr = useTranslate();
   const [menuOpen, setMenuOpen] = useState(false);
+  /**
+   * Home is the landing page and nothing else. `/` says that on the site's own
+   * origin, but on schools. or raya. `/` is the product's home — so from there
+   * the pill and the wordmark use the site's absolute address instead
+   * (lib/origins.ts `siteHomeFrom`).
+   */
+  const siteHome = useSiteHomeHref();
+  const hrefOf = (link: (typeof LINKS)[number]) => (link.label === "Home" ? siteHome : link.href);
   const barRef = useRef<HTMLDivElement>(null);
 
   /**
@@ -213,7 +227,7 @@ export default function Navbar({
             and opens the menu, because that is the width where this block is
             the only route to the rest of the site. */}
         <Link
-          href="/"
+          href={siteHome}
           aria-expanded={menuOpen}
           aria-label={menuOpen ? tr("shell.closeMenu") : tr("shell.openMenu")}
           onClick={(e) => {
@@ -266,7 +280,7 @@ export default function Navbar({
             return (
               <Link
                 key={link.label}
-                href={link.href}
+                href={hrefOf(link)}
                 style={{
                   padding: "6px 14px",
                   borderRadius: 999,
@@ -342,11 +356,11 @@ export default function Navbar({
             gap: 2,
           }}
         >
-          {LINKS.map((link) => menuRow(link.labelKey, link.href, link.label === active))}
-          {/* Ruled off: the five above are where the site takes you, this is
-              where the paperwork is. */}
+          {LINKS.map((link) => menuRow(link.labelKey, hrefOf(link), link.label === active))}
+          {/* Ruled off: the five above are the site's sections, these are where
+              you talk to us and where the paperwork is. */}
           <span style={{ height: 1, background: t.navBorder, margin: "6px 8px" }} />
-          {MENU_EXTRA.map((row) => menuRow(row.labelKey, row.href, false))}
+          {MENU_EXTRA.map((row) => menuRow(row.labelKey, row.href, row.label === active))}
         </div>
       )}
       </div>

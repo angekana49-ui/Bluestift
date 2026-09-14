@@ -3,6 +3,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import type { Redirect, Rewrite } from "next/dist/lib/load-custom-routes";
 import { SCHOOL_TABS, SCHOOLS_APP_NAME, isSchoolTab, schoolTabTitle } from "@/lib/school-tabs";
+import { crossOriginTarget, isPermanentMove, ownerOf, siteHomeFrom } from "@/lib/origins";
 
 /**
  * The apex → product-origin 308s (docs/domains.md). Two properties matter more
@@ -25,20 +26,6 @@ async function allRedirectsWith(env: Record<string, string>): Promise<Redirect[]
   return ((await config.redirects?.()) ?? []) as Redirect[];
 }
 
-/**
- * Only the CROSS-ORIGIN rules — the ones this file is about.
- *
- * `redirects()` also carries same-origin path renames (/homework →
- * /assignments), which are a different class entirely: they have no product
- * origin to switch on, no host to condition on, and no loop to avoid. Folding
- * them into the assertions below would make "emits nothing until the origins
- * exist" quietly false for a reason that has nothing to do with the property.
- * A cross-origin destination is absolute; a rename's is a path.
- */
-async function redirectsWith(env: Record<string, string>): Promise<Redirect[]> {
-  return (await allRedirectsWith(env)).filter((r) => /^https?:\/\//.test(r.destination));
-}
-
 async function rewritesWith(env: Record<string, string>): Promise<Rewrite[]> {
   for (const k of ["NEXT_PUBLIC_SITE_URL", "NEXT_PUBLIC_RAYA_URL", "NEXT_PUBLIC_SCHOOLS_URL"]) {
     vi.stubEnv(k, env[k] ?? "");
@@ -52,71 +39,140 @@ async function rewritesWith(env: Record<string, string>): Promise<Rewrite[]> {
 
 afterEach(() => vi.unstubAllEnvs());
 
-describe("apex redirects", () => {
-  it("emits nothing while the product origins are unconfigured", async () => {
-    // The state of the repo today. Setting the site URL alone must not start
-    // redirecting traffic to origins that do not answer yet.
-    expect(await redirectsWith({})).toEqual([]);
-    expect(await redirectsWith({ NEXT_PUBLIC_SITE_URL: SITE })).toEqual([]);
-  });
-
-  it("emits nothing without an apex to anchor the host condition", async () => {
-    // No apex means no way to tell the apex from the product origin, which is
-    // exactly the loop below. Silence is the only safe output.
-    expect(await redirectsWith({ NEXT_PUBLIC_RAYA_URL: RAYA })).toEqual([]);
-  });
-
-  it("switches on per product, so one origin can move before the other", async () => {
-    const rules = await redirectsWith({ NEXT_PUBLIC_SITE_URL: SITE, NEXT_PUBLIC_SCHOOLS_URL: SCHOOLS });
-    expect(rules.every((r) => r.destination.startsWith(SCHOOLS))).toBe(true);
-    expect(rules.some((r) => r.source === "/school")).toBe(true);
-    expect(rules.some((r) => r.source.startsWith("/chat"))).toBe(false);
-  });
-
-  it("never sends an origin to itself", async () => {
-    // A product var still pointing at the apex means that product has not
-    // moved. Emitting the rule anyway is a redirect loop.
-    const rules = await redirectsWith({ NEXT_PUBLIC_SITE_URL: SITE, NEXT_PUBLIC_RAYA_URL: SITE });
-    expect(rules).toEqual([]);
-  });
-
-  it("fires only on the apex host, so the product does not redirect to itself", async () => {
-    const rules = await redirectsWith({
-      NEXT_PUBLIC_SITE_URL: SITE,
-      NEXT_PUBLIC_RAYA_URL: RAYA,
-      NEXT_PUBLIC_SCHOOLS_URL: SCHOOLS,
-    });
-    expect(rules.length).toBeGreaterThan(0);
-    for (const r of rules) {
-      expect(r.has).toEqual([{ type: "host", value: "thebluestift.com" }]);
+/**
+ * The moves between origins (lib/origins.ts, run by proxy.ts).
+ *
+ * They used to be next.config redirects from the apex only, so nothing went the
+ * other way: a pricing or legal link clicked inside Schools rendered the site's
+ * page on schools.thebluestift.com, and the address bar named the wrong space.
+ * The table is symmetric now. What matters more than the table itself: it must
+ * be completely inert until the origins exist, and it must never be able to
+ * send an origin to itself.
+ */
+describe("moves between origins", () => {
+  const ALL = { NEXT_PUBLIC_SITE_URL: SITE, NEXT_PUBLIC_RAYA_URL: RAYA, NEXT_PUBLIC_SCHOOLS_URL: SCHOOLS };
+  const stub = (env: Record<string, string>) => {
+    for (const k of ["NEXT_PUBLIC_SITE_URL", "NEXT_PUBLIC_RAYA_URL", "NEXT_PUBLIC_SCHOOLS_URL"]) {
+      vi.stubEnv(k, env[k] ?? "");
     }
+  };
+  const at = (host: string, pathname: string, search = "") => crossOriginTarget({ host, pathname, search });
+
+  it("does nothing while the product origins are unconfigured", () => {
+    stub({});
+    expect(at("thebluestift.com", "/school")).toBeNull();
+    stub({ NEXT_PUBLIC_SITE_URL: SITE });
+    expect(at("thebluestift.com", "/school")).toBeNull();
+    expect(at("thebluestift.com", "/chat")).toBeNull();
   });
 
-  it("covers each product path bare and with a subpath, and is permanent", async () => {
-    const rules = await redirectsWith({
-      NEXT_PUBLIC_SITE_URL: SITE,
-      NEXT_PUBLIC_RAYA_URL: RAYA,
-      NEXT_PUBLIC_SCHOOLS_URL: SCHOOLS,
-    });
+  it("never redirects a host it does not know — local dev, previews", () => {
+    // .env.local carries the production URLs. localhost must still serve
+    // everything itself, or every link in development jumps to production.
+    stub(ALL);
+    expect(at("localhost:3000", "/school")).toBeNull();
+    expect(at("bluestift-git-branch.vercel.app", "/pricing")).toBeNull();
+    expect(at(null as unknown as string, "/pricing")).toBeNull();
+  });
+
+  it("switches on per product, so one origin can move before the other", () => {
+    stub({ NEXT_PUBLIC_SITE_URL: SITE, NEXT_PUBLIC_SCHOOLS_URL: SCHOOLS });
+    expect(at("thebluestift.com", "/school")).toBe(`${SCHOOLS}/school`);
+    expect(at("thebluestift.com", "/chat")).toBeNull();
+  });
+
+  it("never sends an origin to itself", () => {
+    // A product var still pointing at the apex means that product has not moved.
+    stub({ NEXT_PUBLIC_SITE_URL: SITE, NEXT_PUBLIC_RAYA_URL: SITE });
+    expect(at("thebluestift.com", "/chat")).toBeNull();
+    expect(at("thebluestift.com", "/pricing")).toBeNull();
+    stub(ALL);
+    expect(at("raya.thebluestift.com", "/chat")).toBeNull();
+    expect(at("schools.thebluestift.com", "/school")).toBeNull();
+    expect(at("thebluestift.com", "/pricing")).toBeNull();
+  });
+
+  it("sends each product path from the apex to its product, subpath and query kept", () => {
+    stub(ALL);
     const owned: [string, string][] = [
       ["/chat", RAYA], ["/rooms", RAYA], ["/assignments", RAYA], ["/tools", RAYA], ["/profile", RAYA],
       ["/school", SCHOOLS],
     ];
     for (const [path, origin] of owned) {
-      // Bare, because `/chat/:rest*` does not match `/chat`.
-      expect(rules).toContainEqual(
-        expect.objectContaining({ source: path, destination: `${origin}${path}`, permanent: true }),
-      );
-      // And deeper, carrying the rest of the path through.
-      expect(rules).toContainEqual(
-        expect.objectContaining({
-          source: `${path}/:rest*`,
-          destination: `${origin}${path}/:rest*`,
-          permanent: true,
-        }),
-      );
+      expect(at("thebluestift.com", path)).toBe(`${origin}${path}`);
+      expect(at("thebluestift.com", `${path}/x/y`, "?a=1")).toBe(`${origin}${path}/x/y?a=1`);
     }
-    expect(rules).toHaveLength(owned.length * 2);
+    expect(at("thebluestift.com", "/school/enter", "?as=admin")).toBe(`${SCHOOLS}/school/enter?as=admin`);
+  });
+
+  it("sends the site's pages home from either product — the bug this block is for", () => {
+    stub(ALL);
+    for (const host of ["schools.thebluestift.com", "raya.thebluestift.com"]) {
+      for (const path of ["/pricing", "/research", "/research/some-post", "/contact", "/legal", "/privacy", "/terms", "/survey"]) {
+        expect(at(host, path), `${host}${path}`).toBe(`${SITE}${path}`);
+      }
+    }
+    // /s and /checkout belong to the site: the aggregator calls back one origin.
+    expect(at("schools.thebluestift.com", "/checkout/return", "?pid=1")).toBe(`${SITE}/checkout/return?pid=1`);
+    expect(at("raya.thebluestift.com", "/s/abc")).toBe(`${SITE}/s/abc`);
+  });
+
+  it("sends one product's paths to the other", () => {
+    stub(ALL);
+    expect(at("raya.thebluestift.com", "/school")).toBe(`${SCHOOLS}/school`);
+    expect(at("schools.thebluestift.com", "/profile")).toBe(`${RAYA}/profile`);
+    expect(at("schools.thebluestift.com", "/chat", "?c=1")).toBe(`${RAYA}/chat?c=1`);
+  });
+
+  it("matches whole path segments — /s is not /survey, /school is not /schoolbook", () => {
+    stub(ALL);
+    expect(ownerOf("/survey")).toBe("site");
+    expect(ownerOf("/s")).toBe("site");
+    expect(ownerOf("/subprocessors")).toBe("site");
+    expect(ownerOf("/schoolbook")).toBeNull();
+    expect(ownerOf("/chatter")).toBeNull();
+  });
+
+  it("leaves the account flow, the API and a product's bare root where they are", () => {
+    stub(ALL);
+    for (const path of ["/", "/login", "/onboarding", "/auth/callback", "/account", "/upgrade/confirm", "/reset", "/api/school/classes", "/ops/billing"]) {
+      expect(ownerOf(path), path).toBeNull();
+      expect(at("schools.thebluestift.com", path), path).toBeNull();
+    }
+  });
+
+  it("is permanent only for the apex's old product paths", () => {
+    stub(ALL);
+    expect(isPermanentMove("thebluestift.com", `${SCHOOLS}/school`)).toBe(true);
+    expect(isPermanentMove("thebluestift.com", `${RAYA}/chat`)).toBe(true);
+    expect(isPermanentMove("schools.thebluestift.com", `${SITE}/pricing`)).toBe(false);
+    expect(isPermanentMove("raya.thebluestift.com", `${SCHOOLS}/school`)).toBe(false);
+  });
+
+  it("points 'back to the site' at the site itself from a product origin", () => {
+    stub(ALL);
+    expect(siteHomeFrom("schools.thebluestift.com")).toBe(`${SITE}/`);
+    expect(siteHomeFrom("raya.thebluestift.com")).toBe(`${SITE}/`);
+    expect(siteHomeFrom("thebluestift.com")).toBe("/");
+    expect(siteHomeFrom("localhost:3000")).toBe("/");
+    stub({});
+    expect(siteHomeFrom("schools.thebluestift.com")).toBe("/");
+  });
+
+  it("is run by the proxy, for reads only, and answers the router without a cross-origin redirect", () => {
+    const proxy = readFileSync(join(process.cwd(), "proxy.ts"), "utf8");
+    expect(proxy).toContain("crossOriginTarget(");
+    expect(proxy).toMatch(/request\.method === "GET" \|\| request\.method === "HEAD"/);
+    // A redirect to another origin is refused by CORS inside the router's fetch.
+    expect(proxy).toMatch(/request\.headers\.has\("rsc"\)[\s\S]{0,200}status: 204/);
+    // Before the nonce and the session refresh: a moved request costs nothing.
+    expect(proxy.indexOf("crossOriginTarget(")).toBeLessThan(proxy.indexOf("makeNonce()"));
+    expect(proxy.indexOf("crossOriginTarget(")).toBeLessThan(proxy.indexOf("updateSession("));
+  });
+
+  it("is not also written as a next.config redirect, which the router could not follow", async () => {
+    const all = await allRedirectsWith(ALL);
+    expect(all.filter((r) => /^https?:\/\//.test(r.destination))).toEqual([]);
   });
 
   it("keeps the /homework rename alive regardless of the origin split", async () => {
@@ -137,16 +193,45 @@ describe("apex redirects", () => {
     }
   });
 
-  it("leaves the site's own paths alone", async () => {
-    const rules = await redirectsWith({
-      NEXT_PUBLIC_SITE_URL: SITE,
-      NEXT_PUBLIC_RAYA_URL: RAYA,
-      NEXT_PUBLIC_SCHOOLS_URL: SCHOOLS,
-    });
+  it("Home reaches the landing page and nothing else, from any origin", () => {
+    stub(ALL);
+    // On the site, `/` has no other owner, so nothing ever moves it.
+    expect(ownerOf("/")).toBeNull();
+    expect(at("thebluestift.com", "/")).toBeNull();
+    // From a product origin `/` is that product's home, so Home must be absolute.
+    expect(siteHomeFrom("schools.thebluestift.com")).toBe(`${SITE}/`);
+
+    const navbar = readFileSync(join(process.cwd(), "components/site/Navbar.tsx"), "utf8");
+    expect(navbar).toMatch(/\{ label: "Home", labelKey: "site\.nav\.home", href: "\/" \}/);
+    expect(navbar).toMatch(/link\.label === "Home" \? siteHome : link\.href/);
+    // The wordmark is the other way home, and must not keep a bare "/".
+    // (Anchored on the attribute on its own line — a comment in the file quotes
+    // `<a href="/">` while explaining the link.)
+    expect(navbar).not.toMatch(/^\s*href="\/"\s*$/m);
+    expect(navbar).toMatch(/^\s*href=\{siteHome\}\s*$/m);
+
+    // And the landing never sends a signed-in visitor into the app: its only
+    // redirects are the two auth fallbacks (?code= and ?error=).
+    const page = readFileSync(join(process.cwd(), "app/page.tsx"), "utf8");
+    const redirects = page.match(/\bredirect\(/g) ?? [];
+    expect(redirects).toHaveLength(2);
+    expect(page).toMatch(/if \(code\) redirect\(/);
+    expect(page).toMatch(/if \(error\) redirect\(/);
+  });
+
+  it("puts Feedback in the small-screen menu", () => {
+    const navbar = readFileSync(join(process.cwd(), "components/site/Navbar.tsx"), "utf8");
+    const extra = navbar.slice(navbar.indexOf("const MENU_EXTRA"), navbar.indexOf("];", navbar.indexOf("const MENU_EXTRA")));
+    expect(extra).toContain('href: "/feedback"');
+    expect(extra).toContain('href: "/legal"');
+  });
+
+  it("leaves the site's own paths alone on the site", () => {
+    stub(ALL);
     // /s and /checkout stay on the apex — they are cross-product, and the
     // aggregator's webhook needs one stable origin (app/api/billing/checkout).
     for (const path of ["/", "/research", "/survey", "/pricing", "/s", "/checkout", "/login"]) {
-      expect(rules.some((r) => r.source === path)).toBe(false);
+      expect(at("thebluestift.com", path), path).toBeNull();
     }
   });
 });

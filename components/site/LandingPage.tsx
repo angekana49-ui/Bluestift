@@ -47,7 +47,7 @@ export default function LandingPage({
         } as React.CSSProperties
       }
     >
-      <Navbar theme={t} isDark={isDark} onToggleTheme={toggle} active="Product" signedIn={signedIn} homeHref={homeHref} />
+      <Navbar theme={t} isDark={isDark} onToggleTheme={toggle} active="Home" signedIn={signedIn} homeHref={homeHref} />
       <HeroSection theme={t} />
       {/* Order is the argument: state the gap (hero), show the loop that closes
           it (connection), then the surfaces that run on it (features). */}

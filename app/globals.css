@@ -2083,6 +2083,30 @@ a {
   .pub-hide-sm {
     display: none !important;
   }
+
+  /* /research's four tabs and its Submit button (ResearchView.tsx). In one
+     nowrap pill they need ~450px before Submit, so on a phone the pill ran past
+     the screen edge. Here the four tabs make a 2×2 grid and Submit takes the
+     full width under them: every label stays whole in all four languages, and
+     each target gets a taller touch height. `!important` only where the
+     component sets the same property inline. */
+  .research-tabs-row {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+  .research-tabs {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    border-radius: 20px !important;
+  }
+  .research-tabs > button {
+    padding: 9px 10px !important;
+    border-radius: 16px !important;
+  }
+  .research-submit {
+    justify-content: center;
+    padding: 10px 16px !important;
+  }
 }
 
 /* The navbar's 5-link pill group (Product/Research/Survey/Pricing/Contact —

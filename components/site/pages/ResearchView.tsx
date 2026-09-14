@@ -318,8 +318,10 @@ export function ResearchView({ posts, issues, signedIn, initialTab, paymentsLive
                 </p>
               </div>
 
-              <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                <div style={{ display: "flex", gap: 4, background: t.inputFieldBg, border: `1px solid ${t.cardBorder}`, borderRadius: 999, padding: 4, boxShadow: t.cardShadow }}>
+              {/* A 2×2 grid with Submit underneath below 600px — see
+                  .research-tabs in globals.css. */}
+              <div className="research-tabs-row" style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <div className="research-tabs" style={{ display: "flex", gap: 4, background: t.inputFieldBg, border: `1px solid ${t.cardBorder}`, borderRadius: 999, padding: 4, boxShadow: t.cardShadow }}>
                   {VALID_TABS.map((k) => {
                     const on = tab === k && !proposing;
                     return (
@@ -333,7 +335,7 @@ export function ResearchView({ posts, issues, signedIn, initialTab, paymentsLive
                     );
                   })}
                 </div>
-                <button onClick={() => setProposing(true)} style={{ display: "inline-flex", alignItems: "center", background: t.greenSolid, color: "#ffffff", border: "none", borderRadius: 999, padding: "6px 16px", fontSize: 14, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", boxShadow: "0 6px 16px rgba(16,185,129,0.35)" }}>
+                <button className="research-submit" onClick={() => setProposing(true)} style={{ display: "inline-flex", alignItems: "center", background: t.greenSolid, color: "#ffffff", border: "none", borderRadius: 999, padding: "6px 16px", fontSize: 14, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", boxShadow: "0 6px 16px rgba(16,185,129,0.35)" }}>
                   {tr("research.hub.submit")}
                 </button>
               </div>

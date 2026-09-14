@@ -85,8 +85,10 @@ describe("plan chip", () => {
   const tr = (key: MessageKey) => lookup("fr", key);
 
   it("translates the words, never a plan's name", () => {
-    expect(planLabelText("User — Free", tr)).toBe("Utilisateur — Gratuit");
-    expect(planLabelText("User — Plus", tr)).toBe("Utilisateur — Plus");
+    // "Solo", not "Utilisateur": the chip names the kind of plan, and /pricing
+    // already calls an individual's plans "forfaits solo".
+    expect(planLabelText("User — Free", tr)).toBe("Solo — Gratuit");
+    expect(planLabelText("User — Plus", tr)).toBe("Solo — Plus");
     expect(planLabelText("Pilot", tr)).toBe("Pilote");
     expect(planLabelText("Schools Plus", tr)).toBe("Schools Plus");
   });

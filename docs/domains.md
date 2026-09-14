@@ -43,42 +43,49 @@ justifie leur existence : un produit a une identité PWA, un site n'en a pas.
 
 ### Ce que le tableau ne dit pas : rien n'est cloisonné
 
-Le tableau ci-dessus décrit **où chaque chose est censée vivre**, pas ce que
-chaque origine accepte de servir. Un seul déploiement répond aux trois, donc
-**chaque origine sert l'application entière**. Vérifié en direct le 2026-09-11 :
-`schools.thebluestift.com/tools` et `www.raya.thebluestift.com/school` répondent
-tous les deux normalement, sans redirection croisée.
+Le tableau ci-dessus décrit **où chaque chose est censée vivre**. Un seul
+déploiement répond aux trois origines, donc chacune *pourrait* servir
+l'application entière — ce sont les redirections qui tiennent le tableau.
 
-Ce qui est réellement appliqué :
+Jusqu'au 2026-09-14, seul l'apex renvoyait quelque chose ailleurs. Un lien
+« Tarifs » ou « Mentions légales » cliqué dans Schools affichait la page du site
+**sur `schools.`**, et la barre d'adresse gardait le mauvais nom tant qu'on
+restait sur le site. Les redirections sont symétriques depuis :
 
 | Règle | Portée | Où |
 |---|---|---|
-| apex → produit | les chemins produit listés plus haut, **depuis l'apex uniquement** | `productRedirects()` |
-| racine d'un produit → son app | `raya./` → `/chat`, `schools./` → `/school` | `productHomeRedirects()` |
-| produit → produit | **rien** | — |
-| produit → apex | **rien** | — |
+| racine d'un produit → son app | `raya./` → `/chat`, `schools./` → `/school` (307, même origine) | `next.config.ts` `productHomeRedirects()` |
+| apex → produit | `/chat`, `/rooms`, `/assignments`, `/tools`, `/profile` → raya ; `/school` → schools (308) | `lib/origins.ts`, exécuté par `proxy.ts` |
+| produit → produit | les mêmes chemins, depuis l'autre produit (307) | idem |
+| produit → site | `/research`, `/survey`, `/pricing`, `/contact`, `/feedback`, les pages légales, `/s`, `/checkout` (307) | idem |
 
-Conséquence concrète : les liens internes de l'app sont relatifs, donc un prof
-sur `schools.` qui ouvre `/profile` **reste sur `schools.`** et y obtient la
-page Raya ; la règle de l'apex ne se déclenche pas puisque l'hôte n'est pas
-l'apex. Idem pour `/login`, servi par les trois origines — un lien magique
-demandé depuis `schools.` y revient, parce que `/auth/callback` construit sa
-redirection depuis l'origine appelante. L'intention « l'authentification vit sur
-l'apex » n'est donc pas tenue en pratique.
+**Pourquoi dans le proxy et pas dans `next.config.ts`.** Une navigation côté
+client (un `<Link>`, un `router.push`) passe par un `fetch` du routeur, et un
+`fetch` ne suit pas une redirection vers une autre origine : CORS la refuse, le
+routeur logue « Failed to fetch RSC payload » et recharge la page. Les
+redirections de `next.config.ts` passent avant le proxy, qui est le seul à voir
+qu'une requête vient du routeur (en-tête `rsc`). Il lui répond par un 204, qui
+n'est pas un payload Flight : le routeur fait directement un chargement complet
+de la même adresse, qui tombe sur la redirection.
 
-Ce n'est pas cassé — même app, même session (cookie sur le domaine parent), et
-les routes produit sont déjà en `noindex` et interdites dans `robots.txt`, donc
-aucun dégât SEO. Ce que ça coûte est la **canonicité** : la même page existe à
-deux ou trois adresses, et une URL copiée depuis la barre d'adresse peut porter
-la mauvaise marque.
+Ce qui **reste servi partout**, exprès :
 
-Fermer ça demanderait des redirections symétriques (sur l'hôte raya, `/school` →
-schools ; sur l'hôte schools, les chemins Raya → raya ; sur les deux, les pages
-du site → apex), avec deux pièges à respecter : `/s/<token>` et `/checkout`
-doivent rester sur l'apex (le webhook de l'agrégateur exige une origine stable),
-et déplacer `/login` / `/auth/callback` touche au flux d'authentification. À
-faire comme un changement délibéré avec ses propres tests, pas dans la foulée
-d'une migration DNS.
+- `/login`, `/onboarding`, `/auth`, `/account`, `/upgrade`, `/reset` : un lien
+  magique revient à l'origine qui l'a demandé (`/auth/callback` construit sa
+  redirection depuis l'origine appelante). Déplacer ça touche au flux
+  d'authentification, pas à la navigation ;
+- `/api`, `/ops`, les manifestes et les fichiers de métadonnées ;
+- les requêtes autres que GET/HEAD : une action serveur répond là où elle a été
+  envoyée.
+
+Les gardes anti-boucle : l'hôte de la requête doit être l'une des trois origines
+configurées (localhost et les previews ne sont jamais redirigés, même avec les
+URLs de production dans `.env.local`), l'origine propriétaire doit être
+configurée, et elle ne doit pas être l'hôte courant.
+
+Le lien « Retour au site » de `/login` et la sortie après suppression du compte
+visaient `/`, qui sur une origine produit est l'accueil du produit : ils
+utilisent `siteHomeFrom()` / `useSiteHomeHref()`.
 
 ---
 
@@ -156,7 +163,7 @@ comportement d'avant.
 | `components/site/LanguagePrompt.tsx` | `bluestift-locale-asked` + garde `prefsUsable()` |
 | `lib/analytics/consent.ts` | `getConsent()` lit le cookie d'abord — le store qui porte un **retrait** fait ailleurs |
 | `lib/email.ts` | `siteUrl()` par surface — voir ci-dessous |
-| `next.config.ts` | redirections 308 de l'apex vers les sous-domaines (le CSP n'a pas à bouger — voir plus bas) |
+| `lib/origins.ts` + `proxy.ts` | redirections entre origines, dans les deux sens (le CSP n'a pas à bouger — voir plus bas) |
 
 Les trois variables (`NEXT_PUBLIC_COOKIE_DOMAIN`, `NEXT_PUBLIC_RAYA_URL`,
 `NEXT_PUBLIC_SCHOOLS_URL`) ne sont pas des constantes exprès : en local et en

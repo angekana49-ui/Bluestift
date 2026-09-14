@@ -73,6 +73,8 @@ minimum.
 | `CRON_SECRET` | Shared with Vercel Cron. Unset makes the cron routes refuse everything. |
 | `BILLING_PROVIDER` and its provider keys | `sandbox` by default; `stripe` or `cinetpay` need their own keys and webhook secrets. |
 | `SUPABASE_ACCESS_TOKEN` | Only for `npm run gen:types`. An **account**-level personal access token from the Supabase dashboard, not one of the project keys above — different credential class, similar name. |
+| `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_RAYA_URL`, `NEXT_PUBLIC_SCHOOLS_URL` | The three origins (see *Three origins, one deployment* below). Each must name the **exact** host that serves it, `www.` included. Unset, nothing is redirected and every page is served wherever it is asked for. Baked in at build time: changing one needs a rebuild, not a redeploy. |
+| `NEXT_PUBLIC_COOKIE_DOMAIN` | `.thebluestift.com` in production, so one session and the theme and language preferences cross the three origins. Leave it unset locally: a cookie domain on `localhost` is silently rejected. |
 
 ```bash
 npm test          # vitest
@@ -92,8 +94,9 @@ is right.
 ## Layout
 
 ```
+proxy.ts                every request: cross-site write guard, origin routing, CSP nonce, session refresh
 app/                    routes — pages and API handlers
-  api/account/          data rights: age, export, delete, consent, recovery key
+  api/account/          data rights: age, export, delete, consent, recovery key, anonymous → verified upgrade
   api/raya/             the tutor: chat (streamed), files, conversations
   api/school/           the staff side: classes, roster, insights, join
   api/cron/             scheduled jobs (Vercel Cron)
@@ -108,7 +111,8 @@ lib/
   kernel/               client + types for the FastAPI cognitive engine
   raya/                 prompt, LLM routing, chat context assembly
   billing/              plans, seats, payments
-  i18n/                 EN (canonical) + FR/ES/DE
+  i18n/                 EN (canonical) + FR/ES/DE, for the interface and for server messages
+  origins.ts            which origin owns which path
 supabase/migrations/    schema history
 docs/                   architecture and handoff notes
 test/                   vitest — pure logic only, no DB
@@ -163,9 +167,44 @@ entirely (no foreign keys), plus embeddings and object storage. Use
 `lib/compliance/erasure.ts`. **If you add a table with a `user_id`, add it there
 and to `lib/compliance/export.ts`.**
 
+**Three origins, one deployment.** `www.thebluestift.com` is the site (landing,
+research, pricing, legal pages, share links, checkout), `www.raya.thebluestift.com`
+is the tutor, `schools.thebluestift.com` is the staff dashboard. One build answers
+all three, so any origin *could* render any page; `lib/origins.ts` says which
+origin owns which path and `proxy.ts` sends a page asked for on the wrong one to
+the right one. That lives in the proxy rather than in `next.config.ts` because a
+client-side navigation cannot follow a redirect to another origin (CORS refuses
+the router's fetch) — only the proxy can tell the router's request apart and
+answer it with a full page load. Sign-in, onboarding, `/account` and `/api` are
+served everywhere on purpose. A link that means "the landing page" from a product
+origin must use `useSiteHomeHref()`: there, `/` is the product's own home. See
+[`docs/domains.md`](docs/domains.md).
+
+**An anonymous account can become a verified one without losing anything.**
+Students start without an email; paying needs one. `updateUser({ email })` can
+never complete for these accounts, so the upgrade is our own server flow
+(`lib/account-upgrade.ts`, `/api/account/upgrade`, `/upgrade/confirm`): the
+account keeps its id and all its data, and the confirmation link changes nothing
+on GET, because mail scanners open links. **The recovery key is never touched by
+it** and signs in directly on every account, verified ones included.
+
 **English is the source language.** `lib/i18n/en.ts` is canonical and its keys are
-the type; the other locales are `Partial<Messages>`. "Bluestift" and "Raya" are
-proper nouns and are never translated.
+the type; the other locales are `Partial<Messages>`. Bluestift, Raya, Schools,
+Rooms, Tools and Kernel are names and are never translated.
+
+- **The server speaks the reader's language too.** A route returns
+  `{ error: await apiT("api.…", vars) }`, which reads the same locale cookie the
+  interface writes. Messages with numbers are whole sentences with `{name}`
+  placeholders, because word order differs by language. Lowercase developer
+  errors a person cannot trigger from our own UI ("invalid json") stay English.
+- **Plan gates are async.** `gateFeature`, `gateQuota`, `assertFeature`,
+  `assertQuota`, `tooLarge` and `contentLengthExceeds` translate their refusal,
+  so they return a Promise. **Always `await` them**: an un-awaited gate is a
+  truthy Promise that blocks everyone. A test enforces it.
+- **Translate the meaning, not the words.** A label in a pill, a tab, a KPI tile
+  or a plan-comparison row must fit the box it was designed for; when a
+  translation overflows, shorten the translation, never widen the UI.
+  `test/i18n-concise-labels.test.ts` holds those labels to 1.5× the English.
 
 **The public site and the app do not share styling.** Editing a token in
 `components/ui/tokens.ts` will not move the landing page, and vice versa.
@@ -243,6 +282,9 @@ the code behaves, so **they change in the same commit the code does.**
 
 ## Status
 
-Pre-launch. Live payments, transactional email at scale, and the recorded product
-footage on the landing page are the known gaps. `docs/project-status.md` tracks
-the honest version.
+School pilots are opening: schools are being invited to a free 45-day pilot
+started from the school form, and Raya is open to students on the free plan.
+Live payments stay closed on purpose until there are users to justify them; the
+rails above are built and tested for that day. The recorded product footage on
+the landing page is still a known gap. `docs/project-status.md` tracks the honest
+version.

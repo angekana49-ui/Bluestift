@@ -19,6 +19,7 @@ import {
   secondaryBtn,
 } from "@/components/ui/auth-chrome";
 import { useTranslate } from "@/components/ui/locale";
+import { useSiteHomeHref } from "@/lib/use-site-home";
 import { LinkSentDialog } from "@/components/ui/link-sent-dialog";
 import { PasswordField } from "@/components/ui/password-field";
 
@@ -59,6 +60,7 @@ export function LoginView({
   const supabase = createClient();
   const router = useRouter();
   const tr = useTranslate();
+  const siteHome = useSiteHomeHref();
   const turnstileRef = useRef<TurnstileHandle>(null);
 
   const [mode, setMode] = useState<"signin" | "signup">("signin");
@@ -371,7 +373,7 @@ export function LoginView({
 
   const back = (
     <div style={{ marginBottom: 8 }}>
-      <Link href="/" style={{ fontSize: 15, color: "#64748b", textDecoration: "none" }}>
+      <Link href={siteHome} style={{ fontSize: 15, color: "#64748b", textDecoration: "none" }}>
         {tr("login.backToSite")}
       </Link>
     </div>
