@@ -535,6 +535,30 @@ function Composing({ theme: t, unit = u }: { theme: Theme; unit?: Unit }) {
   );
 }
 
+/** Raya in a thread: her own mark in a chip, the way the chat surface draws
+ *  her. An "R" on an indigo disc read as one more member of the room. */
+function RayaAvatar({ theme: t, size = 17 }: { theme: Theme; size?: number }) {
+  return (
+    <span
+      style={{
+        flex: "none",
+        width: u(size),
+        height: u(size),
+        borderRadius: u(999),
+        overflow: "hidden",
+        background: t.dark ? "#141b2e" : "#ffffff",
+        border: `1px solid ${t.cardBorder}`,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={t.dark ? "/raya-mark-dark.png" : "/raya-mark.png"} alt="" style={{ width: "82%", height: "82%", objectFit: "contain" }} />
+    </span>
+  );
+}
+
 /** Milliseconds between two streamed words. Slow enough to be read as arriving,
  *  fast enough that a long reply doesn't outlast the pause after it. */
 const WORD_STEP = 34;
@@ -992,7 +1016,7 @@ export function RoomShot({ theme: t }: { theme: Theme }) {
                 }}
               >
                 {m.who === "raya"
-                  ? avatar("R", ACCENT.indigo)
+                  ? <RayaAvatar theme={t} />
                   : avatar(who?.initials ?? "", who?.bg ?? t.muted, who?.online)}
                 <div style={{ display: "flex", flexDirection: "column", alignItems: mine ? "flex-end" : "flex-start", gap: u(2), minWidth: 0 }}>
                   <span style={{ fontSize: u(7), color: t.mutedLight }}>
@@ -1008,7 +1032,7 @@ export function RoomShot({ theme: t }: { theme: Theme }) {
                 delay={roomBeat(i)}
                 placeholder={
                   <div style={{ display: "flex", gap: u(5), alignItems: "flex-end" }}>
-                    {avatar("R", ACCENT.indigo)}
+                    <RayaAvatar theme={t} />
                     <Composing theme={t} />
                   </div>
                 }
@@ -1484,23 +1508,7 @@ export function GuidedShot({ theme: t }: { theme: Theme }) {
           finished list. The recommended material resolves last. */}
       <div style={{ position: "absolute", inset: 0, padding: u(15), display: "flex", flexDirection: "column", gap: u(7) }}>
         <div className="shot-in" style={{ display: "flex", alignItems: "center", gap: u(7) }}>
-          <span
-            style={{
-              flex: "none",
-              width: u(19),
-              height: u(19),
-              borderRadius: u(999),
-              background: ACCENT.indigo,
-              color: "#fff",
-              fontSize: u(7.5),
-              fontWeight: 700,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            R
-          </span>
+          <RayaAvatar theme={t} size={19} />
           <span style={{ fontSize: u(11.5), fontWeight: 700, color: t.text, letterSpacing: "-0.01em" }}>
             <RayaName />
           </span>

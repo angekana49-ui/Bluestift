@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { continueRender, delayRender, staticFile } from "remotion";
+import { MARKS } from "./generated/marks";
 
 /**
  * Plays a landing-page product shot on the video's clock instead of the page's.
@@ -38,9 +39,17 @@ export function FrozenShot({ timeMs, style, children }: { timeMs: number; style?
     // The shots load the app's marks by root-relative path (`/raya-mark.png`),
     // which only the Next app serves. Point them at this package's public/
     // (scripts/sync-css.mjs copies the files) and hold the frame until they load.
-    for (const img of host.querySelectorAll<HTMLImageElement>("img[src^='/']:not([data-video-src])")) {
+    // (Not the film's own pictures, which already come from there.)
+    for (const img of host.querySelectorAll<HTMLImageElement>("img[src^='/']:not([data-video-src]):not([src^='/public/'])")) {
       const path = img.getAttribute("src")!.slice(1);
       img.dataset.videoSrc = path;
+      const inlined = MARKS[path];
+      if (inlined) {
+        // The marks travel in the bundle; nothing to wait for and nothing to
+        // 404. (See scripts/sync-css.mjs for why.)
+        img.src = inlined;
+        continue;
+      }
       const handle = delayRender(`shot image ${path}`);
       const done = () => continueRender(handle);
       img.addEventListener("load", done, { once: true });
@@ -56,17 +65,44 @@ export function FrozenShot({ timeMs, style, children }: { timeMs: number; style?
     void host.offsetWidth;
     for (const el of shots) el.classList.add("is-live");
 
-    for (const animation of host.getAnimations({ subtree: true })) {
+    const animations = host.getAnimations({ subtree: true });
+    for (const animation of animations) {
       animation.pause();
       animation.currentTime = Math.max(0, timeMs);
-      try {
-        animation.commitStyles();
-      } catch {
-        // An element that is not rendered cannot hold committed styles, and is
-        // not visible in this frame either.
-      }
-      animation.cancel();
     }
+    const committed: [Element, string, string][] = [];
+    for (const animation of animations) {
+      const effect = animation.effect as KeyframeEffect | null;
+      const target = effect?.target;
+      if (target instanceof SVGElement) {
+        // commitStyles does nothing useful on SVG in this Chrome — the Kernel
+        // diagrams' discs stayed at the stylesheet's `opacity: 0` — so the
+        // animated properties are read back and written by hand instead.
+        const style = getComputedStyle(target);
+        for (const frame of effect!.getKeyframes()) {
+          for (const key of Object.keys(frame)) {
+            if (key === "offset" || key === "computedOffset" || key === "easing" || key === "composite") continue;
+            const prop = key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
+            committed.push([target, prop, style.getPropertyValue(prop)]);
+          }
+        }
+      } else {
+        try {
+          animation.commitStyles();
+        } catch {
+          // An element that is not rendered cannot hold committed styles, and is
+          // not visible in this frame either.
+        }
+      }
+    }
+    for (const animation of animations) animation.cancel();
+    for (const [el, prop, value] of committed) (el as SVGElement).style.setProperty(prop, value);
+    // Every animated value is inline now, so the classes that set the start
+    // states can go; left on, Chrome kept painting SVG from them.
+    for (const el of shots) el.classList.remove("pub-shot-anim", "is-live");
+    // Let the compositor take the cancellations before the frame is captured.
+    const settle = delayRender("FrozenShot settle");
+    requestAnimationFrame(() => requestAnimationFrame(() => continueRender(settle)));
   });
 
   return (

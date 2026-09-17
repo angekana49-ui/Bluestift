@@ -1,67 +1,87 @@
 {
-  "title": "How Raya works",
+  "title": "Welcome to Bluestift",
   "voices": {
-    "A": { "role": "lead, warm and bright", "draft": "Microsoft Zira Desktop" },
-    "B": { "role": "relay, warm and upbeat", "draft": "Microsoft Hazel Desktop" }
+    "M": { "name": "Liam", "role": "host, calm" },
+    "A": { "role": "lead, warm and bright" },
+    "B": { "role": "relay, warm and upbeat" }
   },
   "scenes": [
     {
       "id": "intro",
-      "minSeconds": 8,
       "lines": [
-        { "speaker": "A", "text": "Every student gets stuck sometimes." },
-        { "speaker": "B", "text": "Most AI just hands over the answer." },
-        { "speaker": "A", "text": "Raya does something better." }
+        { "speaker": "M", "text": "Hi everyone, I'm Liam, and I'm glad to be your host today." },
+        { "speaker": "M", "text": "Students have their AI." },
+        { "speaker": "M", "text": "Teachers have theirs." },
+        { "speaker": "M", "text": "And the two never meet." },
+        { "speaker": "M", "text": "So let us introduce you to Bluestift: the platform where they finally do." }
       ]
     },
     {
-      "id": "chat",
-      "eyebrow": "Chat",
-      "headline": "A tutor that asks before it answers",
-      "minSeconds": 24,
+      "id": "bluestift",
       "lines": [
-        { "speaker": "B", "text": "Ask Raya anything, in any subject, at any level, in your own language." },
-        { "speaker": "A", "text": "Instead of solving it for you, Raya asks the one question that gets you moving." },
-        { "speaker": "B", "text": "A hint only after you've tried, one step at a time. So when it clicks, it's yours." }
+        { "speaker": "A", "text": "Bluestift is a collaborative platform, built around Raya, the AI we designed for learning." },
+        { "speaker": "A", "text": "Students learn, fail, challenge themselves, and find out exactly where they're stuck." },
+        { "speaker": "A", "text": "And not just on their own: their school gets the whole picture too." },
+        { "speaker": "A", "text": "So they don't just learn more easily." },
+        { "speaker": "A", "text": "They learn better." }
       ]
     },
     {
-      "id": "rooms",
-      "eyebrow": "Study Rooms",
-      "headline": "Learn together, with Raya on call",
-      "minSeconds": 18,
+      "id": "raya",
       "lines": [
-        { "speaker": "A", "text": "Studying with friends? Open a Study Room." },
-        { "speaker": "B", "text": "Share a document, work through it together, and bring Raya in when the group needs a nudge." }
+        { "speaker": "B", "text": "Here's a quick look at Raya, which is more than an AI: it's a platform of its own." },
+        { "speaker": "B", "text": "Ask Raya anything from your dashboard." },
+        { "speaker": "B", "text": "Instead of handing you the answer, Raya helps you find it." },
+        { "speaker": "B", "text": "Explore your learning insights in My Kernel." },
+        { "speaker": "B", "text": "Turn your own lessons into quizzes, flashcards and mind maps, and practise your way." },
+        { "speaker": "B", "text": "Or even better, open a Study Room with your friends, to chat, share your documents and challenge each other, with Raya right there, always ready to help." }
       ]
     },
     {
-      "id": "tools",
-      "eyebrow": "Tools",
-      "headline": "Your notes, turned into practice",
-      "minSeconds": 16,
+      "id": "schools",
       "lines": [
-        { "speaker": "A", "text": "Got notes, a PDF, or a voice memo?" },
-        { "speaker": "B", "text": "Tools turns them into summaries, quizzes, flashcards and mind maps, in seconds." }
+        { "speaker": "A", "text": "And while you learn, you're never on your own." },
+        { "speaker": "A", "text": "Your school has your back." },
+        { "speaker": "A", "text": "With Bluestift Schools, your teachers see exactly where you're stuck, concept by concept." },
+        { "speaker": "A", "text": "Never your conversations." },
+        { "speaker": "A", "text": "They can tell Raya where to focus and how to help, and ask Raya about their class in return." },
+        { "speaker": "A", "text": "For a class, or for the whole school, they get a clear summary of what's really needed." },
+        { "speaker": "A", "text": "So they can stay close to what matters most: the students who count on them every day." }
       ]
     },
     {
       "id": "kernel",
-      "eyebrow": "My Kernel",
-      "headline": "A private map of what you truly understand",
-      "minSeconds": 24,
       "lines": [
-        { "speaker": "B", "text": "Behind it all is your Kernel, a private map of what you've truly understood." },
-        { "speaker": "A", "text": "Concept by concept, it sees what's solid, what's growing, and what's starting to slip." },
-        { "speaker": "B", "text": "So every session starts right where you need it." }
+        { "speaker": "B", "text": "All of this runs on one layer, built just for it: the Kernel." },
+        { "speaker": "B", "text": "With every attempt, it measures what you know, how fast you're moving, what really sticks, and your mindset." },
+        { "speaker": "B", "text": "So when Raya guides you, it's toward a problem the Kernel actually found." },
+        { "speaker": "B", "text": "Not generic advice, and not a guess." },
+        { "speaker": "B", "text": "Like a physics mistake that really comes from a gap in maths." },
+        { "speaker": "B", "text": "And the best part: the Kernel grows with you." },
+        { "speaker": "B", "text": "It assumes nothing, except that every student matters more than any grade." }
+      ]
+    },
+    {
+      "id": "control",
+      "lines": [
+        { "speaker": "A", "text": "Bluestift isn't just an AI tool, it's a whole ecosystem." },
+        { "speaker": "A", "text": "And the people in it stay in control." },
+        { "speaker": "A", "text": "You can start without an email: a recovery key brings you back in, and you can replace it anytime." },
+        { "speaker": "A", "text": "No ads, and we never sell your data." },
+        { "speaker": "A", "text": "Analytics only runs if you say yes, and never for anyone under eighteen." },
+        { "speaker": "A", "text": "Nothing a minor writes is ever used for training, and adults decide with a single switch." },
+        { "speaker": "A", "text": "Download everything, or delete your account, whenever you want." },
+        { "speaker": "A", "text": "And every third party we use is listed publicly." }
       ]
     },
     {
       "id": "outro",
-      "minSeconds": 10,
       "lines": [
-        { "speaker": "A", "text": "Raya. The tutor that helps you think." },
-        { "speaker": "B", "text": "Start free today. No card needed." }
+        { "speaker": "A", "text": "So that was a quick look at Bluestift." },
+        { "speaker": "A", "text": "Thank you for watching." },
+        { "speaker": "A", "text": "We hope it helped you see how it all fits together." },
+        { "speaker": "B", "text": "To learn more, visit thebluestift.com, or just ask Raya." },
+        { "speaker": "B", "text": "Now jump aboard, enjoy, and welcome to Bluestift!" }
       ]
     }
   ]

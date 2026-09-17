@@ -1,0 +1,46 @@
+{
+  "speed": 1.1,
+  "voice": {
+    "file": "narration/narration-en.mp3",
+    "minSpeakerGap": 1.0,
+    "firstWordAt": {
+      "intro": 3.4,
+      "bluestift": 18.5,
+      "raya": 36.68,
+      "schools": 68.5,
+      "kernel": 96.15,
+      "control": 127.55,
+      "outro": 160.45
+    }
+  },
+  "music": {
+    "file": "narration/music-en-iphone.mp3",
+    "bpm": 96,
+    "beatsPerBar": 4,
+    "firstDownbeat": 0.071,
+    "edit": [
+      [0, 30],
+      [32, 41],
+      [40, 48],
+      [48, 53],
+      [52, 56],
+      [56, 69],
+      [64, "end"]
+    ],
+    "marks": {
+      "theme": 8,
+      "groove": 16,
+      "warm": 32,
+      "breakdown": 48,
+      "full": 56,
+      "final": 72
+    }
+  },
+  "mix": {
+    "underVoiceDb": -18,
+    "betweenSectionsDb": -11,
+    "aloneDb": -5,
+    "loudnessLufs": -16,
+    "truePeakDb": -1.5
+  }
+}

@@ -1,96 +1,81 @@
-import script from "./script.json";
-import manifest from "./generated/voice-manifest.json";
+import soundtrack from "./generated/soundtrack.json";
+
+/**
+ * The film's clock, read from the soundtrack (scripts/soundtrack.mjs).
+ *
+ * The picture follows the sound, never the other way round: the voice and the
+ * music were placed first, and every time below is a moment you can hear — a
+ * line starting, a phrase landing, a downbeat, the music changing section.
+ * Re-run `npm run soundtrack` and the picture moves with it.
+ */
 
 export const FPS = 30;
 export const WIDTH = 1920;
 export const HEIGHT = 1080;
-/** The brief: two minutes, never more. */
-export const MAX_SECONDS = 120;
 
-/** Silence before a scene's first line, between lines, and after its last. */
-const LEAD = 0.8;
-const GAP = 0.5;
-const TAIL = 1.1;
+export type SectionId = "intro" | "bluestift" | "raya" | "schools" | "kernel" | "control" | "outro";
 
-export type Speaker = "A" | "B";
-
-export type TimedLine = {
-  file: string;
-  speaker: Speaker;
-  text: string;
-  /** Seconds from the start of the scene. */
-  start: number;
-  duration: number;
-};
-
-export type TimedScene = {
+export type Line = {
   id: string;
-  eyebrow?: string;
-  headline?: string;
-  /** Seconds from the start of the video. */
+  section: SectionId;
+  speaker: "M" | "A" | "B";
+  text: string;
   start: number;
-  duration: number;
-  lines: TimedLine[];
+  end: number;
+  /** Phrase boundaries inside the line, where the recording breathes. */
+  phrases: { text: string; start: number; end: number }[];
+  /** When each word starts, spread by syllables over its phrase. */
+  words: { word: string; at: number }[];
 };
 
-const durations = manifest as Record<string, number>;
+export const DURATION = soundtrack.duration;
+export const TOTAL_FRAMES = Math.ceil(DURATION * FPS);
+export const LINES = soundtrack.lines as Line[];
+export const SECTIONS = soundtrack.sections as { id: SectionId; start: number; end: number }[];
+export const MUSIC = soundtrack.musicChanges as Record<"theme" | "groove" | "warm" | "breakdown" | "full" | "final", number>;
+
+/** One bar and one beat of the music, in film seconds. */
+export const BAR = soundtrack.bar;
+export const BEAT = BAR / 4;
+/** Every change of music section falls on a downbeat; the grid is anchored there. */
+const GRID = MUSIC.theme - Math.round(MUSIC.theme / BAR) * BAR;
+
+/** The nearest beat to a moment — so a cut can land on the music. */
+export const onBeat = (t: number) => GRID + Math.round((t - GRID) / BEAT) * BEAT;
+/** The last beat at or before a moment. */
+export const beatBefore = (t: number) => GRID + Math.floor((t - GRID) / BEAT + 1e-6) * BEAT;
+
+export const sec = (s: number) => Math.round(s * FPS);
+
+export function line(id: string): Line {
+  const l = LINES.find((x) => x.id === id);
+  if (!l) throw new Error(`No line "${id}" in the soundtrack — run npm run soundtrack`);
+  return l;
+}
+
+export function section(id: SectionId) {
+  const s = SECTIONS.find((x) => x.id === id);
+  if (!s) throw new Error(`No section "${id}" in the soundtrack`);
+  return s;
+}
 
 /**
- * Lays the script out on the clock from the measured voice lines.
- *
- * A scene lasts as long as its speech needs, or its minimum when the speech is
- * shorter — and then the spare time is spread between the lines rather than
- * left at the end, so the voice keeps pace with the pictures instead of
- * finishing early and waiting. Re-timed automatically when the voice files
- * change (scripts/voice-manifest.mjs).
+ * When a word is said (its first syllable, to within a syllable or so).
+ * Matched case-blind on the start of the word; `nth` picks a later one when
+ * the line says it twice.
  */
-function build(): TimedScene[] {
-  let clock = 0;
-  return script.scenes.map((scene) => {
-    const lengths = scene.lines.map((_, i) => {
-      const file = `${scene.id}-${i}`;
-      const d = durations[file];
-      if (d == null) throw new Error(`No voice file measured for ${file} — run npm run prepare:assets`);
-      return d;
-    });
-    const speech = LEAD + lengths.reduce((a, b) => a + b, 0) + GAP * (lengths.length - 1) + TAIL;
-    const duration = Math.max(scene.minSeconds, speech);
-    const spare = (duration - speech) / (lengths.length + 1);
-
-    let t = LEAD + spare;
-    const lines = scene.lines.map((line, i) => {
-      const timed: TimedLine = {
-        file: `voice/${scene.id}-${i}.wav`,
-        speaker: line.speaker as Speaker,
-        text: line.text,
-        start: t,
-        duration: lengths[i],
-      };
-      t += lengths[i] + GAP + spare;
-      return timed;
-    });
-
-    const timed: TimedScene = {
-      id: scene.id,
-      eyebrow: "eyebrow" in scene ? scene.eyebrow : undefined,
-      headline: "headline" in scene ? scene.headline : undefined,
-      start: clock,
-      duration,
-      lines,
-    };
-    clock += duration;
-    return timed;
-  });
+export function wordAt(lineId: string, word: string, nth = 1): number {
+  const l = line(lineId);
+  const needle = word.toLowerCase();
+  const hits = l.words.filter((w) => w.word.toLowerCase().startsWith(needle));
+  const hit = hits[nth - 1];
+  if (!hit) throw new Error(`"${word}" (#${nth}) is not in line ${lineId}: ${l.text}`);
+  return hit.at;
 }
 
-export const SCENES = build();
-export const TOTAL_SECONDS = SCENES.reduce((a, s) => a + s.duration, 0);
-
-if (TOTAL_SECONDS > MAX_SECONDS) {
-  throw new Error(
-    `The video runs ${TOTAL_SECONDS.toFixed(1)}s, over the ${MAX_SECONDS}s brief. Shorten a line or a scene minimum in script.json.`,
-  );
+/** Start and end of the k-th phrase of a line (0-based). */
+export function phrase(lineId: string, k: number) {
+  const p = line(lineId).phrases[k];
+  if (!p) throw new Error(`Line ${lineId} has no phrase ${k}`);
+  return p;
 }
-
-export const TOTAL_FRAMES = Math.ceil(TOTAL_SECONDS * FPS);
-export const sec = (s: number) => Math.round(s * FPS);
