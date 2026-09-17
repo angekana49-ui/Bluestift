@@ -20,9 +20,32 @@ describe("how it works video", () => {
     for (const [constant, path] of component.matchAll(/export const (HOW_IT_WORKS_\w+) = "([^"]+)"/g).map((m) => [m[1], m[2]])) {
       expect(existsSync(join(ROOT, "public", path)), `${constant}: public${path}`).toBe(true);
     }
-    // Served straight from public/ to every visitor who presses play, often on
-    // a phone plan: a master-quality export dropped in by mistake shows up here.
-    expect(statSync(join(ROOT, "public/video/how-it-works-en.mp4")).size).toBeLessThan(20 * 1024 * 1024);
+    // The film ships in the repo at full quality, which git keeps for good and
+    // GitHub refuses outright over 100 MiB — a push that hits that limit is a
+    // history to rewrite, not a file to shrink. The ceiling is here, below it.
+    expect(statSync(join(ROOT, "public/video/how-it-works-en-v2.mp4")).size).toBeLessThan(95 * 1024 * 1024);
+  });
+
+  it("caches the film for a year, under a versioned name", () => {
+    // The two halves of one decision: bytes that never change behind a URL,
+    // and a URL that changes when the bytes do.
+    const config = read("next.config.ts");
+    expect(config).toContain('source: "/video/:file*"');
+    expect(config).toContain("public, max-age=31536000, immutable");
+    for (const [, path] of component.matchAll(/export const HOW_IT_WORKS_\w+ = "([^"]+)"/g)) {
+      expect(path, `${path} is cached forever, so it must carry a version`).toMatch(/-v\d+\.\w+$/);
+    }
+  });
+
+  it("offers the narration as captions", () => {
+    // Burnt-in captions went with the first cut; the film is narrated now, so
+    // the text is a track anyone can turn on — and nobody has to.
+    expect(component).toContain('<track kind="captions"');
+    expect(component).toContain("srcLang=\"en\"");
+    expect(component).not.toContain("<track kind=\"captions\" default");
+    const vtt = read("public/video/how-it-works-en-v2.vtt");
+    expect(vtt.startsWith("WEBVTT")).toBe(true);
+    expect(vtt).toContain("-->");
   });
 
   it("mounts the video only while the dialog is open", () => {

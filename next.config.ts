@@ -202,6 +202,20 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        /*
+         * The explainer, at the other extreme: ninety megabytes that never
+         * change. Files in public/ are served with `max-age=0,
+         * must-revalidate` by default, which for a video this size means every
+         * returning viewer asks again, and pays again for anything the CDN
+         * decides not to hold. The names carry a version
+         * (how-it-works-en-v2.mp4), so the bytes behind a URL are fixed for
+         * good and a year of immutable caching is simply the truth — a new cut
+         * ships as a new name, and the old URL can keep being cached.
+         */
+        source: "/video/:file*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
+      {
         // Raya's manifest is a route handler rather than a file convention,
         // so it needs the rule spelled out separately — same reasoning.
         source: "/raya-manifest",

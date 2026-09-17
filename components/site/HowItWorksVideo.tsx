@@ -13,15 +13,23 @@ import { useTranslate } from "@/components/ui/locale";
  * focus returns to the button on close.
  *
  * The <video> is only mounted while the dialog is open. Most visitors never
- * press the button, and a `preload` on a ten-megabyte file would charge every
- * one of them for it — on the phone data plans a lot of this audience is on.
- * Autoplay with sound is allowed here because opening the dialog is the click.
+ * press the button, and a `preload` on a ninety-megabyte file would charge
+ * every one of them for it — on the phone data plans a lot of this audience is
+ * on. Once open, the browser streams it in ranges as it plays, so a visitor who
+ * watches twenty seconds pays for twenty seconds. Autoplay with sound is
+ * allowed here because opening the dialog is the click.
  *
- * English only for now, with the captions burned in; every locale gets the same
- * file until the translated renders exist.
+ * English only for now: one narration, subtitles beside it rather than burnt
+ * into the picture (scripts/subtitles.mjs writes them from the film's own
+ * clock), and every locale gets the same file until translated renders exist.
+ *
+ * The names carry a version because the file is served with a year of
+ * immutable caching (next.config.ts): a new cut is a new name, never the same
+ * URL with new bytes behind it.
  */
-export const HOW_IT_WORKS_VIDEO = "/video/how-it-works-en.mp4";
-export const HOW_IT_WORKS_POSTER = "/video/how-it-works-poster.jpg";
+export const HOW_IT_WORKS_VIDEO = "/video/how-it-works-en-v2.mp4";
+export const HOW_IT_WORKS_POSTER = "/video/how-it-works-poster-v2.jpg";
+export const HOW_IT_WORKS_CAPTIONS = "/video/how-it-works-en-v2.vtt";
 
 export default function HowItWorksVideo({ open, onClose }: { open: boolean; onClose: () => void }) {
   const tr = useTranslate();
@@ -118,7 +126,13 @@ export default function HowItWorksVideo({ open, onClose }: { open: boolean; onCl
               background: "#000",
               boxShadow: "0 30px 80px rgba(0,0,0,0.45)",
             }}
-          />
+          >
+            {/* Not `default`: the film is narrated and plays with sound here.
+                The browser turns the track on by itself for anyone whose system
+                asks for captions, and the controls offer it to everyone else.
+                The label names the language in that language, as players list it. */}
+            <track kind="captions" src={HOW_IT_WORKS_CAPTIONS} srcLang="en" label="English" />
+          </video>
         </div>
       )}
     </dialog>
