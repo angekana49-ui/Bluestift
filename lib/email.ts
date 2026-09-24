@@ -34,7 +34,7 @@ const BRANDS: Record<EmailBrand, { fromName: string; product: string | null }> =
 
 /** Build the From header for a brand: the verified ADDRESS from EMAIL_FROM (its
  *  display name, if any, is ignored) with the product-specific display name. */
-function fromHeader(brand: EmailBrand): string {
+export function fromHeader(brand: EmailBrand): string {
   const raw = process.env.EMAIL_FROM ?? "no-reply@bluestift.local";
   const address = raw.match(/<([^>]+)>/)?.[1] ?? raw.trim();
   return `${BRANDS[brand].fromName} <${address}>`;
@@ -101,7 +101,7 @@ export type EmailTemplate = keyof typeof RESEND_TEMPLATES;
  * From address is a no-reply one, so without this the replies the templates
  * ask for would be sent into nothing.
  */
-function replyTo(): string {
+export function replyTo(): string {
   return process.env.EMAIL_REPLY_TO ?? "hello@thebluestift.com";
 }
 

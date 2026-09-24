@@ -958,3 +958,6 @@ progress curve / signal logging~~ (done).
    origin-agnostic and ships safely before any DNS moves.
 8. **Later** — social (`friendships`/`notifications`), remaining Tools
    (TTS/infographic), public-site polish (post authoring, newsletter sending).
+   Social v1 and Newsletter v1 (post authoring + sending) are now **prepared,
+   not plugged in** — code, tests and draft migrations, with a switch-on
+   checklist each: `docs/prepared-updates.md`.
