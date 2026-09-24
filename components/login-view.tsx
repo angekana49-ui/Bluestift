@@ -28,12 +28,10 @@ import { PasswordField } from "@/components/ui/password-field";
  * (shared chrome in ui/auth-chrome). Light-only, outside the themed app shell.
  * Auth logic mirrors components/auth-panel.tsx.
  *
- * FOUR ways in, and they are not interchangeable:
+ * THREE ways in, and they are not interchangeable:
  *   · email + password — the one people expect, and the only one that works
  *     with no inbox to hand (a shared school machine, a phone with the mail app
  *     signed in as someone else);
- *   · a magic link — no password to remember, which for a twelve-year-old is
- *     the difference between having an account next term and not;
  *   · a recovery key — the way back for an account that never had an email;
  *   · anonymous — the front door of the product, kept last so it reads as the
  *     alternative to signing up rather than as the fallback from failing to.
@@ -224,22 +222,6 @@ export function LoginView({
     // Opening the "check your inbox" dialog there meant waiting for a link that
     // was never sent.
     if (data.user && data.user.identities?.length === 0) return fail("credentials", tr("login.err.emailTaken"), "signIn");
-    setPending({ email, dest: "/auth/continue" });
-  }
-
-  async function sendEmailLink() {
-    if (!email) return;
-    if (!captchaToken) return fail("credentials", tr("auth.err.captcha"));
-    setBusy(true);
-    clearNotice();
-    await clearPendingSession();
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo, shouldCreateUser: true, captchaToken: captchaToken ?? undefined },
-    });
-    setBusy(false);
-    resetCaptcha();
-    if (error) return fail("credentials", error.message);
     setPending({ email, dest: "/auth/continue" });
   }
 
@@ -499,12 +481,10 @@ export function LoginView({
         {mode === "signup" ? tr("login.signUpBtn") : tr("login.signInBtn")}
       </button>
 
-      {/* The passwordless routes, kept one tap away rather than behind a second
-          screen: they are the ones this product's youngest users rely on. */}
+      {/* No "email me a link" here: an address alone must not sign anyone in —
+          the password is required. An account that never set one uses "forgot
+          password", which ends on /reset to choose it. */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 14, marginTop: 12 }}>
-        <button style={{ ...linkish, opacity: busy || !email || !captchaToken ? 0.5 : 1 }} onClick={sendEmailLink} disabled={busy || !email || !captchaToken}>
-          {tr("login.magicInstead")}
-        </button>
         {mode === "signin" && (
           <button style={{ ...linkish, color: "#64748b", opacity: busy ? 0.5 : 1 }} onClick={forgotPassword} disabled={busy}>
             {tr("login.forgot")}

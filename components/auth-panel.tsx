@@ -77,11 +77,6 @@ export function AuthPanel({
    *  note. `null` = none pending; `""` = pending, address not ours to show. */
   const [linkSentTo, setLinkSentTo] = useState<string | null>(null);
 
-  const emailRedirectTo =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/auth/callback?next=/account`
-      : undefined;
-
   function resetCaptcha() {
     setCaptchaToken(null);
     turnstileRef.current?.reset();
@@ -112,26 +107,6 @@ export function AuthPanel({
     } finally {
       setBusy(false);
     }
-  }
-
-  /** Signed out (/login): an email link signs into an existing account. */
-  async function sendEmailLink() {
-    if (!email) return;
-    if (!captchaToken) return setMsg(tr("auth.err.captcha"));
-    setBusy(true);
-    setMsg(null);
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo,
-        shouldCreateUser: true,
-        captchaToken,
-      },
-    });
-    setBusy(false);
-    resetCaptcha();
-    if (error) return setMsg(error.message);
-    setLinkSentTo(email);
   }
 
   /**
@@ -284,14 +259,11 @@ export function AuthPanel({
           <Turnstile ref={turnstileRef} onVerify={setCaptchaToken} />
         </div>
 
-        {/* Returning users: an email link signs you back into your existing account. */}
-        <p style={label}>{tr("auth.login.emailLabel")}</p>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          <input style={input} type="email" placeholder={tr("auth.login.emailPlaceholder")} value={email} onChange={(e) => setEmail(e.target.value)} />
-          <button style={{ ...btn, opacity: busy || !email || !captchaToken ? 0.5 : 1 }} onClick={sendEmailLink} disabled={busy || !email || !captchaToken}>
-            {tr("auth.login.sendLink")}
-          </button>
-        </div>
+        {/* Returning users sign in with email AND password on /login. An
+            email link alone used to sign in from here; it no longer can. */}
+        <a href="/login" style={{ ...btn, display: "inline-block", textDecoration: "none" }}>
+          {tr("login.signInBtn")}
+        </a>
 
         {/* Recovery key: emails a fresh link to the account on file. */}
         <p style={{ ...label, marginTop: 16 }}>{tr("auth.login.recoveryLabel")}</p>

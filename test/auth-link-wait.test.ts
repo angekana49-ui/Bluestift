@@ -100,12 +100,16 @@ describe("/auth/continue", () => {
 describe("password sign-in", () => {
   const login = read("components/login-view.tsx");
 
-  it("offers all four ways in", () => {
+  it("offers three ways in, and a password is required for the email one", () => {
     expect(login).toContain("signInWithPassword");
     expect(login).toContain("supabase.auth.signUp");
-    expect(login).toContain("signInWithOtp"); // the magic link, still there
     expect(login).toContain("/api/auth/recover"); // the recovery key
     expect(login).toContain("/api/auth/anon"); // anonymous
+  });
+
+  it("an email address alone signs no one in — no magic link on either surface", () => {
+    expect(login).not.toContain("signInWithOtp");
+    expect(read("components/auth-panel.tsx")).not.toContain("signInWithOtp");
   });
 
   it("sends a reset link to /reset, not into the app", () => {

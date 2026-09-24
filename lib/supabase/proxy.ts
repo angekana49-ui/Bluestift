@@ -5,13 +5,32 @@ import { conflictingSessionCookies, cookieDomainFor } from "@/lib/supabase/cooki
 import type { Database } from "@/types/database.types";
 
 /**
- * Hard bound on the per-request session refresh. This runs on EVERY page and
- * API request (see root proxy.ts), so a slow Supabase must never stall the
- * whole app: past the deadline we stop waiting and let the request through —
- * pages/routes run their own getUser(), the only cost is a cookie refresh
- * skipped this cycle. Start generous; tighten after watching Vercel logs.
+ * Bound on the per-request session refresh. This runs on EVERY page and API
+ * request (see root proxy.ts), so a hung Supabase must not stall the app
+ * forever — but abandoning a refresh is NOT free, and the bound is set by that.
+ *
+ * With a valid access token `getClaims()` below is local (a signature check
+ * against cached keys) and returns in a few ms; this bound never comes into
+ * play. It only matters when the access token has EXPIRED and a refresh is on
+ * the wire. Supabase refresh tokens are single-use: the exchange rotates them
+ * server-side the moment it lands. This used to be 800 ms, and giving up on an
+ * exchange that took longer did not cancel it — it completed, consumed the
+ * browser's refresh token, and its new cookies went nowhere because the
+ * response had already been sent. The next request presented a token that was
+ * already used, and the session was gone.
+ *
+ * That was the installed app sending people back to /login long before the
+ * session timeout configured in Supabase: an icon on a home screen is opened
+ * cold, hours after the last visit, so every open starts with an expired token
+ * and a refresh — on a phone's connection, exactly the exchange most likely to
+ * take longer than 800 ms. A browser tab rarely hit it, because the browser
+ * client refreshes the token in the background while the tab is open.
+ *
+ * So the bound is now long enough for a slow refresh to finish and deliver its
+ * cookies, and short enough that a truly hung Supabase still lets the page
+ * through. A slow first paint once an hour beats a sign-out.
  */
-const AUTH_REFRESH_TIMEOUT_MS = 800;
+const AUTH_REFRESH_TIMEOUT_MS = 8000;
 
 type CookieToSet = { name: string; value: string; options?: CookieOptions };
 
