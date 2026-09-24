@@ -77,3 +77,12 @@ describe("the school membership read stays unmemoised on purpose", () => {
     );
   });
 });
+
+describe("the export covers the social tables", () => {
+  it("reads friendships in both directions and notifications addressed to the subject", () => {
+    expect(src).toContain('.from("friendships")');
+    expect(src).toContain("`user_id.eq.${userId},friend_id.eq.${userId}`");
+    expect(src).toMatch(/\.from\("notifications"\)\.select\("\*", COUNTED\)\.eq\("user_id", userId\)/);
+    expect(src).toMatch(/\n\s+friendships,\n\s+notifications,\n\s+cognitive_profile/);
+  });
+});

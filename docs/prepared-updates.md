@@ -74,10 +74,10 @@ browser read-only on friendships and limits notifications to flipping
    apply it. Verify the policies on the live schema.
 3. `npm run gen:types`; drop the untyped `learningAdmin()` in
    `lib/social/friendships.ts` for the typed admin client.
-4. Add `friendships` and `notifications` to the data export
-   (`lib/compliance/export.ts`) — they are personal data and are **not**
-   exported today. Erasure is already covered: both reference `users(id)` with
-   `ON DELETE CASCADE`.
+4. ~~Add `friendships` and `notifications` to the data export~~ — done
+   2026-09-24, ahead of the launch (`lib/compliance/export.ts`; both directions
+   for friendships, received-only for notifications). Erasure was already
+   covered: both reference `users(id)` with `ON DELETE CASCADE`.
 5. Rate-limit friend requests per user (a `checkRateLimit` bucket) in the route.
 6. Build the routes / UI; delete the social line from
    `test/prepared-updates.test.ts` in the same commit.

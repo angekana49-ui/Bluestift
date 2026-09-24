@@ -128,6 +128,8 @@ export async function buildDataExport(userId: string, email: string | null): Pro
     profileSnapshot,
     promo,
     requests,
+    friendships,
+    notifications,
   ] = await Promise.all([
     section("account", async () => {
       // Deliberately column-by-column rather than `*`: the recovery-key columns
@@ -228,6 +230,25 @@ export async function buildDataExport(userId: string, email: string | null): Pro
       "data_requests",
       admin.from("data_requests").select("*", COUNTED).eq("subject_user_id", userId),
     ),
+    // Both directions: a request the person received is held about them as
+    // much as one they sent. The other side appears as a bare user id — the
+    // relationship is the subject's data, the other person's profile is not.
+    // Empty until the social feature ships; in the bundle before it does, so
+    // the export is never the thing that lags behind a launch.
+    rows(
+      "friendships",
+      admin
+        .schema("learning")
+        .from("friendships")
+        .select("*", COUNTED)
+        .or(`user_id.eq.${userId},friend_id.eq.${userId}`),
+    ),
+    // Notifications addressed TO the person. Ones they caused for someone else
+    // (sender_id) belong to the recipient's bundle, not theirs.
+    rows(
+      "notifications",
+      admin.schema("learning").from("notifications").select("*", COUNTED).eq("user_id", userId),
+    ),
   ]);
 
   // The Kernel's model of the learner — what it believes they know, how
@@ -274,6 +295,8 @@ export async function buildDataExport(userId: string, email: string | null): Pro
     staff_followups: staffNotes,
     promo_redemptions: promo,
     data_requests: requests,
+    friendships,
+    notifications,
     cognitive_profile: cognitive,
     kernel_profile_snapshot: profileSnapshot,
     _errors: errors,
