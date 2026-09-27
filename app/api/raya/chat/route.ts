@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { ageGateResponse } from "@/lib/compliance/api-gate";
@@ -31,6 +31,9 @@ import { apiT } from "@/lib/i18n/server";
 import { captureServer } from "@/lib/analytics/server";
 
 // Streaming LLM turn: give the function room to finish long replies on Vercel.
+// This budget also covers the `after()` work at the bottom of the file — the
+// Kernel write runs inside the same invocation, after the reply is flushed, so a
+// long reply and a cold Kernel share the sixty seconds between them.
 export const maxDuration = 60;
 
 /**
@@ -378,77 +381,116 @@ export async function POST(request: Request) {
 
   const convIdFinal = convId;
   const encoder = new TextEncoder();
+
+  // The Kernel write below needs the finished reply, which only exists once the
+  // stream has drained — but it has to be REGISTERED before this handler returns
+  // its Response, while the request scope `after()` reads is still current. So
+  // the stream hands its payload over through this promise and `after()` waits
+  // on it.
+  let handOverToKernel: (convo: KernelMessage[] | null) => void = () => {};
+  const kernelPayload = new Promise<KernelMessage[] | null>((resolve) => {
+    handOverToKernel = resolve;
+  });
+
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       let full = "";
+      let forKernel: KernelMessage[] | null = null;
       try {
-        for await (const delta of deltas) {
-          full += delta;
-          controller.enqueue(encoder.encode(delta));
+        try {
+          for await (const delta of deltas) {
+            full += delta;
+            controller.enqueue(encoder.encode(delta));
+          }
+        } catch {
+          // keep whatever streamed so far
         }
-      } catch {
-        // keep whatever streamed so far
-      }
-      // Persist Raya's full reply (best-effort).
-      try {
-        await supabase.schema("learning").from("messages").insert({
-          conversation_id: convIdFinal,
-          user_id: null,
-          role: "assistant",
-          content: full,
-          model_used: model,
-          // What the turn cost. Read AFTER the loop above, which is what filled
-          // it in. null when the provider did not say — an unmeasured turn must
-          // not be summed as a free one.
-          tokens_used: usage.total,
-          emt_level: classifyEmt(full),
-        });
-        // Touch the conversation so it sorts to the top of the history list.
-        await supabase
-          .schema("learning")
-          .from("conversations")
-          .update({ updated_at: new Date().toISOString() })
-          .eq("id", convIdFinal);
-      } catch (e) {
-        // Non-fatal for this response — the student already read the reply as
-        // it streamed. It is not nothing, though: the reply is now missing from
-        // the thread, so the next turn's history has a hole in it.
-        await reportError("chat.persist", e, {
-          severity: "warning",
-          tags: { conversationId: convIdFinal, model },
-        });
-      }
-      controller.close();
+        // Persist Raya's full reply (best-effort).
+        try {
+          await supabase.schema("learning").from("messages").insert({
+            conversation_id: convIdFinal,
+            user_id: null,
+            role: "assistant",
+            content: full,
+            model_used: model,
+            // What the turn cost. Read AFTER the loop above, which is what filled
+            // it in. null when the provider did not say — an unmeasured turn must
+            // not be summed as a free one.
+            tokens_used: usage.total,
+            emt_level: classifyEmt(full),
+          });
+          // Touch the conversation so it sorts to the top of the history list.
+          await supabase
+            .schema("learning")
+            .from("conversations")
+            .update({ updated_at: new Date().toISOString() })
+            .eq("id", convIdFinal);
+        } catch (e) {
+          // Non-fatal for this response — the student already read the reply as
+          // it streamed. It is not nothing, though: the reply is now missing from
+          // the thread, so the next turn's history has a hole in it.
+          await reportError("chat.persist", e, {
+            severity: "warning",
+            tags: { conversationId: convIdFinal, model },
+          });
+        }
+        controller.close();
 
-      // Close the cognitive loop: every 3rd student turn, let the Kernel process
-      // the exchange and update state. Fire-and-forget — never blocks the reply.
-      const userTurns = hist.filter((m) => m.role === "user").length;
-      if (full && userTurns > 0 && userTurns % 3 === 0) {
-        const convo: KernelMessage[] = [
-          ...hist.map((m) => ({
-            role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
-            content: m.content ?? "",
-          })),
-          { role: "assistant", content: full },
-        ];
-        void kernel
-          .analyze({
-            user_id: user.id,
-            conversation_history: clampHistory(convo),
-            trigger: "post_conversation",
-          })
-          .then((res) => {
-            setLatestAnalysis(user.id, res);
-            invalidateProfile(user.id);
-          })
-          // Fire-and-forget must not mean unobserved. This is the write half of
-          // the cognitive loop — if it fails every time, the learner's profile
-          // stops moving and NOTHING about the reply looks any different, so the
-          // outage is invisible right up until a student asks Raya what it
-          // remembers and gets told "nothing".
-          .catch((e) => reportKernelDown("kernel.analyze", e));
+        // Close the cognitive loop: every 3rd student turn, let the Kernel process
+        // the exchange and update state. Handed to `after()` below, not started
+        // here — see the comment there for why.
+        const userTurns = hist.filter((m) => m.role === "user").length;
+        if (full && userTurns > 0 && userTurns % 3 === 0) {
+          forKernel = [
+            ...hist.map((m) => ({
+              role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
+              content: m.content ?? "",
+            })),
+            { role: "assistant", content: full },
+          ];
+        }
+      } finally {
+        // `after()` below is blocked on this. Any path out of `start` that left
+        // it unsettled — a throw from the persist above, a client that aborted
+        // mid-stream — would hold the invocation open until the platform killed
+        // it, so it settles in a finally or not at all.
+        handOverToKernel(forKernel);
       }
     },
+  });
+
+  // The write half of the cognitive loop, drained AFTER the reply is flushed.
+  //
+  // This used to be a bare `void kernel.analyze(...)` started just after
+  // `controller.close()` — a promise begun at the exact moment the platform is
+  // free to freeze or recycle the invocation. On Vercel the call is dropped
+  // whenever that happens before the Kernel answers, and that is the common case
+  // rather than the edge one: the Kernel is a Railway container that sleeps
+  // after ten idle minutes, so its cold start is measured in seconds while the
+  // response is already gone.
+  //
+  // A dropped call is worse than a failed one. `reportKernelDown` never fires,
+  // because the promise was not rejected — it was abandoned. The learner's
+  // profile silently stops moving, every reply looks exactly the same, and the
+  // outage surfaces the day a student asks Raya what it remembers of their work
+  // and is told nothing. `after()` keeps the invocation alive until this
+  // resolves, which is the whole difference between deferred and lost.
+  after(async () => {
+    const convo = await kernelPayload;
+    if (!convo) return;
+    try {
+      const res = await kernel.analyze({
+        user_id: user.id,
+        conversation_history: clampHistory(convo),
+        trigger: "post_conversation",
+      });
+      setLatestAnalysis(user.id, res);
+      // Kicks a profile refresh of its own, best-effort: the read is cheap next
+      // to the wake this call already paid for.
+      invalidateProfile(user.id);
+    } catch (e) {
+      reportKernelDown("kernel.analyze", e);
+    }
   });
 
   return new Response(stream, {
