@@ -111,6 +111,11 @@ export interface ConceptStateOut {
   p_score: number;
   status: KCStatus;
   last_interaction_at: string | null;
+  /** The KC's rigour in [0, 1], 0.5 neutral: how exact it must be to count as known. Drives the EMT entry point. */
+  tau?: number;
+  /** Successful / failed retrievals after a gap of >= 1 day (spacing effect). */
+  review_count?: number;
+  lapse_count?: number;
 }
 
 export interface MindsetOut {

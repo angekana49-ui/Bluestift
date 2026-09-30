@@ -54,6 +54,9 @@ const KERNEL_TABLES = [
   "student_mindset_state",
   "student_risk_assessments",
   "learning_trajectories",
+  // One row per graded attempt (Kernel migration 011). Apply that migration
+  // before shipping this line: a missing table fails this step.
+  "learning_events",
   "individual_insights",
   "kernel_monitoring",
   "kernel_outputs",
