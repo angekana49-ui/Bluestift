@@ -92,9 +92,29 @@ export interface AnalyzeResponse {
   summary: string;
   recommended_path: string[];
   alerts: KernelAlert[];
+  /** The one diagnostic question that would best settle the root gap; null when none would. */
+  probe?: KernelProbe | null;
   curriculum?: CurriculumContext | null;
   kernel_version: string;
   llm_used: string;
+}
+
+/**
+ * Ask ONE short question on `label`, without help, and send the graded answer to
+ * /update_concept_state (by concept_id). The next /analyze reads it back.
+ * Never shown to the student. See Kernel KERNEL_HANDOFF.md §2 and §3c.
+ */
+export interface KernelProbe {
+  label: string;
+  concept_id: string | null;
+  /** Expected information about the gap's location, in bits (<= 1). */
+  expected_gain: number;
+  /** The Kernel's prediction that the student answers correctly. */
+  p_correct: number;
+  root_if_correct: string | null;
+  root_if_wrong: string | null;
+  /** The question checks the current root: ask it before remediating. */
+  confirms_root: boolean;
 }
 
 // POST /load_profile
