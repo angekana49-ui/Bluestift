@@ -729,14 +729,17 @@ function buildLearnerState(
     lines.push(
       `  <diagnostic_question concept="${probe}" checks_root="${checksRoot}">` +
         `The profile cannot yet tell where the real gap is, and one answer on ` +
-        `this concept would settle it. When it fits the conversation, ask ONE short ` +
-        `question on it that the learner answers alone: no hint, no worked example, ` +
-        `no choices that give it away, and never say it is a test. Ask it once — if ` +
-        `it is already in this conversation, do not ask again; take the answer as it ` +
-        `comes and carry on. Not while the learner is overloaded or discouraged.` +
+        `this concept would settle it. Ask ONE short question on it that the ` +
+        `learner answers alone: no hint, no worked example, no choices that give it ` +
+        `away, and never say it is a test. Take the answer as it comes and carry on. ` +
+        `At most three such questions in a conversation, one at a time, never the ` +
+        `same concept twice — if this concept was already asked about, do not ask ` +
+        `again. Not while the learner is overloaded or discouraged.` +
         (checksRoot
           ? ` It checks the root cause itself: ask it BEFORE teaching the root cause.`
-          : "") +
+          : ` Ask it only right after the learner finishes a step, tied to the ` +
+            `problem in front of them — never as a detour in the middle of an ` +
+            `explanation.`) +
         `</diagnostic_question>`,
     );
   }

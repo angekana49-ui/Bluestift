@@ -165,13 +165,14 @@ describe("the Kernel's diagnostic question reaches Raya", () => {
     expect(system).toContain('<diagnostic_question concept="Le sens du dénominateur" checks_root="true">');
   });
 
-  it("asks for one unassisted question, once, and never as a test", () => {
+  it("asks for unassisted questions, at most three, never as a test", () => {
     // The Kernel reads the answer back from the conversation as an UNASSISTED
     // attempt. A hint would make it evidence of nothing.
     const system = systemOf([], profile, [], "", "", null, probing);
-    expect(system).toMatch(/ask ONE short question on it that the learner answers alone: no hint/);
+    expect(system).toMatch(/Ask ONE short question on it that the learner answers alone: no hint/);
     expect(system).toMatch(/never say it is a test/);
-    expect(system).toMatch(/if it is already in this conversation, do not ask again/);
+    expect(system).toMatch(/At most three such questions in a conversation/);
+    expect(system).toMatch(/never the same concept twice/);
   });
 
   it("puts a root-checking question before the remediation", () => {
@@ -179,6 +180,10 @@ describe("the Kernel's diagnostic question reaches Raya", () => {
     expect(system).toMatch(/ask it BEFORE teaching the root cause/);
     const elsewhere: LatestAnalysis = { ...ambient, probe: { label: "Partage", confirms_root: false } };
     expect(systemOf([], profile, [], "", "", null, elsewhere)).not.toMatch(/BEFORE teaching the root cause/);
+    // A question that does not check the root waits for a natural break: in a
+    // local run, one asked mid-explanation derailed the session onto integers.
+    expect(systemOf([], profile, [], "", "", null, elsewhere)).toMatch(/only right after the learner finishes a step/);
+    expect(system).not.toMatch(/only right after the learner finishes a step/);
   });
 
   it("is absent when the Kernel has no question worth asking", () => {
