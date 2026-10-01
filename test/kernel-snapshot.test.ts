@@ -183,6 +183,33 @@ describe("refresh path", () => {
     });
   });
 
+  it("keeps the Kernel's diagnostic question, label and intent only", async () => {
+    const mod = await freshModule();
+    mod.setLatestAnalysis("u1", {
+      alerts: [],
+      root_gap: "notion_de_variable",
+      probe: {
+        label: "fonctions_<b>affines</b>",
+        concept_id: "c9",
+        expected_gain: 0.6,
+        p_correct: 0.4,
+        root_if_correct: "derivation",
+        root_if_wrong: "fonctions_affines",
+        confirms_root: false,
+      },
+    } as never);
+    const ctx = await mod.getCognitiveContext("u1");
+    // Sanitised on the way in, and the Kernel's bookkeeping left behind.
+    expect(ctx.analysis?.probe).toEqual({ label: "fonctions_baffines/b", confirms_root: false });
+  });
+
+  it("an analysis without a probe stores none", async () => {
+    const mod = await freshModule();
+    mod.setLatestAnalysis("u1", { alerts: [], root_gap: "x" } as never);
+    const ctx = await mod.getCognitiveContext("u1");
+    expect(ctx.analysis?.probe).toBeNull();
+  });
+
   it("an ANCHORED analysis is written to its own slot as well", async () => {
     // Memorize writes both: the ambient slot (so this session benefits now) and
     // the durable one (so it survives the next ambient pass, three turns away).

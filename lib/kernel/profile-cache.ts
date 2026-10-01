@@ -63,6 +63,14 @@ export type LatestAnalysis = {
   detection_path: string[];
   recommended_path: string[];
   confidence: number | null;
+  /**
+   * The one diagnostic question the Kernel wants asked (`probe` in /analyze):
+   * the concept whose answer would best settle where the gap is. Only the
+   * label and whether it checks the root itself — the rest of the probe is the
+   * Kernel's bookkeeping and has no business in a prompt. Absent on analyses
+   * cached before the Kernel returned it.
+   */
+  probe?: { label: string; confirms_root: boolean } | null;
   at: number;
 };
 
@@ -242,6 +250,9 @@ export function setLatestAnalysis(
     detection_path: (res.detection_path ?? []).slice(0, 8).map(sanitizeConceptLabel).filter(Boolean),
     recommended_path: (res.recommended_path ?? []).slice(0, 8).map(sanitizeConceptLabel).filter(Boolean),
     confidence: typeof res.confidence === "number" ? res.confidence : null,
+    probe: res.probe?.label
+      ? { label: sanitizeConceptLabel(res.probe.label), confirms_root: res.probe.confirms_root === true }
+      : null,
     at: Date.now(),
   };
 

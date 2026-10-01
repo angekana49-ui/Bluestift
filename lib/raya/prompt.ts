@@ -697,6 +697,43 @@ function buildLearnerState(
   }
 
   /*
+   * The Kernel's diagnostic question (`probe`). The root-gap search can only
+   * reason about what the learner has shown, and a prerequisite they never
+   * practised is a blind spot — so the Kernel names the one concept whose
+   * answer would best settle where the gap is. Asking it is the largest gain
+   * the Kernel measures (its README, "Evaluation").
+   *
+   * Nothing is sent back from here. The answer is part of the conversation,
+   * and the next ambient /analyze reads it like any other attempt — unassisted,
+   * which is exactly why the question must come without a hint.
+   *
+   * From the AMBIENT pass only. A probe from a memorized session weeks old
+   * would be a question about an old state; the 30-minute TTL keeps this one
+   * about the conversation in progress.
+   */
+  // Quotes too: the label sits in an attribute, where a `"` would end it.
+  const probe = sanitizeConceptLabel(analysis?.probe?.label).replace(/"/g, "'");
+  if (probe) {
+    const checksRoot = analysis?.probe?.confirms_root === true;
+    lines.push(
+      `  <diagnostic_question concept="${probe}" checks_root="${checksRoot}">` +
+        `The profile cannot yet tell where the real gap is, and one answer on ` +
+        `this concept would settle it. Ask ONE short question on it that the ` +
+        `learner answers alone: no hint, no worked example, no choices that give it ` +
+        `away, and never say it is a test. Take the answer as it comes and carry on. ` +
+        `At most three such questions in a conversation, one at a time, never the ` +
+        `same concept twice — if this concept was already asked about, do not ask ` +
+        `again. Not while the learner is overloaded or discouraged.` +
+        (checksRoot
+          ? ` It checks the root cause itself: ask it BEFORE teaching the root cause.`
+          : ` Ask it only right after the learner finishes a step, tied to the ` +
+            `problem in front of them — never as a detour in the middle of an ` +
+            `explanation.`) +
+        `</diagnostic_question>`,
+    );
+  }
+
+  /*
    * A conversation the learner ASKED Raya to remember.
    *
    * Distinct from <root_cause> above, which comes from the ambient pass and
