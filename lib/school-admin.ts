@@ -6,6 +6,7 @@ import {
   createKernelAdminClient,
 } from "@/lib/supabase/admin";
 import { getActiveSchoolId } from "@/lib/school-active";
+import { conceptNamer, readerConceptNamer } from "@/lib/kernel/concept-names-server";
 import { getStudentRisk, SEVERITY_RANK, type StudentRisk } from "@/lib/kernel/risk";
 import type {
   ArchiveBasis,
@@ -1277,6 +1278,7 @@ type InsightRow = {
 
 /** Kernel-certified class insights for the admin's school (latest per class×subject). */
 export async function getClassInsights(userId: string): Promise<ClassInsight[] | null> {
+  const conceptLabel = await readerConceptNamer();
   const m = await getAdminMembership(userId);
   if (!m || m.role !== "admin_master") return null;
 
@@ -1309,8 +1311,8 @@ export async function getClassInsights(userId: string): Promise<ClassInsight[] |
       subjectName: r.subject_id ? subjById.get(r.subject_id) ?? "Subject" : "—",
       avgMastery: r.avg_mastery,
       masteryTrend: r.mastery_trend,
-      topGaps: toStringList(r.top_gaps),
-      rootCauses: toStringList(r.root_causes),
+      topGaps: toStringList(r.top_gaps).map(conceptLabel),
+      rootCauses: toStringList(r.root_causes).map(conceptLabel),
       topRecommendation: r.top_recommendation,
       confidence: r.confidence,
       studentCount: r.student_count,
@@ -1387,6 +1389,7 @@ export function aggregateAlertsByStudent(
  * (read-only dashboard). Scoped to getProfClasses — never the whole school.
  */
 export async function getProfInsights(userId: string): Promise<ProfInsights | null> {
+  const conceptLabel = await readerConceptNamer();
   const m = await getAdminMembership(userId);
   if (!m) return null;
   const classes = await getProfClasses(userId);
@@ -1426,8 +1429,8 @@ export async function getProfInsights(userId: string): Promise<ProfInsights | nu
       subjectName: r.subject_id ? subjById.get(r.subject_id) ?? "Subject" : "—",
       avgMastery: r.avg_mastery,
       masteryTrend: r.mastery_trend,
-      topGaps: toStringList(r.top_gaps),
-      rootCauses: toStringList(r.root_causes),
+      topGaps: toStringList(r.top_gaps).map(conceptLabel),
+      rootCauses: toStringList(r.root_causes).map(conceptLabel),
       topRecommendation: r.top_recommendation,
       confidence: r.confidence,
       studentCount: r.student_count,
@@ -1745,8 +1748,9 @@ export async function buildSubjectContext(
           .in("id", [...new Set(states.map((s) => s.concept_id))]);
         const nodes = (nodeData as { id: string; label: string; subject: string | null }[] | null) ?? [];
         const wanted = [subject.code, subject.name].filter(Boolean).map((v) => v!.toLowerCase());
+        const enConcept = await conceptNamer("en");
         const inSubject = new Map(
-          nodes.filter((n) => n.subject && wanted.includes(n.subject.toLowerCase())).map((n) => [n.id, n.label]),
+          nodes.filter((n) => n.subject && wanted.includes(n.subject.toLowerCase())).map((n) => [n.id, enConcept(n.label)]),
         );
         const agg = new Map<string, { sum: number; n: number }>();
         for (const s of states) {
@@ -1963,8 +1967,9 @@ export async function buildSchoolContext(userId: string): Promise<string | null>
       .from("concept_nodes")
       .select("id, label")
       .in("id", [...conceptAvg.keys()]);
+    const enConcept = await conceptNamer("en");
     const labelById = new Map(
-      ((nodes as { id: string; label: string }[] | null) ?? []).map((n) => [n.id, n.label]),
+      ((nodes as { id: string; label: string }[] | null) ?? []).map((n) => [n.id, enConcept(n.label)]),
     );
     const ranked = [...conceptAvg.entries()]
       .map(([id, e]) => ({ label: labelById.get(id) ?? "concept", avg: e.sum / e.n, n: e.n }))
@@ -2052,8 +2057,9 @@ export async function buildProfContext(userId: string): Promise<string | null> {
       .from("concept_nodes")
       .select("id, label")
       .in("id", [...conceptAvg.keys()]);
+    const enConcept = await conceptNamer("en");
     const labelById = new Map(
-      ((nodes as { id: string; label: string }[] | null) ?? []).map((n) => [n.id, n.label]),
+      ((nodes as { id: string; label: string }[] | null) ?? []).map((n) => [n.id, enConcept(n.label)]),
     );
     const ranked = [...conceptAvg.entries()]
       .map(([id, e]) => ({ label: labelById.get(id) ?? "concept", avg: e.sum / e.n, n: e.n }))
@@ -2262,8 +2268,9 @@ export async function getStudentDetail(
       const nodeSet = new Set(nodeIds);
 
       const { data: nodeData } = await kernel.from("concept_nodes").select("id, label").in("id", nodeIds);
+      const conceptLabel = await readerConceptNamer();
       const labelById = new Map(
-        ((nodeData as { id: string; label: string }[] | null) ?? []).map((n) => [n.id, n.label]),
+        ((nodeData as { id: string; label: string }[] | null) ?? []).map((n) => [n.id, conceptLabel(n.label)]),
       );
 
       detail.kcs = stateRows.map((s) => ({

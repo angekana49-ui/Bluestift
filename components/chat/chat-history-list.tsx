@@ -11,6 +11,7 @@ import {
   IconUnarchive,
 } from "@/components/ui/icons";
 import { RowMenu } from "@/components/ui/row-menu";
+import { useConceptName } from "@/components/ui/concept-name";
 import { useTranslate } from "@/components/ui/locale";
 import { filterBySearch } from "@/lib/search";
 import { LIST_SEARCH_MIN } from "@/components/ui/list-filter";
@@ -444,6 +445,7 @@ function ConfirmAction({
   onMemorize?: (id: string) => Promise<{ root_gap: string | null; concepts: number | null } | null>;
 }) {
   const tr = useTranslate();
+  const conceptLabel = useConceptName();
   const [running, setRunning] = useState(false);
   // Memorize is the one action whose OUTCOME is worth reading: it reports what
   // the Kernel took from the thread. The others just close.
@@ -501,7 +503,7 @@ function ConfirmAction({
         {result ? (
           result.root_gap && (
             <p style={{ fontSize: 15.5, color: t.text, lineHeight: 1.6, margin: 0 }}>
-              {tr("hist.memorize.doneGap")} <strong>{result.root_gap}</strong>
+              {tr("hist.memorize.doneGap")} <strong>{conceptLabel(result.root_gap)}</strong>
             </p>
           )
         ) : (

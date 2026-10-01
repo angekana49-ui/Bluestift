@@ -7,6 +7,7 @@ import type { AnalyzeResponse } from "@/lib/kernel/types";
 import type { BrandedDoc } from "@/lib/document";
 import { DocumentActions } from "@/components/ui/doc-actions";
 import { useDarkMode, useAppTheme, AppThemeProvider } from "@/components/ui/theme";
+import { useConceptName } from "@/components/ui/concept-name";
 import { LocaleProvider, useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
 import { useRightPanel } from "@/components/ui/use-right-panel";
@@ -53,15 +54,19 @@ function getRayaConfig(tr: (key: MessageKey) => string): ChatConfig {
   };
 }
 
-function analysisToText(a: AnalyzeResponse, tr: (key: MessageKey) => string): string {
+function analysisToText(
+  a: AnalyzeResponse,
+  tr: (key: MessageKey) => string,
+  name: (label: string | null | undefined) => string,
+): string {
   return [
-    `${tr("chatHome.rootGapLabel")} ${a.root_gap ?? "-"}`,
+    `${tr("chatHome.rootGapLabel")} ${a.root_gap ? name(a.root_gap) : "-"}`,
     `${tr("room.summaryLabel")} ${a.summary || "-"}`,
     a.recommended_path?.length
-      ? `${tr("chatHome.recommendedPathLabel")} ${a.recommended_path.join(" -> ")}`
+      ? `${tr("chatHome.recommendedPathLabel")} ${a.recommended_path.map(name).join(" -> ")}`
       : "",
     a.detection_path?.length
-      ? `${tr("chatHome.detectionPathLabel")} ${a.detection_path.join(" -> ")}`
+      ? `${tr("chatHome.detectionPathLabel")} ${a.detection_path.map(name).join(" -> ")}`
       : "",
     `${tr("chatHome.confidenceLabel")} ${a.confidence}`,
     `${tr("chatHome.knowledgeComponentsLabel")} ${Object.keys(a.mastery_map).length}`,
@@ -134,6 +139,7 @@ function ChatBody({
   const router = useRouter();
   const { theme: t } = useAppTheme();
   const tr = useTranslate();
+  const conceptLabel = useConceptName();
   const RAYA_CONFIG = getRayaConfig(tr);
   const engine = useChatEngine({
     config: RAYA_CONFIG,
@@ -164,7 +170,7 @@ function ChatBody({
     title: tr("chatHome.kernelAnalysisTitle"),
     meta: new Date().toLocaleDateString(),
     audience: studentName || undefined,
-    body: analysisToText(a, tr),
+    body: analysisToText(a, tr, conceptLabel),
   });
 
   async function onAnalyze() {
@@ -358,7 +364,7 @@ function ChatBody({
             <span onClick={() => setAnalysis(null)} title={tr("room.closeTitle")} style={pillBtn(t)}>✕</span>
           </div>
           <div style={{ fontSize: 15, color: t.text, marginBottom: 4 }}>
-            <strong>{tr("chatHome.rootGapLabel")}</strong> {analysis.root_gap ?? "—"}
+            <strong>{tr("chatHome.rootGapLabel")}</strong> {analysis.root_gap ? conceptLabel(analysis.root_gap) : "—"}
           </div>
           <div style={{ fontSize: 15, color: t.text, marginBottom: 6 }}>
             <strong>{tr("room.summaryLabel")}</strong> {analysis.summary || "—"}
