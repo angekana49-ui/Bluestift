@@ -12,6 +12,7 @@ import { MasteryGauge } from "@/components/ui/widgets";
 import { panelCard } from "@/components/ui/forms";
 import type { AppTheme } from "@/components/ui/tokens";
 import { RayaName } from "@/components/ui/brand";
+import { useConceptName } from "@/components/ui/concept-name";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
 
@@ -40,11 +41,12 @@ function Bar({ theme: t, label, value, color }: { theme: AppTheme; label: string
 
 function ConceptCard({ theme: t, c }: { theme: AppTheme; c: ConceptStateOut }) {
   const tr = useTranslate();
+  const conceptLabel = useConceptName();
   const st = STATUS[c.status] ?? STATUS.unknown;
   return (
     <div style={{ ...panelCard(t) }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-        <strong style={{ flex: 1, color: t.text, fontSize: 16 }}>{c.label || c.concept_id}</strong>
+        <strong style={{ flex: 1, color: t.text, fontSize: 16 }}>{c.label ? conceptLabel(c.label) : c.concept_id}</strong>
         <span style={{ background: st.color, color: "#0b1020", borderRadius: 999, padding: "2px 10px", fontSize: 14, fontWeight: 600 }}>
           {tr(st.labelKey)}
         </span>
