@@ -554,6 +554,13 @@ export function buildRayaMessages(
   anchored: LatestAnalysis | null = null,
   mode: AiMode = DEFAULT_AI_MODE,
   tier: ModelTier = "deep",
+  /**
+   * A Kernel concept's name for Raya to read (lib/kernel/concept-names.ts).
+   * The label is the Kernel's French identifier; handed a name, Raya does not
+   * have to translate "resoudre_equations_lineaires" on the fly — and cannot
+   * echo it to the learner. The chat route passes the English names.
+   */
+  conceptLabel: (label: string) => string = (label) => label,
 ): ChatMsg[] {
   // The caller (app/api/raya/chat/route.ts) has already clamped `mode` back to
   // the default for any plan without RAYA_ENTITLEMENTS.aiModes, so reaching
@@ -561,7 +568,7 @@ export function buildRayaMessages(
   //
   // The learner state is always present — `buildLearnerState` names an empty
   // profile rather than returning "", so the block is never simply missing.
-  let system = `${staticLayer(mode, tier)}\n\n${buildLearnerState(profile, alerts, learner, analysis, anchored)}`;
+  let system = `${staticLayer(mode, tier)}\n\n${buildLearnerState(profile, alerts, learner, analysis, anchored, conceptLabel)}`;
 
   if (instructions) {
     system +=
@@ -608,8 +615,12 @@ function buildLearnerState(
   learner: LearnerFacts | null = null,
   analysis: LatestAnalysis | null = null,
   anchored: LatestAnalysis | null = null,
+  conceptLabel: (label: string) => string = (label) => label,
 ): string {
   const { focus, mastered, weakestK, weakestP, mindset } = learnerSignals(profile);
+  // Named, then scrubbed again: a display name is model output too.
+  const named = (label: string | null | undefined) =>
+    sanitizeConceptLabel(conceptLabel(sanitizeConceptLabel(label)));
 
   // Who they are comes first: it calibrates every line under it, and unlike the
   // Kernel signals it is known from the first message of the first session.
@@ -629,7 +640,7 @@ function buildLearnerState(
   const target = focus[0];
   if (target) {
     lines.push(
-      `  <focus_concept name="${target.label}" k="${target.k.toFixed(2)}" ` +
+      `  <focus_concept name="${named(target.label).replace(/"/g, "'")}" k="${target.k.toFixed(2)}" ` +
         `v="${target.v.toFixed(2)}" p="${target.p.toFixed(2)}" status="${target.status}">` +
         `Weakest active concept. This is where the session should land, even if ` +
         `the question is about something further down the chain.</focus_concept>`,
@@ -638,7 +649,7 @@ function buildLearnerState(
     if (others.length) {
       lines.push(
         `  <also_weak>${others
-          .map((c) => `${c.label} (k=${c.k.toFixed(2)})`)
+          .map((c) => `${named(c.label)} (k=${c.k.toFixed(2)})`)
           .join(", ")}</also_weak>`,
       );
     }
@@ -646,7 +657,7 @@ function buildLearnerState(
 
   if (mastered.length) {
     lines.push(
-      `  <secure>${mastered.join(", ")}</secure>` +
+      `  <secure>${mastered.map(named).join(", ")}</secure>` +
         ` <!-- above the mastery bar: safe ground to build a new idea on -->`,
     );
   }
@@ -683,13 +694,13 @@ function buildLearnerState(
    * not only at the boundary where it entered the process.
    */
   if (analysis?.root_gap) {
-    const gap = sanitizeConceptLabel(analysis.root_gap);
+    const gap = named(analysis.root_gap);
     if (gap) lines.push(`  <root_cause>${gap}</root_cause>`);
   }
   if (analysis?.recommended_path?.length) {
     const path = analysis.recommended_path
       .slice(0, 5)
-      .map(sanitizeConceptLabel)
+      .map(named)
       .filter(Boolean);
     if (path.length) {
       lines.push(`  <recommended_path>${path.join(" → ")}</recommended_path>`);
@@ -712,7 +723,7 @@ function buildLearnerState(
    * about the conversation in progress.
    */
   // Quotes too: the label sits in an attribute, where a `"` would end it.
-  const probe = sanitizeConceptLabel(analysis?.probe?.label).replace(/"/g, "'");
+  const probe = named(analysis?.probe?.label).replace(/"/g, "'");
   if (probe) {
     const checksRoot = analysis?.probe?.confirms_root === true;
     lines.push(
@@ -744,7 +755,7 @@ function buildLearnerState(
    * whole of what can honestly be carried.
    */
   const anchoredSummary = sanitizeKernelText(anchored?.summary);
-  const anchoredGap = sanitizeConceptLabel(anchored?.root_gap);
+  const anchoredGap = named(anchored?.root_gap);
   if (anchoredSummary || anchoredGap) {
     const parts: string[] = [];
     if (anchoredSummary) parts.push(`    <summary>${anchoredSummary}</summary>`);
