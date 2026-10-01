@@ -78,6 +78,14 @@ describe("the prompt names an absent profile", () => {
     expect(prompt).toMatch(/Do NOT conclude the learner is new/);
   });
 
+  it("does not announce the empty state unprompted", () => {
+    // Told to "say only that you have nothing in front of you", Raya opened a
+    // 13-year-old's first message with exactly that, before helping. It is an
+    // answer to "do you remember me?", not a greeting.
+    expect(prompt).toMatch(/Do not bring it up: help with what they brought/);
+    expect(prompt).toMatch(/Only if they ask whether you remember them/);
+  });
+
   it("states what Raya actually carries between sessions", () => {
     expect(prompt).toContain("# What you remember");
     expect(prompt).toMatch(/Never tell a learner that you have no memory/);
