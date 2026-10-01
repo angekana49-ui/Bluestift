@@ -806,8 +806,9 @@ function buildLearnerState(
     return `<learner_state available="false">
   No cognitive profile reached you this turn. Do NOT conclude the learner is new,
   and do NOT tell them you have no memory or that sessions start from scratch —
-  neither is known to be true. Say only that you have nothing in front of you
-  right now, and ask what they want to work on.
+  neither is known to be true. Do not bring it up: help with what they brought.
+  Only if they ask whether you remember them, say that you have nothing in front
+  of you right now.
 </learner_state>`;
   }
 
