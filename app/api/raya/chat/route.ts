@@ -28,6 +28,7 @@ import {
 } from "@/lib/kernel/profile-cache";
 import type { KernelMessage } from "@/lib/kernel/types";
 import { apiT } from "@/lib/i18n/server";
+import { conceptNamer } from "@/lib/kernel/concept-names-server";
 import { captureServer } from "@/lib/analytics/server";
 
 // Streaming LLM turn: give the function room to finish long replies on Vercel.
@@ -137,6 +138,8 @@ export async function POST(request: Request) {
   // Who the student is (age band + school level) rides in this wave rather than
   // as its own hop, so calibrating Raya to a 12-year-old costs no latency. RLS
   // scopes the row to its owner; both columns are read-only to the client.
+  // English names for the prompt, read alongside the rest (cached an hour).
+  const conceptNames = conceptNamer("en");
   const [
     allowed,
     dayAllowed,
@@ -361,6 +364,7 @@ export async function POST(request: Request) {
         anchored,
         mode,
         routing.tier,
+        await conceptNames,
       ),
       routing.tier,
     );
