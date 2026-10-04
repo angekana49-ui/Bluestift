@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import { needsAgeGate } from "@/lib/compliance/guard";
 import { Tools } from "@/components/tools";
 import { SoloChallenge } from "@/components/solo-challenge";
-import { MathStudio } from "@/components/math-studio";
 import { RayaScaffold } from "@/components/raya/raya-scaffold";
 import { PageBody } from "@/components/ui/shell";
 import { getPlanLabel } from "@/lib/billing";
@@ -96,7 +95,6 @@ export default async function ToolsPage() {
       */}
       <PageBody maxWidth={900}>
         <Tools uploads={uploads ?? []} outputs={outputs ?? []} selfTests={selfTests} studentName={studentName} />
-        <MathStudio />
         <div id="self-test" style={{ marginTop: 8 }}>
           <SoloChallenge myUserId={user.id} studentName={studentName} />
         </div>

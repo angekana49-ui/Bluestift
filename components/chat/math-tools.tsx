@@ -2,36 +2,42 @@
 
 import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { type AppTheme } from "@/components/ui/tokens";
-import { useTranslate } from "@/components/ui/locale";
+import { useAppLocale, useTranslate } from "@/components/ui/locale";
 import {
   autoRange,
+  graphToSource,
+  nextFunctionName,
+  nextPointName,
   niceStep,
   parseCalc,
   parseGraph,
+  type GraphSpec,
   type LineError,
   type MathBlockLang,
 } from "@/lib/math-blocks";
 
 /**
- * The ```graph and ```calc blocks of a Raya reply, as tools the learner can use.
+ * The graph and the calculator: in a Raya reply (```graph / ```calc), and on
+ * the Tools page.
  *
- * Free stand-ins for MATLAB and GeoGebra, computed entirely in the learner's
- * browser: nothing they type here leaves the device, which matters when many
- * of them are minors, and it keeps working on a connection that has just
- * dropped. math.js arrives through a dynamic import the first time a block is
- * on screen — a learner who never sees one never downloads it.
+ * Built for a collégien, not a MATLAB user. The learner writes the way they
+ * would in an exercise book — x², √(…), 3,5, "2x + 3 = 7", "dérivée de x³" —
+ * helped by a keypad, and every line comes back typeset like a textbook
+ * (KaTeX), never as code. A graph is a list of functions to fill in; any
+ * letter other than x becomes a slider on its own.
  *
- * The block is editable: the learner can change a function or a number and run
- * it again. That is the point pedagogically (they test their own idea, not
- * ours), and it stays local — the stored reply is what Raya wrote.
+ * Everything is computed in the learner's browser: nothing they type here
+ * leaves the device, which matters when many of them are minors, and it keeps
+ * working on a connection that has just dropped. math.js and KaTeX arrive
+ * through a dynamic import the first time a tool is on screen.
  */
 
 type Engine = typeof import("@/lib/math-engine");
 
 let enginePromise: Promise<Engine> | null = null;
 function loadEngine(): Promise<Engine> {
-  // One download per page, shared by every block; a failure is forgotten so
-  // the next block (or a remount) gets to try again.
+  // One download per page, shared by every tool; a failure is forgotten so
+  // the next tool (or a remount) gets to try again.
   enginePromise ??= import("@/lib/math-engine").catch((e) => {
     enginePromise = null;
     throw e;
@@ -56,8 +62,7 @@ function useEngine(): Engine | "loading" | "failed" {
 
 /** Curve colours: distinct in both themes, and never the error red alone. */
 const PALETTE = ["#2f6fde", "#e07a1f", "#2a9d55", "#9b5de5", "#d64545", "#0e9aa7"];
-
-const mono = "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
+const ERROR = "#d64545";
 
 function frame(t: AppTheme): CSSProperties {
   return {
@@ -79,141 +84,246 @@ function button(t: AppTheme): CSSProperties {
     background: "transparent",
     color: "inherit",
     borderRadius: 8,
-    padding: "3px 10px",
-    fontSize: "0.82em",
+    padding: "4px 10px",
+    fontSize: "0.85em",
     cursor: "pointer",
   };
 }
 
-function Errors({ errors }: { errors: LineError[] }) {
+function field(t: AppTheme): CSSProperties {
+  return {
+    flex: 1,
+    minWidth: 0,
+    boxSizing: "border-box",
+    fontSize: "1em",
+    background: t.inputBg,
+    color: t.text,
+    border: `1px solid ${t.inputBorder}`,
+    borderRadius: 8,
+    padding: "6px 9px",
+  };
+}
+
+/** French, Spanish and German readers write 3,5 — numbers are shown their way. */
+function useDecimalComma(): boolean {
+  return useAppLocale().locale !== "en";
+}
+
+/** KaTeX output. Safe to inject: KaTeX escapes its input and runs no links or scripts. */
+function Tex({ html, style }: { html: string; style?: CSSProperties }) {
+  return <span style={style} dangerouslySetInnerHTML={{ __html: html }} />;
+}
+
+// ── Keypad ────────────────────────────────────────────────────────────────
+
+/** The input the keypad types into, and how to change its value. */
+type Target = { el: HTMLInputElement; set: (v: string) => void };
+
+function useKeypadTarget() {
+  const target = useRef<Target | null>(null);
+  const bind = (set: (v: string) => void) => ({
+    onFocus: (e: React.FocusEvent<HTMLInputElement>) => {
+      target.current = { el: e.currentTarget, set };
+    },
+  });
+  const insert = (text: string) => {
+    const tgt = target.current;
+    if (!tgt || !tgt.el.isConnected) return;
+    const { el } = tgt;
+    const start = el.selectionStart ?? el.value.length;
+    const end = el.selectionEnd ?? el.value.length;
+    const next = el.value.slice(0, start) + text + el.value.slice(end);
+    tgt.set(next);
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(start + text.length, start + text.length);
+    });
+  };
+  return { bind, insert };
+}
+
+function Keypad({ calc, onKey, theme: t }: { calc: boolean; onKey: (text: string) => void; theme: AppTheme }) {
   const tr = useTranslate();
-  if (!errors.length) return null;
+  const keys: { label: string; insert: string; wide?: boolean }[] = [
+    { label: "x²", insert: "²" },
+    { label: "xⁿ", insert: "^" },
+    { label: "√", insert: "√(" },
+    { label: "π", insert: "π" },
+    { label: "(", insert: "(" },
+    { label: ")", insert: ")" },
+    { label: "×", insert: "×" },
+    { label: "÷", insert: "÷" },
+    { label: "|x|", insert: "|" },
+    { label: "sin", insert: "sin(" },
+    { label: "cos", insert: "cos(" },
+    { label: "tan", insert: "tan(" },
+    { label: "ln", insert: "ln(" },
+    { label: "log", insert: "log(" },
+    ...(calc
+      ? [
+          { label: "=", insert: " = " },
+          { label: tr("math.key.solve"), insert: `${tr("math.word.solve")} `, wide: true },
+          { label: tr("math.key.derivative"), insert: `${tr("math.word.derivative")} `, wide: true },
+          { label: tr("math.key.simplify"), insert: `${tr("math.word.simplify")} `, wide: true },
+        ]
+      : []),
+  ];
   return (
-    <div style={{ marginTop: 6, fontSize: "0.82em", color: "#d64545" }}>
-      {errors.map((e, i) => (
-        <div key={i}>{tr("math.lineError", { line: e.line, text: e.text })}</div>
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 5, margin: "6px 0 8px" }}>
+      {keys.map((k) => (
+        <button
+          key={k.label}
+          type="button"
+          // Keep the focus in the input being typed into.
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => onKey(k.insert)}
+          style={{ ...button(t), minWidth: k.wide ? undefined : 38, fontSize: "0.92em", padding: "5px 8px" }}
+        >
+          {k.label}
+        </button>
       ))}
     </div>
   );
 }
 
-/**
- * A standalone use of the tool (the Tools page) rather than a block in a reply:
- * the editor is open from the start, `start` is what the learner left last
- * time, and every Run is reported so the page can keep it.
- */
-export type Bench = { start: string; hint: string; note: string; onApply: (src: string) => void };
-
-/**
- * The shared chrome: a title row with Edit / Reset, and the source editor.
- * `children` renders whatever the APPLIED source means. `src` is the original —
- * Raya's block, or the Tools page's example — and Reset goes back to it.
- */
-function Shell({
-  lang,
-  src,
-  bench,
-  theme: t,
-  children,
-}: {
-  lang: MathBlockLang;
-  src: string;
-  bench?: Bench;
-  theme: AppTheme;
-  children: (applied: string) => ReactNode;
-}) {
+function RemoveButton({ onClick, theme: t }: { onClick: () => void; theme: AppTheme }) {
   const tr = useTranslate();
-  const [applied, setApplied] = useState(bench?.start ?? src);
-  const [draft, setDraft] = useState(bench?.start ?? src);
-  const [editing, setEditing] = useState(bench != null);
-  const apply = (next: string) => {
-    setApplied(next);
-    bench?.onApply(next);
-  };
   return (
-    <div style={frame(t)}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-        <strong style={{ fontSize: "0.82em", flex: 1, opacity: 0.8 }}>
-          {tr(lang === "graph" ? "math.graph" : "math.calc")}
-        </strong>
-        {applied !== src && (
-          <button
-            type="button"
-            style={button(t)}
-            onClick={() => {
-              apply(src);
-              setDraft(src);
-            }}
-          >
-            {tr("math.reset")}
-          </button>
-        )}
-        {!bench && (
-          <button type="button" style={button(t)} aria-expanded={editing} onClick={() => setEditing((v) => !v)}>
-            {tr("math.edit")}
-          </button>
-        )}
-      </div>
-      {editing && (
-        <div style={{ marginBottom: 8 }}>
-          {bench && <div style={{ fontSize: "0.8em", color: t.muted, marginBottom: 6 }}>{bench.hint}</div>}
-          <textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            spellCheck={false}
-            rows={Math.min(10, Math.max(3, draft.split("\n").length + 1))}
-            style={{
-              width: "100%",
-              boxSizing: "border-box",
-              fontFamily: mono,
-              fontSize: "0.86em",
-              background: t.inputBg,
-              color: t.text,
-              border: `1px solid ${t.inputBorder}`,
-              borderRadius: 8,
-              padding: 8,
-              resize: "vertical",
-            }}
-          />
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
-            <button
-              type="button"
-              style={{ ...button(t), background: t.ctaBg, color: t.ctaText, border: "none" }}
-              onClick={() => apply(draft)}
-            >
-              {tr("math.run")}
-            </button>
-            <span style={{ fontSize: "0.78em", color: t.muted }}>{bench ? bench.note : tr("math.editHint")}</span>
-          </div>
-        </div>
-      )}
-      {children(applied)}
-    </div>
+    <button type="button" aria-label={tr("math.remove")} title={tr("math.remove")} onClick={onClick} style={{ ...button(t), padding: "4px 8px", color: t.muted }}>
+      ×
+    </button>
   );
 }
 
 // ── Calculator ────────────────────────────────────────────────────────────
 
-function CalcView({ src, engine, theme: t }: { src: string; engine: Engine; theme: AppTheme }) {
-  const { lines, errors } = useMemo(() => parseCalc(src), [src]);
-  const rows = useMemo(() => engine.runCalc(lines), [engine, lines]);
+type Row = ReturnType<Engine["runCalc"]>[number];
+
+function CalcResult({ row, raw, theme: t }: { row: Row; raw: string; theme: AppTheme }) {
+  const tr = useTranslate();
+  if (row.error) {
+    return <span style={{ color: ERROR, fontSize: "0.88em" }}>{tr("math.cantRead")}</span>;
+  }
+  const answer =
+    row.note === "noSolution" ? (
+      <span>{tr("math.noSolution")}</span>
+    ) : row.note === "everyValue" ? (
+      <span>{tr("math.everyValue")}</span>
+    ) : row.resultHtml ? (
+      <Tex html={row.resultHtml} style={{ fontWeight: 600 }} />
+    ) : null;
+  return (
+    <span style={{ display: "inline-flex", flexWrap: "wrap", alignItems: "baseline", gap: 8 }}>
+      {row.inputHtml ? <Tex html={row.inputHtml} /> : <span>{raw}</span>}
+      {answer && (
+        <>
+          <span style={{ color: t.muted }}>→</span>
+          {answer}
+        </>
+      )}
+      {row.note === "approx" && <span style={{ fontSize: "0.8em", color: t.muted }}>({tr("math.approx")})</span>}
+    </span>
+  );
+}
+
+function CalcTool({
+  lines,
+  editing,
+  onChange,
+  engine,
+  theme: t,
+}: {
+  lines: string[];
+  editing: boolean;
+  onChange: (lines: string[]) => void;
+  engine: Engine;
+  theme: AppTheme;
+}) {
+  const tr = useTranslate();
+  const comma = useDecimalComma();
+  const rows = useMemo(() => engine.runCalc(lines.map((l) => l.trim()).filter(Boolean), comma), [engine, lines, comma]);
+  const pad = useKeypadTarget();
+  const inputs = useRef<(HTMLInputElement | null)[]>([]);
+  const [focusNext, setFocusNext] = useState<number | null>(null);
+  useEffect(() => {
+    if (focusNext != null) {
+      inputs.current[focusNext]?.focus();
+      setFocusNext(null);
+    }
+  }, [focusNext, lines]);
+
+  // Rows are matched to results by their position among the non-empty lines.
+  let k = 0;
+  const resultFor = lines.map((l) => (l.trim() ? rows[k++] : null));
+
+  if (!editing) {
+    // A reply's calculator, read like a worked solution.
+    return (
+      <div style={{ lineHeight: 1.9 }}>
+        {lines.map((l, i) =>
+          resultFor[i] ? (
+            <div key={i}>
+              <CalcResult row={resultFor[i]!} raw={l} theme={t} />
+            </div>
+          ) : null,
+        )}
+      </div>
+    );
+  }
+
+  const setLine = (i: number, v: string) => onChange(lines.map((l, j) => (j === i ? v : l)));
+
   return (
     <>
-      <div style={{ fontFamily: mono, fontSize: "0.88em", lineHeight: 1.6, overflowX: "auto" }}>
-        {rows.map((r, i) => (
-          <div key={i} style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <span>{r.expr}</span>
-            {r.error ? (
-              <span style={{ color: "#d64545" }}>⚠ {r.error}</span>
-            ) : r.result ? (
-              <span style={{ color: t.muted }}>
-                → <strong style={{ color: t.text }}>{r.result}</strong>
-              </span>
-            ) : null}
+      <Keypad calc onKey={pad.insert} theme={t} />
+      <div style={{ display: "grid", gap: 10 }}>
+        {lines.map((line, i) => (
+          <div key={i}>
+            <div style={{ display: "flex", gap: 6 }}>
+              <input
+                ref={(el) => {
+                  inputs.current[i] = el;
+                }}
+                value={line}
+                spellCheck={false}
+                autoCapitalize="off"
+                autoComplete="off"
+                aria-label={`${tr("math.calc")} ${i + 1}`}
+                {...pad.bind((v) => setLine(i, v))}
+                onChange={(e) => setLine(i, e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    onChange([...lines.slice(0, i + 1), "", ...lines.slice(i + 1)]);
+                    setFocusNext(i + 1);
+                  } else if (e.key === "Backspace" && line === "" && lines.length > 1) {
+                    e.preventDefault();
+                    onChange(lines.filter((_, j) => j !== i));
+                    setFocusNext(Math.max(0, i - 1));
+                  }
+                }}
+                style={field(t)}
+              />
+              {lines.length > 1 && <RemoveButton theme={t} onClick={() => onChange(lines.filter((_, j) => j !== i))} />}
+            </div>
+            {resultFor[i] && (
+              <div style={{ padding: "4px 2px 0", minHeight: "1.4em" }}>
+                <CalcResult row={resultFor[i]!} raw={line} theme={t} />
+              </div>
+            )}
           </div>
         ))}
       </div>
-      <Errors errors={errors} />
+      <button
+        type="button"
+        style={{ ...button(t), marginTop: 10 }}
+        onClick={() => {
+          onChange([...lines, ""]);
+          setFocusNext(lines.length);
+        }}
+      >
+        {tr("math.addLine")}
+      </button>
     </>
   );
 }
@@ -240,20 +350,100 @@ function useWidth(): [React.RefObject<HTMLDivElement | null>, number] {
   return [ref, width];
 }
 
-function GraphView({ src, engine, theme: t }: { src: string; engine: Engine; theme: AppTheme }) {
+function GraphEditor({ spec, onChange, theme: t }: { spec: GraphSpec; onChange: (s: GraphSpec) => void; theme: AppTheme }) {
   const tr = useTranslate();
-  const spec = useMemo(() => parseGraph(src), [src]);
+  const pad = useKeypadTarget();
+  const fnNames = spec.functions.map((f) => f.name);
+  const setFn = (i: number, expr: string) =>
+    onChange({ ...spec, functions: spec.functions.map((g, j) => (j === i ? { ...g, expr } : g)) });
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <Keypad calc={false} onKey={pad.insert} theme={t} />
+      <div style={{ display: "grid", gap: 8 }}>
+        {spec.functions.map((f, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span aria-hidden style={{ width: 10, height: 10, borderRadius: 99, background: PALETTE[i % PALETTE.length], flex: "none" }} />
+            <span style={{ fontStyle: "italic", fontFamily: "Georgia, serif", whiteSpace: "nowrap" }}>{f.name === "y" ? "y =" : `${f.name}(x) =`}</span>
+            <input
+              value={f.expr}
+              spellCheck={false}
+              autoCapitalize="off"
+              autoComplete="off"
+              aria-label={`${f.name}(x)`}
+              {...pad.bind((v) => setFn(i, v))}
+              onChange={(e) => setFn(i, e.target.value)}
+              style={field(t)}
+            />
+            <RemoveButton theme={t} onClick={() => onChange({ ...spec, functions: spec.functions.filter((_, j) => j !== i) })} />
+          </div>
+        ))}
+        {spec.points.map((p, i) => {
+          const setPoint = (patch: Partial<typeof p>) =>
+            onChange({ ...spec, points: spec.points.map((q, j) => (j === i ? { ...q, ...patch } : q)) });
+          return (
+            <div key={`p${i}`} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontWeight: 700, minWidth: 16 }}>{p.name}</span>
+              <span>(</span>
+              <input value={p.x} aria-label={`${p.name} x`} {...pad.bind((v) => setPoint({ x: v }))} onChange={(e) => setPoint({ x: e.target.value })} style={{ ...field(t), maxWidth: 90 }} />
+              <span>;</span>
+              <input value={p.y} aria-label={`${p.name} y`} {...pad.bind((v) => setPoint({ y: v }))} onChange={(e) => setPoint({ y: e.target.value })} style={{ ...field(t), maxWidth: 90 }} />
+              <span>)</span>
+              <RemoveButton theme={t} onClick={() => onChange({ ...spec, points: spec.points.filter((_, j) => j !== i) })} />
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+        {spec.functions.length < 6 && (
+          <button type="button" style={button(t)} onClick={() => onChange({ ...spec, functions: [...spec.functions, { name: nextFunctionName(fnNames), expr: "" }] })}>
+            {tr("math.addFunction")}
+          </button>
+        )}
+        {spec.points.length < 12 && (
+          <button
+            type="button"
+            style={button(t)}
+            onClick={() => onChange({ ...spec, points: [...spec.points, { name: nextPointName(spec.points.map((p) => p.name)), x: "1", y: "1" }] })}
+          >
+            {tr("math.addPoint")}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function GraphTool({
+  spec,
+  editing,
+  onChange,
+  engine,
+  theme: t,
+}: {
+  spec: GraphSpec;
+  editing: boolean;
+  onChange: (s: GraphSpec) => void;
+  engine: Engine;
+  theme: AppTheme;
+}) {
+  const tr = useTranslate();
   // Several graphs can share a page; each clips to its own area.
   const clipId = `plot-${useId().replace(/[^A-Za-z0-9_-]/g, "")}`;
   const [box, W] = useWidth();
   const H = Math.round(W * 0.62);
   const [values, setValues] = useState<Record<string, number>>({});
   const [zoom, setZoom] = useState(1);
-  // A new source (Run, Reset, or the reply itself changing) starts fresh.
-  useEffect(() => {
-    setValues(Object.fromEntries(spec.sliders.map((s) => [s.name, s.value])));
-    setZoom(1);
-  }, [spec]);
+
+  // Sliders: the ones the block declares, plus one for every other letter the
+  // functions use — a student who types "a·x²" gets an `a` without asking.
+  const sliders = useMemo(() => {
+    const declared = spec.sliders;
+    const auto = engine
+      .graphParameters(spec)
+      .filter((n) => !declared.some((s) => s.name === n))
+      .map((name) => ({ name, value: 1, min: -10, max: 10 }));
+    return [...declared, ...auto];
+  }, [engine, spec]);
 
   const baseX = spec.x ?? [-10, 10];
   const cx = (baseX[0] + baseX[1]) / 2;
@@ -261,11 +451,11 @@ function GraphView({ src, engine, theme: t }: { src: string; engine: Engine; the
   const xWin: [number, number] = [cx - hx, cx + hx];
 
   const sampled = useMemo(() => {
-    const sliders = Object.fromEntries(spec.sliders.map((s) => [s.name, values[s.name] ?? s.value]));
-    return engine.sampleGraph(spec, sliders, xWin);
+    const current = Object.fromEntries(sliders.map((s) => [s.name, values[s.name] ?? s.value]));
+    return engine.sampleGraph({ ...spec, functions: spec.functions.filter((f) => f.expr.trim()) }, current, xWin);
     // xWin is derived from spec + zoom, both listed.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [engine, spec, values, zoom]);
+  }, [engine, spec, sliders, values, zoom]);
 
   let yWin: [number, number];
   if (spec.y) {
@@ -273,10 +463,7 @@ function GraphView({ src, engine, theme: t }: { src: string; engine: Engine; the
     const hy = ((spec.y[1] - spec.y[0]) / 2) * zoom;
     yWin = [cy - hy, cy + hy];
   } else {
-    yWin = autoRange([
-      ...sampled.curves.flatMap((c) => c.points.map((p) => p[1])),
-      ...sampled.points.map((p) => p.y),
-    ]);
+    yWin = autoRange([...sampled.curves.flatMap((c) => c.points.map((p) => p[1])), ...sampled.points.map((p) => p.y)]);
   }
 
   const sx = (x: number) => ((x - xWin[0]) / (xWin[1] - xWin[0])) * W;
@@ -312,14 +499,21 @@ function GraphView({ src, engine, theme: t }: { src: string; engine: Engine; the
     }
     return out;
   };
-  const fmt = (v: number) => String(Number(v.toPrecision(6)));
+  const comma = useDecimalComma();
+  const fmt = (v: number) => {
+    const s = String(Number(v.toPrecision(6))).replace("-", "−");
+    return comma ? s.replace(".", ",") : s;
+  };
   // The axes sit at zero when zero is in view, else along the nearest edge.
   const ax = Math.min(H, Math.max(0, sy(0)));
   const ay = Math.min(W, Math.max(0, sx(0)));
   const label = tr("math.graphOf", { list: spec.functions.map((f) => `${f.name}(x) = ${f.expr}`).join(", ") });
+  const colourOf = (name: string) => PALETTE[Math.max(0, spec.functions.findIndex((f) => f.name === name)) % PALETTE.length];
+  const curveErrors = sampled.curves.filter((c) => c.error);
 
   return (
     <>
+      {editing && <GraphEditor spec={spec} onChange={onChange} theme={t} />}
       <div ref={box}>
         <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={label} style={{ width: "100%", height: "auto", display: "block" }}>
           <defs>
@@ -335,11 +529,11 @@ function GraphView({ src, engine, theme: t }: { src: string; engine: Engine; the
           ))}
           <line x1={0} x2={W} y1={ax} y2={ax} stroke={axis} />
           <line x1={ay} x2={ay} y1={0} y2={H} stroke={axis} />
-          <g fontSize={10} fill={t.muted} fontFamily={mono}>
+          <g fontSize={11} fill={t.muted}>
             {ticks(xWin[0], xWin[1], xStep)
               .filter((v) => v !== 0)
               .map((v) => (
-                <text key={`lx${v}`} x={sx(v) + 2} y={Math.min(H - 3, ax + 12)}>
+                <text key={`lx${v}`} x={sx(v) + 2} y={Math.min(H - 3, ax + 13)}>
                   {fmt(v)}
                 </text>
               ))}
@@ -353,12 +547,12 @@ function GraphView({ src, engine, theme: t }: { src: string; engine: Engine; the
           </g>
           <g clipPath={`url(#${clipId})`}>
             {sampled.curves.map((c, i) => (
-              <path key={c.name + i} d={path(c.points)} fill="none" stroke={PALETTE[i % PALETTE.length]} strokeWidth={2} />
+              <path key={c.name + i} d={path(c.points)} fill="none" stroke={colourOf(c.name)} strokeWidth={2.2} />
             ))}
             {sampled.points.map((p) => (
               <g key={p.name}>
                 <circle cx={sx(p.x)} cy={sy(p.y)} r={4} fill={t.text} />
-                <text x={sx(p.x) + 6} y={sy(p.y) - 6} fontSize={12} fill={t.text} fontWeight={700}>
+                <text x={sx(p.x) + 6} y={sy(p.y) - 6} fontSize={13} fill={t.text} fontWeight={700}>
                   {p.name}
                 </text>
               </g>
@@ -367,13 +561,17 @@ function GraphView({ src, engine, theme: t }: { src: string; engine: Engine; the
         </svg>
       </div>
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 14px", marginTop: 6, fontSize: "0.85em", alignItems: "center" }}>
-        {sampled.curves.map((c, i) => (
-          <span key={c.name + i} style={{ fontFamily: mono }}>
-            <span style={{ color: PALETTE[i % PALETTE.length], fontWeight: 700 }}>━</span> {c.name}(x) = {c.expr}
-            {c.error && <span style={{ color: "#d64545" }}> ⚠ {c.error}</span>}
-          </span>
-        ))}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 16px", marginTop: 6, alignItems: "center" }}>
+        {!editing &&
+          spec.functions.map((f, i) => {
+            const html = engine.functionHtml(f.name, f.expr, comma);
+            return (
+              <span key={f.name + i} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <span aria-hidden style={{ width: 10, height: 10, borderRadius: 99, background: PALETTE[i % PALETTE.length] }} />
+                {html ? <Tex html={html} /> : <span>{f.expr}</span>}
+              </span>
+            );
+          })}
         <span style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
           <button type="button" style={button(t)} aria-label={tr("math.zoomIn")} title={tr("math.zoomIn")} onClick={() => setZoom((z) => z / 2)}>
             +
@@ -381,14 +579,19 @@ function GraphView({ src, engine, theme: t }: { src: string; engine: Engine; the
           <button type="button" style={button(t)} aria-label={tr("math.zoomOut")} title={tr("math.zoomOut")} onClick={() => setZoom((z) => z * 2)}>
             −
           </button>
+          {zoom !== 1 && (
+            <button type="button" style={button(t)} onClick={() => setZoom(1)}>
+              {tr("math.resetView")}
+            </button>
+          )}
         </span>
       </div>
 
-      {spec.sliders.map((s) => {
+      {sliders.map((s) => {
         const v = values[s.name] ?? s.value;
         return (
-          <label key={s.name} style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, fontFamily: mono, fontSize: "0.85em" }}>
-            <span style={{ minWidth: 70 }}>
+          <label key={s.name} style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
+            <span style={{ minWidth: 64, fontStyle: "italic", fontFamily: "Georgia, serif" }}>
               {s.name} = {fmt(v)}
             </span>
             <input
@@ -404,46 +607,110 @@ function GraphView({ src, engine, theme: t }: { src: string; engine: Engine; the
         );
       })}
 
-      {sampled.errors.map((e, i) => (
-        <div key={i} style={{ marginTop: 6, fontSize: "0.82em", color: "#d64545" }}>
-          ⚠ {e}
+      {curveErrors.map((c) => (
+        <div key={c.name} style={{ marginTop: 6, fontSize: "0.85em", color: ERROR }}>
+          {c.name === "y" ? "y" : `${c.name}(x)`} : {tr("math.cantRead")}
         </div>
       ))}
-      <Errors errors={spec.errors} />
     </>
   );
 }
 
-// ── Entry ─────────────────────────────────────────────────────────────────
+// ── Shell ─────────────────────────────────────────────────────────────────
+
+function LineErrors({ errors }: { errors: LineError[] }) {
+  const tr = useTranslate();
+  if (!errors.length) return null;
+  return (
+    <div style={{ marginTop: 6, fontSize: "0.82em", color: ERROR }}>
+      {errors.map((e, i) => (
+        <div key={i}>{tr("math.lineError", { line: e.line, text: e.text })}</div>
+      ))}
+    </div>
+  );
+}
 
 /**
- * A maths block inside a reply. `open` while the closing fence has not
- * streamed in yet: a half-written function is not worth plotting.
+ * A standalone use of the tool (the Tools page) rather than a block in a reply:
+ * the editor is open from the start, `start` is what the learner left last
+ * time, and every change is reported so the page can keep it.
  */
-export function MathBlock({
-  lang,
-  src,
-  open,
-  theme: t,
-}: {
-  lang: MathBlockLang;
-  src: string;
-  open?: boolean;
-  theme: AppTheme;
-}) {
+export type Bench = { start: string; note: string; onChange: (src: string) => void };
+
+function LoadedTool({ lang, src, bench, engine, theme: t }: { lang: MathBlockLang; src: string; bench?: Bench; engine: Engine; theme: AppTheme }) {
   const tr = useTranslate();
-  if (open) {
-    return <div style={{ ...frame(t), fontSize: "0.85em", color: t.muted }}>{tr("math.preparing")}</div>;
-  }
-  return <LoadedBlock lang={lang} src={src} theme={t} />;
+  const initial = bench?.start ?? src;
+  const [editing, setEditing] = useState(bench != null);
+  const [spec, setSpec] = useState(() => parseGraph(initial));
+  const [lines, setLines] = useState(() => {
+    const l = parseCalc(initial).lines;
+    return l.length ? l : [""];
+  });
+  // Lines of the ORIGINAL block that could not be read — the editor never
+  // produces one, so these only come from what Raya wrote.
+  const sourceErrors = useMemo(() => (lang === "graph" ? parseGraph(src).errors : []), [lang, src]);
+
+  const changed =
+    lang === "graph"
+      ? graphToSource(spec) !== graphToSource(parseGraph(src))
+      : lines.filter((l) => l.trim()).join("\n") !== parseCalc(src).lines.join("\n");
+  const reset = () => {
+    setSpec(parseGraph(src));
+    const l = parseCalc(src).lines;
+    setLines(l.length ? l : [""]);
+    bench?.onChange(src);
+  };
+
+  return (
+    <div style={frame(t)}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+        <strong style={{ fontSize: "0.85em", flex: 1, opacity: 0.8 }}>{tr(lang === "graph" ? "math.graph" : "math.calc")}</strong>
+        {changed && (
+          <button type="button" style={button(t)} onClick={reset}>
+            {tr("math.reset")}
+          </button>
+        )}
+        {!bench && (
+          <button type="button" style={button(t)} aria-expanded={editing} onClick={() => setEditing((v) => !v)}>
+            {editing ? tr("math.done") : tr("math.edit")}
+          </button>
+        )}
+      </div>
+      {editing && <div style={{ fontSize: "0.82em", color: t.muted, marginBottom: 2 }}>{tr(lang === "graph" ? "math.graphHint" : "math.writeHint")}</div>}
+      {lang === "graph" ? (
+        <GraphTool
+          spec={spec}
+          editing={editing}
+          engine={engine}
+          theme={t}
+          onChange={(s) => {
+            setSpec(s);
+            bench?.onChange(graphToSource(s));
+          }}
+        />
+      ) : (
+        <CalcTool
+          lines={lines}
+          editing={editing}
+          engine={engine}
+          theme={t}
+          onChange={(l) => {
+            setLines(l);
+            bench?.onChange(l.join("\n"));
+          }}
+        />
+      )}
+      {!changed && <LineErrors errors={sourceErrors} />}
+      {bench && <div style={{ fontSize: "0.78em", color: t.muted, marginTop: 10 }}>{bench.note}</div>}
+    </div>
+  );
 }
 
-/** The same tool outside a reply, editor open — see `Bench`. */
-export function MathBench({ lang, example, bench, theme }: { lang: MathBlockLang; example: string; bench: Bench; theme: AppTheme }) {
-  return <LoadedBlock lang={lang} src={example} bench={bench} theme={theme} />;
+function Loading({ text, theme: t }: { text: string; theme: AppTheme }) {
+  return <div style={{ ...frame(t), fontSize: "0.85em", color: t.muted }}>{text}</div>;
 }
 
-function LoadedBlock({ lang, src, bench, theme: t }: { lang: MathBlockLang; src: string; bench?: Bench; theme: AppTheme }) {
+function WithEngine({ lang, src, bench, theme: t }: { lang: MathBlockLang; src: string; bench?: Bench; theme: AppTheme }) {
   const tr = useTranslate();
   const engine = useEngine();
   if (engine === "failed") {
@@ -451,22 +718,25 @@ function LoadedBlock({ lang, src, bench, theme: t }: { lang: MathBlockLang; src:
     return (
       <div style={frame(t)}>
         <div style={{ fontSize: "0.82em", color: t.muted, marginBottom: 6 }}>{tr("math.loadFailed")}</div>
-        <pre style={{ margin: 0, fontFamily: mono, fontSize: "0.86em", whiteSpace: "pre-wrap" }}>{src}</pre>
+        <pre style={{ margin: 0, fontSize: "0.9em", whiteSpace: "pre-wrap", fontFamily: "inherit" }}>{src}</pre>
       </div>
     );
   }
-  if (engine === "loading") {
-    return <div style={{ ...frame(t), fontSize: "0.85em", color: t.muted }}>{tr("math.loading")}</div>;
-  }
-  return (
-    <Shell lang={lang} src={src} bench={bench} theme={t}>
-      {(applied) =>
-        lang === "graph" ? (
-          <GraphView src={applied} engine={engine} theme={t} />
-        ) : (
-          <CalcView src={applied} engine={engine} theme={t} />
-        )
-      }
-    </Shell>
-  );
+  if (engine === "loading") return <Loading text={tr("math.loading")} theme={t} />;
+  return <LoadedTool lang={lang} src={src} bench={bench} engine={engine} theme={t} />;
+}
+
+/**
+ * A maths block inside a reply. `open` while the closing fence has not
+ * streamed in yet: a half-written function is not worth plotting.
+ */
+export function MathBlock({ lang, src, open, theme }: { lang: MathBlockLang; src: string; open?: boolean; theme: AppTheme }): ReactNode {
+  const tr = useTranslate();
+  if (open) return <Loading text={tr("math.preparing")} theme={theme} />;
+  return <WithEngine lang={lang} src={src} theme={theme} />;
+}
+
+/** The same tool outside a reply, editor open — see `Bench`. */
+export function MathBench({ lang, example, bench, theme }: { lang: MathBlockLang; example: string; bench: Bench; theme: AppTheme }) {
+  return <WithEngine lang={lang} src={example} bench={bench} theme={theme} />;
 }

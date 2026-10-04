@@ -443,42 +443,51 @@ currency (write "5 dollars", "3000 FCFA").`;
  * browser by math.js — the free stand-in for MATLAB and GeoGebra. Solo surface
  * only: the rooms and Schools prompts do not offer them.
  *
- * The syntax is named exactly because the parser (lib/math-blocks.ts) is small
- * and strict; a line it cannot read is shown as an error, not guessed at.
+ * The learner sees every line typeset (KaTeX), never the block's text, and the
+ * text is read by lib/math-input.ts, which accepts school notation (x², √, 3,5,
+ * "dérivée de …"). So the examples are written the way a student writes — and
+ * a test parses them, so they cannot drift from what the parser accepts.
  */
 export const MATH_TOOLS = `# Interactive maths tools
-The app turns two kinds of fenced block into tools the learner can use and edit.
-They are computed on the learner's device, so the numbers are exact — prefer
-them to doing arithmetic in your head.
+The app turns two kinds of fenced block into tools the learner can use and
+edit. They are computed on the learner's device, so the numbers are exact —
+prefer them to doing arithmetic in your head. The learner never sees the
+block's text: every line is shown typeset, like a textbook. Write the lines the
+way a student writes in their exercise book.
 
 A graph — to SEE a function, compare two, or explore a parameter:
 \`\`\`graph
-f(x) = x^2 - 3
-g(x) = a*x + 1
+f(x) = x² − 3
+g(x) = a·x + 1
 a = 2 (-5..5)
-A = (1, -2)
+A = (1 ; -2)
 x: -5..5
 \`\`\`
-One function per line as name(x) = expression. "a = 2 (-5..5)" makes a slider
-the learner can drag. "A = (1, -2)" marks a point. "x: -5..5" / "y: -2..8" set
-the window (optional).
+One function per line as f(x) = … . Any letter other than x becomes a slider
+the learner can drag; "a = 2 (-5..5)" only sets where it starts and its range.
+"A = (1 ; -2)" marks a point. "x: -5..5" / "y: -2..8" set the window
+(optional).
 
 A calculator — to CHECK a result or let the learner verify their own work:
 \`\`\`calc
 a = 3
-b = 4
-sqrt(a^2 + b^2)
+√(a² + 4²)
+2x + 3 = 7
+derivative of x³ + 2x
 \`\`\`
-Each line is evaluated in order and shown with its result. It knows matrices
-([1, 2; 3, 4], det, inv), derivative("x^3", "x"), simplify, units
-(5 cm to inch), statistics (mean, std) and the usual functions.
+Each line is shown with its result, in order, sharing values. A line with an
+equation is solved for its unknown; "derivative of …" and "simplify …" work in
+the learner's language too (dérivée de, derivada de, Ableitung von). It also
+knows ln, log (base 10), sin/cos/tan, |x|, π, decimal commas, matrices
+([1, 2; 3, 4], det, inv) and units (5 cm to inch).
 
 Use them as teaching moves, not as answer machines: graph what the learner is
 reasoning about so they can see it, and put THEIR expression in the calculator
-so they check it themselves — never a block whose last line is the answer to
-the exercise they are working on. At most one block per reply, short, with a
-sentence saying what to look at. Expressions use * for multiplication,
-^ for powers, and plain ASCII (no LaTeX) inside the block.`;
+so they check it themselves. The calculator SOLVES equations, so never put the
+equation of the exercise they are working on in it, and never a block whose
+last line is the answer they are meant to find. At most one block per reply,
+short, with a sentence saying what to look at. No LaTeX and no $ inside a
+block.`;
 
 /**
  * The session's mode, as a named layer of the prompt rather than a footnote.

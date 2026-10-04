@@ -2,28 +2,37 @@
 
 import { useEffect, useState } from "react";
 import { useAppTheme } from "@/components/ui/theme";
-import { displayType, status as statusColors } from "@/components/ui/tokens";
 import { useTranslate } from "@/components/ui/locale";
 import { MathBench } from "@/components/chat/math-tools";
 import type { MathBlockLang } from "@/lib/math-blocks";
+import type { MessageKey } from "@/lib/i18n";
 
 /**
- * The maths tools on the Tools page — the same graph and calculator Raya puts
- * in a reply, opened by the learner directly, with no conversation needed.
+ * The graph or the calculator on the Tools page — picked from the same row of
+ * cards as Summary and Quiz (components/tools.tsx), so a student finds them
+ * where they look for a tool, not at the bottom of the page. The same tools
+ * Raya puts in a reply, opened directly, with no conversation needed.
  *
- * What the learner last ran is kept on THIS device so a reload does not lose
+ * What the learner last wrote is kept on THIS device so a reload does not lose
  * it, and wiped on sign-out with the rest of the retained data
  * (lib/net/local-data.ts) — school machines are shared.
  */
 
 export const MATH_STUDIO_KEY = "bs_math_studio";
 
-const EXAMPLES: Record<MathBlockLang, string> = {
-  graph: ["f(x) = x^2 - 3", "g(x) = a*x + 1", "a = 1 (-5..5)", "x: -5..5"].join("\n"),
-  calc: ["a = 3", "b = 4", "sqrt(a^2 + b^2)", 'derivative("x^3 + 2x", "x")', "det([1, 2; 3, 4])"].join("\n"),
-};
+/**
+ * What a first visit opens on: written the way a student writes, so the
+ * example IS the instructions. The words ("dérivée", "résoudre") are in the
+ * reader's language; the tool reads them in any of the four.
+ */
+function examples(tr: (k: MessageKey) => string): Record<MathBlockLang, string> {
+  return {
+    graph: ["f(x) = x² − 3", "g(x) = a·x + 1", "x: -5..5"].join("\n"),
+    calc: ["3,5 × 4", "√(3² + 4²)", "2x + 3 = 7", "x² − 5x + 6 = 0", `${tr("math.word.derivative")} x³ + 2x`].join("\n"),
+  };
+}
 
-type Saved = Partial<Record<MathBlockLang, string>> & { last?: MathBlockLang };
+type Saved = Partial<Record<MathBlockLang, string>>;
 
 function readSaved(): Saved {
   try {
@@ -42,95 +51,37 @@ function writeSaved(next: Saved) {
   }
 }
 
-export function MathStudio() {
+export function MathPanel({ lang }: { lang: MathBlockLang }) {
   const { theme: t } = useAppTheme();
   const tr = useTranslate();
-  const [saved, setSaved] = useState<Saved>({});
-  const [lang, setLang] = useState<MathBlockLang>("graph");
   // Read after mount, not during render: the server has no storage, and a first
-  // render that differed from its HTML would be a hydration mismatch. `ready`
-  // holds the tool back until then, so it starts from the saved text.
-  const [ready, setReady] = useState(false);
+  // render that differed from its HTML would be a hydration mismatch. The tool
+  // waits for it, so it starts from the saved text rather than jumping to it.
+  const [saved, setSaved] = useState<Saved | null>(null);
   useEffect(() => {
-    const s = readSaved();
-    setSaved(s);
-    if (s.last) setLang(s.last);
-    setReady(true);
+    setSaved(readSaved());
   }, []);
+  if (!saved) return null;
 
-  const remember = (patch: Saved) => {
-    const next = { ...saved, ...patch };
-    setSaved(next);
-    writeSaved(next);
-  };
-
-  const tabs: { id: MathBlockLang; glyph: string; label: string }[] = [
-    { id: "graph", glyph: "ƒ", label: tr("math.graph") },
-    { id: "calc", glyph: "=", label: tr("math.calc") },
-  ];
-
+  const example = examples(tr)[lang];
   return (
-    <section style={{ marginTop: 28 }}>
-      <div style={{ ...displayType(19), color: t.text }}>{tr("tools.math.title")}</div>
-      <div style={{ fontSize: 15, color: t.muted, marginTop: 4, marginBottom: 14 }}>{tr("tools.math.subtitle")}</div>
-
-      <div role="tablist" style={{ display: "flex", gap: 10, marginBottom: 4 }}>
-        {tabs.map((x) => {
-          const on = lang === x.id;
-          return (
-            <button
-              key={x.id}
-              type="button"
-              role="tab"
-              aria-selected={on}
-              onClick={() => {
-                setLang(x.id);
-                remember({ last: x.id });
-              }}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                background: t.cardBg2,
-                border: `1px solid ${on ? statusColors.aiIndigo : t.cardBorder}`,
-                boxShadow: on ? `0 0 0 1px ${statusColors.aiIndigo}` : "none",
-                borderRadius: 14,
-                padding: "10px 14px",
-                cursor: "pointer",
-                color: t.text,
-                fontSize: 15,
-                fontWeight: 700,
-              }}
-            >
-              <span
-                aria-hidden
-                style={{ width: 28, height: 28, borderRadius: 9, background: t.ctaBg, color: t.ctaText, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Georgia, serif", fontStyle: "italic" }}
-              >
-                {x.glyph}
-              </span>
-              {x.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Keyed by tool so switching starts that tool from ITS saved state. */}
-      <div style={{ fontSize: 16 }}>
-        {ready && (
-          <MathBench
-            key={lang}
-            lang={lang}
-            example={EXAMPLES[lang]}
-            theme={t}
-            bench={{
-              start: saved[lang] ?? EXAMPLES[lang],
-              hint: tr(lang === "graph" ? "tools.math.graphHint" : "tools.math.calcHint"),
-              note: tr("tools.math.saved"),
-              onApply: (src) => remember({ [lang]: src, last: lang }),
-            }}
-          />
-        )}
-      </div>
-    </section>
+    <div style={{ marginTop: 16, fontSize: 16 }}>
+      <MathBench
+        // Keyed by tool so switching starts that tool from ITS saved state.
+        key={lang}
+        lang={lang}
+        example={example}
+        theme={t}
+        bench={{
+          start: saved[lang] ?? example,
+          note: tr("tools.math.saved"),
+          onChange: (src) => {
+            const next = { ...readSaved(), [lang]: src };
+            setSaved(next);
+            writeSaved(next);
+          },
+        }}
+      />
+    </div>
   );
 }

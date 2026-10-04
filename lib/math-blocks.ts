@@ -46,6 +46,8 @@ const SLIDER = new RegExp(`^${NAME}\\s*=\\s*${NUM}\\s*\\(\\s*${NUM}\\s*\\.\\.\\s
 const FUNC = new RegExp(`^${NAME}\\s*\\(\\s*x\\s*\\)\\s*=\\s*(.+)$`);
 const Y_EQ = /^y\s*=\s*(.+)$/;
 const POINT = new RegExp(`^${NAME}\\s*=\\s*\\(\\s*([^,()]+(?:\\([^()]*\\)[^,()]*)*)\\s*,\\s*(.+)\\s*\\)$`);
+/** "A = (3,5 ; 2)": the school way, a semicolon, so a decimal comma stays a decimal. */
+const POINT_SEMI = new RegExp(`^${NAME}\\s*=\\s*\\(\\s*([^;]+?)\\s*;\\s*([^;]+?)\\s*\\)$`);
 const CONST = new RegExp(`^${NAME}\\s*=\\s*(.+)$`);
 
 /** The lines that carry something: trimmed, comments and blanks dropped, capped. */
@@ -91,7 +93,7 @@ export function parseGraph(src: string): GraphSpec {
       }
       const [name, expr] = m.length === 3 ? [m[1], m[2]] : ["y", m[1]];
       spec.functions.push({ name, expr: expr.trim() });
-    } else if ((m = POINT.exec(text)) && /^[A-Z]/.test(m[1])) {
+    } else if (((m = POINT_SEMI.exec(text)) || (m = POINT.exec(text))) && /^[A-Z]/.test(m[1])) {
       // Capitalised names are points ("A = (1, 2)"), as on a blackboard; a
       // lower-case name with a pair is a constant mistake worth flagging.
       if (spec.points.length >= MAX_POINTS) {
@@ -148,4 +150,34 @@ export function autoRange(values: number[]): [number, number] {
   }
   const pad = (hi - lo) * 0.1;
   return [lo - pad, hi + pad];
+}
+
+/**
+ * A graph back to block text — what the Tools page keeps and what the editor
+ * starts from again. `parseGraph(graphToSource(s))` gives `s` back.
+ */
+export function graphToSource(spec: GraphSpec): string {
+  const fmt = (n: number) => String(Number(n.toPrecision(10)));
+  return [
+    ...spec.functions.map((f) => (f.name === "y" ? `y = ${f.expr}` : `${f.name}(x) = ${f.expr}`)),
+    ...spec.sliders.map((s) => `${s.name} = ${fmt(s.value)} (${fmt(s.min)}..${fmt(s.max)})`),
+    ...spec.constants.map((c) => `${c.name} = ${c.expr}`),
+    ...spec.points.map((p) => `${p.name} = (${p.x} ; ${p.y})`),
+    ...(spec.x ? [`x: ${fmt(spec.x[0])}..${fmt(spec.x[1])}`] : []),
+    ...(spec.y ? [`y: ${fmt(spec.y[0])}..${fmt(spec.y[1])}`] : []),
+  ].join("\n");
+}
+
+/** The next unused function name: f, g, h, k, p, q. */
+export function nextFunctionName(taken: string[]): string {
+  return ["f", "g", "h", "k", "p", "q"].find((n) => !taken.includes(n)) ?? `f${taken.length + 1}`;
+}
+
+/** The next unused point name: A, B, C… */
+export function nextPointName(taken: string[]): string {
+  for (let i = 0; i < 26; i++) {
+    const n = String.fromCharCode(65 + i);
+    if (!taken.includes(n)) return n;
+  }
+  return `P${taken.length + 1}`;
 }
