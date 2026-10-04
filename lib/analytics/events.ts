@@ -15,15 +15,19 @@
  * The Schools funnel:
  *   signed_up → onboarding_completed (track: schools) → school_created | school_team_joined
  *   → assignment_created → checkout_started
+ * Invitations: invite_created → school_team_joined (from the invited side).
+ * Raya's speed: raya_response_received (latency, first token, outcome — never text).
  */
 export const PRODUCT_EVENTS = [
   // Accounts
   "signed_up",
   "onboarding_completed",
+  "logged_in",
   "account_verified",
   "recovery_key_regenerated",
   // Raya
   "raya_message_sent",
+  "raya_response_received",
   "artefact_generated",
   "document_uploaded",
   "doc_shared",
@@ -33,6 +37,7 @@ export const PRODUCT_EVENTS = [
   // Schools
   "school_created",
   "school_team_joined",
+  "invite_created",
   "assignment_created",
   // Money
   "checkout_started",

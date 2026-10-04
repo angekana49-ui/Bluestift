@@ -50,6 +50,24 @@ function PageviewTracker() {
   return null;
 }
 
+/** sessionStorage key: this tab has already reported the current sign-in. */
+const LOGIN_PINGED = "bs_login_pinged";
+
+/**
+ * Ask the server to count a sign-in (`logged_in`). The server decides from the
+ * session token whether there IS a fresh one to count, and dedupes it — this
+ * only saves the request on every later page of the same tab.
+ */
+function pingLogin(userId: string) {
+  try {
+    if (sessionStorage.getItem(LOGIN_PINGED) === userId) return;
+    sessionStorage.setItem(LOGIN_PINGED, userId);
+  } catch {
+    // no storage: the server's dedupe still holds
+  }
+  void netFetch("/api/analytics/login", { method: "POST", keepalive: true }, { timeoutMs: 5_000 }).catch(() => {});
+}
+
 /**
  * Tie PostHog's identity to the Supabase user: identify by user.id on sign-in
  * (including anonymous accounts — that id is stable), reset on sign-out. Guarded
@@ -65,13 +83,25 @@ function IdentifyBridge() {
     let active = true;
 
     supabase.auth.getUser().then(({ data }) => {
-      if (active && data.user && capturing()) ph.identify(data.user.id);
+      if (active && data.user && capturing()) {
+        ph.identify(data.user.id);
+        if (!data.user.is_anonymous) pingLogin(data.user.id);
+      }
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (!capturing()) return;
-      if (event === "SIGNED_OUT") ph.reset();
-      else if (session?.user) ph.identify(session.user.id);
+      if (event === "SIGNED_OUT") {
+        ph.reset();
+        try {
+          sessionStorage.removeItem(LOGIN_PINGED);
+        } catch {
+          /* nothing to forget */
+        }
+      } else if (session?.user) {
+        ph.identify(session.user.id);
+        if (event === "SIGNED_IN" && !session.user.is_anonymous) pingLogin(session.user.id);
+      }
     });
 
     return () => {

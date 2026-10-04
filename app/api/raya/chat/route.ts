@@ -30,6 +30,7 @@ import type { KernelMessage } from "@/lib/kernel/types";
 import { apiT } from "@/lib/i18n/server";
 import { conceptNamer } from "@/lib/kernel/concept-names-server";
 import { captureServer } from "@/lib/analytics/server";
+import { replyClock } from "@/lib/analytics/reply-clock";
 
 // Streaming LLM turn: give the function room to finish long replies on Vercel.
 export const maxDuration = 60;
@@ -348,6 +349,7 @@ export async function POST(request: Request) {
   let model: string;
   let deltas: AsyncGenerator<string>;
   let usage: TokenUsage;
+  const clock = replyClock();
   try {
     const out = await rayaStream(
       buildRayaMessages(
@@ -385,14 +387,25 @@ export async function POST(request: Request) {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       let full = "";
+      let interrupted = false;
       try {
         for await (const delta of deltas) {
+          clock.tick();
           full += delta;
           controller.enqueue(encoder.encode(delta));
         }
       } catch {
         // keep whatever streamed so far
+        interrupted = true;
       }
+      // Lengths and timings only — the reply itself never leaves for analytics.
+      void captureServer(user.id, "raya_response_received", {
+        surface: roomId ? "room" : "raya",
+        model_tier: routing.tier,
+        model,
+        tokens: usage.total,
+        ...clock.done(full.length, interrupted),
+      });
       // Persist Raya's full reply (best-effort).
       try {
         await supabase.schema("learning").from("messages").insert({

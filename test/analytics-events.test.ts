@@ -99,6 +99,29 @@ describe("where the funnel events fire", () => {
     expect(src.slice(event, src.indexOf(");", src.indexOf("{ timestamp", event)) + 2)).toContain("{ timestamp: known }");
   });
 
+  it("times a Raya reply after its stream ends, on both chats, with numbers only", () => {
+    for (const file of ["app/api/raya/chat/route.ts", "app/api/school/raya/chat/route.ts"]) {
+      const src = read(file);
+      const loop = src.indexOf("for await (const delta of deltas)");
+      const event = src.indexOf('"raya_response_received"');
+      expect(loop, file).toBeGreaterThan(-1);
+      expect(event, `${file} reports before the reply has finished`).toBeGreaterThan(loop);
+      expect(src.slice(loop, event)).toContain("clock.tick()");
+      // The reply's length, never the reply.
+      const props = calls.find((c) => c.file === file && c.event === "raya_response_received")!.props;
+      expect(props).toContain("clock.done(full.length, interrupted)");
+      expect(props).not.toMatch(/\bfull\b(?!\.length)/);
+    }
+  });
+
+  it("records an invitation on every path that creates one", () => {
+    const kinds = calls
+      .filter((c) => c.event === "invite_created")
+      .map((c) => /kind: "(\w+)"/.exec(c.props)?.[1])
+      .sort();
+    expect(kinds).toEqual(["account_created", "named", "staff_code"]);
+  });
+
   it("records a team join only once the membership or request exists", () => {
     const src = read("app/api/school/join-team/route.ts");
     const outcomes = [...src.matchAll(/"school_team_joined", \{ outcome: "(\w+)" \}/g)].map((m) => m[1]);
@@ -126,15 +149,26 @@ describe("the minor lockout", () => {
 /* ── The onboarding route, run for real against mocked Supabase ─────────── */
 
 const state: {
-  user: { id: string; is_anonymous?: boolean } | null;
+  user: { id: string; is_anonymous?: boolean; created_at?: string } | null;
+  claims: Record<string, unknown> | null;
   row: { onboarding_completed_at: string | null; school_level: string | null } | null;
   metadata: Record<string, unknown> | null;
-} = { user: null, row: null, metadata: null };
+} = { user: null, claims: null, row: null, metadata: null };
 
-const captured: { userId: string; event: string; props: Record<string, unknown> }[] = [];
+const captured: {
+  userId: string;
+  event: string;
+  props: Record<string, unknown>;
+  options?: { timestamp?: Date; uuid?: string };
+}[] = [];
 
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: async () => ({ auth: { getUser: async () => ({ data: { user: state.user } }) } }),
+  createClient: async () => ({
+    auth: {
+      getUser: async () => ({ data: { user: state.user } }),
+      getClaims: async () => ({ data: state.claims ? { claims: state.claims } : null }),
+    },
+  }),
 }));
 
 vi.mock("@/lib/supabase/admin", () => ({
@@ -154,8 +188,13 @@ vi.mock("@/lib/supabase/admin", () => ({
 }));
 
 vi.mock("@/lib/analytics/server", () => ({
-  captureServer: async (userId: string, event: string, props: Record<string, unknown>) => {
-    captured.push({ userId, event, props });
+  captureServer: async (
+    userId: string,
+    event: string,
+    props: Record<string, unknown>,
+    options?: { timestamp?: Date; uuid?: string },
+  ) => {
+    captured.push({ userId, event, props, ...(options ? { options } : {}) });
   },
 }));
 
@@ -203,5 +242,60 @@ describe("POST /api/analytics/onboarding", () => {
     state.metadata = { track: "schools", role: "teacher" };
     await call();
     expect(captured[0].props).toMatchObject({ track: "schools", role: "teacher", school_level: null });
+  });
+});
+
+/* ── The login route, run for real against mocked Supabase ─────────────── */
+
+describe("POST /api/analytics/login", () => {
+  const secondsAgo = (n: number) => Math.floor(Date.now() / 1000) - n;
+
+  beforeEach(() => {
+    captured.length = 0;
+    state.user = { id: "u1", is_anonymous: false, created_at: new Date(Date.now() - 30 * 86_400_000).toISOString() };
+    state.claims = { sub: "u1", session_id: "s1", is_anonymous: false, amr: [{ method: "password", timestamp: secondsAgo(20) }] };
+  });
+
+  const call = async () => (await import("@/app/api/analytics/login/route")).POST();
+
+  it("counts a fresh sign-in, dated to the moment the token says it happened", async () => {
+    expect((await call()).status).toBe(204);
+    expect(captured).toHaveLength(1);
+    const [e] = captured;
+    expect(e).toMatchObject({ userId: "u1", event: "logged_in", props: { method: "password", new_account: false } });
+    const amr = (state.claims!.amr as { timestamp: number }[])[0];
+    expect(e.options?.timestamp?.getTime()).toBe(amr.timestamp * 1000);
+    expect(e.options?.uuid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+
+  it("gives the same sign-in the same uuid, so a second ping is the same event", async () => {
+    await call();
+    await call();
+    expect(captured).toHaveLength(2);
+    expect(captured[0].options?.uuid).toBe(captured[1].options?.uuid);
+  });
+
+  it("does not count an old session as a new login", async () => {
+    state.claims!.amr = [{ method: "password", timestamp: secondsAgo(60 * 60) }];
+    await call();
+    expect(captured).toEqual([]);
+  });
+
+  it("does not count an anonymous session (that is a sign-up starting)", async () => {
+    state.claims!.is_anonymous = true;
+    await call();
+    expect(captured).toEqual([]);
+  });
+
+  it("flags the first session of a brand-new account", async () => {
+    state.user!.created_at = new Date(Date.now() - 60_000).toISOString();
+    await call();
+    expect(captured[0].props).toMatchObject({ new_account: true });
+  });
+
+  it("answers the same 204 to a signed-out caller, and sends nothing", async () => {
+    state.claims = null;
+    expect((await call()).status).toBe(204);
+    expect(captured).toEqual([]);
   });
 });

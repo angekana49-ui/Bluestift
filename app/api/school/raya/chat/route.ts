@@ -11,6 +11,7 @@ import { FORMATTING_RULES } from "@/lib/raya/prompt";
 import { appGuideLayerForStaff } from "@/lib/raya/app-guide-layer";
 import { apiT } from "@/lib/i18n/server";
 import { captureServer } from "@/lib/analytics/server";
+import { replyClock } from "@/lib/analytics/reply-clock";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -206,6 +207,7 @@ export async function POST(request: Request) {
   let model: string;
   let deltas: AsyncGenerator<string>;
   let usage: TokenUsage;
+  const clock = replyClock();
   try {
     const out = await rayaStream(messages);
     model = out.model;
@@ -222,14 +224,25 @@ export async function POST(request: Request) {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       let full = "";
+      let interrupted = false;
       try {
         for await (const delta of deltas) {
+          clock.tick();
           full += delta;
           controller.enqueue(encoder.encode(delta));
         }
       } catch {
         // keep whatever streamed so far
+        interrupted = true;
       }
+      // Lengths and timings only — the reply itself never leaves for analytics.
+      void captureServer(user.id, "raya_response_received", {
+        surface: "schools",
+        role: membership.role,
+        model,
+        tokens: usage.total,
+        ...clock.done(full.length, interrupted),
+      });
       try {
         await supabase.schema("learning").from("messages").insert({
           conversation_id: convIdFinal,

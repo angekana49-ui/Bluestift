@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import { getAdminMembership } from "@/lib/school-admin";
 import { apiT } from "@/lib/i18n/server";
+import { captureServer } from "@/lib/analytics/server";
 
 // Unambiguous alphabet (no 0/O/1/I). 8 chars — a staff code grants a personal
 // membership, so more entropy than a 6-char class code.
@@ -50,6 +51,8 @@ export async function POST(request: Request) {
       .single();
     if (!error) {
       const row = data as { id: string; code: string; auto_approve: boolean; is_active: boolean };
+      // A staffroom code: shared by hand, used by however many it reaches.
+      void captureServer(user.id, "invite_created", { kind: "staff_code", auto_approve: autoApprove });
       return NextResponse.json({
         id: row.id,
         code: row.code,

@@ -8,6 +8,7 @@ import { checkStrictUserRateLimit } from "@/lib/rate-limit";
 import { firstNameOf, sendAccountCreatedEmail, sendBrandedEmail, siteUrl } from "@/lib/email";
 import { isNameTooShort } from "@/lib/names";
 import { apiT } from "@/lib/i18n/server";
+import { captureServer } from "@/lib/analytics/server";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -151,6 +152,8 @@ export async function POST(request: Request) {
       schoolName: membership.schoolName,
       role: "teacher",
     });
+    // The admin made the account — the teacher accepts by signing in to it.
+    void captureServer(user.id, "invite_created", { kind: "account_created", emailed: sent.ok === true });
     return NextResponse.json({
       invited: true,
       created: true,
@@ -234,6 +237,9 @@ export async function POST(request: Request) {
     ],
     cta: { label: await apiT("email.teacherInvite.cta"), url: `${siteUrl("schools")}/school` },
   });
+
+  // One person, one code: spent when they redeem it (school_team_joined).
+  void captureServer(user.id, "invite_created", { kind: "named", emailed: sent.ok === true });
 
   return NextResponse.json({
     invited: true,

@@ -27,6 +27,7 @@ type PostHogNode = {
     event: string;
     properties?: Record<string, unknown>;
     timestamp?: Date;
+    uuid?: string;
   }) => void;
   flush: () => Promise<void>;
 };
@@ -60,12 +61,15 @@ async function hasConsent(): Promise<boolean> {
  *
  * `timestamp` is for an event that happened before we were allowed to record
  * it — see `signed_up` in app/api/account/age/route.ts. Default: now.
+ *
+ * `uuid` makes the event idempotent: PostHog keeps one event per uuid, so an
+ * event that may be reported twice (see `logged_in`) is given a stable one.
  */
 export async function captureServer(
   userId: string | null | undefined,
   event: ProductEvent,
   properties?: Record<string, unknown>,
-  options?: { timestamp?: Date },
+  options?: { timestamp?: Date; uuid?: string },
 ): Promise<void> {
   try {
     if (!KEY || !userId) return;
@@ -76,7 +80,7 @@ export async function captureServer(
     if (!(await optionalProcessingAllowed(userId))) return;
     const client = await getClient();
     if (!client) return;
-    client.capture({ distinctId: userId, event, properties, timestamp: options?.timestamp });
+    client.capture({ distinctId: userId, event, properties, timestamp: options?.timestamp, uuid: options?.uuid });
     // Drain the send AFTER the response is flushed to the user: `after()` keeps the
     // serverless function alive until the network delivery resolves, so events aren't
     // lost when the function would otherwise freeze. Outside a request scope (or on any
