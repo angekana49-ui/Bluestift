@@ -1109,6 +1109,8 @@ export const en = {
   "subprocessors.row.stripe.data": "Payment details and the amount. We never store full card numbers",
   "subprocessors.row.classroom.purpose": "Optional LMS import, only for schools that connect it",
   "subprocessors.row.classroom.data": "Course and roster data the school chooses to share",
+  "subprocessors.row.wikimedia.purpose": "Live reference lookups for Raya's factual answers",
+  "subprocessors.row.wikimedia.data": "A few topic words cut from a question — never the message, never an account",
   "subprocessors.require.h2": "What we require of them",
   "subprocessors.require.li1": "They process data only on our documented instructions, for the purpose named above.",
   "subprocessors.require.li2":
@@ -3852,4 +3854,18 @@ export const en = {
   "player.mapStart": "Start",
   "player.mapEnd": "Finish",
   "survey.rayaDevelopmentSuffix": "’s development.",
+  // ── Maths tools in a Raya reply (components/chat/math-tools.tsx) ──
+  "math.graph": "Graph",
+  "math.calc": "Calculator",
+  "math.preparing": "Preparing…",
+  "math.loading": "Loading…",
+  "math.loadFailed": "The maths tools didn't load. Check your connection.",
+  "math.edit": "Edit",
+  "math.run": "Run",
+  "math.reset": "Reset",
+  "math.zoomIn": "Zoom in",
+  "math.zoomOut": "Zoom out",
+  "math.lineError": "Line {line} not understood: {text}",
+  "math.editHint": "Your changes stay on this screen only.",
+  "math.graphOf": "Graph of {list}",
 } as const;

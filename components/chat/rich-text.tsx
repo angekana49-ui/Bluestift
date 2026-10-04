@@ -4,6 +4,8 @@ import { Fragment, useMemo, type CSSProperties, type ReactNode } from "react";
 import { parseMarkdown, type Block, type Inline } from "@/lib/markdown";
 import { parseLatex, latexToText, type MathNode } from "@/lib/latex";
 import { type AppTheme } from "@/components/ui/tokens";
+import { isMathBlockLang } from "@/lib/math-blocks";
+import { MathBlock } from "./math-tools";
 
 /**
  * Renders a Raya reply: Markdown structure (headings, emphasis, lists, tables,
@@ -229,6 +231,8 @@ function BlockView({ b, t, first }: { b: Block; t: AppTheme; first: boolean }) {
         </ul>
       );
     case "code":
+      // ```graph / ```calc are tools, not code to read (components/chat/math-tools.tsx).
+      if (isMathBlockLang(b.lang)) return <MathBlock lang={b.lang} src={b.v} open={b.open} theme={t} />;
       return (
         <pre
           style={{

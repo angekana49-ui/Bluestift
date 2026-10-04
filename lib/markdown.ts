@@ -31,7 +31,8 @@ export type Block =
   | { t: "h"; level: 1 | 2 | 3; c: Inline[] }
   | { t: "p"; c: Inline[] }
   | { t: "list"; ordered: boolean; start: number; items: Inline[][] }
-  | { t: "code"; lang: string | null; v: string }
+  /** `open`: the closing fence has not arrived yet (the reply is still streaming). */
+  | { t: "code"; lang: string | null; v: string; open?: boolean }
   | { t: "quote"; c: Inline[] }
   | { t: "table"; head: Inline[][]; rows: Inline[][][]; align: Align[] }
   | { t: "mathBlock"; v: string }
@@ -212,7 +213,12 @@ export function parseMarkdown(src: string): Block[] {
       const body: string[] = [];
       let j = i + 1;
       while (j < lines.length && !/^\s*```\s*$/.test(lines[j])) body.push(lines[j++]);
-      blocks.push({ t: "code", lang: fence[1] ?? null, v: body.join("\n") });
+      blocks.push({
+        t: "code",
+        lang: fence[1] ?? null,
+        v: body.join("\n"),
+        ...(j >= lines.length ? { open: true } : {}),
+      });
       i = j;
       continue;
     }

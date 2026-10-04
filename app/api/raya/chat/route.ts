@@ -27,10 +27,11 @@ import {
   setLatestAnalysis,
 } from "@/lib/kernel/profile-cache";
 import type { KernelMessage } from "@/lib/kernel/types";
-import { apiT } from "@/lib/i18n/server";
+import { apiT, getServerLocale } from "@/lib/i18n/server";
 import { conceptNamer } from "@/lib/kernel/concept-names-server";
 import { captureServer } from "@/lib/analytics/server";
 import { replyClock } from "@/lib/analytics/reply-clock";
+import { wikiQuery, lookupWikipedia, referenceBlock } from "@/lib/raya/wikipedia";
 
 // Streaming LLM turn: give the function room to finish long replies on Vercel.
 export const maxDuration = 60;
@@ -299,6 +300,13 @@ export async function POST(request: Request) {
     convId = data.id;
   }
 
+  // A live Wikipedia lookup when the message asks about something. Started
+  // here, past every gate, so it overlaps the database work below instead of
+  // adding to it; bounded inside, and an empty list on any failure.
+  const lookup = wikiQuery(content);
+  const locale = await getServerLocale();
+  const referencePromise = lookup ? lookupWikipedia(lookup, locale) : Promise.resolve([]);
+
   // ── Wave 2: store the message + gather history/documents, in parallel ──
   const turn = await persistAndGather(supabase, {
     conversationId: convId,
@@ -334,6 +342,7 @@ export async function POST(request: Request) {
   // word rulebook — and a small model handed a rulebook follows it literally,
   // which is most of what made the tutor read as mechanical.
   const routing = routeTier(profile, alerts);
+  const reference = await referencePromise;
 
   // Counted here — stored, not a replay, not yet answered — so a retry after a
   // lost response is one message, and a model outage still shows what was asked.
@@ -367,6 +376,7 @@ export async function POST(request: Request) {
         mode,
         routing.tier,
         await conceptNames,
+        referenceBlock(reference, locale),
       ),
       routing.tier,
     );
@@ -404,6 +414,8 @@ export async function POST(request: Request) {
         model_tier: routing.tier,
         model,
         tokens: usage.total,
+        // How many Wikipedia pages were in the prompt — a count, never which ones.
+        wiki_pages: reference.length,
         ...clock.done(full.length, interrupted),
       });
       // Persist Raya's full reply (best-effort).

@@ -438,6 +438,49 @@ Write those out step by step in prose instead. Use $ only for maths, never for
 currency (write "5 dollars", "3000 FCFA").`;
 
 /**
+ * The two interactive blocks the student's chat renders (components/chat/
+ * math-tools.tsx): a graph and a calculator, both computed in the learner's own
+ * browser by math.js — the free stand-in for MATLAB and GeoGebra. Solo surface
+ * only: the rooms and Schools prompts do not offer them.
+ *
+ * The syntax is named exactly because the parser (lib/math-blocks.ts) is small
+ * and strict; a line it cannot read is shown as an error, not guessed at.
+ */
+export const MATH_TOOLS = `# Interactive maths tools
+The app turns two kinds of fenced block into tools the learner can use and edit.
+They are computed on the learner's device, so the numbers are exact — prefer
+them to doing arithmetic in your head.
+
+A graph — to SEE a function, compare two, or explore a parameter:
+\`\`\`graph
+f(x) = x^2 - 3
+g(x) = a*x + 1
+a = 2 (-5..5)
+A = (1, -2)
+x: -5..5
+\`\`\`
+One function per line as name(x) = expression. "a = 2 (-5..5)" makes a slider
+the learner can drag. "A = (1, -2)" marks a point. "x: -5..5" / "y: -2..8" set
+the window (optional).
+
+A calculator — to CHECK a result or let the learner verify their own work:
+\`\`\`calc
+a = 3
+b = 4
+sqrt(a^2 + b^2)
+\`\`\`
+Each line is evaluated in order and shown with its result. It knows matrices
+([1, 2; 3, 4], det, inv), derivative("x^3", "x"), simplify, units
+(5 cm to inch), statistics (mean, std) and the usual functions.
+
+Use them as teaching moves, not as answer machines: graph what the learner is
+reasoning about so they can see it, and put THEIR expression in the calculator
+so they check it themselves — never a block whose last line is the answer to
+the exercise they are working on. At most one block per reply, short, with a
+sentence saying what to look at. Expressions use * for multiplication,
+^ for powers, and plain ASCII (no LaTeX) inside the block.`;
+
+/**
  * The session's mode, as a named layer of the prompt rather than a footnote.
  *
  * It used to be appended AFTER the whole static prompt, and only for the two
@@ -524,6 +567,7 @@ function staticLayer(mode: AiMode, tier: ModelTier): string {
     safetyLayer("solo"),
     appGuideLayer(),
     FORMATTING_RULES,
+    MATH_TOOLS,
   ].join("\n\n---\n\n");
 }
 
@@ -561,6 +605,8 @@ export function buildRayaMessages(
    * echo it to the learner. The chat route passes the English names.
    */
   conceptLabel: (label: string) => string = (label) => label,
+  /** A live lookup for this turn (lib/raya/wikipedia.ts `referenceBlock`), or "". */
+  reference = "",
 ): ChatMsg[] {
   // The caller (app/api/raya/chat/route.ts) has already clamped `mode` back to
   // the default for any plan without RAYA_ENTITLEMENTS.aiModes, so reaching
@@ -588,6 +634,9 @@ export function buildRayaMessages(
       `Do not reproduce them verbatim.\n\n` +
       `${docs}`;
   }
+
+  // Last, so it sits nearest the turn it was fetched for.
+  if (reference) system += `\n\n${reference}`;
 
   return [
     {

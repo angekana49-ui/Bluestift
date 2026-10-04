@@ -5,7 +5,7 @@ import { BluestiftText, RayaName } from "@/components/ui/brand";
 import { LegalShell, Table, h2, li, link, note, p, ul } from "./legal-chrome";
 import { useTranslate } from "@/components/ui/locale";
 
-const UPDATED = "6 September 2026";
+const UPDATED = "4 October 2026";
 
 /**
  * The sub-processor list. GDPR art. 28(2) lets a school object to a new
@@ -75,6 +75,16 @@ export function SubprocessorsView({ signedIn }: { signedIn: boolean }) {
                 tr("subprocessors.row.groq.purpose"),
                 tr("subprocessors.row.groq.data"),
                 tr("subprocessors.loc.us"),
+              ],
+              /* Not a processor of anyone's data in the usual sense — what it
+                 receives is search terms with no account attached — but it is a
+                 third party the tutor calls on a student's behalf, so it is
+                 listed. lib/raya/wikipedia.ts decides what leaves. */
+              [
+                "Wikimedia (Wikipedia)",
+                tr("subprocessors.row.wikimedia.purpose"),
+                tr("subprocessors.row.wikimedia.data"),
+                tr("subprocessors.loc.global"),
               ],
               [
                 "PostHog",

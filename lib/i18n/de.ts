@@ -875,6 +875,8 @@ export const de: Partial<Messages> = {
   "subprocessors.row.stripe.data": "Zahlungsdetails und Betrag. Wir speichern nie vollständige Kartennummern",
   "subprocessors.row.classroom.purpose": "Optionaler LMS-Import, nur für Schulen, die ihn verbinden",
   "subprocessors.row.classroom.data": "Kurs- und Klassenlistendaten, die die Schule teilen möchte",
+  "subprocessors.row.wikimedia.purpose": "Live-Nachschlagen für Sachantworten von Raya",
+  "subprocessors.row.wikimedia.data": "Einige Stichwörter aus einer Frage — nie die Nachricht, nie ein Konto",
   "subprocessors.require.h2": "Was wir von ihnen verlangen",
   "subprocessors.require.li1": "Sie verarbeiten Daten nur nach unseren dokumentierten Anweisungen, für den oben genannten Zweck.",
   "subprocessors.require.li2":
@@ -3506,4 +3508,18 @@ export const de: Partial<Messages> = {
   "player.mapStart": "Start",
   "player.mapEnd": "Ziel",
   "survey.rayaDevelopmentSuffix": " ein.",
+  // ── Maths tools in a Raya reply (components/chat/math-tools.tsx) ──
+  "math.graph": "Graph",
+  "math.calc": "Rechner",
+  "math.preparing": "Wird vorbereitet…",
+  "math.loading": "Lädt…",
+  "math.loadFailed": "Die Mathe-Tools wurden nicht geladen. Prüfe deine Verbindung.",
+  "math.edit": "Bearbeiten",
+  "math.run": "Ausführen",
+  "math.reset": "Zurücksetzen",
+  "math.zoomIn": "Vergrößern",
+  "math.zoomOut": "Verkleinern",
+  "math.lineError": "Zeile {line} nicht verstanden: {text}",
+  "math.editHint": "Deine Änderungen bleiben nur auf diesem Bildschirm.",
+  "math.graphOf": "Graph von {list}",
 };
