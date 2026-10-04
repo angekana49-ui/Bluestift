@@ -3868,4 +3868,9 @@ export const en = {
   "math.lineError": "Line {line} not understood: {text}",
   "math.editHint": "Your changes stay on this screen only.",
   "math.graphOf": "Graph of {list}",
+  "tools.math.title": "Maths tools",
+  "tools.math.subtitle": "Plot functions and check calculations. Everything runs on your device, for free.",
+  "tools.math.graphHint": "One function per line: f(x) = x^2. Slider: a = 1 (-5..5). Point: A = (1, 2). Window: x: -5..5.",
+  "tools.math.calcHint": "One calculation per line. Matrices [1, 2; 3, 4], det, inv, derivative(\"x^2\", \"x\"), simplify, units (5 cm to inch), mean, std.",
+  "tools.math.saved": "Kept on this device until you sign out.",
 } as const;

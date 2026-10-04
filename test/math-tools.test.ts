@@ -127,3 +127,26 @@ describe("wiring", () => {
     expect(runCalc(parseCalc(calc).lines).every((r) => !r.error)).toBe(true);
   });
 });
+
+describe("the Tools page workbench", () => {
+  const read = (rel: string) => readFileSync(join(process.cwd(), rel), "utf8");
+
+  it("is on the Tools page", () => {
+    expect(read("app/tools/page.tsx")).toContain("<MathStudio />");
+  });
+
+  it("forgets the learner's work on sign-out, under the same key it saves it", () => {
+    const key = /MATH_STUDIO_KEY = "([^"]+)"/;
+    const saved = key.exec(read("components/math-studio.tsx"))![1];
+    const wiped = key.exec(read("lib/net/local-data.ts"))![1];
+    expect(wiped).toBe(saved);
+    expect(read("lib/net/local-data.ts")).toContain("localStorage.removeItem(MATH_STUDIO_KEY)");
+  });
+
+  it("opens on examples that work", () => {
+    const src = read("components/math-studio.tsx");
+    const graph = /graph: \[([\s\S]*?)\]\.join/.exec(src)![1];
+    const lines = [...graph.matchAll(/"([^"]*)"/g)].map((m) => m[1]).join("\n");
+    expect(parseGraph(lines).errors).toEqual([]);
+  });
+});

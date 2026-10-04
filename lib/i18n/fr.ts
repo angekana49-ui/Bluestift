@@ -3520,4 +3520,9 @@ export const fr: Partial<Messages> = {
   "math.lineError": "Ligne {line} non comprise : {text}",
   "math.editHint": "Vos modifications restent sur cet écran uniquement.",
   "math.graphOf": "Graphique de {list}",
+  "tools.math.title": "Outils de maths",
+  "tools.math.subtitle": "Tracez des fonctions et vérifiez vos calculs. Tout se calcule sur votre appareil, gratuitement.",
+  "tools.math.graphHint": "Une fonction par ligne : f(x) = x^2. Curseur : a = 1 (-5..5). Point : A = (1, 2). Fenêtre : x: -5..5.",
+  "tools.math.calcHint": "Un calcul par ligne. Matrices [1, 2; 3, 4], det, inv, derivative(\"x^2\", \"x\"), simplify, unités (5 cm to inch), mean, std.",
+  "tools.math.saved": "Gardé sur cet appareil jusqu’à la déconnexion.",
 };

@@ -65,6 +65,9 @@ function frame(t: AppTheme): CSSProperties {
     border: `1px solid ${t.cardBorder}`,
     borderRadius: 12,
     background: t.dark ? "rgba(0,0,0,0.25)" : "rgba(255,255,255,0.7)",
+    // Set, not inherited: in a bubble the colour comes from the bubble, but on
+    // the Tools page the tool sits straight on the page ground.
+    color: t.text,
     padding: 10,
     maxWidth: "100%",
   };
@@ -95,24 +98,38 @@ function Errors({ errors }: { errors: LineError[] }) {
 }
 
 /**
+ * A standalone use of the tool (the Tools page) rather than a block in a reply:
+ * the editor is open from the start, `start` is what the learner left last
+ * time, and every Run is reported so the page can keep it.
+ */
+export type Bench = { start: string; hint: string; note: string; onApply: (src: string) => void };
+
+/**
  * The shared chrome: a title row with Edit / Reset, and the source editor.
- * `children` renders whatever the APPLIED source means.
+ * `children` renders whatever the APPLIED source means. `src` is the original —
+ * Raya's block, or the Tools page's example — and Reset goes back to it.
  */
 function Shell({
   lang,
   src,
+  bench,
   theme: t,
   children,
 }: {
   lang: MathBlockLang;
   src: string;
+  bench?: Bench;
   theme: AppTheme;
   children: (applied: string) => ReactNode;
 }) {
   const tr = useTranslate();
-  const [applied, setApplied] = useState(src);
-  const [draft, setDraft] = useState(src);
-  const [editing, setEditing] = useState(false);
+  const [applied, setApplied] = useState(bench?.start ?? src);
+  const [draft, setDraft] = useState(bench?.start ?? src);
+  const [editing, setEditing] = useState(bench != null);
+  const apply = (next: string) => {
+    setApplied(next);
+    bench?.onApply(next);
+  };
   return (
     <div style={frame(t)}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
@@ -124,19 +141,22 @@ function Shell({
             type="button"
             style={button(t)}
             onClick={() => {
-              setApplied(src);
+              apply(src);
               setDraft(src);
             }}
           >
             {tr("math.reset")}
           </button>
         )}
-        <button type="button" style={button(t)} aria-expanded={editing} onClick={() => setEditing((v) => !v)}>
-          {tr("math.edit")}
-        </button>
+        {!bench && (
+          <button type="button" style={button(t)} aria-expanded={editing} onClick={() => setEditing((v) => !v)}>
+            {tr("math.edit")}
+          </button>
+        )}
       </div>
       {editing && (
         <div style={{ marginBottom: 8 }}>
+          {bench && <div style={{ fontSize: "0.8em", color: t.muted, marginBottom: 6 }}>{bench.hint}</div>}
           <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
@@ -159,11 +179,11 @@ function Shell({
             <button
               type="button"
               style={{ ...button(t), background: t.ctaBg, color: t.ctaText, border: "none" }}
-              onClick={() => setApplied(draft)}
+              onClick={() => apply(draft)}
             >
               {tr("math.run")}
             </button>
-            <span style={{ fontSize: "0.78em", color: t.muted }}>{tr("math.editHint")}</span>
+            <span style={{ fontSize: "0.78em", color: t.muted }}>{bench ? bench.note : tr("math.editHint")}</span>
           </div>
         </div>
       )}
@@ -418,7 +438,12 @@ export function MathBlock({
   return <LoadedBlock lang={lang} src={src} theme={t} />;
 }
 
-function LoadedBlock({ lang, src, theme: t }: { lang: MathBlockLang; src: string; theme: AppTheme }) {
+/** The same tool outside a reply, editor open — see `Bench`. */
+export function MathBench({ lang, example, bench, theme }: { lang: MathBlockLang; example: string; bench: Bench; theme: AppTheme }) {
+  return <LoadedBlock lang={lang} src={example} bench={bench} theme={theme} />;
+}
+
+function LoadedBlock({ lang, src, bench, theme: t }: { lang: MathBlockLang; src: string; bench?: Bench; theme: AppTheme }) {
   const tr = useTranslate();
   const engine = useEngine();
   if (engine === "failed") {
@@ -434,7 +459,7 @@ function LoadedBlock({ lang, src, theme: t }: { lang: MathBlockLang; src: string
     return <div style={{ ...frame(t), fontSize: "0.85em", color: t.muted }}>{tr("math.loading")}</div>;
   }
   return (
-    <Shell lang={lang} src={src} theme={t}>
+    <Shell lang={lang} src={src} bench={bench} theme={t}>
       {(applied) =>
         lang === "graph" ? (
           <GraphView src={applied} engine={engine} theme={t} />

@@ -3524,4 +3524,9 @@ export const es: Partial<Messages> = {
   "math.lineError": "Línea {line} no entendida: {text}",
   "math.editHint": "Tus cambios solo se quedan en esta pantalla.",
   "math.graphOf": "Gráfica de {list}",
+  "tools.math.title": "Herramientas de mates",
+  "tools.math.subtitle": "Traza funciones y comprueba cálculos. Todo se calcula en tu dispositivo, gratis.",
+  "tools.math.graphHint": "Una función por línea: f(x) = x^2. Deslizador: a = 1 (-5..5). Punto: A = (1, 2). Ventana: x: -5..5.",
+  "tools.math.calcHint": "Un cálculo por línea. Matrices [1, 2; 3, 4], det, inv, derivative(\"x^2\", \"x\"), simplify, unidades (5 cm to inch), mean, std.",
+  "tools.math.saved": "Se guarda en este dispositivo hasta que cierres sesión.",
 };

@@ -3522,4 +3522,9 @@ export const de: Partial<Messages> = {
   "math.lineError": "Zeile {line} nicht verstanden: {text}",
   "math.editHint": "Deine Änderungen bleiben nur auf diesem Bildschirm.",
   "math.graphOf": "Graph von {list}",
+  "tools.math.title": "Mathe-Tools",
+  "tools.math.subtitle": "Funktionen zeichnen und Rechnungen prüfen. Alles läuft kostenlos auf deinem Gerät.",
+  "tools.math.graphHint": "Eine Funktion pro Zeile: f(x) = x^2. Regler: a = 1 (-5..5). Punkt: A = (1, 2). Bereich: x: -5..5.",
+  "tools.math.calcHint": "Eine Rechnung pro Zeile. Matrizen [1, 2; 3, 4], det, inv, derivative(\"x^2\", \"x\"), simplify, Einheiten (5 cm to inch), mean, std.",
+  "tools.math.saved": "Bleibt auf diesem Gerät, bis du dich abmeldest.",
 };
