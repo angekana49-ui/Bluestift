@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ageGateResponse } from "@/lib/compliance/api-gate";
 import { rayaComplete, type ChatMsg } from "@/lib/raya/llm";
 import { assertRoomOpen } from "@/lib/rooms";
-import { FORMATTING_RULES, safetyLayer } from "@/lib/raya/prompt";
+import { FORMATTING_RULES, MATH_TOOLS, safetyLayer } from "@/lib/raya/prompt";
 import { appGuideLayer } from "@/lib/raya/app-guide-layer";
 import { checkStrictUserRateLimit } from "@/lib/rate-limit";
 import { apiT } from "@/lib/i18n/server";
@@ -28,7 +28,13 @@ ${appGuideLayer()}
 
 ---
 
-${FORMATTING_RULES}`;
+${FORMATTING_RULES}
+
+---
+
+${MATH_TOOLS}
+
+In a room, a block is seen by everyone: use it for something the group can reason about together, never to settle the exercise for them.`;
 
 /**
  * Raya replies into a room's group channel. Reads recent messages, generates a

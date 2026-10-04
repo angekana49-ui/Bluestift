@@ -34,6 +34,8 @@ import type { AppTheme } from "@/components/ui/tokens";
 import { RayaName } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
 import { planLabelText } from "@/lib/i18n";
+import { MathsDockContext } from "@/components/raya/maths-dock-context";
+import { MathsDockPanel, MathsHeaderButton, MathsRail, useMathsDockState } from "@/components/raya/maths-dock";
 
 /** Raya student-app nav → real routes. `key` matches each page's `active` prop;
  *  `labelKey` is resolved through the message catalogue at render time. */
@@ -138,6 +140,9 @@ export function RayaShell({
   // While the drawer is open the sidebar is always full width, so the collapsed
   // icon-rail must not apply — otherwise labels vanish inside a wide drawer.
   const effectiveCollapsed = navOpen ? false : collapsed;
+  // The Maths panel (graph + calculator), on every Raya screen. While it is
+  // open it stands in for the page's own right panel — see maths-dock.tsx.
+  const maths = useMathsDockState();
 
   const showChatList =
     active === "chat" && !effectiveCollapsed && chatHistOpen && chatHistory != null;
@@ -242,6 +247,7 @@ export function RayaShell({
   ];
 
   return (
+    <MathsDockContext.Provider value={maths.dock}>
     <AppShell theme={t}>
       <Scrim open={navOpen} onClick={() => setNavOpen(false)} />
 
@@ -339,7 +345,12 @@ export function RayaShell({
           leftOpen={navOpen}
           onOpenRight={onToggleRight}
           rightOpen={rightPanel != null}
-          trailing={mobileTrailing}
+          trailing={
+            <>
+              {mobileTrailing}
+              <MathsHeaderButton open={maths.tool != null} onToggle={() => maths.setTool(maths.tool ? null : "calc")} theme={t} />
+            </>
+          }
         />
         <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
           {children}
@@ -350,10 +361,18 @@ export function RayaShell({
           panel is unmounted when closed, so "present" means "open". Harmless
           above 900px, where the scrim CSS is display:none and the panel is
           inline. */}
-      {rightPanel != null && onToggleRight && (
-        <Scrim open onClick={onToggleRight} />
+      {maths.tool ? (
+        <>
+          <Scrim open onClick={() => maths.setTool(null)} />
+          <MathsDockPanel tool={maths.tool} version={maths.version} onPick={maths.setTool} onClose={() => maths.setTool(null)} theme={t} />
+        </>
+      ) : (
+        <>
+          {rightPanel != null && onToggleRight && <Scrim open onClick={onToggleRight} />}
+          {rightPanel}
+        </>
       )}
-      {rightPanel}
+      <MathsRail active={maths.tool} onPick={maths.setTool} theme={t} />
 
       {settingsOpen && (
         <SettingsSheet
@@ -366,5 +385,6 @@ export function RayaShell({
         />
       )}
     </AppShell>
+    </MathsDockContext.Provider>
   );
 }

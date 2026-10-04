@@ -2677,6 +2677,36 @@ a {
   }
 }
 
+/* The Maths rail: a thin column of tool icons along the right edge of every
+   Raya screen (components/raya/maths-dock.tsx). Inline from 700px; below that
+   there is no room for a permanent column, and the panel opens from the
+   mobile header's button instead (.app-mathrail-mobile). */
+.app-mathrail {
+  flex: none;
+  width: 48px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding-top: 14px;
+}
+.app-mathrail-mobile {
+  display: none;
+}
+@media (max-width: 699px) {
+  .app-mathrail {
+    display: none;
+  }
+  .app-mathrail-mobile {
+    display: inline-flex;
+  }
+  /* No Escape key on a phone: the labelled exit button is the way out. */
+  .math-esc-hint {
+    display: none;
+  }
+}
+
 /* Shown only in the smallest tier — carries a drawer toggle on each side. */
 .app-mobile-header {
   display: none;

@@ -6,6 +6,7 @@ import { display, displayType, status as statusColors, type AppTheme } from "@/c
 import { useTranslate } from "@/components/ui/locale";
 import { splitInline, type DocBlock } from "@/lib/doc-format";
 import { renderMathHtml } from "@/lib/katex-render";
+import { MathBlock } from "@/components/chat/math-tools";
 
 /**
  * Full-screen focused study players for the Tools studio: one thing at a time —
@@ -270,6 +271,7 @@ export function QuizPlayer({
   mode,
   onExit,
   onSubmit,
+  onFinished,
   actions,
   resultActions,
 }: {
@@ -280,6 +282,9 @@ export function QuizPlayer({
   onExit: () => void;
   /** collect mode: submit the picked option indices, get back the score. */
   onSubmit?: (answers: number[]) => Promise<{ correct: number; total: number }>;
+  /** reveal: told which option was picked for each question once the quiz ends
+   *  (-1 = skipped) — for reporting practice to the Kernel. Fire-and-forget. */
+  onFinished?: (answers: number[]) => void;
   /** Header-right actions during the questions (e.g. download the Q&A). */
   actions?: ReactNode;
   /** Header-right actions on the result screen only (falls back to `actions`). */
@@ -320,6 +325,7 @@ export function QuizPlayer({
       const correct = questions.reduce((n, qq, i) => n + (picks[i] === qq.correctIndex ? 1 : 0), 0);
       setScore({ correct, total });
       setDone(true);
+      onFinished?.(questions.map((_, i) => picks[i] ?? -1));
     }
   }
 
@@ -824,6 +830,12 @@ export function ReaderView({
     <FocusOverlay theme={t} title={title} subtitle={subtitle} onClose={onExit} actions={actions}>
       <article style={{ paddingBottom: 40 }}>
         {rendered.map((b, i) => {
+          if (b.type === "tool" && b.lang)
+            return (
+              <div key={i} style={{ margin: "14px 0", fontSize: 16 }}>
+                <MathBlock lang={b.lang} src={b.text} theme={t} />
+              </div>
+            );
           if (b.type === "math")
             return (
               <div

@@ -6,6 +6,7 @@ import { graphParameters, runCalc, sampleGraph } from "@/lib/math-engine";
 import { normalizeMath, readLine } from "@/lib/math-input";
 import { parseMarkdown } from "@/lib/markdown";
 import { buildRayaMessages } from "@/lib/raya/prompt";
+import { parseDoc } from "@/lib/doc-format";
 
 /**
  * The graph and calculator blocks Raya writes into a reply — the free stand-in
@@ -248,15 +249,31 @@ describe("wiring", () => {
   });
 });
 
-describe("the Tools page workbench", () => {
-  const read = (rel: string) => readFileSync(join(process.cwd(), rel), "utf8");
+describe("the Maths panel", () => {
+  const read = (rel: string) => readFileSync(join(process.cwd(), rel), "utf8").split("\r\n").join("\n");
 
-  it("is picked from the Tools cards, not buried at the bottom of the page", () => {
+  it("is on every Raya screen, as a right panel opened from a rail", () => {
+    const shell = read("components/raya/raya-shell.tsx");
+    expect(shell).toContain("<MathsDockContext.Provider value={maths.dock}>");
+    expect(shell).toContain("<MathsRail active={maths.tool} onPick={maths.setTool} theme={t} />");
+    // While open it stands in for the page's own panel, with the same scrim.
+    expect(shell).toMatch(/maths\.tool \? \([\s\S]*?<Scrim open onClick=\{\(\) => maths\.setTool\(null\)\} \/>[\s\S]*?<MathsDockPanel/);
+    const dock = read("components/raya/maths-dock.tsx");
+    expect(dock).toContain("<RightPanel");
+    expect(dock).toContain("onCollapse={onClose}");
+  });
+
+  it("is no longer a pair of Tools cards", () => {
     const tools = read("components/tools.tsx");
-    expect(tools).toContain('{ id: "graph", labelKey: "tools.tool.graph", ready: true }');
-    expect(tools).toContain('{ id: "calc", labelKey: "tools.tool.calc", ready: true }');
-    expect(tools).toContain("<MathPanel lang={mathTool} />");
+    expect(tools).not.toContain('"tools.tool.graph"');
+    expect(tools).not.toContain("MathPanel");
     expect(read("app/tools/page.tsx")).not.toContain("MathStudio");
+  });
+
+  it("has a rail on wide screens and a header button on phones, at the same breakpoint", () => {
+    const css = read("app/globals.css");
+    expect(css).toMatch(/@media \(max-width: 699px\) \{\s*\.app-mathrail \{\s*display: none;\s*\}\s*\.app-mathrail-mobile \{\s*display: inline-flex;/);
+    expect(read("components/raya/raya-shell.tsx")).toContain("<MathsHeaderButton");
   });
 
   it("forgets the learner's work on sign-out, under the same key it saves it", () => {
@@ -272,5 +289,55 @@ describe("the Tools page workbench", () => {
     const graph = /graph: \[([\s\S]*?)\]\.join/.exec(src)![1];
     const lines = [...graph.matchAll(/"([^"]*)"/g)].map((m) => m[1]).join("\n");
     expect(parseGraph(lines).errors).toEqual([]);
+  });
+});
+
+describe("full screen", () => {
+  const tools = readFileSync(join(process.cwd(), "components/chat/math-tools.tsx"), "utf8");
+
+  it("is portalled to the page, above everything, and leaves on Escape or the labelled button", () => {
+    const fs = tools.slice(tools.indexOf("function MathFullscreen"));
+    expect(fs).toContain("createPortal(");
+    expect(fs).toContain("document.body");
+    expect(fs).toMatch(/e\.key === "Escape"\) onExit\(\)/);
+    expect(fs).toContain('tr("math.exitFullscreen")');
+  });
+
+  it("keeps what was typed in full screen when the learner comes back out", () => {
+    // One `current` for both views; leaving bumps the inline view's key so it re-reads it.
+    expect(tools).toMatch(/const exitFull = \(\) => \{\s*setFull\(false\);\s*setVersion\(\(v\) => v \+ 1\);/);
+    expect(tools).toContain('<LoadedTool lang={lang} src={src} start={current} mode="full" onChange={change}');
+  });
+
+  it("offers Raya's blocks to the panel only where there is one", () => {
+    expect(tools).toContain('onOpenInPanel={mode === "inline" && dock ? () => dock.open(lang, current) : undefined}');
+  });
+});
+
+describe("Raya and the tools", () => {
+  const read = (rel: string) => readFileSync(join(process.cwd(), rel), "utf8").split("\r\n").join("\n");
+
+  it("answers a request to draw or calculate with a block, in the chat", () => {
+    const system = buildRayaMessages([], null)[0].content;
+    expect(system).toContain("Maths panel on the right");
+    expect(system).toMatch(/draw, plot, graph, calculate,\s+check or verify/);
+  });
+
+  it("brings the tools into room discussions", () => {
+    expect(read("app/api/rooms/raya/route.ts")).toContain("${MATH_TOOLS}");
+  });
+
+  it("can end a self-test analysis with a practice block the reader shows as a tool", () => {
+    const route = read("app/api/challenges/analyze/route.ts");
+    const blocks = [...route.matchAll(/\\`\\`\\`(graph|calc)\n([\s\S]*?)\\`\\`\\`/g)];
+    expect(blocks.map((b) => b[1])).toEqual(["graph", "calc"]);
+    expect(parseGraph(blocks[0][2]).errors).toEqual([]);
+    expect(runCalc(parseCalc(blocks[1][2]).lines).every((r) => !r.error)).toBe(true);
+    // …and the reader renders such a block as the interactive tool.
+    expect(parseDoc("## Recommendations\n```graph\nf(x) = x²\n```")).toEqual([
+      { type: "h2", text: "Recommendations" },
+      { type: "tool", lang: "graph", text: "f(x) = x²" },
+    ]);
+    expect(read("components/study/focus-player.tsx")).toContain("<MathBlock lang={b.lang} src={b.text} theme={t} />");
   });
 });

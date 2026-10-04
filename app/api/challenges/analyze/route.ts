@@ -16,7 +16,24 @@ write a concise, encouraging analysis in the student's language, as Markdown wit
 ## What went well
 ## Gaps & mistakes  (reference specific questions and why the answer fell short)
 ## Recommendations  (2-4 concrete next steps)
-Never invent questions or answers that aren't in the data.`;
+Never invent questions or answers that aren't in the data.
+
+When a gap is mathematical, you may end the Recommendations with ONE practice
+block the student can open and work with — a graph to look at, or a few
+calculations to check themselves — never one that gives away a question's
+answer. The block is fenced \`\`\`graph or \`\`\`calc, written the way a student
+writes:
+\`\`\`graph
+f(x) = x² − 3
+g(x) = a·x + 1
+\`\`\`
+(one function per line; any letter other than x becomes a slider), or
+\`\`\`calc
+√(3² + 4²)
+derivative of x³ + 2x
+\`\`\`
+(one calculation per line; an equation like 2x + 3 = 7 is solved — so never put
+a test question's own equation in it). No LaTeX and no $ inside a block.`;
 
 /**
  * On-demand analysis of the signed-in user's latest attempt at a challenge:

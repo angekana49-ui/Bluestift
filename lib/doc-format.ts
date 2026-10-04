@@ -31,9 +31,14 @@ export const DOC_BRANDS: Record<DocBrand, BrandInfo> = {
   raya: { name: "Raya", logo: "/raya-mark.png", accent: "#0248d1", url: "thebluestift.com" },
 };
 
-export type DocBlockType = "h1" | "h2" | "h3" | "p" | "li" | "math";
-/** For a "math" block, `text` is the raw LaTeX (display mode), not prose. */
-export type DocBlock = { type: DocBlockType; text: string };
+export type DocBlockType = "h1" | "h2" | "h3" | "p" | "li" | "math" | "tool";
+/**
+ * For a "math" block, `text` is the raw LaTeX (display mode), not prose.
+ * For a "tool" block, `text` is a graph or calculator (`lang`) as Raya wrote it
+ * — interactive in the in-app reader (components/chat/math-tools.tsx), its
+ * source lines on paper.
+ */
+export type DocBlock = { type: DocBlockType; text: string; lang?: "graph" | "calc" };
 
 /**
  * Minimal Markdown → block list. Reports come back as Markdown (`# Overview`,
@@ -63,7 +68,19 @@ export function parseDoc(md: string): DocBlock[] {
       i = end; // the loop's i++ steps past the closing $$
       continue;
     }
-    // Single-line display math: $$...$$ entirely on one line.
+    // A graph or calculator Raya put in the document (e.g. a practice block
+    // in a self-test analysis). Unclosed, it runs to the end, like $ above.
+    const tool = /^```(graph|calc)\s*$/.exec(t);
+    if (tool) {
+      const start = i + 1;
+      let end = start;
+      while (end < lines.length && lines[end].trim() !== "```") end++;
+      blocks.push({ type: "tool", lang: tool[1] as "graph" | "calc", text: lines.slice(start, end).join("\n").trim() });
+      i = end;
+      continue;
+    }
+
+    // Single-line display math: $...$ entirely on one line.
     if (t.startsWith("$$") && t.endsWith("$$") && t.length > 4) {
       blocks.push({ type: "math", text: t.slice(2, -2).trim() });
       continue;

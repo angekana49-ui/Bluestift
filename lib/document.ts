@@ -261,7 +261,9 @@ export async function downloadBrandedPdf(doc: BrandedDoc) {
     }
   };
 
-  for (const b of parseDoc(doc.body)) {
+  for (const parsed of parseDoc(doc.body)) {
+    // On paper a graph or calculator is its lines, read as a short paragraph.
+    const b = parsed.type === "tool" ? { type: "p" as const, text: parsed.text.split("\n").join(" · ") } : parsed;
     if (b.type === "math") {
       const raster = await rasterizeMath(b.text, true);
       y += 10;

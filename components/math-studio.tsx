@@ -8,10 +8,9 @@ import type { MathBlockLang } from "@/lib/math-blocks";
 import type { MessageKey } from "@/lib/i18n";
 
 /**
- * The graph or the calculator on the Tools page — picked from the same row of
- * cards as Summary and Quiz (components/tools.tsx), so a student finds them
- * where they look for a tool, not at the bottom of the page. The same tools
- * Raya puts in a reply, opened directly, with no conversation needed.
+ * The graph or the calculator in the Maths panel (components/raya/maths-dock.tsx),
+ * on the right of every Raya screen. The same tools Raya puts in a reply,
+ * opened directly, with no conversation needed.
  *
  * What the learner last wrote is kept on THIS device so a reload does not lose
  * it, and wiped on sign-out with the rest of the retained data
@@ -43,6 +42,11 @@ function readSaved(): Saved {
   }
 }
 
+/** Put content into a tool for the panel to open on — a graph Raya drew, say. */
+export function saveMathTool(lang: MathBlockLang, src: string) {
+  writeSaved({ ...readSaved(), [lang]: src });
+}
+
 function writeSaved(next: Saved) {
   try {
     localStorage.setItem(MATH_STUDIO_KEY, JSON.stringify(next));
@@ -65,7 +69,7 @@ export function MathPanel({ lang }: { lang: MathBlockLang }) {
 
   const example = examples(tr)[lang];
   return (
-    <div style={{ marginTop: 16, fontSize: 16 }}>
+    <div style={{ fontSize: 15 }}>
       <MathBench
         // Keyed by tool so switching starts that tool from ITS saved state.
         key={lang}

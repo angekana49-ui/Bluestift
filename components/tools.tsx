@@ -16,7 +16,6 @@ import { SectionHeader } from "@/components/raya/section-header";
 import { FilePicker } from "@/components/ui/file-picker";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
-import { MathPanel } from "@/components/math-studio";
 
 type QuizQuestion = {
   question: string;
@@ -53,7 +52,8 @@ const MAX_PACKET_BYTES = 20 * 1024 * 1024;
 /** What the full-screen focus player is currently showing. */
 type ActivePlayer =
   | { kind: "summary"; title: string; text: string }
-  | { kind: "quiz"; title: string; questions: QuizQuestion[] }
+  /** `outputId`: the stored quiz, so the result can be reported to the Kernel. */
+  | { kind: "quiz"; title: string; questions: QuizQuestion[]; outputId?: string }
   | { kind: "flashcards"; title: string; cards: Flashcard[] }
   | { kind: "mind_map"; title: string; mindMap: MindMap };
 
@@ -62,10 +62,6 @@ const TOOLS: { id: string; labelKey: MessageKey; ready: boolean }[] = [
   { id: "quiz", labelKey: "tools.tool.quiz", ready: true },
   { id: "flashcards", labelKey: "tools.tool.flashcards", ready: true },
   { id: "mind_map", labelKey: "tools.tool.mindMap", ready: true },
-  // Not generators: the maths tools work on what the student types, not on a
-  // document, so picking one swaps the upload area for the tool itself.
-  { id: "graph", labelKey: "tools.tool.graph", ready: true },
-  { id: "calc", labelKey: "tools.tool.calc", ready: true },
   { id: "audio_summary", labelKey: "tools.tool.audioSummary", ready: false },
   { id: "infographic", labelKey: "tools.tool.infographic", ready: false },
 ];
@@ -271,7 +267,7 @@ export function Tools({
       } else if (data.tool_type === "mind_map") {
         setPlayer({ kind: "mind_map", title: `${tr("tools.pretty.mindMap")} — ${baseName}`, mindMap: (data.output_content as MindMap) ?? { title: baseName, branches: [] } });
       } else {
-        setPlayer({ kind: "quiz", title: `${tr("tools.pretty.quiz")} — ${baseName}`, questions: (data.output_content?.questions as QuizQuestion[]) ?? [] });
+        setPlayer({ kind: "quiz", title: `${tr("tools.pretty.quiz")} — ${baseName}`, questions: (data.output_content?.questions as QuizQuestion[]) ?? [], outputId: typeof data.id === "string" ? data.id : undefined });
       }
       setStatusMsg(tr("tools.done"));
     } catch {
@@ -302,7 +298,7 @@ export function Tools({
     if (o.tool_type === "summary") {
       setPlayer({ kind: "summary", title: tr("tools.pretty.summary"), text: (c?.text as string) ?? "" });
     } else if (o.tool_type === "quiz") {
-      setPlayer({ kind: "quiz", title: tr("tools.pretty.quiz"), questions: (c?.questions as QuizQuestion[]) ?? [] });
+      setPlayer({ kind: "quiz", title: tr("tools.pretty.quiz"), questions: (c?.questions as QuizQuestion[]) ?? [], outputId: o.id });
     } else if (o.tool_type === "flashcards") {
       setPlayer({ kind: "flashcards", title: tr("tools.pretty.flashcards"), cards: (c?.cards as Flashcard[]) ?? [] });
     } else if (o.tool_type === "mind_map") {
@@ -320,10 +316,7 @@ export function Tools({
     summary: <IconSummary size={18} />,
     quiz: <IconQuiz size={18} />,
     flashcards: <IconFlashcards size={18} />,
-    graph: <MathGlyph>ƒ</MathGlyph>,
-    calc: <MathGlyph>=</MathGlyph>,
   };
-  const mathTool = tool === "graph" || tool === "calc" ? tool : null;
 
   const closePlayer = () => setPlayer(null);
 
@@ -340,7 +333,7 @@ export function Tools({
       />
 
       {/* tool picker */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(128px,1fr))", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 12 }}>
         {TOOLS.filter((x) => x.ready).map((x) => {
           const on = tool === x.id;
           return (
@@ -367,103 +360,97 @@ export function Tools({
         })}
       </div>
 
-      {mathTool ? (
-        <MathPanel lang={mathTool} />
-      ) : (
-        <>
-          {/* Dropzone — multi-file.
-              It used to be a <label> that said "Drop one or more files" and had no
-              drop handler at all: the only thing it accepted was a click, so the
-              sentence was an instruction the zone could not honour. Now it takes an
-              actual drop, and the click affordance is a real focusable button
-              instead of a label (which no keyboard could reach). */}
-          <div
-            onDragOver={(e) => {
-              // Without preventDefault the browser keeps its default "open this
-              // file in a tab" behaviour and no drop event ever fires.
-              e.preventDefault();
-              if (!busy) setDragging(true);
-            }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={(e) => {
-              e.preventDefault();
-              setDragging(false);
-              if (!busy) void onPick(e.dataTransfer.files);
-            }}
-            style={{
-              marginTop: 16,
-              border: `1px dashed ${dragging ? statusColors.aiIndigo : t.cardBorder}`,
-              borderRadius: 18,
-              padding: 22,
-              textAlign: "center",
-              color: t.mutedLight,
-              fontSize: 15,
-              background: dragging ? t.cardBg : t.cardBg2,
-              transition: "border-color 0.15s ease, background 0.15s ease",
-            }}
-          >
-            {tr("tools.dropzone")}
-            <div style={{ fontSize: 14, color: t.mutedLight, marginTop: 4 }}>
-              {tr("tools.upTo")} {Math.round(MAX_PACKET_BYTES / 1024 / 1024)} {tr("tools.mbTotal")}
-              {packetBytes > 0 ? ` · ${(packetBytes / 1024 / 1024).toFixed(1)} ${tr("tools.mbUsed")}` : ""}
-            </div>
-            <div style={{ display: "flex", justifyContent: "center", marginTop: 12 }}>
-              <FilePicker
-                multiple
-                accept=".txt,.md,.markdown,.csv,.pdf,.docx,.xlsx,.mp3,.m4a,.wav,.webm,.ogg,.flac,audio/*,application/pdf,text/plain"
-                onPick={onPick}
-                disabled={busy}
-                // The packet is cumulative, so the same file may be added, removed
-                // and added again.
-                resetAfterPick
-                buttonStyle={neutralButton(t)}
-              />
-            </div>
-          </div>
+      {/* Dropzone — multi-file.
+          It used to be a <label> that said "Drop one or more files" and had no
+          drop handler at all: the only thing it accepted was a click, so the
+          sentence was an instruction the zone could not honour. Now it takes an
+          actual drop, and the click affordance is a real focusable button
+          instead of a label (which no keyboard could reach). */}
+      <div
+        onDragOver={(e) => {
+          // Without preventDefault the browser keeps its default "open this
+          // file in a tab" behaviour and no drop event ever fires.
+          e.preventDefault();
+          if (!busy) setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragging(false);
+          if (!busy) void onPick(e.dataTransfer.files);
+        }}
+        style={{
+          marginTop: 16,
+          border: `1px dashed ${dragging ? statusColors.aiIndigo : t.cardBorder}`,
+          borderRadius: 18,
+          padding: 22,
+          textAlign: "center",
+          color: t.mutedLight,
+          fontSize: 15,
+          background: dragging ? t.cardBg : t.cardBg2,
+          transition: "border-color 0.15s ease, background 0.15s ease",
+        }}
+      >
+        {tr("tools.dropzone")}
+        <div style={{ fontSize: 14, color: t.mutedLight, marginTop: 4 }}>
+          {tr("tools.upTo")} {Math.round(MAX_PACKET_BYTES / 1024 / 1024)} {tr("tools.mbTotal")}
+          {packetBytes > 0 ? ` · ${(packetBytes / 1024 / 1024).toFixed(1)} ${tr("tools.mbUsed")}` : ""}
+        </div>
+        <div style={{ display: "flex", justifyContent: "center", marginTop: 12 }}>
+          <FilePicker
+            multiple
+            accept=".txt,.md,.markdown,.csv,.pdf,.docx,.xlsx,.mp3,.m4a,.wav,.webm,.ogg,.flac,audio/*,application/pdf,text/plain"
+            onPick={onPick}
+            disabled={busy}
+            // The packet is cumulative, so the same file may be added, removed
+            // and added again.
+            resetAfterPick
+            buttonStyle={neutralButton(t)}
+          />
+        </div>
+      </div>
 
-          {/* picked sources */}
-          {sources.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
-              {sources.map((s, i) => (
-                <span
-                  key={i}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 8,
-                    background: t.cardBg,
-                    border: `1px solid ${t.cardBorder}`,
-                    borderRadius: 99,
-                    padding: "5px 6px 5px 12px",
-                    fontSize: 15,
-                    color: t.text,
-                  }}
-                >
-                  <span style={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {s.mediaId && s.bytes == null ? "↻ " : ""}
-                    {s.name}
-                  </span>
-                  <button
-                    onClick={() => removeSource(i)}
-                    title={tr("tools.remove")}
-                    style={{ background: t.cardBg2, border: `1px solid ${t.cardBorder}`, color: t.mutedLight, borderRadius: "50%", width: 20, height: 20, cursor: "pointer", lineHeight: 1, fontSize: 15 }}
-                  >
-                    ✕
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-
-          <div style={formActions}>
-            {statusMsg && <span style={{ fontSize: 15, color: t.muted, marginRight: "auto" }}>{statusMsg}</span>}
-            <button style={{ ...cta(t), opacity: busy || sources.length === 0 ? 0.5 : 1 }} onClick={generate} disabled={busy || sources.length === 0}>
-              {tr("tools.generate")}
-            </button>
-          </div>
-          {error && <p style={{ color: "#f87171", marginTop: 12, fontSize: 16 }}>{error}</p>}
-        </>
+      {/* picked sources */}
+      {sources.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
+          {sources.map((s, i) => (
+            <span
+              key={i}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                background: t.cardBg,
+                border: `1px solid ${t.cardBorder}`,
+                borderRadius: 99,
+                padding: "5px 6px 5px 12px",
+                fontSize: 15,
+                color: t.text,
+              }}
+            >
+              <span style={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {s.mediaId && s.bytes == null ? "↻ " : ""}
+                {s.name}
+              </span>
+              <button
+                onClick={() => removeSource(i)}
+                title={tr("tools.remove")}
+                style={{ background: t.cardBg2, border: `1px solid ${t.cardBorder}`, color: t.mutedLight, borderRadius: "50%", width: 20, height: 20, cursor: "pointer", lineHeight: 1, fontSize: 15 }}
+              >
+                ✕
+              </button>
+            </span>
+          ))}
+        </div>
       )}
+
+      <div style={formActions}>
+        {statusMsg && <span style={{ fontSize: 15, color: t.muted, marginRight: "auto" }}>{statusMsg}</span>}
+        <button style={{ ...cta(t), opacity: busy || sources.length === 0 ? 0.5 : 1 }} onClick={generate} disabled={busy || sources.length === 0}>
+          {tr("tools.generate")}
+        </button>
+      </div>
+      {error && <p style={{ color: "#f87171", marginTop: 12, fontSize: 16 }}>{error}</p>}
 
       {(uploads.length > 0 || outputItems.length > 0 || selfTests.length > 0) && (
         <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 14 }}>
@@ -557,6 +544,16 @@ export function Tools({
             explanation: q.explanation,
           }))}
           onExit={closePlayer}
+          // What the student picked goes to the Kernel (graded there against the
+          // stored quiz, not this score) — a practice quiz is learning evidence.
+          onFinished={(picks) => {
+            if (!player.outputId) return;
+            void netFetch(
+              "/api/tools/quiz-result",
+              { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ outputId: player.outputId, picks }), keepalive: true },
+              { timeoutMs: 10_000 },
+            ).catch(() => {});
+          }}
           actions={downloadActions(doc(player.title, quizToMd(player.questions)))}
         />
       )}
@@ -655,7 +652,3 @@ function LibraryRow({
   );
 }
 
-/** The maths tools' card icon: a typeset glyph, the way the other cards carry a drawn one. */
-function MathGlyph({ children }: { children: string }) {
-  return <span style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: 19, lineHeight: 1 }}>{children}</span>;
-}

@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { type AppTheme } from "@/components/ui/tokens";
+import { useMathsDock } from "@/components/raya/maths-dock-context";
 import { useAppLocale, useTranslate } from "@/components/ui/locale";
 import {
   autoRange,
@@ -331,23 +333,39 @@ function CalcTool({
 // ── Graph ─────────────────────────────────────────────────────────────────
 
 /**
- * The drawing is laid out at the width it is actually shown at (clamped), not
- * scaled from a fixed one: scaled, a 480-wide plot in a phone's bubble shrinks
- * its tick labels to four pixels.
+ * The drawing is laid out at the size it is actually shown at, not scaled from
+ * a fixed one: scaled, a 480-wide plot in a phone's bubble shrinks its tick
+ * labels to four pixels. Height is measured too, for the full-screen view,
+ * where the graph takes whatever the screen has left.
  */
-function useWidth(): [React.RefObject<HTMLDivElement | null>, number] {
-  const ref = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(480);
+function useBox(): [(el: HTMLDivElement | null) => void, number, number] {
+  // A callback ref, not a ref object: the full-screen layout swaps the plot's
+  // container once it knows the screen's width, and an observer set up once on
+  // mount would keep measuring the one that was thrown away.
+  const [el, setEl] = useState<HTMLDivElement | null>(null);
+  const [size, setSize] = useState({ w: 480, h: 0 });
   useEffect(() => {
-    const el = ref.current;
     if (!el || typeof ResizeObserver === "undefined") return;
     const ro = new ResizeObserver(([entry]) => {
-      setWidth(Math.round(Math.min(640, Math.max(240, entry.contentRect.width))));
+      setSize({ w: Math.round(entry.contentRect.width), h: Math.round(entry.contentRect.height) });
     });
     ro.observe(el);
     return () => ro.disconnect();
+  }, [el]);
+  return [setEl, size.w, size.h];
+}
+
+/** True from 800px up — where the full-screen graph puts its editor beside the plot. */
+function useWideScreen(): boolean {
+  const [wide, setWide] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 800px)");
+    const update = () => setWide(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
   }, []);
-  return [ref, width];
+  return wide;
 }
 
 function GraphEditor({ spec, onChange, theme: t }: { spec: GraphSpec; onChange: (s: GraphSpec) => void; theme: AppTheme }) {
@@ -416,21 +434,27 @@ function GraphEditor({ spec, onChange, theme: t }: { spec: GraphSpec; onChange: 
 function GraphTool({
   spec,
   editing,
+  full,
   onChange,
   engine,
   theme: t,
 }: {
   spec: GraphSpec;
   editing: boolean;
+  /** The dedicated full-screen view: editor beside the plot, plot as large as the screen allows. */
+  full: boolean;
   onChange: (s: GraphSpec) => void;
   engine: Engine;
   theme: AppTheme;
 }) {
   const tr = useTranslate();
+  const comma = useDecimalComma();
+  const wideScreen = useWideScreen();
   // Several graphs can share a page; each clips to its own area.
   const clipId = `plot-${useId().replace(/[^A-Za-z0-9_-]/g, "")}`;
-  const [box, W] = useWidth();
-  const H = Math.round(W * 0.62);
+  const [box, boxW, boxH] = useBox();
+  const W = Math.max(240, full ? boxW : Math.min(640, boxW));
+  const H = full && boxH > 200 ? boxH : Math.round(W * 0.62);
   const [values, setValues] = useState<Record<string, number>>({});
   const [zoom, setZoom] = useState(1);
 
@@ -445,17 +469,19 @@ function GraphTool({
     return [...declared, ...auto];
   }, [engine, spec]);
 
-  const baseX = spec.x ?? [-10, 10];
+  // The window keeps the screen's proportions in full screen, so a circle is
+  // not drawn as an egg on a wide monitor.
+  const baseX = spec.x ?? (full && H > 0 ? [-10 * Math.max(1, W / H / 1.6), 10 * Math.max(1, W / H / 1.6)] : [-10, 10]);
   const cx = (baseX[0] + baseX[1]) / 2;
   const hx = ((baseX[1] - baseX[0]) / 2) * zoom;
   const xWin: [number, number] = [cx - hx, cx + hx];
 
   const sampled = useMemo(() => {
     const current = Object.fromEntries(sliders.map((s) => [s.name, values[s.name] ?? s.value]));
-    return engine.sampleGraph({ ...spec, functions: spec.functions.filter((f) => f.expr.trim()) }, current, xWin);
-    // xWin is derived from spec + zoom, both listed.
+    return engine.sampleGraph({ ...spec, functions: spec.functions.filter((f) => f.expr.trim()) }, current, xWin, full ? 800 : 400);
+    // xWin is derived from spec + zoom + size, all listed.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [engine, spec, sliders, values, zoom]);
+  }, [engine, spec, sliders, values, zoom, full, W, H]);
 
   let yWin: [number, number];
   if (spec.y) {
@@ -490,16 +516,15 @@ function GraphTool({
 
   const grid = t.dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)";
   const axis = t.dark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.45)";
-  const xStep = niceStep(xWin[1] - xWin[0]);
-  const yStep = niceStep(ySpan, 6);
+  const xStep = niceStep(xWin[1] - xWin[0], full ? Math.max(8, Math.round(W / 90)) : 8);
+  const yStep = niceStep(ySpan, full ? Math.max(6, Math.round(H / 70)) : 6);
   const ticks = (lo: number, hi: number, step: number) => {
     const out: number[] = [];
-    for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9 && out.length < 40; v += step) {
+    for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9 && out.length < 60; v += step) {
       out.push(Math.abs(v) < step * 1e-6 ? 0 : v);
     }
     return out;
   };
-  const comma = useDecimalComma();
   const fmt = (v: number) => {
     const s = String(Number(v.toPrecision(6))).replace("-", "−");
     return comma ? s.replace(".", ",") : s;
@@ -511,11 +536,10 @@ function GraphTool({
   const colourOf = (name: string) => PALETTE[Math.max(0, spec.functions.findIndex((f) => f.name === name)) % PALETTE.length];
   const curveErrors = sampled.curves.filter((c) => c.error);
 
-  return (
-    <>
-      {editing && <GraphEditor spec={spec} onChange={onChange} theme={t} />}
-      <div ref={box}>
-        <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={label} style={{ width: "100%", height: "auto", display: "block" }}>
+  const plot = (
+    <div ref={box} style={full ? { flex: 1, minHeight: 280, minWidth: 0 } : undefined}>
+      {W > 0 && H > 0 && (
+        <svg viewBox={`0 0 ${W} ${H}`} width={full ? W : undefined} height={full ? H : undefined} role="img" aria-label={label} style={full ? { display: "block" } : { width: "100%", height: "auto", display: "block" }}>
           <defs>
             <clipPath id={clipId}>
               <rect x={0} y={0} width={W} height={H} />
@@ -529,38 +553,42 @@ function GraphTool({
           ))}
           <line x1={0} x2={W} y1={ax} y2={ax} stroke={axis} />
           <line x1={ay} x2={ay} y1={0} y2={H} stroke={axis} />
-          <g fontSize={11} fill={t.muted}>
+          <g fontSize={full ? 13 : 11} fill={t.muted}>
             {ticks(xWin[0], xWin[1], xStep)
               .filter((v) => v !== 0)
               .map((v) => (
-                <text key={`lx${v}`} x={sx(v) + 2} y={Math.min(H - 3, ax + 13)}>
+                <text key={`lx${v}`} x={sx(v) + 2} y={Math.min(H - 3, ax + 14)}>
                   {fmt(v)}
                 </text>
               ))}
             {ticks(yWin[0], yWin[1], yStep)
               .filter((v) => v !== 0)
               .map((v) => (
-                <text key={`ly${v}`} x={Math.min(W - 30, ay + 3)} y={sy(v) - 2}>
+                <text key={`ly${v}`} x={Math.min(W - 34, ay + 4)} y={sy(v) - 3}>
                   {fmt(v)}
                 </text>
               ))}
           </g>
           <g clipPath={`url(#${clipId})`}>
             {sampled.curves.map((c, i) => (
-              <path key={c.name + i} d={path(c.points)} fill="none" stroke={colourOf(c.name)} strokeWidth={2.2} />
+              <path key={c.name + i} d={path(c.points)} fill="none" stroke={colourOf(c.name)} strokeWidth={full ? 2.6 : 2.2} />
             ))}
             {sampled.points.map((p) => (
               <g key={p.name}>
-                <circle cx={sx(p.x)} cy={sy(p.y)} r={4} fill={t.text} />
-                <text x={sx(p.x) + 6} y={sy(p.y) - 6} fontSize={13} fill={t.text} fontWeight={700}>
+                <circle cx={sx(p.x)} cy={sy(p.y)} r={full ? 5 : 4} fill={t.text} />
+                <text x={sx(p.x) + 7} y={sy(p.y) - 7} fontSize={full ? 15 : 13} fill={t.text} fontWeight={700}>
                   {p.name}
                 </text>
               </g>
             ))}
           </g>
         </svg>
-      </div>
+      )}
+    </div>
+  );
 
+  const controls = (
+    <>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 16px", marginTop: 6, alignItems: "center" }}>
         {!editing &&
           spec.functions.map((f, i) => {
@@ -614,6 +642,34 @@ function GraphTool({
       ))}
     </>
   );
+
+  if (full) {
+    // A dedicated screen: on a wide one the editor is a column beside the plot;
+    // on a phone the plot comes first and the editor scrolls under it.
+    return wideScreen ? (
+      <div style={{ display: "flex", gap: 20, height: "100%", minHeight: 0 }}>
+        <div style={{ width: 380, flex: "none", overflowY: "auto", paddingRight: 4 }}>
+          {editing && <GraphEditor spec={spec} onChange={onChange} theme={t} />}
+          {controls}
+        </div>
+        <div style={{ flex: 1, minWidth: 0, display: "flex" }}>{plot}</div>
+      </div>
+    ) : (
+      <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, overflowY: "auto" }}>
+        <div style={{ height: "55vh", flex: "none", display: "flex" }}>{plot}</div>
+        {controls}
+        <div style={{ marginTop: 12 }}>{editing && <GraphEditor spec={spec} onChange={onChange} theme={t} />}</div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {editing && <GraphEditor spec={spec} onChange={onChange} theme={t} />}
+      {plot}
+      {controls}
+    </>
+  );
 }
 
 // ── Shell ─────────────────────────────────────────────────────────────────
@@ -631,19 +687,58 @@ function LineErrors({ errors }: { errors: LineError[] }) {
 }
 
 /**
- * A standalone use of the tool (the Tools page) rather than a block in a reply:
- * the editor is open from the start, `start` is what the learner left last
- * time, and every change is reported so the page can keep it.
+ * Where a tool is shown:
+ *  - `inline`: a block inside a Raya reply — read-only until "Edit";
+ *  - `panel`: the Maths panel on the right — editor open, compact;
+ *  - `full`: the dedicated full-screen view — editor open, as large as the screen.
+ */
+type Mode = "inline" | "panel" | "full";
+
+/**
+ * A standalone use of the tool (the Maths panel) rather than a block in a
+ * reply: `start` is what the learner left last time, and every change is
+ * reported so the panel can keep it.
  */
 export type Bench = { start: string; note: string; onChange: (src: string) => void };
 
-function LoadedTool({ lang, src, bench, engine, theme: t }: { lang: MathBlockLang; src: string; bench?: Bench; engine: Engine; theme: AppTheme }) {
+function HeaderButton({ onClick, label, children, theme: t }: { onClick: () => void; label: string; children: ReactNode; theme: AppTheme }) {
+  return (
+    <button type="button" style={button(t)} title={label} aria-label={label} onClick={onClick}>
+      {children}
+    </button>
+  );
+}
+
+function LoadedTool({
+  lang,
+  src,
+  start,
+  mode,
+  note,
+  onChange,
+  onFullscreen,
+  onOpenInPanel,
+  engine,
+  theme: t,
+}: {
+  lang: MathBlockLang;
+  /** The original — Raya's block or the panel's example. Reset goes back to it. */
+  src: string;
+  /** What to show now (the learner's last version). */
+  start: string;
+  mode: Mode;
+  note?: string;
+  onChange: (src: string) => void;
+  onFullscreen?: () => void;
+  onOpenInPanel?: () => void;
+  engine: Engine;
+  theme: AppTheme;
+}) {
   const tr = useTranslate();
-  const initial = bench?.start ?? src;
-  const [editing, setEditing] = useState(bench != null);
-  const [spec, setSpec] = useState(() => parseGraph(initial));
+  const [editing, setEditing] = useState(mode !== "inline");
+  const [spec, setSpec] = useState(() => parseGraph(start));
   const [lines, setLines] = useState(() => {
-    const l = parseCalc(initial).lines;
+    const l = parseCalc(start).lines;
     return l.length ? l : [""];
   });
   // Lines of the ORIGINAL block that could not be read — the editor never
@@ -658,51 +753,144 @@ function LoadedTool({ lang, src, bench, engine, theme: t }: { lang: MathBlockLan
     setSpec(parseGraph(src));
     const l = parseCalc(src).lines;
     setLines(l.length ? l : [""]);
-    bench?.onChange(src);
+    onChange(src);
   };
+
+  const full = mode === "full";
+  const body =
+    lang === "graph" ? (
+      <GraphTool
+        spec={spec}
+        editing={editing}
+        full={full}
+        engine={engine}
+        theme={t}
+        onChange={(s) => {
+          setSpec(s);
+          onChange(graphToSource(s));
+        }}
+      />
+    ) : (
+      <CalcTool
+        lines={lines}
+        editing={editing}
+        engine={engine}
+        theme={t}
+        onChange={(l) => {
+          setLines(l);
+          onChange(l.join("\n"));
+        }}
+      />
+    );
+
+  const toolbar = (
+    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, flexWrap: "wrap" }}>
+      {!full && <strong style={{ fontSize: "0.85em", flex: 1, opacity: 0.8 }}>{tr(lang === "graph" ? "math.graph" : "math.calc")}</strong>}
+      {full && <span style={{ flex: 1 }} />}
+      {changed && (
+        <button type="button" style={button(t)} onClick={reset}>
+          {tr("math.reset")}
+        </button>
+      )}
+      {mode === "inline" && (
+        <button type="button" style={button(t)} aria-expanded={editing} onClick={() => setEditing((v) => !v)}>
+          {editing ? tr("math.done") : tr("math.edit")}
+        </button>
+      )}
+      {onOpenInPanel && (
+        <HeaderButton theme={t} label={tr("math.openInPanel")} onClick={onOpenInPanel}>
+          ⇥
+        </HeaderButton>
+      )}
+      {onFullscreen && (
+        <HeaderButton theme={t} label={tr("math.fullscreen")} onClick={onFullscreen}>
+          ⛶
+        </HeaderButton>
+      )}
+    </div>
+  );
+
+  if (full) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, fontSize: lang === "calc" ? 18 : 16 }}>
+        {toolbar}
+        <div style={{ fontSize: "0.82em", color: t.muted, marginBottom: 6 }}>{tr(lang === "graph" ? "math.graphHint" : "math.writeHint")}</div>
+        <div style={lang === "graph" ? { flex: 1, minHeight: 0 } : { flex: 1, minHeight: 0, overflowY: "auto", width: "100%", maxWidth: 820, margin: "0 auto" }}>{body}</div>
+        {!changed && <LineErrors errors={sourceErrors} />}
+      </div>
+    );
+  }
 
   return (
     <div style={frame(t)}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-        <strong style={{ fontSize: "0.85em", flex: 1, opacity: 0.8 }}>{tr(lang === "graph" ? "math.graph" : "math.calc")}</strong>
-        {changed && (
-          <button type="button" style={button(t)} onClick={reset}>
-            {tr("math.reset")}
-          </button>
-        )}
-        {!bench && (
-          <button type="button" style={button(t)} aria-expanded={editing} onClick={() => setEditing((v) => !v)}>
-            {editing ? tr("math.done") : tr("math.edit")}
-          </button>
-        )}
-      </div>
+      {toolbar}
       {editing && <div style={{ fontSize: "0.82em", color: t.muted, marginBottom: 2 }}>{tr(lang === "graph" ? "math.graphHint" : "math.writeHint")}</div>}
-      {lang === "graph" ? (
-        <GraphTool
-          spec={spec}
-          editing={editing}
-          engine={engine}
-          theme={t}
-          onChange={(s) => {
-            setSpec(s);
-            bench?.onChange(graphToSource(s));
-          }}
-        />
-      ) : (
-        <CalcTool
-          lines={lines}
-          editing={editing}
-          engine={engine}
-          theme={t}
-          onChange={(l) => {
-            setLines(l);
-            bench?.onChange(l.join("\n"));
-          }}
-        />
-      )}
+      {body}
       {!changed && <LineErrors errors={sourceErrors} />}
-      {bench && <div style={{ fontSize: "0.78em", color: t.muted, marginTop: 10 }}>{bench.note}</div>}
+      {note && <div style={{ fontSize: "0.78em", color: t.muted, marginTop: 10 }}>{note}</div>}
     </div>
+  );
+}
+
+/**
+ * The dedicated full-screen view of a tool. Portalled to <body>: on a phone the
+ * Maths panel is a drawer moved with a CSS transform, and `position: fixed`
+ * inside a transformed parent is fixed to the parent, not the screen.
+ *
+ * Getting out is never more than one move away: the labelled button in the
+ * corner, or Escape.
+ */
+function MathFullscreen({ lang, children, onExit, theme: t }: { lang: MathBlockLang; children: ReactNode; onExit: () => void; theme: AppTheme }) {
+  const tr = useTranslate();
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onExit();
+    };
+    window.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [onExit]);
+
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={tr(lang === "graph" ? "math.graph" : "math.calc")}
+      className={t.dark ? "chat-welcome-bg is-dark" : "chat-welcome-bg"}
+      style={{ position: "fixed", inset: 0, zIndex: 70, color: t.text, display: "flex", flexDirection: "column" }}
+    >
+      <div
+        style={{
+          flex: "none",
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "12px 18px",
+          background: t.cardBg,
+          borderBottom: `1px solid ${t.cardBorder}`,
+        }}
+      >
+        <strong style={{ flex: 1, fontSize: 17 }}>{tr(lang === "graph" ? "math.graph" : "math.calc")}</strong>
+        <span className="math-esc-hint" style={{ fontSize: 13, color: t.muted }}>
+          {tr("math.escHint")}
+        </span>
+        <button
+          type="button"
+          onClick={onExit}
+          autoFocus
+          style={{ ...button(t), display: "inline-flex", alignItems: "center", gap: 8, padding: "7px 14px", fontSize: 15, fontWeight: 600, background: t.cardBg2 }}
+        >
+          <span aria-hidden>✕</span>
+          {tr("math.exitFullscreen")}
+        </button>
+      </div>
+      <div style={{ flex: 1, minHeight: 0, padding: "16px 18px", boxSizing: "border-box" }}>{children}</div>
+    </div>,
+    document.body,
   );
 }
 
@@ -710,9 +898,20 @@ function Loading({ text, theme: t }: { text: string; theme: AppTheme }) {
   return <div style={{ ...frame(t), fontSize: "0.85em", color: t.muted }}>{text}</div>;
 }
 
-function WithEngine({ lang, src, bench, theme: t }: { lang: MathBlockLang; src: string; bench?: Bench; theme: AppTheme }) {
+/**
+ * One tool, wherever it is shown. Owns the learner's current version so the
+ * inline/panel view and the full-screen view are the same work: what is typed
+ * in full screen is there when they come back out.
+ */
+function WithEngine({ lang, src, bench, mode, theme: t }: { lang: MathBlockLang; src: string; bench?: Bench; mode: Mode; theme: AppTheme }) {
   const tr = useTranslate();
   const engine = useEngine();
+  const dock = useMathsDock();
+  const [current, setCurrent] = useState(bench?.start ?? src);
+  const [full, setFull] = useState(false);
+  // Bumped on the way out of full screen so the inline view re-reads `current`.
+  const [version, setVersion] = useState(0);
+
   if (engine === "failed") {
     // The source is still worth showing: it is readable maths on its own.
     return (
@@ -723,7 +922,39 @@ function WithEngine({ lang, src, bench, theme: t }: { lang: MathBlockLang; src: 
     );
   }
   if (engine === "loading") return <Loading text={tr("math.loading")} theme={t} />;
-  return <LoadedTool lang={lang} src={src} bench={bench} engine={engine} theme={t} />;
+
+  const change = (next: string) => {
+    setCurrent(next);
+    bench?.onChange(next);
+  };
+  const exitFull = () => {
+    setFull(false);
+    setVersion((v) => v + 1);
+  };
+
+  return (
+    <>
+      <LoadedTool
+        key={version}
+        lang={lang}
+        src={src}
+        start={current}
+        mode={mode}
+        note={bench?.note}
+        onChange={change}
+        onFullscreen={() => setFull(true)}
+        // From a reply into the panel, where it can be kept and worked on.
+        onOpenInPanel={mode === "inline" && dock ? () => dock.open(lang, current) : undefined}
+        engine={engine}
+        theme={t}
+      />
+      {full && (
+        <MathFullscreen lang={lang} onExit={exitFull} theme={t}>
+          <LoadedTool lang={lang} src={src} start={current} mode="full" onChange={change} engine={engine} theme={t} />
+        </MathFullscreen>
+      )}
+    </>
+  );
 }
 
 /**
@@ -733,10 +964,10 @@ function WithEngine({ lang, src, bench, theme: t }: { lang: MathBlockLang; src: 
 export function MathBlock({ lang, src, open, theme }: { lang: MathBlockLang; src: string; open?: boolean; theme: AppTheme }): ReactNode {
   const tr = useTranslate();
   if (open) return <Loading text={tr("math.preparing")} theme={theme} />;
-  return <WithEngine lang={lang} src={src} theme={theme} />;
+  return <WithEngine lang={lang} src={src} mode="inline" theme={theme} />;
 }
 
-/** The same tool outside a reply, editor open — see `Bench`. */
+/** The same tool outside a reply — the Maths panel. See `Bench`. */
 export function MathBench({ lang, example, bench, theme }: { lang: MathBlockLang; example: string; bench: Bench; theme: AppTheme }) {
-  return <WithEngine lang={lang} src={example} bench={bench} theme={theme} />;
+  return <WithEngine lang={lang} src={example} bench={bench} mode="panel" theme={theme} />;
 }
