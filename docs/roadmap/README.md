@@ -10,7 +10,7 @@ already shipped once.
 
 | # | Work | Why it matters | Size |
 |---|------|----------------|------|
-| [01](01-payments-go-live.md) | Payments: from founder-activated plans to online checkout | Revenue; closes a self-activation hole first | S (hole) → L (live checkout) |
+| [01](01-payments-go-live.md) | Payments: from founder-activated plans to online checkout | Revenue (the self-activation hole is already closed) | L, needs a merchant account |
 | [02](02-lms.md) | LMS integration: finish Google Classroom, then LTI 1.3 (Moodle) | Gets Raya into schools' existing tools | M → L |
 | [03](03-raya-tools-next.md) | Raya's live tools: rooms, Raya for Schools, more maths | Extends what shipped on 2026-10-04 | S → M |
 

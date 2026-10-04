@@ -11,7 +11,7 @@ payer and too easy to get wrong._
 |---|---|---|
 | Plans, seats, pilot (45 days, ≥100 seats) | Live | `lib/billing.ts`, `schools.subscriptions` |
 | **Founder console**: grant a plan to any school (by id) or person (by email) | Live, founder-only (`users.is_founder`) | `/ops/billing` → `POST /api/ops/billing/activate` |
-| School admin "record a payment" form | **Live, and a hole** (see step 0) | Billing tab → `POST /api/school/billing` |
+| School admin licence request (no self-activation) | Live | Billing tab → `POST /api/school/billing/request` |
 | Online checkout (card / mobile money / PayPal) | Built, **sandbox only** | `/checkout`, `POST /api/billing/checkout`, `lib/billing/payments.ts` |
 | CinetPay (mobile money + card, francophone Africa) | Written, never run against the real API | `AggregatorPaymentProvider` |
 | Stripe (card) | Written, never run with real keys | `StripePaymentProvider` |
@@ -22,36 +22,24 @@ payer and too easy to get wrong._
 In production the sandbox is refused (`sandboxBlockedInProd`), so nobody can pay
 online today. That is intended.
 
-## Step 0 — close the self-activation hole (small, do first)
+## Step 0 — close the self-activation hole — DONE 2026-10-04
 
-`POST /api/school/billing` lets any school `admin_master` activate **any plan, for
-any number of months**, by declaring a payment that was "collected out of band".
-Nothing checks that the money arrived, and the Billing tab shows this form to every
-school admin. A school can therefore:
-- lift its seat limit, and
-- leave the read-only state a pilot falls into when it ends,
+`POST /api/school/billing` used to let any school `admin_master` activate any plan
+by declaring a payment nobody had checked. It is now founder-only (`isPlatformOwner`).
+The Billing tab's plan cards send a **licence request** instead
+(`POST /api/school/billing/request`):
+- admin only, at most 5 an hour;
+- the reference total is computed on the server;
+- the request is stored in `content.contact_messages` and emailed to the founder
+  with a link to `/ops/billing`.
 
-without paying.
-
-That made sense when activation meant "the admin records what they paid us". Under
-the founder-only model it does not. To fix it:
-1. In `app/api/school/billing/route.ts` `POST`, also require
-   `isPlatformOwner(user.id)` (`lib/ops.ts`). Or remove the `POST` and let
-   `/api/ops/billing/activate` be the only manual path. Keep `GET` and `PATCH`
-   (pilot seats) as they are.
-2. In `components/school-billing.tsx`, replace the plan cards' activate form with
-   a request:
-   - "Contact us to activate", as a mailto link or a message sent through the
-     existing contact form;
-   - "Pay online" once step 2 below is live.
-   Add the new strings in all four `lib/i18n` files.
-3. Add a test with a mocked Supabase, following `test/analytics-events.test.ts`:
-   a school admin who is not the founder gets 403 from the `POST`.
+Guarded by `test/school-licensing.test.ts`.
 
 ## Step 1 — the founder's routine (no code)
 
-1. The school pays: cash, transfer or mobile money to the company account. Keep a
-   receipt.
+1. The school sends a licence request from its Billing tab. You get an email and a
+   row in `content.contact_messages`. Agree the price, and have them pay by transfer,
+   mobile money, cash or invoice. Keep a receipt.
 2. On `/ops/billing`, search the school, pick the plan, seats and months, and enter
    the amount, method and reference.
 3. The activation emails the school admin a receipt (`sendActivationReceipt`).

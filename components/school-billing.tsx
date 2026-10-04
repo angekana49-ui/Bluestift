@@ -50,13 +50,6 @@ type Billing = {
   plans: Plan[];
 };
 
-const PAYMENT_METHODS: { id: string; labelKey: MessageKey }[] = [
-  { id: "transfer", labelKey: "school.billing.method.transfer" },
-  { id: "mobile_money", labelKey: "school.billing.method.mobileMoney" },
-  { id: "invoice", labelKey: "school.billing.method.invoice" },
-  { id: "card", labelKey: "school.billing.method.card" },
-  { id: "other", labelKey: "school.billing.method.other" },
-];
 
 const fmtDate = (v: string | null) => (v ? new Date(v).toLocaleDateString() : "—");
 const fmtPrice = (p: Plan, tr: (key: MessageKey) => string) => {
@@ -241,7 +234,6 @@ export function SchoolBilling() {
               current={p.id === billing.planId && billing.status === "active"}
               defaultSeats={Math.max(MIN_B2B_SEATS, billing.seats.used, billing.declaredEffectif ?? 0)}
               floorSeats={Math.max(MIN_B2B_SEATS, billing.seats.used)}
-              onActivated={setBilling}
             />
           ))}
         </div>
@@ -390,13 +382,11 @@ function PlanCard({
   current,
   defaultSeats,
   floorSeats,
-  onActivated,
 }: {
   plan: Plan;
   current: boolean;
   defaultSeats: number; // suggested contract = declared effectif (≥ headcount)
   floorSeats: number; // hard floor = real enrolled headcount, can't contract below
-  onActivated: (b: Billing) => void;
 }) {
   const { theme: t } = useAppTheme();
   const tr = useTranslate();
@@ -410,8 +400,8 @@ function PlanCard({
   const bespoke = plan.tier === "custom";
 
   const [open, setOpen] = useState(false);
-  const [method, setMethod] = useState("transfer");
-  const [reference, setReference] = useState("");
+  const [note, setNote] = useState("");
+  const [sent, setSent] = useState(false);
   // Prefill the contracted headcount with the real current one (can't go below it).
   const [students, setStudents] = useState(defaultSeats > 0 ? String(defaultSeats) : "");
   const [months, setMonths] = useState("12");
@@ -429,7 +419,10 @@ function PlanCard({
       : null;
   const annualSaving = estimated != null && isAnnualTerm(monthCount);
 
-  async function activate() {
+  // A request, not an activation: the school pays Bluestift directly and the
+  // founder activates the licence from /ops/billing. A school cannot grant
+  // itself a plan (see app/api/school/billing/route.ts).
+  async function request() {
     if (busy) return;
     if (isPerSeat && !(seatCount > 0)) {
       setError(tr("school.billing.enterStudentsError"));
@@ -443,31 +436,30 @@ function PlanCard({
     setError(null);
     try {
       const res = await netFetch(
-        "/api/school/billing",
+        "/api/school/billing/request",
         {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
             planId: plan.id,
-            paymentMethod: method,
-            paymentReference: reference || undefined,
-            seatLimit: isPerSeat ? seatCount : undefined,
+            seats: isPerSeat ? seatCount : undefined,
             months: monthCount,
+            note: note || undefined,
           }),
         },
         { timeoutMs: 15_000 },
       );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? tr("school.billing.activateFailed"));
-      if (data.billing) onActivated(data.billing as Billing);
-      invalidateCached("school:billing");
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? tr("school.billing.requestFailed"));
+      setSent(true);
       setOpen(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : tr("school.billing.activateFailed"));
+      setError(e instanceof Error ? e.message : tr("school.billing.requestFailed"));
     } finally {
       setBusy(false);
     }
   }
+
 
   return (
     <div
@@ -502,9 +494,13 @@ function PlanCard({
         <Link href="/contact" style={{ ...btn, width: "100%", textAlign: "center", textDecoration: "none", display: "block", boxSizing: "border-box" }}>
           {tr("site.finalCta.ctaSecondary")}
         </Link>
+      ) : sent ? (
+        <div role="status" style={{ fontSize: 14, color: t.text, lineHeight: 1.45, textAlign: "center" }}>
+          {tr("school.billing.requestSent")}
+        </div>
       ) : !open ? (
         <button style={{ ...btn, width: "100%" }} onClick={() => setOpen(true)}>
-          {tr("school.billing.activateButton")}
+          {tr("school.billing.requestButton")}
         </button>
       ) : (
         <div style={{ display: "grid", gap: 8 }}>
@@ -527,18 +523,12 @@ function PlanCard({
               </div>
             </>
           )}
-          <select style={input} value={method} onChange={(e) => setMethod(e.target.value)} disabled={busy}>
-            {PAYMENT_METHODS.map((m) => (
-              <option key={m.id} value={m.id}>
-                {tr(m.labelKey)}
-              </option>
-            ))}
-          </select>
-          <input
-            style={input}
-            placeholder={tr("school.billing.referencePlaceholder")}
-            value={reference}
-            onChange={(e) => setReference(e.target.value)}
+          <textarea
+            style={{ ...input, minHeight: 60, resize: "vertical", fontFamily: "inherit" }}
+            placeholder={tr("school.billing.requestNotePlaceholder")}
+            value={note}
+            maxLength={1000}
+            onChange={(e) => setNote(e.target.value)}
             disabled={busy}
           />
           <select style={input} value={months} onChange={(e) => setMonths(e.target.value)} disabled={busy}>
@@ -557,8 +547,8 @@ function PlanCard({
           )}
           {error && <span style={{ color: "#f87171", fontSize: 14 }}>{error}</span>}
           <div style={{ display: "flex", gap: 8 }}>
-            <button style={{ ...btn, flex: 1, opacity: busy ? 0.7 : 1 }} onClick={activate} disabled={busy}>
-              {busy ? tr("school.billing.activating") : tr("school.billing.confirmPayment")}
+            <button style={{ ...btn, flex: 1, opacity: busy ? 0.7 : 1 }} onClick={request} disabled={busy}>
+              {busy ? tr("school.billing.requestSending") : tr("school.billing.requestSend")}
             </button>
             <button
               style={{ ...btn, background: t.cardBg2, color: t.text, border: `1px solid ${t.cardBorder}` }}
@@ -567,9 +557,6 @@ function PlanCard({
             >
               {tr("school.billing.cancel")}
             </button>
-          </div>
-          <div style={{ fontSize: 14, color: t.muted, textAlign: "center", marginTop: 2, lineHeight: 1.4 }}>
-            {tr("school.billing.onlineCheckoutUnavailable")}
           </div>
         </div>
       )}

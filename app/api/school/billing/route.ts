@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminMembership } from "@/lib/school-admin";
+import { isPlatformOwner } from "@/lib/ops";
 import {
   getSchoolBilling,
   activateSubscription,
@@ -87,10 +88,16 @@ export async function PATCH(request: Request) {
 }
 
 /**
- * Activate/upgrade the school onto a plan. v1 = manual: the admin records a
- * payment collected out-of-band and the subscription flips active. The payment
- * provider is consulted first so a future Stripe provider can return a redirect
- * instead of activating inline.
+ * Activate/upgrade a school onto a plan by recording a payment collected out of
+ * band. FOUNDER ONLY.
+ *
+ * This used to be open to the school's own admin_master: "the admin records
+ * what they paid us". Nothing checked that the money existed, so any admin
+ * could grant their school any plan — lift the seat limit, leave the read-only
+ * state a pilot ends in — without paying. Under the licensing model (the school
+ * pays the founder, the founder activates) a school asks instead, through
+ * /api/school/billing/request, and the founder activates from /ops/billing.
+ * This path stays for the founder acting from inside a school they belong to.
  */
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -100,7 +107,7 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const membership = await getAdminMembership(user.id);
-  if (!membership || membership.role !== "admin_master") {
+  if (!membership || membership.role !== "admin_master" || !(await isPlatformOwner(user.id))) {
     return NextResponse.json({ error: await apiT("api.billingAdminOnly") }, { status: 403 });
   }
 
