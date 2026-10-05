@@ -71,8 +71,8 @@ describe("POST /api/tools/quiz-result", () => {
     const [r] = state.reports;
     expect(r.userId).toBe("u1");
     expect(r.questions).toEqual([
-      { question: "Dérivée de x² ?", score: 1 },
-      { question: "Racine de 16 ?", score: 0 },
+      { question: "Dérivée de x² ?", score: 1, format: "choice" },
+      { question: "Racine de 16 ?", score: 0, format: "choice" },
     ]);
     expect(r.resultSummary).toContain("Score: 1/2");
   });

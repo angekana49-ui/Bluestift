@@ -2249,7 +2249,7 @@ export const de: Partial<Messages> = {
   "kernel.status.mastered": "Gemeistert",
   "kernel.status.partial": "In Arbeit",
   "kernel.status.gap": "Zu üben",
-  "kernel.status.unknown": "Neu",
+  "kernel.status.unknown": "Noch nicht geprüft",
   "kernel.bar.knowledge": "Wissen (K)",
   "kernel.bar.retention": "Behalten (V)",
   "kernel.bar.application": "Anwendung (P)",

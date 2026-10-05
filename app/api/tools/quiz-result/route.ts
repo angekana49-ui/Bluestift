@@ -61,6 +61,7 @@ export async function POST(request: Request) {
     question: typeof q.question === "string" ? q.question : "",
     // An unanswered question is not evidence either way.
     score: picks[i] == null || picks[i] < 0 ? null : picks[i] === q.correct_index ? 1 : 0,
+    format: "choice" as const,
   }));
   const answered = graded.filter((g) => g.score != null && g.question);
   if (answered.length === 0) return new NextResponse(null, { status: 204 });

@@ -2542,7 +2542,7 @@ export const en = {
   "kernel.status.mastered": "Mastered",
   "kernel.status.partial": "In progress",
   "kernel.status.gap": "To work on",
-  "kernel.status.unknown": "New",
+  "kernel.status.unknown": "Not assessed yet",
   "kernel.bar.knowledge": "Knowledge (K)",
   "kernel.bar.retention": "Retention (V)",
   "kernel.bar.application": "Application (P)",

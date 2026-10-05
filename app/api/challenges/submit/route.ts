@@ -174,6 +174,7 @@ export async function POST(request: Request) {
     questions: results.map((r) => ({
       question: contentById.get(r.questionId) ?? "",
       score: r.score,
+      format: r.type === "open" ? ("open" as const) : ("choice" as const),
     })),
     resultSummary:
       "Challenge results:\n" +

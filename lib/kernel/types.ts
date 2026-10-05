@@ -163,6 +163,13 @@ export type UpdateConceptStateRequest = {
   is_assisted?: boolean;
   response_time_ms?: number | null;
   blocage_type?: BlocageType;
+  /**
+   * How the answer was produced: "open" when the student wrote it (a value, a
+   * definition), "choice" when they picked among options. An open answer is
+   * read with a 5% guess rate, so a right one is stronger evidence; absent =
+   * the KC's own rate. (Kernel handoff §2.)
+   */
+  question_format?: "open" | "choice";
   subject?: string;
   level?: string;
 } & ({ concept_id: string; concept_label?: string } | { concept_id?: string; concept_label: string });

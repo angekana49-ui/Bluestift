@@ -2248,7 +2248,7 @@ export const fr: Partial<Messages> = {
   "kernel.status.mastered": "Maîtrisé",
   "kernel.status.partial": "En cours",
   "kernel.status.gap": "À travailler",
-  "kernel.status.unknown": "Nouveau",
+  "kernel.status.unknown": "Pas encore évalué",
   "kernel.bar.knowledge": "Connaissance (K)",
   "kernel.bar.retention": "Rétention (V)",
   "kernel.bar.application": "Application (P)",

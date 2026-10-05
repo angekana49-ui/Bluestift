@@ -165,14 +165,18 @@ describe("the Kernel's diagnostic question reaches Raya", () => {
     expect(system).toContain('<diagnostic_question concept="Le sens du dénominateur" checks_root="true">');
   });
 
-  it("asks for unassisted questions, at most three, never as a test", () => {
-    // The Kernel reads the answer back from the conversation as an UNASSISTED
-    // attempt. A hint would make it evidence of nothing.
+  it("asks two open, unassisted questions per concept, at most three concepts, never as a test", () => {
+    // The Kernel reads the answers back from the conversation as UNASSISTED
+    // attempts. A hint would make them evidence of nothing, and a choice can be
+    // guessed — two open answers on one concept are what its benchmark rewards
+    // most (Kernel handoff §2, 2026-10-04).
     const system = systemOf([], profile, [], "", "", null, probing);
-    expect(system).toMatch(/Ask ONE short question on it that the learner answers alone: no hint/);
+    expect(system).toMatch(/Ask TWO short OPEN questions on it, one at a\s+time/);
+    expect(system).toMatch(/never options to\s+pick from/);
+    expect(system).toMatch(/answered by the learner alone: no hint/);
     expect(system).toMatch(/never say it is a test/);
-    expect(system).toMatch(/At most three such questions in a conversation/);
-    expect(system).toMatch(/never the same concept twice/);
+    expect(system).toMatch(/At most three concepts probed in a conversation/);
+    expect(system).toMatch(/do not ask about it\s+again/);
   });
 
   it("puts a root-checking question before the remediation", () => {

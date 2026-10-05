@@ -784,6 +784,13 @@ function buildLearnerState(
    * and the next ambient /analyze reads it like any other attempt — unassisted,
    * which is exactly why the question must come without a hint.
    *
+   * OPEN questions, TWO on the concept (Kernel handoff §2, 2026-10-04). In the
+   * Kernel's benchmark that is the largest lever on finding the real gap: two
+   * open answers on one concept name the exact gap after five measures for
+   * 66–75% of students, against 42–47% for one multiple-choice-like question.
+   * A choice can be guessed (25%); a value the student computes or a
+   * definition they state almost cannot.
+   *
    * From the AMBIENT pass only. A probe from a memorized session weeks old
    * would be a question about an old state; the 30-minute TTL keeps this one
    * about the conversation in progress.
@@ -794,13 +801,16 @@ function buildLearnerState(
     const checksRoot = analysis?.probe?.confirms_root === true;
     lines.push(
       `  <diagnostic_question concept="${probe}" checks_root="${checksRoot}">` +
-        `The profile cannot yet tell where the real gap is, and one answer on ` +
-        `this concept would settle it. Ask ONE short question on it that the ` +
-        `learner answers alone: no hint, no worked example, no choices that give it ` +
-        `away, and never say it is a test. Take the answer as it comes and carry on. ` +
-        `At most three such questions in a conversation, one at a time, never the ` +
-        `same concept twice — if this concept was already asked about, do not ask ` +
-        `again. Not while the learner is overloaded or discouraged.` +
+        `The profile cannot yet tell where the real gap is, and answers on ` +
+        `this concept would settle it. Ask TWO short OPEN questions on it, one at a ` +
+        `time — a value to compute or a definition to state, never options to ` +
+        `pick from — each answered by the learner alone: no hint, no worked ` +
+        `example, and never say it is a test. Frame it as a quick check ("before we ` +
+        `go on…"), not a change of topic; it may be a prerequisite well below the ` +
+        `current work, and that is the point. Take each answer as it comes and ` +
+        `carry on. Once both are answered, this concept is done: do not ask about it ` +
+        `again. At most three concepts probed in a conversation. Not while the ` +
+        `learner is overloaded or discouraged.` +
         (checksRoot
           ? ` It checks the root cause itself: ask it BEFORE teaching the root cause.`
           : ` Ask it only right after the learner finishes a step, tied to the ` +

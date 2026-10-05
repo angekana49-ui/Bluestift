@@ -177,3 +177,35 @@ describe("reportGradedSubmission", () => {
     expect(state.invalidated).toEqual(["u1"]);
   });
 });
+
+describe("telling the Kernel how an answer was produced (handoff §2, question_format)", () => {
+  it("says open or choice when every attempt on the KC agrees", async () => {
+    state.labelJson = JSON.stringify({ subject: "MATH", kcs: ["derivation_fonction", "fractions"] });
+    const { reportGradedSubmission } = await freshModule();
+    await reportGradedSubmission({
+      userId: "u1",
+      questions: [
+        { question: "Q1", score: 1, format: "open" },
+        { question: "Q2", score: 0, format: "choice" },
+      ],
+      resultSummary: "r",
+    });
+    const byLabel = Object.fromEntries(state.updates.map((u) => [u.concept_label, u.question_format]));
+    expect(byLabel).toEqual({ derivation_fonction: "open", fractions: "choice" });
+  });
+
+  it("leaves it out for a KC answered both ways, or of unknown format", async () => {
+    state.labelJson = JSON.stringify({ subject: "MATH", kcs: ["derivation_fonction", "derivation_fonction", "fractions"] });
+    const { reportGradedSubmission } = await freshModule();
+    await reportGradedSubmission({
+      userId: "u1",
+      questions: [
+        { question: "Q1", score: 1, format: "open" },
+        { question: "Q2", score: 1, format: "choice" },
+        { question: "Q3", score: 1 },
+      ],
+      resultSummary: "r",
+    });
+    expect(state.updates.every((u) => u.question_format === undefined)).toBe(true);
+  });
+});

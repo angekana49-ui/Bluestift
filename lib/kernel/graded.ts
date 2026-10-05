@@ -30,6 +30,8 @@ export type GradedQuestion = {
   score: number | null;
   /** True when the student got help on this one (caps the credit kernel-side). */
   isAssisted?: boolean;
+  /** "open" = the student wrote the answer; "choice" = picked it among options. */
+  format?: "open" | "choice";
 };
 
 type LabelledSubmission = { subject: string; labels: (string | null)[] };
@@ -91,14 +93,15 @@ export async function reportGradedSubmission(opts: {
     // Several questions can test the same KC. The kernel expects one graded
     // attempt per KC, so average the scores rather than firing N updates that
     // would each move mastery on partial evidence.
-    const perKc = new Map<string, { total: number; n: number; assisted: number }>();
+    const perKc = new Map<string, { total: number; n: number; assisted: number; formats: Set<string> }>();
     questions.forEach((q, i) => {
       const label = labels[i];
       if (!label || q.score == null) return; // ungraded or unlabelled: no signal
-      const acc = perKc.get(label) ?? { total: 0, n: 0, assisted: 0 };
+      const acc = perKc.get(label) ?? { total: 0, n: 0, assisted: 0, formats: new Set<string>() };
       acc.total += q.score;
       acc.n += 1;
       if (q.isAssisted) acc.assisted += 1;
+      acc.formats.add(q.format ?? "unknown");
       perKc.set(label, acc);
     });
 
@@ -114,6 +117,11 @@ export async function reportGradedSubmission(opts: {
           level,
           partial_credit_score: acc.total / acc.n,
           is_assisted: acc.assisted > acc.n / 2,
+          // Only when every attempt on this KC had the same format: a mixed
+          // average is neither, and absent means "the KC's own rate".
+          ...(acc.formats.size === 1 && !acc.formats.has("unknown")
+            ? { question_format: [...acc.formats][0] as "open" | "choice" }
+            : {}),
         });
       } catch {
         // One KC failing (unknown label, transient 5xx) must not drop the rest.
