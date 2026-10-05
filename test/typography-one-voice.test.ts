@@ -106,15 +106,26 @@ describe("the display face is named once", () => {
      * up in an @font-face rule or a file under public/, this repo is
      * redistributing a commercial font, and that is a bill, not a bug.
      *
-     * next/font/google is the only loader, and it can only serve Google Fonts.
+     * The faces ship as files in app/fonts/ (so the build needs no network —
+     * see app/layout.tsx), which is exactly where a paid face would arrive. So
+     * the files are an allow-list: the five open-licensed faces, each with its
+     * licence beside it, and nothing else.
      */
     expect(css).not.toMatch(/@font-face\s*\{/);
-    // next/font/google is the only loader in the app, and it can serve nothing
-    // but Google Fonts — so a paid face could only arrive as a local file.
     const layout = code(read("app/layout.tsx"));
-    expect(layout).not.toMatch(/localFont/);
-    for (const paid of ["ABC_Favorit", "Domaine_Display"]) {
-      expect(layout, `${paid} must not be loaded as a file`).not.toContain(paid);
+    expect(layout).not.toMatch(/next\/font\/google/);
+    const OPEN = ["inter", "space-grotesk", "ibm-plex-sans", "caveat", "instrument-serif"];
+    const files = readdirSync(join(process.cwd(), "app/fonts")).filter((f) => f.endsWith(".woff2"));
+    for (const f of files) {
+      const face = OPEN.find((o) => f.startsWith(`${o}-`));
+      expect(face, `${f} is not one of the open-licensed faces`).toBeDefined();
+      expect(read(`app/fonts/LICENSE-${face}.txt`), f).toMatch(/SIL Open Font License/);
+    }
+    for (const src of [...layout.matchAll(/"\.\/fonts\/([^"]+)"/g)].map((m) => m[1])) {
+      expect(files, `layout loads ${src}, which is not in app/fonts`).toContain(src);
+    }
+    for (const paid of ["ABC_Favorit", "Domaine_Display", "favorit", "domaine"]) {
+      expect(layout.toLowerCase(), `${paid} must not be loaded as a file`).not.toContain(paid.toLowerCase());
     }
   });
 });
@@ -178,7 +189,8 @@ describe("IBM Plex Sans is the billing exception and nothing else", () => {
   });
 
   it("is loaded in exactly one place, the way every face is", () => {
-    const loaders = sources().filter((rel) => code(read(rel)).includes("IBM_Plex_Sans"));
+    // The face is a file now (app/fonts/), so "loading it" means naming that file.
+    const loaders = sources().filter((rel) => code(read(rel)).includes("ibm-plex-sans-latin"));
     expect(loaders).toEqual(["app/layout.tsx"]);
   });
 
@@ -202,7 +214,7 @@ describe("IBM Plex Sans is the billing exception and nothing else", () => {
     // page uses it or not. Plex stopped being the display face; it must not
     // keep the display face's budget.
     const layout = read("app/layout.tsx");
-    const plexBlock = /const plex = IBM_Plex_Sans\(\{([\s\S]*?)\}\);/.exec(layout)?.[1];
+    const plexBlock = /const plex = localFont\(\{([\s\S]*?)\}\);/.exec(layout)?.[1];
     expect(plexBlock).toBeDefined();
     expect(plexBlock).toMatch(/preload: false/);
   });

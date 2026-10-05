@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Space_Grotesk, IBM_Plex_Sans, Caveat, Instrument_Serif } from "next/font/google";
+import localFont from "next/font/local";
 import { headers } from "next/headers";
 import { THEME_COLOR_LIGHT } from "@/lib/theme-color";
 import { startupImages } from "@/lib/launch-screens";
@@ -32,6 +32,18 @@ import { LocaleRootProvider } from "@/components/ui/LocaleRootProvider";
 export const dynamic = "force-dynamic";
 
 /*
+ * THE FILES ARE IN THE REPO (app/fonts/), not fetched from Google at build time.
+ *
+ * They used to come through next/font/google, which downloads every face from
+ * Google Fonts while the site builds. Twice on 2026-10-04 that download failed
+ * on Vercel's builder — "next/font/google … module-not-found" on Caveat — and
+ * the deploy died with it, for nothing in the code. A build that needs a third
+ * party to answer is a build that fails when it doesn't. Same faces, same
+ * weights, the official Latin files (via Fontsource, SIL Open Font License, the
+ * licence beside each file); now the build needs no network for them.
+ *
+ * Variable files, so one file per face covers every weight below.
+ *
  * One source of truth for the product typeface (roles live in globals.css
  * `:root` and components/ui/tokens.ts).
  *
@@ -48,12 +60,12 @@ export const dynamic = "force-dynamic";
  * squared-off, slightly odd character, and unlike Inter it is visibly NOT the
  * body face — which is the point of a display face.
  */
-const inter = Inter({
-  subsets: ["latin"],
-  // 800 stays loaded: the marketing site still sets its hero type there, and
-  // dropping the weight would not make those lighter — it would hand them to
-  // the browser to fake, which is worse than either.
-  weight: ["400", "500", "600", "700", "800"],
+const inter = localFont({
+  src: "./fonts/inter-latin-wght-normal.woff2",
+  // 800 stays available: the marketing site still sets its hero type there, and
+  // a missing weight would not make those lighter — it would hand them to the
+  // browser to fake, which is worse than either.
+  weight: "100 900",
   variable: "--font-inter",
   display: "swap",
 });
@@ -77,15 +89,15 @@ const inter = Inter({
  * to out-rank another heading. Space Grotesk has no 800 and wants none — the
  * old 800-everywhere setting is exactly what we left behind.
  */
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
+const spaceGrotesk = localFont({
+  src: "./fonts/space-grotesk-latin-wght-normal.woff2",
+  weight: "300 700",
   variable: "--font-space-grotesk",
   display: "swap",
 });
-const plex = IBM_Plex_Sans({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
+const plex = localFont({
+  src: "./fonts/ibm-plex-sans-latin-wght-normal.woff2",
+  weight: "100 700",
   variable: "--font-plex",
   display: "swap",
   preload: false,
@@ -98,18 +110,19 @@ const plex = IBM_Plex_Sans({
  * appears immediately in the fallback and changes hand a moment later, which is
  * the correct trade for decoration.
  */
-const caveat = Caveat({
-  subsets: ["latin"],
-  weight: ["600", "700"],
+const caveat = localFont({
+  src: "./fonts/caveat-latin-wght-normal.woff2",
+  weight: "400 700",
   variable: "--font-caveat",
   display: "swap",
   preload: false,
+  // A handwriting face: no metric-matched sans fallback would resemble it.
+  adjustFontFallback: false,
 });
 // Instrument Serif (italic) — the accent face used by the public marketing site.
-const instrumentSerif = Instrument_Serif({
-  subsets: ["latin"],
-  weight: ["400"],
-  style: ["italic"],
+const instrumentSerif = localFont({
+  src: [{ path: "./fonts/instrument-serif-latin-400-italic.woff2", weight: "400", style: "italic" }],
+  adjustFontFallback: "Times New Roman",
   variable: "--font-instrument-serif",
   display: "swap",
   // Same reasoning as Caveat: an accent face for the marketing site has no
