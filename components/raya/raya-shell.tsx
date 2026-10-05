@@ -140,9 +140,17 @@ export function RayaShell({
   // While the drawer is open the sidebar is always full width, so the collapsed
   // icon-rail must not apply — otherwise labels vanish inside a wide drawer.
   const effectiveCollapsed = navOpen ? false : collapsed;
-  // The Maths panel (graph + calculator), on every Raya screen. While it is
-  // open it stands in for the page's own right panel — see maths-dock.tsx.
+  // The Maths panel (graph + calculator) — on the Tools page only (owner's
+  // decision, 2026-10-05): elsewhere it crowded the chat and the rooms. While
+  // it is open it stands in for the page's own right panel — see maths-dock.tsx.
+  // Off the Tools page the context is null, so Raya's blocks don't offer to
+  // open in a panel that isn't there; they still work in the reply itself.
   const maths = useMathsDockState();
+  const mathsHere = active === "tools";
+  const { setTool: setMathsTool } = maths;
+  useEffect(() => {
+    if (!mathsHere) setMathsTool(null);
+  }, [mathsHere, setMathsTool]);
 
   const showChatList =
     active === "chat" && !effectiveCollapsed && chatHistOpen && chatHistory != null;
@@ -247,7 +255,7 @@ export function RayaShell({
   ];
 
   return (
-    <MathsDockContext.Provider value={maths.dock}>
+    <MathsDockContext.Provider value={mathsHere ? maths.dock : null}>
     <AppShell theme={t}>
       <Scrim open={navOpen} onClick={() => setNavOpen(false)} />
 
@@ -348,7 +356,9 @@ export function RayaShell({
           trailing={
             <>
               {mobileTrailing}
-              <MathsHeaderButton open={maths.tool != null} locked={maths.locked} onToggle={() => maths.setTool(maths.tool ? null : "calc")} theme={t} />
+              {mathsHere && (
+                <MathsHeaderButton open={maths.tool != null} locked={maths.locked} onToggle={() => maths.setTool(maths.tool ? null : "calc")} theme={t} />
+              )}
             </>
           }
         />
@@ -361,7 +371,12 @@ export function RayaShell({
           panel is unmounted when closed, so "present" means "open". Harmless
           above 900px, where the scrim CSS is display:none and the panel is
           inline. */}
-      {maths.aboveOverlay && !maths.locked ? (
+      {!mathsHere ? (
+        <>
+          {rightPanel != null && onToggleRight && <Scrim open onClick={onToggleRight} />}
+          {rightPanel}
+        </>
+      ) : maths.aboveOverlay && !maths.locked ? (
         // A test covers the page: the panel floats above it instead (see maths-dock.tsx).
         <>
           {rightPanel}
@@ -378,7 +393,7 @@ export function RayaShell({
           {rightPanel}
         </>
       )}
-      <MathsRail active={maths.tool} locked={maths.locked} onPick={maths.setTool} theme={t} />
+      {mathsHere && <MathsRail active={maths.tool} locked={maths.locked} onPick={maths.setTool} theme={t} />}
 
       {settingsOpen && (
         <SettingsSheet

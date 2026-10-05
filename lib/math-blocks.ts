@@ -12,6 +12,8 @@
  * the prompt teaches (MATH_TOOLS in lib/raya/prompt.ts).
  */
 
+import { parseBounds } from "@/lib/math-input";
+
 export const MATH_BLOCK_LANGS = ["graph", "calc"] as const;
 export type MathBlockLang = (typeof MATH_BLOCK_LANGS)[number];
 
@@ -24,6 +26,8 @@ const MAX_LINE = 300;
 const MAX_FUNCTIONS = 6;
 const MAX_SLIDERS = 8;
 const MAX_POINTS = 12;
+const MAX_AREAS = 3;
+const MAX_TANGENTS = 3;
 
 export type LineError = { line: number; text: string };
 
@@ -34,6 +38,10 @@ export type GraphSpec = {
   /** Fixed values, in order (`k = 2`, `m = a + 1`). */
   constants: { name: string; expr: string }[];
   points: { name: string; x: string; y: string }[];
+  /** A shaded area under f (down to the x-axis) or between f and g, from a to b. */
+  areas: { f: string; g: string | null; a: string; b: string }[];
+  /** The tangent to f at x = at. */
+  tangents: { f: string; at: string }[];
   x: [number, number] | null;
   y: [number, number] | null;
   errors: LineError[];
@@ -49,6 +57,24 @@ const POINT = new RegExp(`^${NAME}\\s*=\\s*\\(\\s*([^,()]+(?:\\([^()]*\\)[^,()]*
 /** "A = (3,5 ; 2)": the school way, a semicolon, so a decimal comma stays a decimal. */
 const POINT_SEMI = new RegExp(`^${NAME}\\s*=\\s*\\(\\s*([^;]+?)\\s*;\\s*([^;]+?)\\s*\\)$`);
 const CONST = new RegExp(`^${NAME}\\s*=\\s*(.+)$`);
+/** "aire: f 0..2", "area: f g 0..2", "aire f de 0 à 2", "Fläche: f, g von 0 bis 2". */
+const AREA = /^(?:aire|area|área|fl[äa]che|flaeche|int[ée]grale?|integral|∫)\s*:?\s*(.+)$/i;
+/** "tangente: f 1", "tangent f at 2", "Tangente: f bei x = 0". */
+const TANGENT = /^(?:tangente?|tangent)\s*:?\s*([A-Za-z]\w*)\s*,?\s*(?:(?:en|at|in|bei|à|a)\s+)?(?:x\s*=\s*)?(.+)$/i;
+/** Words that sit between the function and the bounds — never a second function. */
+const NOT_A_FUNCTION = new Set(["de", "from", "desde", "von", "entre", "between", "zwischen", "sur", "on", "en", "auf", "in", "pi", "e"]);
+
+/** The area line's function(s) and bounds. */
+function parseArea(rest: string): GraphSpec["areas"][number] | null {
+  const two = /^([A-Za-z]\w*)\s*(?:,|\s)\s*(?:(?:et|and|y|und|-)\s+)?([A-Za-z]\w*)\s+(.+)$/i.exec(rest);
+  if (two && !NOT_A_FUNCTION.has(two[2].toLowerCase())) {
+    const bounds = parseBounds(two[3]);
+    if (bounds) return { f: two[1], g: two[2], a: bounds[0], b: bounds[1] };
+  }
+  const one = /^([A-Za-z]\w*)\s*,?\s*(.+)$/.exec(rest);
+  const bounds = one && parseBounds(one[2]);
+  return one && bounds ? { f: one[1], g: null, a: bounds[0], b: bounds[1] } : null;
+}
 
 /** The lines that carry something: trimmed, comments and blanks dropped, capped. */
 function meaningful(src: string): { n: number; text: string }[] {
@@ -66,14 +92,21 @@ function span2(a: number, b: number): [number, number] | null {
 }
 
 export function parseGraph(src: string): GraphSpec {
-  const spec: GraphSpec = { functions: [], sliders: [], constants: [], points: [], x: null, y: null, errors: [] };
+  const spec: GraphSpec = { functions: [], sliders: [], constants: [], points: [], areas: [], tangents: [], x: null, y: null, errors: [] };
   for (const { n, text } of meaningful(src)) {
     if (text.length > MAX_LINE) {
       spec.errors.push({ line: n, text });
       continue;
     }
     let m: RegExpExecArray | null;
-    if ((m = RANGE.exec(text))) {
+    if ((m = AREA.exec(text))) {
+      const area = parseArea(m[1].trim());
+      if (!area || spec.areas.length >= MAX_AREAS) spec.errors.push({ line: n, text });
+      else spec.areas.push(area);
+    } else if ((m = TANGENT.exec(text))) {
+      if (spec.tangents.length >= MAX_TANGENTS) spec.errors.push({ line: n, text });
+      else spec.tangents.push({ f: m[1], at: m[2].trim() });
+    } else if ((m = RANGE.exec(text))) {
       const w = span2(Number(m[2]), Number(m[3]));
       if (!w) spec.errors.push({ line: n, text });
       else if (m[1] === "x") spec.x = w;
@@ -163,6 +196,8 @@ export function graphToSource(spec: GraphSpec): string {
     ...spec.sliders.map((s) => `${s.name} = ${fmt(s.value)} (${fmt(s.min)}..${fmt(s.max)})`),
     ...spec.constants.map((c) => `${c.name} = ${c.expr}`),
     ...spec.points.map((p) => `${p.name} = (${p.x} ; ${p.y})`),
+    ...spec.areas.map((a) => `area: ${a.f}${a.g ? ` ${a.g}` : ""} ${a.a}..${a.b}`),
+    ...spec.tangents.map((t) => `tangent: ${t.f} ${t.at}`),
     ...(spec.x ? [`x: ${fmt(spec.x[0])}..${fmt(spec.x[1])}`] : []),
     ...(spec.y ? [`y: ${fmt(spec.y[0])}..${fmt(spec.y[1])}`] : []),
   ].join("\n");

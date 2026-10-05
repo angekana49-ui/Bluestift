@@ -66,6 +66,11 @@ function useEngine(): Engine | "loading" | "failed" {
 const PALETTE = ["#2f6fde", "#e07a1f", "#2a9d55", "#9b5de5", "#d64545", "#0e9aa7"];
 const ERROR = "#d64545";
 
+/** A function's colour — its curve, and the areas and tangents drawn from it. */
+function colourFor(spec: GraphSpec, name: string): string {
+  return PALETTE[Math.max(0, spec.functions.findIndex((f) => f.name === name)) % PALETTE.length];
+}
+
 function frame(t: AppTheme): CSSProperties {
   return {
     margin: "0.7em 0 0",
@@ -128,62 +133,169 @@ function useKeypadTarget() {
       target.current = { el: e.currentTarget, set };
     },
   });
+  /**
+   * Type `text` at the caret. A `{}` in it marks where the caret should land
+   * — "intégrale de {} de 0 à 1" leaves the learner typing the function.
+   */
   const insert = (text: string) => {
     const tgt = target.current;
     if (!tgt || !tgt.el.isConnected) return;
     const { el } = tgt;
+    const at = text.indexOf("{}");
+    const clean = text.replace("{}", "");
+    const caret = at >= 0 ? at : clean.length;
     const start = el.selectionStart ?? el.value.length;
     const end = el.selectionEnd ?? el.value.length;
-    const next = el.value.slice(0, start) + text + el.value.slice(end);
+    const next = el.value.slice(0, start) + clean + el.value.slice(end);
     tgt.set(next);
     requestAnimationFrame(() => {
       el.focus();
-      el.setSelectionRange(start + text.length, start + text.length);
+      el.setSelectionRange(start + caret, start + caret);
     });
   };
   return { bind, insert };
 }
 
+type KeyTab = "basic" | "functions" | "analysis";
+type Key = { label: string; insert: string; wide?: boolean; title?: string };
+
+/**
+ * The keys, in three tabs so a collégien is not faced with thirty of them at
+ * once: the basics (powers, roots, π), the functions (trigonometry and its
+ * inverses, ln, log, eˣ) and — in the calculator — analysis (solve, derive,
+ * integrate, limits), each of which types the sentence to complete.
+ */
 function Keypad({ calc, onKey, theme: t }: { calc: boolean; onKey: (text: string) => void; theme: AppTheme }) {
   const tr = useTranslate();
-  const keys: { label: string; insert: string; wide?: boolean }[] = [
-    { label: "x²", insert: "²" },
-    { label: "xⁿ", insert: "^" },
-    { label: "√", insert: "√(" },
-    { label: "π", insert: "π" },
-    { label: "(", insert: "(" },
-    { label: ")", insert: ")" },
-    { label: "×", insert: "×" },
-    { label: "÷", insert: "÷" },
-    { label: "|x|", insert: "|" },
-    { label: "sin", insert: "sin(" },
-    { label: "cos", insert: "cos(" },
-    { label: "tan", insert: "tan(" },
-    { label: "ln", insert: "ln(" },
-    { label: "log", insert: "log(" },
-    ...(calc
-      ? [
-          { label: "=", insert: " = " },
-          { label: tr("math.key.solve"), insert: `${tr("math.word.solve")} `, wide: true },
-          { label: tr("math.key.derivative"), insert: `${tr("math.word.derivative")} `, wide: true },
-          { label: tr("math.key.simplify"), insert: `${tr("math.word.simplify")} `, wide: true },
-        ]
-      : []),
-  ];
+  const [tab, setTab] = useState<KeyTab>("basic");
+  const keys: Record<KeyTab, Key[]> = {
+    basic: [
+      { label: "x²", insert: "²" },
+      { label: "xⁿ", insert: "^" },
+      { label: "√", insert: "√(" },
+      { label: "∛", insert: "∛(" },
+      { label: "π", insert: "π" },
+      { label: "e", insert: "e" },
+      { label: "(", insert: "(" },
+      { label: ")", insert: ")" },
+      { label: "×", insert: "×" },
+      { label: "÷", insert: "÷" },
+      { label: "|x|", insert: "|" },
+      { label: "°", insert: "°" },
+      { label: "n!", insert: "!" },
+      ...(calc ? [{ label: "=", insert: " = " }] : []),
+    ],
+    functions: [
+      { label: "sin", insert: "sin(" },
+      { label: "cos", insert: "cos(" },
+      { label: "tan", insert: "tan(" },
+      { label: "arcsin", insert: "arcsin(" },
+      { label: "arccos", insert: "arccos(" },
+      { label: "arctan", insert: "arctan(" },
+      { label: "ln", insert: "ln(" },
+      { label: "log", insert: "log(" },
+      { label: "eˣ", insert: "e^(" },
+    ],
+    analysis: [
+      { label: tr("math.key.solve"), insert: `${tr("math.word.solve")} `, wide: true },
+      { label: tr("math.key.derivative"), insert: `${tr("math.word.derivative")} `, wide: true },
+      { label: tr("math.key.primitive"), insert: tr("math.tpl.primitive"), wide: true },
+      { label: tr("math.key.integral"), insert: tr("math.tpl.integral"), wide: true },
+      { label: tr("math.key.limit"), insert: tr("math.tpl.limit"), wide: true },
+      { label: tr("math.key.simplify"), insert: `${tr("math.word.simplify")} `, wide: true },
+    ],
+  };
+  const tabs: KeyTab[] = calc ? ["basic", "functions", "analysis"] : ["basic", "functions"];
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 5, margin: "6px 0 8px" }}>
-      {keys.map((k) => (
-        <button
-          key={k.label}
-          type="button"
-          // Keep the focus in the input being typed into.
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => onKey(k.insert)}
-          style={{ ...button(t), minWidth: k.wide ? undefined : 38, fontSize: "0.92em", padding: "5px 8px" }}
-        >
-          {k.label}
-        </button>
-      ))}
+    <div style={{ margin: "6px 0 8px" }}>
+      <div role="tablist" style={{ display: "flex", gap: 4, marginBottom: 6 }}>
+        {tabs.map((k) => (
+          <button
+            key={k}
+            type="button"
+            role="tab"
+            aria-selected={tab === k}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => setTab(k)}
+            style={{
+              ...button(t),
+              padding: "3px 10px",
+              fontSize: "0.8em",
+              fontWeight: tab === k ? 700 : 500,
+              background: tab === k ? t.cardBg2 : "transparent",
+              borderColor: tab === k ? t.controlBorder : "transparent",
+            }}
+          >
+            {tr(`math.tab.${k}`)}
+          </button>
+        ))}
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+        {keys[tab].map((k) => (
+          <button
+            key={k.label}
+            type="button"
+            // Keep the focus in the input being typed into.
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => onKey(k.insert)}
+            style={{ ...button(t), minWidth: k.wide ? undefined : 38, fontSize: "0.92em", padding: "5px 8px" }}
+          >
+            {k.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const ANGLES_KEY = "bs_math_degrees";
+
+/** Degrees or radians, remembered on this device for the learner's own calculator. */
+function useDegrees(remember: boolean): [boolean, (v: boolean) => void] {
+  const [degrees, setDegrees] = useState(false);
+  useEffect(() => {
+    if (!remember) return;
+    try {
+      setDegrees(window.localStorage.getItem(ANGLES_KEY) === "1");
+    } catch {
+      // storage unavailable: radians, the default
+    }
+  }, [remember]);
+  const set = (v: boolean) => {
+    setDegrees(v);
+    if (!remember) return;
+    try {
+      window.localStorage.setItem(ANGLES_KEY, v ? "1" : "0");
+    } catch {
+      // not remembered, still applied
+    }
+  };
+  return [degrees, set];
+}
+
+function AngleSwitch({ degrees, onChange, theme: t }: { degrees: boolean; onChange: (v: boolean) => void; theme: AppTheme }) {
+  const tr = useTranslate();
+  const option = (on: boolean, label: string) => (
+    <button
+      type="button"
+      aria-pressed={degrees === on}
+      onClick={() => onChange(on)}
+      style={{
+        ...button(t),
+        padding: "2px 9px",
+        fontSize: "0.78em",
+        fontWeight: degrees === on ? 700 : 500,
+        background: degrees === on ? t.cardBg2 : "transparent",
+      }}
+    >
+      {label}
+    </button>
+  );
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "0.85em", color: t.muted, marginBottom: 6 }}>
+      <span>{tr("math.angles")}</span>
+      {option(true, tr("math.deg"))}
+      {option(false, tr("math.rad"))}
     </div>
   );
 }
@@ -201,19 +313,37 @@ function RemoveButton({ onClick, theme: t }: { onClick: () => void; theme: AppTh
 
 type Row = ReturnType<Engine["runCalc"]>[number];
 
+/** What went wrong, said so the learner knows what to change — not "error". */
+function problemText(row: Row, tr: ReturnType<typeof useTranslate>): string {
+  const p = row.problem;
+  if (p?.kind === "unknownFunction") return tr("math.err.unknownFunction", { name: p.name });
+  if (p?.kind === "unknownSymbol") return tr("math.err.unknownSymbol", { name: p.name });
+  if (p?.kind === "brackets") return tr("math.err.brackets");
+  if (p?.kind === "diverges") return tr("math.err.diverges");
+  return tr("math.cantRead");
+}
+
 function CalcResult({ row, raw, theme: t }: { row: Row; raw: string; theme: AppTheme }) {
   const tr = useTranslate();
   if (row.error) {
-    return <span style={{ color: ERROR, fontSize: "0.88em" }}>{tr("math.cantRead")}</span>;
+    return (
+      <span style={{ display: "inline-flex", flexWrap: "wrap", alignItems: "baseline", gap: 8 }}>
+        {row.inputHtml && <Tex html={row.inputHtml} />}
+        <span style={{ color: ERROR, fontSize: "0.88em" }}>{problemText(row, tr)}</span>
+      </span>
+    );
   }
-  const answer =
-    row.note === "noSolution" ? (
-      <span>{tr("math.noSolution")}</span>
-    ) : row.note === "everyValue" ? (
-      <span>{tr("math.everyValue")}</span>
-    ) : row.resultHtml ? (
-      <Tex html={row.resultHtml} style={{ fontWeight: 600 }} />
-    ) : null;
+  const noteText =
+    row.note === "noSolution"
+      ? tr("math.noSolution")
+      : row.note === "everyValue"
+        ? tr("math.everyValue")
+        : row.note === "noPrimitive"
+          ? tr("math.noPrimitive")
+          : row.note === "noLimit"
+            ? tr("math.noLimit")
+            : null;
+  const answer = row.resultHtml ? <Tex html={row.resultHtml} style={{ fontWeight: 600 }} /> : noteText ? <span>{noteText}</span> : null;
   return (
     <span style={{ display: "inline-flex", flexWrap: "wrap", alignItems: "baseline", gap: 8 }}>
       {row.inputHtml ? <Tex html={row.inputHtml} /> : <span>{raw}</span>}
@@ -224,6 +354,8 @@ function CalcResult({ row, raw, theme: t }: { row: Row; raw: string; theme: AppT
         </>
       )}
       {row.note === "approx" && <span style={{ fontSize: "0.8em", color: t.muted }}>({tr("math.approx")})</span>}
+      {/* Two one-sided limits: the values are shown, and why that is "no limit". */}
+      {row.resultHtml && noteText && <span style={{ fontSize: "0.8em", color: t.muted }}>{noteText}</span>}
     </span>
   );
 }
@@ -231,19 +363,30 @@ function CalcResult({ row, raw, theme: t }: { row: Row; raw: string; theme: AppT
 function CalcTool({
   lines,
   editing,
+  standalone,
   onChange,
   engine,
   theme: t,
 }: {
   lines: string[];
   editing: boolean;
+  /**
+   * The learner's own calculator (the Maths panel), not a block in a reply:
+   * their degrees/radians choice is remembered. A reply's block is always read
+   * in radians — Raya writes ° when she means degrees.
+   */
+  standalone: boolean;
   onChange: (lines: string[]) => void;
   engine: Engine;
   theme: AppTheme;
 }) {
   const tr = useTranslate();
   const comma = useDecimalComma();
-  const rows = useMemo(() => engine.runCalc(lines.map((l) => l.trim()).filter(Boolean), comma), [engine, lines, comma]);
+  const [degrees, setDegrees] = useDegrees(standalone);
+  const rows = useMemo(
+    () => engine.runCalc(lines.map((l) => l.trim()).filter(Boolean), comma, { degrees }),
+    [engine, lines, comma, degrees],
+  );
   const pad = useKeypadTarget();
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
   const [focusNext, setFocusNext] = useState<number | null>(null);
@@ -278,6 +421,7 @@ function CalcTool({
   return (
     <>
       <Keypad calc onKey={pad.insert} theme={t} />
+      <AngleSwitch degrees={degrees} onChange={setDegrees} theme={t} />
       <div style={{ display: "grid", gap: 10 }}>
         {lines.map((line, i) => (
           <div key={i}>
@@ -392,7 +536,18 @@ function GraphEditor({ spec, onChange, theme: t }: { spec: GraphSpec; onChange: 
               onChange={(e) => setFn(i, e.target.value)}
               style={field(t)}
             />
-            <RemoveButton theme={t} onClick={() => onChange({ ...spec, functions: spec.functions.filter((_, j) => j !== i) })} />
+            <RemoveButton
+              theme={t}
+              onClick={() =>
+                // Its areas and tangents go with it: they would point at nothing.
+                onChange({
+                  ...spec,
+                  functions: spec.functions.filter((_, j) => j !== i),
+                  areas: spec.areas.filter((a) => a.f !== f.name && a.g !== f.name),
+                  tangents: spec.tangents.filter((x) => x.f !== f.name),
+                })
+              }
+            />
           </div>
         ))}
         {spec.points.map((p, i) => {
@@ -410,6 +565,63 @@ function GraphEditor({ spec, onChange, theme: t }: { spec: GraphSpec; onChange: 
             </div>
           );
         })}
+        {spec.areas.map((ar, i) => {
+          const setArea = (patch: Partial<typeof ar>) => onChange({ ...spec, areas: spec.areas.map((q, j) => (j === i ? { ...q, ...patch } : q)) });
+          return (
+            <div key={`a${i}`} style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              <span aria-hidden style={{ width: 10, height: 10, borderRadius: 3, background: colourFor(spec, ar.f), opacity: 0.5, flex: "none" }} />
+              <span style={{ fontSize: "0.9em" }}>{tr("math.area.label")}</span>
+              <select aria-label={tr("math.area.label")} value={ar.f} onChange={(e) => setArea({ f: e.target.value })} style={{ ...field(t), flex: "none" }}>
+                {fnNames.map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+              <span style={{ fontSize: "0.9em" }}>↔</span>
+              <select
+                aria-label={tr("math.area.and")}
+                value={ar.g ?? ""}
+                onChange={(e) => setArea({ g: e.target.value || null })}
+                style={{ ...field(t), flex: "none" }}
+              >
+                <option value="">{tr("math.area.axis")}</option>
+                {fnNames
+                  .filter((n) => n !== ar.f)
+                  .map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+              </select>
+              <span style={{ fontSize: "0.9em" }}>{tr("math.area.from")}</span>
+              <input value={ar.a} aria-label={tr("math.area.from")} {...pad.bind((v) => setArea({ a: v }))} onChange={(e) => setArea({ a: e.target.value })} style={{ ...field(t), maxWidth: 70 }} />
+              <span style={{ fontSize: "0.9em" }}>{tr("math.area.to")}</span>
+              <input value={ar.b} aria-label={tr("math.area.to")} {...pad.bind((v) => setArea({ b: v }))} onChange={(e) => setArea({ b: e.target.value })} style={{ ...field(t), maxWidth: 70 }} />
+              <RemoveButton theme={t} onClick={() => onChange({ ...spec, areas: spec.areas.filter((_, j) => j !== i) })} />
+            </div>
+          );
+        })}
+        {spec.tangents.map((tg, i) => {
+          const setTangent = (patch: Partial<typeof tg>) =>
+            onChange({ ...spec, tangents: spec.tangents.map((q, j) => (j === i ? { ...q, ...patch } : q)) });
+          return (
+            <div key={`t${i}`} style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              <span aria-hidden style={{ width: 14, borderTop: `2px dashed ${colourFor(spec, tg.f)}`, flex: "none" }} />
+              <span style={{ fontSize: "0.9em" }}>{tr("math.tangent.label")}</span>
+              <select aria-label={tr("math.tangent.label")} value={tg.f} onChange={(e) => setTangent({ f: e.target.value })} style={{ ...field(t), flex: "none" }}>
+                {fnNames.map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+              <span style={{ fontSize: "0.9em" }}>{tr("math.tangent.at")}</span>
+              <input value={tg.at} aria-label={tr("math.tangent.at")} {...pad.bind((v) => setTangent({ at: v }))} onChange={(e) => setTangent({ at: e.target.value })} style={{ ...field(t), maxWidth: 70 }} />
+              <RemoveButton theme={t} onClick={() => onChange({ ...spec, tangents: spec.tangents.filter((_, j) => j !== i) })} />
+            </div>
+          );
+        })}
       </div>
       <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
         {spec.functions.length < 6 && (
@@ -424,6 +636,16 @@ function GraphEditor({ spec, onChange, theme: t }: { spec: GraphSpec; onChange: 
             onClick={() => onChange({ ...spec, points: [...spec.points, { name: nextPointName(spec.points.map((p) => p.name)), x: "1", y: "1" }] })}
           >
             {tr("math.addPoint")}
+          </button>
+        )}
+        {spec.functions.length > 0 && spec.areas.length < 3 && (
+          <button type="button" style={button(t)} onClick={() => onChange({ ...spec, areas: [...spec.areas, { f: fnNames[0], g: null, a: "0", b: "1" }] })}>
+            {tr("math.addArea")}
+          </button>
+        )}
+        {spec.functions.length > 0 && spec.tangents.length < 3 && (
+          <button type="button" style={button(t)} onClick={() => onChange({ ...spec, tangents: [...spec.tangents, { f: fnNames[0], at: "1" }] })}>
+            {tr("math.addTangent")}
           </button>
         )}
       </div>
@@ -533,7 +755,8 @@ function GraphTool({
   const ax = Math.min(H, Math.max(0, sy(0)));
   const ay = Math.min(W, Math.max(0, sx(0)));
   const label = tr("math.graphOf", { list: spec.functions.map((f) => `${f.name}(x) = ${f.expr}`).join(", ") });
-  const colourOf = (name: string) => PALETTE[Math.max(0, spec.functions.findIndex((f) => f.name === name)) % PALETTE.length];
+  const colourOf = (name: string) => colourFor(spec, name);
+  const names = engine.graphNames(spec);
   const curveErrors = sampled.curves.filter((c) => c.error);
 
   const plot = (
@@ -570,8 +793,34 @@ function GraphTool({
               ))}
           </g>
           <g clipPath={`url(#${clipId})`}>
+            {/* Areas under the curves, so the curve stays drawn on top of its own shading. */}
+            {sampled.areas.map((ar, i) =>
+              ar.outline.length > 2 ? (
+                <path
+                  key={`area${i}`}
+                  d={`${ar.outline.map(([x, y], k) => `${k ? "L" : "M"}${sx(x).toFixed(1)} ${sy(y).toFixed(1)}`).join("")}Z`}
+                  fill={colourOf(ar.f)}
+                  fillOpacity={0.22}
+                  stroke="none"
+                />
+              ) : null,
+            )}
             {sampled.curves.map((c, i) => (
               <path key={c.name + i} d={path(c.points)} fill="none" stroke={colourOf(c.name)} strokeWidth={full ? 2.6 : 2.2} />
+            ))}
+            {sampled.tangents.map((tg, i) => (
+              <g key={`tan${i}`}>
+                <line
+                  x1={sx(xWin[0])}
+                  y1={sy(tg.slope * xWin[0] + tg.intercept)}
+                  x2={sx(xWin[1])}
+                  y2={sy(tg.slope * xWin[1] + tg.intercept)}
+                  stroke={colourOf(tg.f)}
+                  strokeWidth={full ? 1.8 : 1.5}
+                  strokeDasharray="6 4"
+                />
+                <circle cx={sx(tg.x0)} cy={sy(tg.y0)} r={full ? 4.5 : 3.5} fill={colourOf(tg.f)} />
+              </g>
             ))}
             {sampled.points.map((p) => (
               <g key={p.name}>
@@ -592,7 +841,7 @@ function GraphTool({
       <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 16px", marginTop: 6, alignItems: "center" }}>
         {!editing &&
           spec.functions.map((f, i) => {
-            const html = engine.functionHtml(f.name, f.expr, comma);
+            const html = engine.functionHtml(f.name, f.expr, comma, names);
             return (
               <span key={f.name + i} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                 <span aria-hidden style={{ width: 10, height: 10, borderRadius: 99, background: PALETTE[i % PALETTE.length] }} />
@@ -614,6 +863,30 @@ function GraphTool({
           )}
         </span>
       </div>
+
+      {/* The numbers the shading and the dashed lines stand for. */}
+      {(sampled.areas.length > 0 || sampled.tangents.length > 0) && (
+        <div style={{ display: "grid", gap: 4, marginTop: 8 }}>
+          {sampled.areas.map((ar, i) => (
+            <span key={`al${i}`} style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              <span aria-hidden style={{ width: 10, height: 10, borderRadius: 3, background: colourOf(ar.f), opacity: 0.45, flex: "none" }} />
+              <Tex html={engine.areaHtml(ar, comma)} />
+            </span>
+          ))}
+          {sampled.tangents.map((tg, i) => (
+            <span key={`tl${i}`} style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              <span aria-hidden style={{ width: 14, borderTop: `2px dashed ${colourOf(tg.f)}`, flex: "none" }} />
+              <span style={{ fontSize: "0.9em", color: t.muted }}>
+                {tr("math.tangent.label")} {tg.f} ({tr("math.tangent.at")} {fmt(tg.x0)})
+              </span>
+              <Tex html={engine.tangentHtml(tg, comma)} />
+            </span>
+          ))}
+        </div>
+      )}
+      {(sampled.areas.length < spec.areas.length || sampled.tangents.length < spec.tangents.length) && (
+        <div style={{ marginTop: 6, fontSize: "0.85em", color: ERROR }}>{tr("math.area.cant")}</div>
+      )}
 
       {sliders.map((s) => {
         const v = values[s.name] ?? s.value;
@@ -714,6 +987,7 @@ function LoadedTool({
   src,
   start,
   mode,
+  standalone = false,
   note,
   onChange,
   onFullscreen,
@@ -727,6 +1001,8 @@ function LoadedTool({
   /** What to show now (the learner's last version). */
   start: string;
   mode: Mode;
+  /** The learner's own tool (the Maths panel), not a block in a reply. */
+  standalone?: boolean;
   note?: string;
   onChange: (src: string) => void;
   onFullscreen?: () => void;
@@ -774,6 +1050,7 @@ function LoadedTool({
       <CalcTool
         lines={lines}
         editing={editing}
+        standalone={standalone}
         engine={engine}
         theme={t}
         onChange={(l) => {
@@ -940,6 +1217,7 @@ function WithEngine({ lang, src, bench, mode, theme: t }: { lang: MathBlockLang;
         src={src}
         start={current}
         mode={mode}
+        standalone={Boolean(bench)}
         note={bench?.note}
         onChange={change}
         onFullscreen={() => setFull(true)}
@@ -950,7 +1228,7 @@ function WithEngine({ lang, src, bench, mode, theme: t }: { lang: MathBlockLang;
       />
       {full && (
         <MathFullscreen lang={lang} onExit={exitFull} theme={t}>
-          <LoadedTool lang={lang} src={src} start={current} mode="full" onChange={change} engine={engine} theme={t} />
+          <LoadedTool lang={lang} src={src} start={current} mode="full" standalone={Boolean(bench)} onChange={change} engine={engine} theme={t} />
         </MathFullscreen>
       )}
     </>

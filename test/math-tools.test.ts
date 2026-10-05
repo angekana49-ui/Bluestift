@@ -160,7 +160,8 @@ describe("what the learner sees", () => {
     expect(d.inputHtml).toContain("katex");
     expect(d.resultHtml).toContain("katex");
     // KaTeX's annotation carries the LaTeX: a real d/dx, not "derivative(".
-    expect(d.inputHtml).toContain("\\frac{d}{dx}");
+    // Written the way a lycée writes it: (x³ + 2x)′.
+    expect(d.inputHtml).toContain("′");
     expect(d.inputHtml).not.toContain("derivative");
   });
 
@@ -252,10 +253,13 @@ describe("wiring", () => {
 describe("the Maths panel", () => {
   const read = (rel: string) => readFileSync(join(process.cwd(), rel), "utf8").split("\r\n").join("\n");
 
-  it("is on every Raya screen, as a right panel opened from a rail", () => {
+  it("is on the Tools page only, as a right panel opened from a rail", () => {
     const shell = read("components/raya/raya-shell.tsx");
-    expect(shell).toContain("<MathsDockContext.Provider value={maths.dock}>");
-    expect(shell).toContain("<MathsRail active={maths.tool} locked={maths.locked} onPick={maths.setTool} theme={t} />");
+    expect(shell).toContain('const mathsHere = active === "tools";');
+    // Elsewhere: no context (blocks don't offer the panel), no rail, no button.
+    expect(shell).toContain("<MathsDockContext.Provider value={mathsHere ? maths.dock : null}>");
+    expect(shell).toContain("{mathsHere && <MathsRail active={maths.tool} locked={maths.locked} onPick={maths.setTool} theme={t} />}");
+    expect(shell).toMatch(/\{mathsHere && \(\s*<MathsHeaderButton/);
     // While open it stands in for the page's own panel, with the same scrim.
     expect(shell).toMatch(/maths\.tool \? \([\s\S]*?<Scrim open onClick=\{\(\) => maths\.setTool\(null\)\} \/>[\s\S]*?<MathsDockPanel/);
     const dock = read("components/raya/maths-dock.tsx");
@@ -306,7 +310,7 @@ describe("full screen", () => {
   it("keeps what was typed in full screen when the learner comes back out", () => {
     // One `current` for both views; leaving bumps the inline view's key so it re-reads it.
     expect(tools).toMatch(/const exitFull = \(\) => \{\s*setFull\(false\);\s*setVersion\(\(v\) => v \+ 1\);/);
-    expect(tools).toContain('<LoadedTool lang={lang} src={src} start={current} mode="full" onChange={change}');
+    expect(tools).toContain('<LoadedTool lang={lang} src={src} start={current} mode="full" standalone={Boolean(bench)} onChange={change}');
   });
 
   it("offers Raya's blocks to the panel only where there is one", () => {
@@ -319,7 +323,7 @@ describe("Raya and the tools", () => {
 
   it("answers a request to draw or calculate with a block, in the chat", () => {
     const system = buildRayaMessages([], null)[0].content;
-    expect(system).toContain("Maths panel on the right");
+    expect(system).toContain("Maths panel on the Tools page");
     expect(system).toMatch(/draw, plot, graph, calculate,\s+check or verify/);
   });
 
