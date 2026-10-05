@@ -15,6 +15,7 @@ import { RayaName } from "@/components/ui/brand";
 import { useConceptName } from "@/components/ui/concept-name";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
+import { WhyStuck } from "@/components/kernel-why-stuck";
 
 const STATUS: Record<KCStatus, { labelKey: MessageKey; color: string }> = {
   mastered: { labelKey: "kernel.status.mastered", color: "#22c55e" },
@@ -61,6 +62,9 @@ function ConceptCard({ theme: t, c }: { theme: AppTheme; c: ConceptStateOut }) {
           {tr("kernel.lastPracticed")} {new Date(c.last_interaction_at).toLocaleDateString()}
         </p>
       )}
+      {/* Only where there is something to explain: a concept being worked on
+          or not yet held. "Not assessed yet" has no evidence to explain. */}
+      {c.label && (c.status === "gap" || c.status === "partial") && <WhyStuck label={c.label} />}
     </div>
   );
 }

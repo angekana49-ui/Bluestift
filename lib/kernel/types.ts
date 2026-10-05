@@ -199,6 +199,35 @@ export interface ReadyResponse {
   status: "ok" | "degraded" | string;
 }
 
+// POST /prerequisite_gaps — what the student still needs before a concept (GraphRAG).
+export type PrerequisiteGapsRequest = {
+  user_id: string;
+  max_hops?: number; // 1–8, default 4
+  include_resources?: boolean;
+} & ({ concept_label: string; concept_id?: string } | { concept_id: string; concept_label?: string });
+
+export interface PrerequisiteGap {
+  label: string;
+  concept_id: string;
+  hops: number;
+  k_effective: number;
+  status: KCStatus;
+  resources?: unknown[];
+}
+
+export interface PrerequisiteGapsResponse {
+  target: string;
+  /** Already in TEACHING order — deepest foundation first. Never re-sort (not by hops either). */
+  gaps: PrerequisiteGap[];
+  /** Where the walk stopped because the student already holds the concept. */
+  frontier: { label: string; hops: number }[];
+  max_hops: number;
+  /** The depth limit cut the list: never render it as "nothing else is missing". */
+  truncated: boolean;
+  /** false = the corpus is empty, not that these concepts are undocumented. */
+  resources_available: boolean;
+}
+
 // POST /load_alerts — pedagogical-safety alerts the kernel has persisted.
 export type AlertSeverity = "low" | "medium" | "high";
 

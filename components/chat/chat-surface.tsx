@@ -107,6 +107,21 @@ export function ChatSurface({
   const tr = useTranslate();
   const [filesOpen, setFilesOpen] = useState(false);
 
+  // `?ask=…` (e.g. "Work on this with Raya" on My Kernel) drops a first
+  // message into the composer of a NEW conversation — written, not sent: the
+  // learner reads it, edits it if they like, and presses send themselves.
+  // Once, then stripped from the address so a reload doesn't put it back.
+  useEffect(() => {
+    if (conversationId) return;
+    const url = new URL(window.location.href);
+    const ask = url.searchParams.get("ask");
+    if (!ask) return;
+    setInput(ask.slice(0, 500));
+    url.searchParams.delete("ask");
+    window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Auto-scroll: keep the thread pinned to the newest message (including while a
   // reply streams in), but only when the user is already near the bottom — if
   // they scrolled up to re-read, we don't yank them back down. `stick` tracks

@@ -5,6 +5,8 @@ import type {
   HealthResponse,
   KernelMessage,
   LoadAlertsRequest,
+  PrerequisiteGapsRequest,
+  PrerequisiteGapsResponse,
   LoadAlertsResponse,
   LoadProfileRequest,
   LoadProfileResponse,
@@ -146,6 +148,15 @@ export const kernel = {
       method: "POST",
       json: payload,
       accessToken: opts?.accessToken,
+    }),
+
+  /** A pure read on the Kernel side — no LLM call, no state written. Unknown concept → 404. */
+  prerequisiteGaps: (payload: PrerequisiteGapsRequest, opts?: KernelCallOptions) =>
+    kernelFetch<PrerequisiteGapsResponse>("/prerequisite_gaps", {
+      method: "POST",
+      json: payload,
+      accessToken: opts?.accessToken,
+      timeoutMs: opts?.timeoutMs,
     }),
 
   /**
