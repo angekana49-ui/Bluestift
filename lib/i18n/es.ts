@@ -326,6 +326,15 @@ export const es: Partial<Messages> = {
   "net.roomLiveDown": "Directo en pausa: reconectando. Los mensajes se envían.",
   "chat.sendFailed": "No enviado: tu mensaje está guardado.",
   "chat.retry": "Reintentar",
+  "chat.tool.create": "Crear en Tools",
+  "chat.tool.creating": "Creando…",
+  "chat.tool.fromConversation": "A partir de esta conversación",
+  "chat.tool.fromTopic": "Sobre «{topic}», según Wikipedia",
+  "chat.tool.open": "Abrir",
+  "chat.tool.inTools": "Ver en Tools",
+  "chat.tool.failed": "No se pudo crear.",
+  "chat.tool.questions": "{n} preguntas",
+  "chat.tool.cards": "{n} tarjetas",
 
   // ── Selector de archivo ──
   "file.choose": "Elegir un archivo",

@@ -110,7 +110,9 @@ describe("POST /api/tools/quiz-result", () => {
 
 describe("the Tools quiz player", () => {
   it("sends the picks when a quiz ends", () => {
-    const tools = readFileSync(join(process.cwd(), "components/tools.tsx"), "utf8");
+    // The shared player — used by the Tools page and by a chat's "Create in
+    // Tools" card alike, so a quiz made from a conversation reports too.
+    const tools = readFileSync(join(process.cwd(), "components/study/tool-player.tsx"), "utf8");
     expect(tools).toContain('"/api/tools/quiz-result"');
     const player = readFileSync(join(process.cwd(), "components/study/focus-player.tsx"), "utf8");
     expect(player).toContain("onFinished?.(questions.map((_, i) => picks[i] ?? -1));");

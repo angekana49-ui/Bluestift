@@ -6,6 +6,8 @@ import { parseLatex, latexToText, type MathNode } from "@/lib/latex";
 import { type AppTheme } from "@/components/ui/tokens";
 import { isMathBlockLang } from "@/lib/math-blocks";
 import { MathBlock } from "./math-tools";
+import { isToolRequestLang } from "@/lib/tool-request";
+import { ToolRequestCard } from "./tool-request-card";
 
 /**
  * Renders a Raya reply: Markdown structure (headings, emphasis, lists, tables,
@@ -233,6 +235,8 @@ function BlockView({ b, t, first }: { b: Block; t: AppTheme; first: boolean }) {
     case "code":
       // ```graph / ```calc are tools, not code to read (components/chat/math-tools.tsx).
       if (isMathBlockLang(b.lang)) return <MathBlock lang={b.lang} src={b.v} open={b.open} theme={t} />;
+      // ```create is Raya proposing a study tool: a card with a button, never code.
+      if (isToolRequestLang(b.lang)) return <ToolRequestCard src={b.v} open={b.open} theme={t} />;
       return (
         <pre
           style={{

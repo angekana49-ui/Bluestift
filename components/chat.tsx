@@ -39,6 +39,7 @@ function getRayaConfig(tr: (key: MessageKey) => string): ChatConfig {
     // Metered by the Raya plan — the composer shows what is left of the day.
     metered: true,
     aiModeSwitcher: true,
+    toolRequests: true,
     greeting: (name) => (name ? `${tr("chatHome.greetingWithName")} ${name}?` : tr("chatHome.greetingNoName")),
     emptyHint: tr("chatHome.emptyHint"),
     suggestions: [

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AttachmentCard, FilePreview } from "@/components/attachment";
 import {
   IconButton,
@@ -16,6 +16,7 @@ import { DegradedBanner } from "@/components/ui/degraded-banner";
 import { ChatComposer } from "./chat-composer";
 import { ChatAvatar } from "./chat-avatar";
 import { RichText } from "./rich-text";
+import { ToolRequestContext } from "./tool-request-context";
 import type { ChatConfig } from "./types";
 import type { ChatEngine } from "./use-chat-engine";
 
@@ -199,8 +200,15 @@ export function ChatSurface({
     </>
   );
 
+  // What a ```create card in a reply builds from: this thread when it is the
+  // learner's own solo one, the topic otherwise (a room channel is the room's).
+  const toolEnv = useMemo(
+    () => ({ enabled: config.toolRequests === true, conversationId: config.extraBody?.roomId ? null : (conversationId ?? null) }),
+    [config.toolRequests, config.extraBody?.roomId, conversationId],
+  );
+
   return (
-    <>
+    <ToolRequestContext.Provider value={toolEnv}>
       {/* The pale-blue animated wash is the WELCOME screen's backdrop, and only
           that. It used to back the whole chat, which meant every message bubble
           sat on a drifting gradient — the assistant's pale bubble all but
@@ -500,6 +508,6 @@ export function ChatSurface({
       {preview && (
         <FilePreview file={preview} scope="conversation" onClose={() => setPreview(null)} />
       )}
-    </>
+    </ToolRequestContext.Provider>
   );
 }

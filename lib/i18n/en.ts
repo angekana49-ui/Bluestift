@@ -521,6 +521,15 @@ export const en = {
   "net.roomLiveDown": "Live updates paused — reconnecting. Messages still send.",
   "chat.sendFailed": "Not sent — your message is saved.",
   "chat.retry": "Retry",
+  "chat.tool.create": "Create in Tools",
+  "chat.tool.creating": "Creating…",
+  "chat.tool.fromConversation": "From this conversation",
+  "chat.tool.fromTopic": "On “{topic}”, from Wikipedia",
+  "chat.tool.open": "Open",
+  "chat.tool.inTools": "See in Tools",
+  "chat.tool.failed": "Couldn't create it.",
+  "chat.tool.questions": "{n} questions",
+  "chat.tool.cards": "{n} cards",
 
   // ── File picker (components/ui/file-picker.tsx) ──
   "file.choose": "Choose a file",

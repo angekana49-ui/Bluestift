@@ -83,6 +83,12 @@ export type ChatConfig = {
    */
   aiModeSwitcher?: boolean;
   /**
+   * Raya may propose a study tool in a reply (a ```create card that creates it
+   * in Tools on a press). On for the Raya b2c surfaces, which have a Tools
+   * page; off for Raya for Schools, which has none.
+   */
+  toolRequests?: boolean;
+  /**
    * HYBRID new-conversation hooks. Resolved client-side once, only when the
    * thread is empty. When it returns personalized greeting/suggestions (the
    * metadata is present AND reachable), the welcome screen shows them; on

@@ -1,11 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { netFetch } from "@/lib/net/client-fetch";
-import { type BrandedDoc } from "@/lib/document";
-import { parseDoc } from "@/lib/doc-format";
-import { QuizPlayer, FlashcardsPlayer, ReaderView, MindMapView } from "@/components/study/focus-player";
-import { DocumentActions } from "@/components/ui/doc-actions";
+import { ToolPlayer, playerFor, type ActivePlayer, type Flashcard, type MindMap, type QuizQuestion } from "@/components/study/tool-player";
 import { ArtifactMenu } from "@/components/ui/artifact-menu";
 import { ArchivedDisclosure } from "@/components/ui/archived-section";
 import { useAppTheme } from "@/components/ui/theme";
@@ -17,15 +14,6 @@ import { FilePicker } from "@/components/ui/file-picker";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
 
-type QuizQuestion = {
-  question: string;
-  options: string[];
-  correct_index: number;
-  explanation?: string;
-};
-type Flashcard = { front: string; back: string };
-type MindMapBranch = { label: string; children: string[] };
-type MindMap = { title: string; branches: MindMapBranch[] };
 type Upload = {
   id: string;
   title: string | null;
@@ -48,14 +36,6 @@ type Source = { mediaId: string | null; name: string; kind?: string; bytes?: num
 
 /** Max total size of an upload packet (all files picked at once + already added). */
 const MAX_PACKET_BYTES = 20 * 1024 * 1024;
-
-/** What the full-screen focus player is currently showing. */
-type ActivePlayer =
-  | { kind: "summary"; title: string; text: string }
-  /** `outputId`: the stored quiz, so the result can be reported to the Kernel. */
-  | { kind: "quiz"; title: string; questions: QuizQuestion[]; outputId?: string }
-  | { kind: "flashcards"; title: string; cards: Flashcard[] }
-  | { kind: "mind_map"; title: string; mindMap: MindMap };
 
 const TOOLS: { id: string; labelKey: MessageKey; ready: boolean }[] = [
   { id: "summary", labelKey: "tools.tool.summary", ready: true },
@@ -94,27 +74,13 @@ const ghost = (t: AppTheme): React.CSSProperties => ({
   fontWeight: 600,
   cursor: "pointer",
 });
-// Markdown composers → the branded document body (typeset by the exporter).
-function quizToMd(qs: QuizQuestion[]) {
-  return qs
-    .map((q, i) => {
-      const opts = q.options
-        .map((o, oi) => `- ${String.fromCharCode(65 + oi)}. ${o}${oi === q.correct_index ? " ✓" : ""}`)
-        .join("\n");
-      const ex = q.explanation ? `\nExplanation: ${q.explanation}` : "";
-      return `## Question ${i + 1}\n${q.question}\n${opts}${ex}`;
-    })
-    .join("\n\n");
-}
-
-function flashcardsToMd(cards: Flashcard[]) {
-  return cards.map((c, i) => `## Card ${i + 1}\n**${c.front}**\n- ${c.back}`).join("\n\n");
-}
-
-function mindMapToMd(m: MindMap) {
-  const branches = m.branches.map((b) => `## ${b.label}\n${b.children.map((c) => `- ${c}`).join("\n")}`).join("\n\n");
-  return `# ${m.title}\n\n${branches}`;
-}
+/** Each tool's display name. */
+const PRETTY: Record<string, MessageKey> = {
+  summary: "tools.pretty.summary",
+  quiz: "tools.pretty.quiz",
+  flashcards: "tools.pretty.flashcards",
+  mind_map: "tools.pretty.mindMap",
+};
 
 /** One of the learner's conversations with Raya, offered as a source. */
 type ConversationRef = { id: string; title: string | null; updated_at: string };
@@ -192,19 +158,19 @@ export function Tools({
   const ready = mode === "file" ? sources.length > 0 : mode === "topic" ? topic.trim().length >= 2 : Boolean(conversationId);
   const packetBytes = sources.reduce((s, x) => s + (x.bytes ?? 0), 0);
 
-  // Every tool export goes through the shared branded document (Raya logo, title,
-  // footer attribution + thebluestift.com link).
-  const doc = (title: string, body: string): BrandedDoc => ({
-    brand: "raya",
-    title,
-    meta: new Date().toLocaleDateString(),
-    audience: studentName || undefined,
-    body,
-  });
-  // One row for every tool output: language, TXT, PDF, share. The language is
-  // the point — a summary generated in English is now downloadable in the four
-  // shipped languages without regenerating it.
-  const downloadActions = (d: BrandedDoc) => <DocumentActions doc={d} compact />;
+  // `/tools?open=<id>` — the "Open in Tools" link of a card in a Raya
+  // conversation lands on the tool it created, already open. Once, then the
+  // parameter is stripped so a reload doesn't reopen it.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const id = url.searchParams.get("open");
+    if (!id) return;
+    url.searchParams.delete("open");
+    window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+    const o = outputs.find((x) => x.id === id && x.status === "done");
+    if (o) setPlayer(playerFor(o.tool_type, o.id, o.output_content, tr(PRETTY[o.tool_type] ?? "tools.pretty.quiz")));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Add one library doc as a reusable source (no re-upload).
   function reuseFromLibrary(u: Upload) {
@@ -663,56 +629,8 @@ export function Tools({
         </div>
       )}
 
-      {/* ── Focused, one-at-a-time study players ── */}
-      {player?.kind === "quiz" && (
-        <QuizPlayer
-          title={player.title}
-          mode="reveal"
-          questions={player.questions.map((q) => ({
-            question: q.question,
-            options: q.options,
-            correctIndex: q.correct_index,
-            explanation: q.explanation,
-          }))}
-          onExit={closePlayer}
-          // What the student picked goes to the Kernel (graded there against the
-          // stored quiz, not this score) — a practice quiz is learning evidence.
-          onFinished={(picks) => {
-            if (!player.outputId) return;
-            void netFetch(
-              "/api/tools/quiz-result",
-              { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ outputId: player.outputId, picks }), keepalive: true },
-              { timeoutMs: 10_000 },
-            ).catch(() => {});
-          }}
-          actions={downloadActions(doc(player.title, quizToMd(player.questions)))}
-        />
-      )}
-      {player?.kind === "flashcards" && (
-        <FlashcardsPlayer
-          title={player.title}
-          cards={player.cards}
-          onExit={closePlayer}
-          actions={downloadActions(doc(player.title, flashcardsToMd(player.cards)))}
-        />
-      )}
-      {player?.kind === "summary" && (
-        <ReaderView
-          title={player.title}
-          subtitle={tr("tools.pretty.summary")}
-          blocks={parseDoc(player.text)}
-          onExit={closePlayer}
-          actions={downloadActions(doc(player.title, player.text))}
-        />
-      )}
-      {player?.kind === "mind_map" && (
-        <MindMapView
-          title={player.title}
-          mindMap={player.mindMap}
-          onExit={closePlayer}
-          actions={downloadActions(doc(player.title, mindMapToMd(player.mindMap)))}
-        />
-      )}
+      {/* ── Focused, one-at-a-time study player (shared with the chat's "Create in Tools" card) ── */}
+      {player && <ToolPlayer player={player} onExit={closePlayer} studentName={studentName} />}
     </div>
   );
 }

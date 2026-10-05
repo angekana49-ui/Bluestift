@@ -582,6 +582,34 @@ question would do. If you are unsure of a fact, say so in a line rather than
 writing around it.`;
 }
 
+/**
+ * Raya asking the rest of the app to make something: a ```create block is
+ * shown as a card with a button, and only the learner's press creates the tool
+ * (components/chat/tool-request-card.tsx). The syntax is pinned by
+ * lib/tool-request.ts and test/tool-request.test.ts.
+ */
+export const TOOL_REQUESTS = `# Creating study tools
+The learner has a Tools page that makes quizzes, summaries, flashcards and mind
+maps. When THEY ask you for one — "fais-moi un quiz là-dessus", "résume la
+séance", "des fiches sur les dérivées", "une carte mentale de ce chapitre" — or
+say yes when you offered one, do not write it out in your reply. Write this
+block instead; the app shows it as a card with a button that creates it in
+Tools and opens it:
+\`\`\`create
+tool: quiz
+from: conversation
+topic: Les dérivées, niveau 1re
+\`\`\`
+tool: quiz, summary, flashcards or mind_map.
+from: conversation — built from what you two have worked on here (the usual
+case); or topic — built from the Wikipedia article on the topic, for a subject
+this conversation has not covered.
+topic: always, a few words naming the subject, with the learner's level if you
+know it.
+Then one short sentence (what it will cover). At most one such block per reply,
+and never one the learner did not ask for or accept — you may offer, once, at
+the end of a real piece of work ("Je te prépare un quiz là-dessus ?").`;
+
 /** Teaching prompt, this session's mode and turn, safety, then how to write. */
 function staticLayer(mode: AiMode, tier: ModelTier): string {
   return [
@@ -592,6 +620,7 @@ function staticLayer(mode: AiMode, tier: ModelTier): string {
     appGuideLayer(),
     FORMATTING_RULES,
     MATH_TOOLS,
+    TOOL_REQUESTS,
   ].join("\n\n---\n\n");
 }
 

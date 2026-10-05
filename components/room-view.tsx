@@ -336,6 +336,7 @@ function RoomViewBody({
     // Same endpoint as the solo chat, so the same plan quota applies to it.
     metered: true,
     aiModeSwitcher: true,
+    toolRequests: true,
     greeting: (name) => (name ? `${tr("room.privateGreetingWithName")} ${name}` : tr("room.privateGreetingNoName")),
     emptyHint: tr("room.privateEmptyHint"),
     suggestions: [tr("room.privateSuggestion1"), tr("room.privateSuggestion2"), tr("room.privateSuggestion3")],

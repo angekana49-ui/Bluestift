@@ -323,6 +323,15 @@ export const fr: Partial<Messages> = {
   "net.roomLiveDown": "Direct en pause — reconnexion. L'envoi fonctionne.",
   "chat.sendFailed": "Non envoyé — votre message est conservé.",
   "chat.retry": "Réessayer",
+  "chat.tool.create": "Créer dans Tools",
+  "chat.tool.creating": "Création…",
+  "chat.tool.fromConversation": "À partir de cette discussion",
+  "chat.tool.fromTopic": "Sur « {topic} », d’après Wikipédia",
+  "chat.tool.open": "Ouvrir",
+  "chat.tool.inTools": "Voir dans Tools",
+  "chat.tool.failed": "Impossible de le créer.",
+  "chat.tool.questions": "{n} questions",
+  "chat.tool.cards": "{n} cartes",
 
   // ── Sélecteur de fichier ──
   "file.choose": "Choisir un fichier",
