@@ -32,6 +32,7 @@ export default async function ToolsPage() {
     { data: outputs },
     { data: myChallenges },
     { data: myAttempts },
+    { data: conversations },
   ] = await Promise.all([
       supabase
         .from("users")
@@ -65,6 +66,18 @@ export default async function ToolsPage() {
         .from("challenge_attempts")
         .select("challenge_id, score")
         .eq("user_id", user.id),
+      // The learner's own recent conversations with Raya — a source for a quiz,
+      // a summary or a mind map when there is no file. Not a room's channel.
+      supabase
+        .schema("learning")
+        .from("conversations")
+        .select("id, title, updated_at")
+        .eq("user_id", user.id)
+        .is("room_id", null)
+        .eq("is_private_room_channel", false)
+        .is("archived_at", null)
+        .order("updated_at", { ascending: false })
+        .limit(15),
     ]);
   // Onboarding covers both first-run setup and the age question, so an
   // account that predates the age gate is sent back for it too.
@@ -94,7 +107,7 @@ export default async function ToolsPage() {
         agreeing with it.
       */}
       <PageBody maxWidth={900}>
-        <Tools uploads={uploads ?? []} outputs={outputs ?? []} selfTests={selfTests} studentName={studentName} />
+        <Tools uploads={uploads ?? []} outputs={outputs ?? []} selfTests={selfTests} conversations={conversations ?? []} studentName={studentName} />
         <div id="self-test" style={{ marginTop: 8 }}>
           <SoloChallenge myUserId={user.id} studentName={studentName} />
         </div>

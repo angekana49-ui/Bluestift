@@ -116,19 +116,36 @@ function mindMapToMd(m: MindMap) {
   return `# ${m.title}\n\n${branches}`;
 }
 
+/** One of the learner's conversations with Raya, offered as a source. */
+type ConversationRef = { id: string; title: string | null; updated_at: string };
+
+/**
+ * Where the material comes from. A file is the classic case; a topic (built
+ * from its Wikipedia article) and a past conversation with Raya mean a quiz,
+ * a summary or a mind map no longer needs a document to exist first.
+ */
+type SourceMode = "file" | "topic" | "conversation";
+
 export function Tools({
   uploads,
   outputs,
   selfTests,
+  conversations = [],
   studentName,
 }: {
   uploads: Upload[];
   outputs: Output[];
   selfTests: SelfTest[];
+  conversations?: ConversationRef[];
   studentName?: string;
 }) {
   const { theme: t } = useAppTheme();
   const tr = useTranslate();
+  const [mode, setMode] = useState<SourceMode>("file");
+  const [topic, setTopic] = useState("");
+  const [conversationId, setConversationId] = useState(conversations[0]?.id ?? "");
+  /** The Wikipedia page the last generation was built from (or that none was found). */
+  const [reference, setReference] = useState<{ title: string; url: string } | "none" | null>(null);
   // A source is a picked doc — a fresh upload (has `bytes`, maybe inline `text`
   // if it couldn't be stored) or an existing library doc reused (mediaId only).
   const [sources, setSources] = useState<Source[]>([]);
@@ -165,7 +182,14 @@ export function Tools({
     setOutputItems((v) => v.filter((o) => o.id !== id));
   }
 
-  const baseName = (sources[0]?.name ?? "raya").replace(/\.[^.]+$/, "");
+  const conversationTitle = (id: string) => conversations.find((c) => c.id === id)?.title || tr("tools.conversation.untitled");
+  const baseName =
+    mode === "topic" && topic.trim()
+      ? topic.trim().slice(0, 60)
+      : mode === "conversation" && conversationId
+        ? conversationTitle(conversationId)
+        : (sources[0]?.name ?? "raya").replace(/\.[^.]+$/, "");
+  const ready = mode === "file" ? sources.length > 0 : mode === "topic" ? topic.trim().length >= 2 : Boolean(conversationId);
   const packetBytes = sources.reduce((s, x) => s + (x.bytes ?? 0), 0);
 
   // Every tool export goes through the shared branded document (Raya logo, title,
@@ -232,25 +256,29 @@ export function Tools({
   }
 
   async function generate() {
-    if (sources.length === 0 || busy) return;
+    if (!ready || busy) return;
     setBusy(true);
     setError(null);
+    setReference(null);
     setStatusMsg(tr("tools.generating"));
     try {
       const sourceMediaIds = sources.map((s) => s.mediaId).filter((id): id is string => !!id);
       const inline = sources.filter((s) => !s.mediaId && s.text).map((s) => s.text as string).join("\n\n");
+      // Only the chosen source is sent: a file picked earlier must not slip
+      // into a quiz the learner asked to build from a topic.
+      const source =
+        mode === "file"
+          ? { source_media_ids: sourceMediaIds, source_text: inline || undefined }
+          : mode === "topic"
+            ? { topic: topic.trim() }
+            : { conversation_id: conversationId };
       // LLM-generated output (quiz/flashcards/summary), non-streamed.
       const res = await netFetch(
         "/api/tools/generate",
         {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            tool_type: tool,
-            source_media_ids: sourceMediaIds,
-            source_text: inline || undefined,
-            title: baseName,
-          }),
+          body: JSON.stringify({ tool_type: tool, ...source, title: baseName }),
         },
         { timeoutMs: 65_000 },
       );
@@ -259,6 +287,7 @@ export function Tools({
         setError(data?.error ?? `${tr("tools.requestFailedPrefix")} (${res.status}).`);
         return;
       }
+      if (mode === "topic") setReference(data.reference ?? (data.topic_only ? "none" : null));
       // On success, drop straight into the focused player for this artifact.
       if (data.tool_type === "summary") {
         setPlayer({ kind: "summary", title: `${tr("tools.pretty.summary")} — ${baseName}`, text: (data.output_content?.text as string) ?? "" });
@@ -360,6 +389,91 @@ export function Tools({
         })}
       </div>
 
+      {/* Where the material comes from. */}
+      <div role="tablist" aria-label={tr("tools.source.label")} style={{ display: "flex", gap: 6, marginTop: 16, flexWrap: "wrap" }}>
+        {(["file", "topic", "conversation"] as SourceMode[]).map((m) => (
+          <button
+            key={m}
+            type="button"
+            role="tab"
+            aria-selected={mode === m}
+            onClick={() => {
+              setMode(m);
+              setError(null);
+              setReference(null);
+            }}
+            style={{
+              ...neutralButton(t),
+              fontWeight: mode === m ? 700 : 500,
+              borderColor: mode === m ? statusColors.aiIndigo : t.cardBorder,
+              boxShadow: mode === m ? `0 0 0 1px ${statusColors.aiIndigo}` : "none",
+            }}
+          >
+            {tr(`tools.source.${m}`)}
+          </button>
+        ))}
+      </div>
+
+      {mode === "topic" && (
+        <div style={{ marginTop: 12, ...panel(t) }}>
+          <input
+            value={topic}
+            maxLength={120}
+            onChange={(e) => setTopic(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void generate();
+            }}
+            placeholder={tr("tools.topic.placeholder")}
+            aria-label={tr("tools.source.topic")}
+            style={{
+              width: "100%",
+              boxSizing: "border-box",
+              fontSize: 16,
+              background: t.inputBg,
+              color: t.text,
+              border: `1px solid ${t.inputBorder}`,
+              borderRadius: 10,
+              padding: "10px 12px",
+            }}
+          />
+          <p style={{ margin: "8px 0 0", fontSize: 14, color: t.muted }}>{tr("tools.topic.hint")}</p>
+        </div>
+      )}
+
+      {mode === "conversation" && (
+        <div style={{ marginTop: 12, ...panel(t) }}>
+          {conversations.length === 0 ? (
+            <p style={{ margin: 0, fontSize: 15, color: t.muted }}>{tr("tools.conversation.none")}</p>
+          ) : (
+            <>
+              <select
+                value={conversationId}
+                onChange={(e) => setConversationId(e.target.value)}
+                aria-label={tr("tools.conversation.pick")}
+                style={{
+                  width: "100%",
+                  fontSize: 16,
+                  background: t.inputBg,
+                  color: t.text,
+                  border: `1px solid ${t.inputBorder}`,
+                  borderRadius: 10,
+                  padding: "10px 12px",
+                }}
+              >
+                {conversations.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.title || tr("tools.conversation.untitled")} · {new Date(c.updated_at).toLocaleDateString()}
+                  </option>
+                ))}
+              </select>
+              <p style={{ margin: "8px 0 0", fontSize: 14, color: t.muted }}>{tr("tools.conversation.hint")}</p>
+            </>
+          )}
+        </div>
+      )}
+
+      {mode === "file" && (
+      <>
       {/* Dropzone — multi-file.
           It used to be a <label> that said "Drop one or more files" and had no
           drop handler at all: the only thing it accepted was a click, so the
@@ -443,13 +557,30 @@ export function Tools({
           ))}
         </div>
       )}
+      </>
+      )}
 
       <div style={formActions}>
         {statusMsg && <span style={{ fontSize: 15, color: t.muted, marginRight: "auto" }}>{statusMsg}</span>}
-        <button style={{ ...cta(t), opacity: busy || sources.length === 0 ? 0.5 : 1 }} onClick={generate} disabled={busy || sources.length === 0}>
+        <button style={{ ...cta(t), opacity: busy || !ready ? 0.5 : 1 }} onClick={generate} disabled={busy || !ready}>
           {tr("tools.generate")}
         </button>
       </div>
+      {/* Built from a topic: say from what, so it can be checked. */}
+      {reference && (
+        <p style={{ marginTop: 8, fontSize: 14, color: t.muted }}>
+          {reference === "none" ? (
+            tr("tools.noReference")
+          ) : (
+            <>
+              {tr("tools.reference")}{" "}
+              <a href={reference.url} target="_blank" rel="noopener noreferrer" style={{ color: t.link }}>
+                {reference.title}
+              </a>
+            </>
+          )}
+        </p>
+      )}
       {error && <p style={{ color: "#f87171", marginTop: 12, fontSize: 16 }}>{error}</p>}
 
       {(uploads.length > 0 || outputItems.length > 0 || selfTests.length > 0) && (

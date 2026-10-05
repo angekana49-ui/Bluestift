@@ -12,10 +12,26 @@ import {
   startOfMonthIso,
 } from "@/lib/entitlements";
 import { captureServer } from "@/lib/analytics/server";
-import { apiT } from "@/lib/i18n/server";
+import { apiT, getServerLocale } from "@/lib/i18n/server";
+import { wikipediaArticle } from "@/lib/raya/wikipedia";
 
 const MAX_SOURCE_CHARS = 8000;
 const SUPPORTED = new Set(["quiz", "summary", "flashcards", "mind_map"]);
+
+/**
+ * Put before a conversation used as material: the student's own messages hold
+ * their mistakes, and a quiz built on them would teach the mistakes back.
+ */
+const CONVERSATION_NOTE =
+  "This material is a tutoring conversation between a student and Raya, their tutor. Build from what was studied in it — " +
+  "Raya's explanations and the answers she confirmed as right — never from the student's mistakes or guesses. " +
+  "Ignore greetings, small talk and anything off-topic. Write in the conversation's language.";
+
+/** Added to the instructions when the learner gave only a topic and no article was found. */
+const TOPIC_ONLY_NOTE =
+  " There is no study material: the learner gave only a topic. Write from well-established, textbook-level knowledge at a " +
+  "school level, in the language the topic is written in. Avoid obscure or disputed claims, and do not invent precise " +
+  "figures, dates or quotations you are not certain of.";
 
 /**
  * Tools generation. LLM-only tools: `quiz` (JSON MCQ), `summary` (prose),
@@ -42,6 +58,10 @@ export async function POST(request: Request) {
     source_media_id?: string | null;
     /** One or more previously-uploaded docs to build the source from (reuse). */
     source_media_ids?: string[];
+    /** No file: a topic the learner typed — built from its Wikipedia article. */
+    topic?: string;
+    /** No file: one of the learner's own conversations with Raya. */
+    conversation_id?: string;
   };
   try {
     body = await request.json();
@@ -77,6 +97,53 @@ export async function POST(request: Request) {
   }
   const inline = (body.source_text ?? "").trim();
   if (inline) parts.push(inline);
+
+  // ── Sources without a file ─────────────────────────────────────────────
+  // A topic: its Wikipedia article is the material, and is cited on the
+  // result. No article found → the topic alone, and the prompt is told so
+  // (textbook-level facts only), and the learner is told to double-check.
+  let reference: { title: string; url: string } | null = null;
+  let topicOnly = false;
+  const topic = typeof body.topic === "string" ? body.topic.trim().slice(0, 120) : "";
+  if (topic && parts.length === 0) {
+    const article = await wikipediaArticle(topic, await getServerLocale());
+    if (article) {
+      reference = { title: article.title, url: article.url };
+      parts.push(`The learner asked for: ${topic}\n\n## ${article.title} (Wikipedia)\n${article.text}`);
+    } else {
+      topicOnly = true;
+      parts.push(`The learner asked for: ${topic}`);
+    }
+  }
+  // A conversation: theirs only (RLS, and the owner check below), never a
+  // room's private channel — the same gate as naming or memorizing one.
+  if (typeof body.conversation_id === "string" && body.conversation_id && parts.length === 0) {
+    const { data: conv } = await supabase
+      .schema("learning")
+      .from("conversations")
+      .select("id, user_id, is_private_room_channel")
+      .eq("id", body.conversation_id)
+      .maybeSingle();
+    if (!conv || conv.user_id !== user.id || conv.is_private_room_channel) {
+      return NextResponse.json({ error: await apiT("api.notFound") }, { status: 404 });
+    }
+    const { data: msgs } = await supabase
+      .schema("learning")
+      .from("messages")
+      .select("role, content")
+      .eq("conversation_id", conv.id)
+      .order("created_at", { ascending: true });
+    const transcript = (msgs ?? [])
+      .filter((m) => (m.content ?? "").trim())
+      .map((m) => `${m.role === "assistant" ? "Raya" : "Student"}: ${m.content}`)
+      .join("\n\n");
+    if (transcript) {
+      // The most recent part when it is long: that is what was just studied.
+      const recent = transcript.length > MAX_SOURCE_CHARS - 400 ? transcript.slice(-(MAX_SOURCE_CHARS - 400)) : transcript;
+      parts.push(`${CONVERSATION_NOTE}\n\n${recent}`);
+    }
+  }
+
   const source = parts.join("\n\n").trim().slice(0, MAX_SOURCE_CHARS);
   if (!source) {
     return NextResponse.json({ error: await apiT("api.emptySourceText") }, { status: 400 });
@@ -125,13 +192,16 @@ export async function POST(request: Request) {
   if (insErr) return NextResponse.json({ error: clientError(insErr) }, { status: 500 });
   const id = created.id;
 
+  // Said to every generator when there is no material to stay within.
+  const extra = topicOnly ? TOPIC_ONLY_NOTE : "";
+
   try {
     let output: Json;
 
     if (toolType === "quiz") {
       const raw = await generateJson(
         "You are a quiz generator. From the study material, produce 8 multiple-choice questions in the SAME language as the material. Return a JSON object shaped exactly as: " +
-          '{"questions":[{"question":"...","options":["a","b","c","d"],"correct_index":0,"explanation":"..."}]}',
+          '{"questions":[{"question":"...","options":["a","b","c","d"],"correct_index":0,"explanation":"..."}]}' + extra,
         source,
       );
       const parsed = safeParseJson(raw);
@@ -141,7 +211,7 @@ export async function POST(request: Request) {
     } else if (toolType === "flashcards") {
       const raw = await generateJson(
         "You are a flashcard generator. From the study material, produce 10 flashcards in the SAME language as the material. Each card has a short front (a question or prompt) and a concise back (the answer). Return a JSON object shaped exactly as: " +
-          '{"cards":[{"front":"...","back":"..."}]}',
+          '{"cards":[{"front":"...","back":"..."}]}' + extra,
         source,
       );
       const parsed = safeParseJson(raw);
@@ -157,7 +227,7 @@ export async function POST(request: Request) {
     } else if (toolType === "mind_map") {
       const raw = await generateJson(
         "You are a mind-map generator. From the study material, produce a mind map in the SAME language as the material: a central title, and 4-7 main branches, each with 2-5 short child points. Keep every label concise (a few words). Return a JSON object shaped exactly as: " +
-          '{"title":"...","branches":[{"label":"...","children":["...","..."]}]}',
+          '{"title":"...","branches":[{"label":"...","children":["...","..."]}]}' + extra,
         source,
       );
       const parsed = safeParseJson(raw);
@@ -182,7 +252,7 @@ export async function POST(request: Request) {
           role: "system",
           content:
             "You are a study assistant. Write a clear, well-structured summary of the material in ITS OWN language. Start with a one-line overview, then key points as bullet points (use '- '), then a short 'Key takeaways' section. Do not invent facts absent from the source. " +
-              "Any equation, formula or mathematical/scientific notation (maths, physics, chemistry — variables, exponents, fractions, units, chemical formulas) MUST be written in LaTeX: wrap a short expression inline as $...$ (e.g. $E=mc^2$, $H_2O$), and put a standalone equation on its own line as $$...$$. Never write it as plain ASCII (no 'x^2', no 'a/b', no 'H2O') when a document with no math needs none of this.",
+              "Any equation, formula or mathematical/scientific notation (maths, physics, chemistry — variables, exponents, fractions, units, chemical formulas) MUST be written in LaTeX: wrap a short expression inline as $...$ (e.g. $E=mc^2$, $H_2O$), and put a standalone equation on its own line as $$...$$. Never write it as plain ASCII (no 'x^2', no 'a/b', no 'H2O') when a document with no math needs none of this." + extra,
         },
         { role: "user", content: source },
       ]);
@@ -190,6 +260,9 @@ export async function POST(request: Request) {
       if (!summary) throw new Error("model returned an empty summary");
       output = { text: summary };
     }
+
+    // Where it came from, kept with it: shown under the result, and on reopening.
+    if (reference || topicOnly) output = { ...(output as Record<string, Json>), reference: reference ?? null, topic_only: topicOnly };
 
     const { error: updErr } = await supabase
       .schema("learning")
@@ -199,7 +272,7 @@ export async function POST(request: Request) {
     if (updErr) throw new Error(updErr.message);
 
     void captureServer(user.id, "artefact_generated", { tool_type: toolType, tier });
-    return NextResponse.json({ id, status: "done", tool_type: toolType, output_content: output });
+    return NextResponse.json({ id, status: "done", tool_type: toolType, output_content: output, reference, topic_only: topicOnly });
   } catch (e) {
     // The stored row keeps the real reason — it is ours, and it is what makes a
     // failed generation diagnosable. The response gets the sentence.

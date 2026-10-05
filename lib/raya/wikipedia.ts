@@ -214,6 +214,113 @@ export async function lookupWikipedia(query: string, lang: Locale): Promise<Wiki
   }
 }
 
+// ── A whole article, as the source of a Tools generation ──────────────────
+
+const ARTICLE_DEADLINE_MS = 4000;
+const ARTICLE_CHARS = 7000;
+const TOPIC_CHARS = 120;
+
+/**
+ * A topic the learner typed, made safe to send out: what identifies a person
+ * (an address, a handle, a phone number, a link) is removed, and it is cut to
+ * a short phrase. Null when nothing is left to search for.
+ */
+export function topicForLookup(topic: string): string | null {
+  const cleaned = topic
+    .replace(/\S+@\S+/g, " ")
+    .replace(/https?:\/\/\S+/g, " ")
+    .replace(/@\w+/g, " ")
+    .replace(/\+?\d[\d\s.-]{5,}\d/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, TOPIC_CHARS);
+  return /[\p{L}\p{N}]{2,}/u.test(cleaned) ? cleaned : null;
+}
+
+export type WikiArticle = { title: string; url: string; text: string };
+
+/**
+ * The best Wikipedia article for a topic, as plain text — the material a quiz,
+ * a summary or a mind map is built from when the learner has no file. Two
+ * requests (find the page, then read it), each under a deadline; null on any
+ * failure or when no real article matches, never an exception.
+ */
+/**
+ * The words to search for: the subject, without the level the learner added
+ * for the model ("La photosynthèse, niveau 3e" → "La photosynthèse"). Searched
+ * with the level, Wikipedia ranked an article on cyanobacteria first. The
+ * level still reaches the model, through the topic line of the material.
+ */
+export function searchPhrase(topic: string): string {
+  const head = topic.split(/[,;:(]| - | – /)[0];
+  const level =
+    /\b(?:niveau|classe|level|year|grade|nivel|curso|klasse|stufe|jahrgang)\b.*$|\b(?:\d{1,2}\s*(?:e|ème|eme|th|º|°|o)|terminale|seconde|premi[eè]re|coll[eè]ge|lyc[ée]e|bac|cm[12]|ce[12]|primaire|eso|bachillerato|abitur|gymnasium)\b/giu;
+  const cleaned = head.replace(level, " ").replace(/\s+/g, " ").trim();
+  return cleaned.length >= 2 ? cleaned : topic;
+}
+
+export async function wikipediaArticle(topic: string, lang: Locale): Promise<WikiArticle | null> {
+  const safe = topicForLookup(topic);
+  const query = safe && topicForLookup(searchPhrase(safe));
+  if (!query) return null;
+  const headers = { "user-agent": "BluestiftRaya/1.0 (https://thebluestift.com)", accept: "application/json" };
+  try {
+    const find = new URL("/w/api.php", wikiBase(lang));
+    find.search = new URLSearchParams({
+      action: "query",
+      format: "json",
+      formatversion: "2",
+      generator: "search",
+      gsrsearch: query,
+      gsrnamespace: "0",
+      gsrlimit: "3",
+      prop: "info|pageprops",
+      inprop: "url",
+      ppprop: "disambiguation",
+      redirects: "1",
+    }).toString();
+    const res = await fetch(find, { headers, signal: AbortSignal.timeout(ARTICLE_DEADLINE_MS) });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { query?: { pages?: ApiPage[] } };
+    const page = (data.query?.pages ?? [])
+      .filter((p) => p.pageprops?.disambiguation === undefined)
+      .filter((p): p is ApiPage & { title: string; fullurl: string } => typeof p.title === "string" && typeof p.fullurl === "string" && p.fullurl.startsWith("https://"))
+      .sort((a, b) => Number(a.index ?? 99) - Number(b.index ?? 99))[0];
+    if (!page) return null;
+
+    const read = new URL("/w/api.php", wikiBase(lang));
+    read.search = new URLSearchParams({
+      action: "query",
+      format: "json",
+      formatversion: "2",
+      prop: "extracts",
+      explaintext: "1",
+      exsectionformat: "plain",
+      titles: page.title,
+      redirects: "1",
+    }).toString();
+    const res2 = await fetch(read, { headers, signal: AbortSignal.timeout(ARTICLE_DEADLINE_MS) });
+    if (!res2.ok) return null;
+    const body = (await res2.json()) as { query?: { pages?: ApiPage[] } };
+    const extract = body.query?.pages?.[0]?.extract;
+    if (typeof extract !== "string" || extract.trim().length < 200) return null;
+    // The end of an article is references and "see also": the start is the subject.
+    const flat = extract.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+    let text = flat.slice(0, ARTICLE_CHARS);
+    if (flat.length > ARTICLE_CHARS) {
+      const end = text.lastIndexOf(". ");
+      if (end > ARTICLE_CHARS * 0.6) text = text.slice(0, end + 1);
+    }
+    return {
+      title: page.title.replace(/[[\]]/g, ""),
+      url: page.fullurl.replace(/\(/g, "%28").replace(/\)/g, "%29"),
+      text,
+    };
+  } catch {
+    return null;
+  }
+}
+
 /** Wikipedia's own name in each interface language, for the citation line. */
 const WIKI_NAME: Record<Locale, string> = {
   en: "Wikipedia",
