@@ -25,13 +25,37 @@ const JSON_SHAPE =
   'Return a JSON object exactly as {"questions":[{"type":"mcq","question":"...","options":["a","b","c","d"],"correct_index":0},{"type":"open","question":"...","model_answer":"..."}]}. ' +
   'For "mcq" give options + correct_index; for "open" give a concise ideal model_answer. Write everything in the material\'s language.';
 
-/** System prompt per test kind (quiz = MCQ, exam = mixed, skills = open competency). */
+/**
+ * What every non-quickcalc test must account for: the learner has a graphing
+ * calculator beside them (the Maths panel) that evaluates, differentiates and
+ * SOLVES equations. A question whose answer is one line typed into it measures
+ * nothing — so the questions ask for what the tool cannot do for them, and the
+ * bar sits a notch above the material's own level.
+ */
+const WITH_TOOLS =
+  "The learner may use a graphing calculator that evaluates expressions, differentiates and solves equations. " +
+  "So never ask for a bare computation or for solving an equation that is already written out — the tool would answer it. " +
+  "Ask instead for what the tool cannot do: choosing or justifying a method, setting up the equation from a situation, " +
+  "interpreting a result or a graph, spotting the error in a worked solution, comparing two approaches, multi-step problems, " +
+  "and conceptual traps. Pitch the difficulty one notch above the material's own level: demanding but fair. " +
+  "For multiple-choice, make every wrong option a plausible mistake a real student would make.";
+
+/** System prompt per test kind (quiz = MCQ, exam = mixed, skills = open competency, quickcalc = mental arithmetic). */
 function testSystem(kind: string, count: number): string {
+  if (kind === "quickcalc")
+    // Taken with the Maths panel locked (components/raya/maths-dock.tsx), so
+    // here the computation IS the point.
+    return `You are writing a quick mental-arithmetic test ("calcul rapide"). Produce ${count} multiple-choice ("mcq") questions, each a calculation a student should do in their head in under 30 seconds at the level of the material: arithmetic, fractions, percentages, powers, simple equations, orders of magnitude. Wrong options must be the results of typical slips (sign, priority of operations, a misplaced decimal). No calculator needed and no long statements. ${JSON_SHAPE}`;
   if (kind === "exam")
-    return `You are an exam writer. Produce a complete, structured exam of ${count} questions that mixes multiple-choice ("mcq", roughly 60%) and open-response ("open", roughly 40%) and genuinely assesses understanding of the objective. ${JSON_SHAPE}`;
+    return `You are an exam writer. Produce a complete, structured exam of ${count} questions that mixes multiple-choice ("mcq", roughly 60%) and open-response ("open", roughly 40%) and genuinely assesses understanding of the objective. ${WITH_TOOLS} ${JSON_SHAPE}`;
   if (kind === "skills")
-    return `You are a competency assessor. Produce ${count} open-response ("open") questions that test the learner's ability to apply and reason about the material, each with a concise model_answer. ${JSON_SHAPE}`;
-  return `You are a quiz generator. Produce ${count} multiple-choice ("mcq") questions serving the objective. ${JSON_SHAPE}`;
+    return `You are a competency assessor. Produce ${count} open-response ("open") questions that test the learner's ability to apply and reason about the material, each with a concise model_answer. ${WITH_TOOLS} ${JSON_SHAPE}`;
+  return `You are a quiz generator. Produce ${count} multiple-choice ("mcq") questions serving the objective. ${WITH_TOOLS} ${JSON_SHAPE}`;
+}
+
+/** The stored `format` for a test kind (learning.challenges CHECK). */
+function challengeFormat(kind: string): "open" | "exam" | "quickcalc" | "mcq" {
+  return kind === "skills" ? "open" : kind === "exam" ? "exam" : kind === "quickcalc" ? "quickcalc" : "mcq";
 }
 
 /** Validate + normalise the model output into storable rows. */
@@ -84,8 +108,8 @@ export async function POST(request: Request) {
   // full mixed exam (MCQ + open), or an open competency test. The leaderboard
   // scores on the attempt's fraction, so open-graded kinds rank fine too.
   const kindRaw = ((form.get("kind") as string | null) ?? "quiz").trim();
-  const kind = ["quiz", "exam", "skills"].includes(kindRaw) ? kindRaw : "quiz";
-  const defaultCount = kind === "exam" ? 10 : kind === "skills" ? 5 : 6;
+  const kind = ["quiz", "exam", "skills", "quickcalc"].includes(kindRaw) ? kindRaw : "quiz";
+  const defaultCount = kind === "exam" || kind === "quickcalc" ? 10 : kind === "skills" ? 5 : 6;
   const count = Math.min(Math.max(Number(form.get("count")) || defaultCount, 3), 14);
 
   // Optional source material from a file.
@@ -214,7 +238,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const format = kind === "skills" ? "open" : kind === "exam" ? "exam" : "mcq";
+  const format = challengeFormat(kind);
   const admin = createAdminClient();
   const { data: challenge, error: cErr } = await admin
     .schema("learning")

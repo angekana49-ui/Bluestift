@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { RightPanel } from "@/components/ui/shell";
 import { type AppTheme, status as statusColors } from "@/components/ui/tokens";
 import { useTranslate } from "@/components/ui/locale";
@@ -33,21 +34,48 @@ function Glyph({ children }: { children: string }) {
 }
 
 /** Open/close state for the panel, plus the handle pages and replies use to open it. */
-export function useMathsDockState(): { tool: MathBlockLang | null; version: number; setTool: (t: MathBlockLang | null) => void; dock: MathsDock } {
-  const [tool, setTool] = useState<MathBlockLang | null>(null);
+export function useMathsDockState(): {
+  tool: MathBlockLang | null;
+  version: number;
+  locked: boolean;
+  aboveOverlay: boolean;
+  setTool: (t: MathBlockLang | null) => void;
+  dock: MathsDock;
+} {
+  const [rawTool, setRawTool] = useState<MathBlockLang | null>(null);
+  const [locked, setLockedState] = useState(false);
+  const [aboveOverlay, setAboveOverlay] = useState(false);
+  // Locking also closes it, so lifting the lock doesn't pop it back open.
+  const setLocked = useCallback((on: boolean) => {
+    setLockedState(on);
+    if (on) setRawTool(null);
+  }, []);
+  // Locked means closed, and nothing reopens it until the lock lifts.
+  const tool = locked ? null : rawTool;
+  const setTool = useCallback((t: MathBlockLang | null) => setRawTool(t), []);
   // Bumped when content arrives from outside (a reply), so the panel re-reads it.
   const [version, setVersion] = useState(0);
   const open = useCallback((lang: MathBlockLang, src?: string) => {
     if (src != null) saveMathTool(lang, src);
-    setTool(lang);
+    setRawTool(lang);
     setVersion((v) => v + 1);
   }, []);
-  const dock = useMemo(() => ({ open }), [open]);
-  return { tool, version, setTool, dock };
+  const dock = useMemo(() => ({ open, setLocked, setAboveOverlay }), [open, setLocked]);
+  return { tool, version, locked, aboveOverlay, setTool: (t) => (locked ? undefined : setTool(t)), dock };
 }
 
 /** The thin column of icons along the right edge (hidden on phones — see globals.css). */
-export function MathsRail({ active, onPick, theme: t }: { active: MathBlockLang | null; onPick: (t: MathBlockLang | null) => void; theme: AppTheme }) {
+export function MathsRail({
+  active,
+  locked = false,
+  onPick,
+  theme: t,
+}: {
+  active: MathBlockLang | null;
+  locked?: boolean;
+  onPick: (t: MathBlockLang | null) => void;
+  theme: AppTheme;
+}) {
   const tr = useTranslate();
   return (
     <nav
@@ -61,11 +89,13 @@ export function MathsRail({ active, onPick, theme: t }: { active: MathBlockLang 
           <button
             key={x.id}
             type="button"
-            title={tr(x.labelKey)}
+            title={locked ? tr("math.locked") : tr(x.labelKey)}
             aria-label={tr(x.labelKey)}
             aria-pressed={on}
+            disabled={locked}
             onClick={() => onPick(on ? null : x.id)}
             style={{
+              opacity: locked ? 0.4 : 1,
               width: 34,
               height: 34,
               borderRadius: 10,
@@ -73,7 +103,7 @@ export function MathsRail({ active, onPick, theme: t }: { active: MathBlockLang 
               boxShadow: on ? `0 0 0 1px ${statusColors.aiIndigo}` : "none",
               background: on ? t.ctaBg : "transparent",
               color: on ? t.ctaText : t.text,
-              cursor: "pointer",
+              cursor: locked ? "not-allowed" : "pointer",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -88,7 +118,7 @@ export function MathsRail({ active, onPick, theme: t }: { active: MathBlockLang 
 }
 
 /** The header button that opens the panel on a phone, where the rail is hidden. */
-export function MathsHeaderButton({ open, onToggle, theme: t }: { open: boolean; onToggle: () => void; theme: AppTheme }) {
+export function MathsHeaderButton({ open, locked = false, onToggle, theme: t }: { open: boolean; locked?: boolean; onToggle: () => void; theme: AppTheme }) {
   const tr = useTranslate();
   return (
     <button
@@ -97,8 +127,10 @@ export function MathsHeaderButton({ open, onToggle, theme: t }: { open: boolean;
       onClick={onToggle}
       aria-pressed={open}
       aria-label={tr("math.panelTitle")}
-      title={tr("math.panelTitle")}
+      title={locked ? tr("math.locked") : tr("math.panelTitle")}
+      disabled={locked}
       style={{
+        opacity: locked ? 0.4 : 1,
         width: 34,
         height: 34,
         borderRadius: 10,
@@ -113,6 +145,66 @@ export function MathsHeaderButton({ open, onToggle, theme: t }: { open: boolean;
     >
       <Glyph>ƒ</Glyph>
     </button>
+  );
+}
+
+/**
+ * The panel, floated above a full-screen test: a tab on the right edge of the
+ * screen opens it as a drawer over the test. Portalled, because the test is
+ * itself a fixed layer over the whole app.
+ */
+export function MathsOverlayDock({
+  tool,
+  version,
+  onPick,
+  onClose,
+  theme: t,
+}: {
+  tool: MathBlockLang | null;
+  version: number;
+  onPick: (t: MathBlockLang | null) => void;
+  onClose: () => void;
+  theme: AppTheme;
+}) {
+  const tr = useTranslate();
+  return createPortal(
+    tool ? (
+      <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, zIndex: 65, display: "flex", boxShadow: "-12px 0 32px rgba(8,12,24,0.18)" }}>
+        <MathsDockPanel tool={tool} version={version} onPick={onPick} onClose={onClose} theme={t} />
+      </div>
+    ) : (
+      <button
+        type="button"
+        onClick={() => onPick("calc")}
+        aria-label={tr("math.panelTitle")}
+        title={tr("math.panelTitle")}
+        style={{
+          position: "fixed",
+          right: 0,
+          top: "50%",
+          transform: "translateY(-50%)",
+          zIndex: 65,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 6,
+          padding: "12px 8px",
+          borderRadius: "12px 0 0 12px",
+          border: `1px solid ${t.controlBorder}`,
+          borderRight: "none",
+          background: t.ctaBg,
+          color: t.ctaText,
+          cursor: "pointer",
+          fontSize: 13,
+          fontWeight: 700,
+          writingMode: "vertical-rl",
+        }}
+      >
+        <Glyph>ƒ</Glyph>
+        {tr("math.panelTitle")}
+      </button>
+    ),
+    document.body,
   );
 }
 

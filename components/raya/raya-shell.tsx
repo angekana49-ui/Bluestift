@@ -35,7 +35,7 @@ import { RayaName } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
 import { planLabelText } from "@/lib/i18n";
 import { MathsDockContext } from "@/components/raya/maths-dock-context";
-import { MathsDockPanel, MathsHeaderButton, MathsRail, useMathsDockState } from "@/components/raya/maths-dock";
+import { MathsDockPanel, MathsHeaderButton, MathsOverlayDock, MathsRail, useMathsDockState } from "@/components/raya/maths-dock";
 
 /** Raya student-app nav → real routes. `key` matches each page's `active` prop;
  *  `labelKey` is resolved through the message catalogue at render time. */
@@ -348,7 +348,7 @@ export function RayaShell({
           trailing={
             <>
               {mobileTrailing}
-              <MathsHeaderButton open={maths.tool != null} onToggle={() => maths.setTool(maths.tool ? null : "calc")} theme={t} />
+              <MathsHeaderButton open={maths.tool != null} locked={maths.locked} onToggle={() => maths.setTool(maths.tool ? null : "calc")} theme={t} />
             </>
           }
         />
@@ -361,7 +361,13 @@ export function RayaShell({
           panel is unmounted when closed, so "present" means "open". Harmless
           above 900px, where the scrim CSS is display:none and the panel is
           inline. */}
-      {maths.tool ? (
+      {maths.aboveOverlay && !maths.locked ? (
+        // A test covers the page: the panel floats above it instead (see maths-dock.tsx).
+        <>
+          {rightPanel}
+          <MathsOverlayDock tool={maths.tool} version={maths.version} onPick={maths.setTool} onClose={() => maths.setTool(null)} theme={t} />
+        </>
+      ) : maths.tool ? (
         <>
           <Scrim open onClick={() => maths.setTool(null)} />
           <MathsDockPanel tool={maths.tool} version={maths.version} onPick={maths.setTool} onClose={() => maths.setTool(null)} theme={t} />
@@ -372,7 +378,7 @@ export function RayaShell({
           {rightPanel}
         </>
       )}
-      <MathsRail active={maths.tool} onPick={maths.setTool} theme={t} />
+      <MathsRail active={maths.tool} locked={maths.locked} onPick={maths.setTool} theme={t} />
 
       {settingsOpen && (
         <SettingsSheet

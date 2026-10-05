@@ -16,6 +16,7 @@ import { FilePicker } from "@/components/ui/file-picker";
 import { neutralButton, formActions } from "@/components/ui/forms";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
+import { useMathsAboveOverlay, useMathsLock } from "@/components/raya/maths-dock-context";
 
 type Question = { id: string; type: "mcq" | "open"; content: string | null; options: string[] };
 
@@ -24,6 +25,8 @@ const TEST_KINDS: { id: string; labelKey: MessageKey; hintKey: MessageKey }[] = 
   { id: "quiz", labelKey: "tools.selfTest.kind.quiz.label", hintKey: "tools.selfTest.kind.quiz.hint" },
   { id: "exam", labelKey: "tools.selfTest.kind.exam.label", hintKey: "tools.selfTest.kind.exam.hint" },
   { id: "skills", labelKey: "tools.selfTest.kind.skills.label", hintKey: "tools.selfTest.kind.skills.hint" },
+  // Mental arithmetic: taken with the Maths panel locked (useMathsLock below).
+  { id: "quickcalc", labelKey: "tools.selfTest.kind.quickcalc.label", hintKey: "tools.selfTest.kind.quickcalc.hint" },
 ];
 type SoloItem = {
   id: string;
@@ -33,6 +36,7 @@ type SoloItem = {
   score: number | null;
   archived_at?: string | null;
   scope?: string | null;
+  format?: string | null;
 };
 
 const panel = (t: AppTheme): React.CSSProperties => ({
@@ -115,13 +119,18 @@ export function SoloChallenge({ myUserId, studentName }: { myUserId: string; stu
   const [result, setResult] = useState<{ score: number; correct: number; total: number } | null>(null);
   const [analysis, setAnalysis] = useState<{ title: string; body: string } | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  // No calculator during a "calcul rapide" — the calculation is the test.
+  useMathsLock(view === "take" && active?.format === "quickcalc");
+  // Every other test keeps the panel within reach, above the test screen —
+  // the questions are written to need more than the calculator can give.
+  useMathsAboveOverlay(view === "take" && active != null && active.format !== "quickcalc");
 
   async function load() {
     const [{ data: challenges }, { data: attempts }] = await Promise.all([
       supabase
         .schema("learning")
         .from("challenges")
-        .select("id, title, description, question_count, archived_at, scope")
+        .select("id, title, description, question_count, archived_at, scope, format")
         .is("room_id", null)
         .order("created_at", { ascending: false })
         .limit(30),

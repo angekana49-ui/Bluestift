@@ -255,7 +255,7 @@ describe("the Maths panel", () => {
   it("is on every Raya screen, as a right panel opened from a rail", () => {
     const shell = read("components/raya/raya-shell.tsx");
     expect(shell).toContain("<MathsDockContext.Provider value={maths.dock}>");
-    expect(shell).toContain("<MathsRail active={maths.tool} onPick={maths.setTool} theme={t} />");
+    expect(shell).toContain("<MathsRail active={maths.tool} locked={maths.locked} onPick={maths.setTool} theme={t} />");
     // While open it stands in for the page's own panel, with the same scrim.
     expect(shell).toMatch(/maths\.tool \? \([\s\S]*?<Scrim open onClick=\{\(\) => maths\.setTool\(null\)\} \/>[\s\S]*?<MathsDockPanel/);
     const dock = read("components/raya/maths-dock.tsx");

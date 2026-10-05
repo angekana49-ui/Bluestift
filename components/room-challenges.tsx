@@ -16,6 +16,7 @@ import { FilePicker } from "@/components/ui/file-picker";
 import { neutralButton, formActions } from "@/components/ui/forms";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
+import { useMathsAboveOverlay, useMathsLock } from "@/components/raya/maths-dock-context";
 
 type Challenge = {
   id: string;
@@ -42,6 +43,8 @@ const TEST_KINDS: { id: string; labelKey: MessageKey; hintKey: MessageKey }[] = 
   { id: "quiz", labelKey: "tools.selfTest.kind.quiz.label", hintKey: "tools.selfTest.kind.quiz.hint" },
   { id: "exam", labelKey: "tools.selfTest.kind.exam.label", hintKey: "tools.selfTest.kind.exam.hint" },
   { id: "skills", labelKey: "tools.selfTest.kind.skills.label", hintKey: "tools.selfTest.kind.skills.hint" },
+  // Mental arithmetic: taken with the Maths panel locked (useMathsLock below).
+  { id: "quickcalc", labelKey: "tools.selfTest.kind.quickcalc.label", hintKey: "tools.selfTest.kind.quickcalc.hint" },
 ];
 
 const mkBtn = (t: AppTheme): React.CSSProperties => ({
@@ -135,6 +138,11 @@ export function RoomChallenges({
   const [error, setError] = useState<string | null>(null);
 
   const [active, setActive] = useState<Challenge | null>(null);
+  // No calculator during a "calcul rapide" — the calculation is the test.
+  useMathsLock(view === "take" && active?.format === "quickcalc");
+  // Every other test keeps the panel within reach, above the test screen —
+  // the questions are written to need more than the calculator can give.
+  useMathsAboveOverlay(view === "take" && active != null && active.format !== "quickcalc");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [result, setResult] = useState<{ score: number; correct: number; total: number } | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderRow[]>([]);
@@ -211,7 +219,7 @@ export function RoomChallenges({
         description: goal || null,
         status: "active",
         question_count: data.questionCount ?? null,
-        format: kind === "skills" ? "open" : kind === "exam" ? "exam" : "mcq",
+        format: kind === "skills" ? "open" : kind === "exam" ? "exam" : kind === "quickcalc" ? "quickcalc" : "mcq",
       };
       setName("");
       setGoal("");
@@ -553,5 +561,6 @@ export function RoomChallenges({
 function kindLabel(format: string | null | undefined, tr: (key: MessageKey) => string): string {
   if (format === "exam") return tr("tools.selfTest.kind.exam.label");
   if (format === "open") return tr("tools.selfTest.kind.skills.label");
+  if (format === "quickcalc") return tr("tools.selfTest.kind.quickcalc.label");
   return tr("tools.selfTest.kind.quiz.label");
 }
