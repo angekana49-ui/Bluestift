@@ -449,6 +449,8 @@ export async function rayaStream(
 export async function generateJson(
   system: string,
   user: string,
+  /** Room for the answer — raise it for a large structure (a full mind map). */
+  maxTokens = 2048,
 ): Promise<string> {
   const geminiKey = process.env.GEMINI_API_KEY;
   if (geminiKey) {
@@ -465,7 +467,7 @@ export async function generateJson(
               contents: [{ role: "user", parts: [{ text: user }] }],
               generationConfig: {
                 temperature: 0.2,
-                maxOutputTokens: 2048,
+                maxOutputTokens: maxTokens,
                 responseMimeType: "application/json",
               },
             }),
@@ -505,7 +507,7 @@ export async function generateJson(
               { role: "user", content: user },
             ],
             temperature: 0.2,
-            max_tokens: 2048,
+            max_tokens: maxTokens,
             response_format: { type: "json_object" },
           }),
         },

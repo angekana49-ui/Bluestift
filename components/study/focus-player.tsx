@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { useAppTheme } from "@/components/ui/theme";
-import { display, displayType, status as statusColors, type AppTheme } from "@/components/ui/tokens";
+import { displayType, status as statusColors, type AppTheme } from "@/components/ui/tokens";
 import { useTranslate } from "@/components/ui/locale";
 import { splitInline, type DocBlock } from "@/lib/doc-format";
 import { renderMathHtml } from "@/lib/katex-render";
 import { MathBlock } from "@/components/chat/math-tools";
+import type { MindMap as MindMapData, MindMapPoint } from "@/lib/mind-map";
 
 /**
  * Full-screen focused study players for the Tools studio: one thing at a time —
@@ -863,9 +864,6 @@ export function ReaderView({
 
 // ── Mind map ──────────────────────────────────────────────────────────────
 
-export type MindMapBranch = { label: string; children: string[] };
-export type MindMapData = { title: string; branches: MindMapBranch[] };
-
 function hexToRgba(hex: string, a: number) {
   const h = hex.replace("#", "");
   const r = parseInt(h.slice(0, 2), 16);
@@ -900,15 +898,40 @@ function smoothPath(pts: XY[]): string {
 }
 
 type MapRole = "start" | "root" | "branch" | "end";
+type MapNode = { role: MapRole; label: string; emoji?: string; gist?: string; children: MindMapPoint[] };
+
+/** A branch's points: the label, and what it teaches under it. */
+function MapPoints({ t, accent, points }: { t: AppTheme; accent: string; points: MindMapPoint[] }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {points.map((c, ci) => (
+        <div key={ci} style={{ display: "flex", gap: 9, alignItems: "baseline" }}>
+          <span style={{ width: 7, height: 7, borderRadius: "50%", flex: "none", background: accent, transform: "translateY(-1px)" }} />
+          <div style={{ minWidth: 0, overflowWrap: "anywhere" }}>
+            <div style={{ fontSize: 15, fontWeight: 650, lineHeight: 1.4, color: t.text }}>{readerInline(c.label)}</div>
+            {c.detail && <div style={{ fontSize: 14, lineHeight: 1.5, color: t.muted, marginTop: 1 }}>{readerInline(c.detail)}</div>}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 /**
  * Interactive mind map: not a straight line of checkpoints but a **winding,
- * multicolour path you arrange yourself** on a huge canvas. A decorative Départ
- * and Arrivée bookend the route (tap either to light its alert). Each node is a
- * draggable checkpoint; the path re-flows as you move them, so the physical act
- * of laying it out anchors the memory. The path runs BEHIND the (opaque) cards —
- * it never crosses their text. Starts as a serpentine so nothing overlaps, your
- * layout is remembered (localStorage), and there's plenty of room to stretch out.
+ * multicolour path** through the subject, the branches in the order to learn
+ * them. A decorative Départ and Arrivée bookend the route.
+ *
+ * Two layouts, because a phone is not a small desktop (owner, 2026-10-06:
+ * "son UI sur téléphone c'est calamiteux"):
+ *
+ * - **Wide**: a huge canvas you arrange yourself. Each node is a draggable
+ *   checkpoint; the path re-flows as you move them, so laying it out anchors
+ *   the memory. The path runs BEHIND the opaque cards. Your layout is
+ *   remembered (localStorage).
+ * - **Phone**: the same route as a vertical list of steps you scroll — no
+ *   canvas to pan, no cards to drag under a thumb that wants to scroll. Each
+ *   step folds to its points' names and opens to what they teach.
  */
 export function MindMapView({
   title,
@@ -925,24 +948,22 @@ export function MindMapView({
   const tr = useTranslate();
 
   // The route: a decorative Départ, the theme, each branch, then Arrivée.
-  const nodes = useMemo<{ role: MapRole; label: string; children: string[] }[]>(
+  const nodes = useMemo<MapNode[]>(
     () => [
       { role: "start", label: tr("player.mapStart"), children: [] },
-      { role: "root", label: mindMap.title || title, children: [] },
-      ...(mindMap.branches ?? []).map((b) => ({ role: "branch" as MapRole, label: b.label, children: b.children })),
+      { role: "root", label: mindMap.title || title, gist: mindMap.overview, children: [] },
+      ...(mindMap.branches ?? []).map((b) => ({ role: "branch" as MapRole, label: b.label, emoji: b.emoji, gist: b.gist, children: b.children })),
       { role: "end", label: tr("player.mapEnd"), children: [] },
     ],
     [mindMap, title, tr],
   );
+  const steps = mindMap.branches?.length ?? 0;
 
-  const CARD_W = 202;
+  const CARD_W = 264;
 
   /*
    * How much room the map actually has. Measured rather than assumed, because
-   * the same overlay is a 1400px desktop canvas and a 375px phone, and a layout
-   * built for the first is unusable on the second: three 300px columns start
-   * 90px in, so a phone opened the map onto ONE card's left half with 1800px of
-   * empty terrain to its right.
+   * the same overlay is a 1400px desktop canvas and a 375px phone.
    *
    * Measuring is safe here in a way it is not elsewhere in the app: this overlay
    * only ever exists after a click, so there is no server render to disagree
@@ -960,33 +981,44 @@ export function MindMapView({
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const narrow = viewW > 0 && viewW < 620;
+  const narrow = viewW > 0 && viewW < 680;
 
-  // One column on a phone: the map becomes a vertical chain, which is the axis
-  // a phone scrolls anyway. Wide screens keep the snaking 2-3 column terrain.
-  const COLW = narrow ? CARD_W + 14 : 300;
-  const PAD = narrow ? 20 : 90;
-  // Free space kept beyond the furthest node. Generous on a desktop, where it is
-  // room to drag into; on a phone it is just empty scrolling, so it shrinks to
-  // what the widest card needs.
-  const slackX = narrow ? CARD_W / 2 + 20 : 600;
-  const slackY = narrow ? 160 : 600;
-  const maxCh = nodes.reduce((m, n) => Math.max(m, n.children.length), 0);
-  const rowH = 210 + maxCh * 16;
-  const cols = narrow ? 1 : Math.min(3, Math.max(2, nodes.length));
+  const COLW = CARD_W + 70;
+  const PAD = 90;
+  const cols = Math.min(3, Math.max(2, Math.floor((Math.max(viewW, 1000) - PAD) / COLW)));
+
+  /*
+   * A card's height, estimated from what it holds: a branch with a detail
+   * under every point is three times a bare one, and a single row height
+   * sized for the tallest (the old `210 + maxCh * 16`) either overlapped the
+   * rich cards or spread the short ones a screen apart.
+   */
+  const cardH = useCallback(
+    (n: MapNode) => {
+      const lines = (s: string | undefined, perLine: number) => (s ? Math.ceil(s.length / perLine) : 0);
+      let h = 46 + lines(n.gist, 30) * 20;
+      for (const c of n.children) h += 10 + lines(c.label, 26) * 21 + lines(c.detail, 30) * 21;
+      return h;
+    },
+    [],
+  );
 
   const serpentine = useCallback((): Record<number, XY> => {
     const out: Record<number, XY> = {};
-    nodes.forEach((_, k) => {
-      const row = Math.floor(k / cols);
-      let col = k % cols;
-      if (row % 2 === 1) col = cols - 1 - col; // boustrophedon → snake
-      out[k] = { x: PAD + col * COLW + COLW / 2, y: PAD + row * rowH + 40 };
-    });
+    let y = PAD;
+    for (let row = 0; row * cols < nodes.length; row++) {
+      const members = nodes.slice(row * cols, row * cols + cols);
+      members.forEach((_, j) => {
+        const k = row * cols + j;
+        const col = row % 2 === 1 ? cols - 1 - j : j; // boustrophedon → snake
+        out[k] = { x: PAD + col * COLW + COLW / 2, y: y + 20 };
+      });
+      y += Math.max(...members.map(cardH)) + 110;
+    }
     return out;
-  }, [nodes, cols, rowH, COLW, PAD]);
+  }, [nodes, cols, COLW, cardH]);
 
-  const storeKey = `bluestift:mindmap:${(mindMap.title || title).slice(0, 60)}:${nodes.length}`;
+  const storeKey = `bluestift:mindmap2:${(mindMap.title || title).slice(0, 60)}:${nodes.length}`;
   /** A layout this learner arranged by hand, if there is one. */
   const stored = useMemo<Record<number, XY> | null>(() => {
     if (typeof window === "undefined") return null;
@@ -1006,8 +1038,7 @@ export function MindMapView({
   /*
    * Re-lay-out when the shape of the terrain changes — which is what the
    * measurement above does one tick after mount, and what a rotation does after
-   * that. Never over a layout the learner arranged themselves: their map is
-   * theirs, and a phone turned sideways is not a request to throw it away.
+   * that. Never over a layout the learner arranged themselves.
    */
   const arranged = useRef(stored != null);
   useEffect(() => {
@@ -1017,6 +1048,8 @@ export function MindMapView({
   const [lit, setLit] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
+    // Only a hand-made layout is worth keeping; the automatic one is recomputed.
+    if (!arranged.current) return;
     try {
       window.localStorage.setItem(storeKey, JSON.stringify(pos));
     } catch {
@@ -1052,6 +1085,11 @@ export function MindMapView({
     drag.current = null;
   };
 
+  // Phone: which steps are open. The first one is, so the shape of a step is
+  // visible before anything is tapped.
+  const [open, setOpen] = useState<Record<number, boolean>>({ 0: true });
+  const allOpen = steps > 0 && Array.from({ length: steps }).every((_, i) => open[i]);
+
   const accentFor = (k: number): string => {
     const role = nodes[k].role;
     if (role === "start") return "#16a34a";
@@ -1068,51 +1106,181 @@ export function MindMapView({
   };
 
   const xs = nodes.map((_, k) => pos[k]?.x ?? 0);
-  const ys = nodes.map((_, k) => pos[k]?.y ?? 0);
-  // Never smaller than the viewport (so a short map still fills it), never
-  // bigger than the furthest node plus its slack (so a phone has no dead miles).
-  const canvasW = Math.max(narrow ? viewW : 2200, Math.max(0, ...xs) + slackX);
-  const canvasH = Math.max(narrow ? 0 : 1500, Math.max(0, ...ys) + slackY);
+  const ys = nodes.map((_, k) => (pos[k]?.y ?? 0) + 26 + cardH(nodes[k]));
+  const canvasW = Math.max(viewW || 0, Math.max(0, ...xs) + CARD_W / 2 + 120);
+  const canvasH = Math.max(0, ...ys) + 160;
   const points: XY[] = nodes.map((_, k) => pos[k]);
 
-  return (
-    <FocusOverlay
-      theme={t}
-      title={title}
-      subtitle={tr("player.mindMapSubtitle")}
-      onClose={onExit}
-      wide
-      actions={
-        <>
-          <button
-            style={ghostBtn(t)}
-            onClick={() => {
-              arranged.current = false;
-              setPos(serpentine());
-            }}
-            title={tr("player.resetLayoutTitle")}
-          >
-            {tr("player.resetButton")}
-          </button>
-          {actions}
-        </>
-      }
-    >
-      <div ref={viewRef}>
-      <div style={{ textAlign: "center", fontSize: 15, color: t.muted, marginBottom: 14 }}>
-        {tr("player.mindMapInstructions")}
+  const stepTitle = (n: MapNode, accent: string) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
+      {n.emoji && <span style={{ fontSize: 24, lineHeight: 1, flex: "none" }} aria-hidden>{n.emoji}</span>}
+      <span style={{ fontSize: 17, fontWeight: 750, lineHeight: 1.3, color: t.dark ? "#fff" : accent, overflowWrap: "anywhere" }}>{readerInline(n.label)}</span>
+    </div>
+  );
+
+  // ── Phone: the route as a list of steps ────────────────────────────────
+  const phone = () => {
+    const root = nodes[1];
+    return (
+      <div style={{ maxWidth: 560, margin: "0 auto" }}>
+        <div
+          style={{
+            background: t.cardBg,
+            border: `1px solid ${t.cardBorder}`,
+            borderTop: `4px solid ${statusColors.aiIndigo}`,
+            borderRadius: 16,
+            padding: "16px 16px 14px",
+            marginBottom: 18,
+          }}
+        >
+          <div style={{ ...displayType(21), color: t.text, overflowWrap: "anywhere" }}>{readerInline(root.label)}</div>
+          {root.gist && <div style={{ fontSize: 15, lineHeight: 1.55, color: t.muted, marginTop: 6 }}>{readerInline(root.gist)}</div>}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 14, fontWeight: 650, color: statusColors.aiIndigo }}>{tr("player.mapSteps", { n: steps })}</span>
+            <button
+              style={{ ...ghostBtn(t), padding: "6px 12px", fontSize: 14 }}
+              onClick={() => setOpen(allOpen ? {} : Object.fromEntries(Array.from({ length: steps }, (_, i) => [i, true])))}
+            >
+              {tr(allOpen ? "player.mapCollapseAll" : "player.mapExpandAll")}
+            </button>
+          </div>
+        </div>
+
+        <ol style={{ listStyle: "none", margin: 0, padding: 0 }}>
+          {mindMap.branches.map((b, i) => {
+            const k = i + 2;
+            const accent = accentFor(k);
+            const isOpen = !!open[i];
+            const last = i === steps - 1;
+            return (
+              <li key={i} style={{ display: "flex", gap: 12 }}>
+                {/* The rail: the step's number, and the route on to the next. */}
+                <div style={{ flex: "none", width: 32, display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <span
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: "50%",
+                      background: accent,
+                      color: "#fff",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 15,
+                      fontWeight: 800,
+                      boxShadow: `0 2px 8px ${hexToRgba(accent, 0.45)}`,
+                    }}
+                  >
+                    {i + 1}
+                  </span>
+                  <span
+                    style={{
+                      flex: 1,
+                      width: 3,
+                      minHeight: 14,
+                      borderRadius: 2,
+                      background: `linear-gradient(${accent}, ${last ? "#dc2626" : accentFor(k + 1)})`,
+                      opacity: 0.6,
+                    }}
+                  />
+                </div>
+                <div
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    marginBottom: 14,
+                    background: t.cardBg,
+                    border: `1.5px solid ${hexToRgba(accent, t.dark ? 0.6 : 0.4)}`,
+                    borderRadius: 14,
+                    overflow: "hidden",
+                  }}
+                >
+                  <button
+                    onClick={() => setOpen((o) => ({ ...o, [i]: !o[i] }))}
+                    aria-expanded={isOpen}
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      textAlign: "left",
+                      background: hexToRgba(accent, t.dark ? 0.16 : 0.07),
+                      border: "none",
+                      padding: "11px 13px",
+                      cursor: "pointer",
+                      color: t.text,
+                      font: "inherit",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>{stepTitle({ ...nodes[k] }, accent)}</div>
+                      <span style={{ flex: "none", fontSize: 14, color: t.muted, transform: isOpen ? "rotate(180deg)" : "none", transition: "transform .15s", marginTop: 3 }} aria-hidden>
+                        ▾
+                      </span>
+                    </div>
+                    {b.gist && <div style={{ fontSize: 14, lineHeight: 1.5, color: t.muted, marginTop: 5 }}>{readerInline(b.gist)}</div>}
+                  </button>
+                  <div style={{ padding: "11px 13px 13px" }}>
+                    {isOpen ? (
+                      <MapPoints t={t} accent={accent} points={b.children} />
+                    ) : (
+                      // Folded, a step still shows what it holds.
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                        {b.children.map((c, ci) => (
+                          <span
+                            key={ci}
+                            style={{
+                              fontSize: 13,
+                              padding: "3px 9px",
+                              borderRadius: 999,
+                              background: hexToRgba(accent, t.dark ? 0.2 : 0.1),
+                              color: t.text,
+                              maxWidth: "100%",
+                              overflowWrap: "anywhere",
+                            }}
+                          >
+                            {readerInline(c.label)}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+          <li style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <span
+              style={{
+                flex: "none",
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                background: "#dc2626",
+                color: "#fff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 15,
+              }}
+              aria-hidden
+            >
+              ⚑
+            </span>
+            <span style={{ fontSize: 15, fontWeight: 650, color: t.muted }}>{tr("player.mapEnd")}</span>
+          </li>
+        </ol>
       </div>
+    );
+  };
+
+  // ── Wide: the canvas you arrange ───────────────────────────────────────
+  const canvas = () => (
+    <>
+      <div style={{ textAlign: "center", fontSize: 15, color: t.muted, marginBottom: 14 }}>{tr("player.mindMapInstructions")}</div>
       {/*
-       * NO `touch-action: none` here. It used to sit on this element, and on a
-       * touch screen that is the difference between a map you can explore and a
-       * map you cannot move at all: it told the browser to send every gesture
-       * over the whole 2200x1500 canvas to script, and nothing here handles a
-       * swipe, so a finger anywhere on the map did nothing while the overlay's
-       * scroller sat there able to pan.
-       *
-       * The checkpoints keep their own `touch-action: none` (below), which is
-       * where it belongs: dragging ONE card must not scroll the map under it.
-       * Everywhere else the browser pans and pinch-zooms natively.
+       * NO `touch-action: none` on the canvas: on a touch screen it sent every
+       * gesture to script and nothing here handles a swipe, so the map could
+       * not be panned. The checkpoints keep their own `touch-action: none`:
+       * dragging ONE card must not scroll the map under it.
        */}
       <div style={{ position: "relative", width: canvasW, height: canvasH, margin: "0 auto" }}>
         {/* The winding path, drawn BEHIND the cards so it never touches their text. */}
@@ -1204,25 +1372,62 @@ export function MindMapView({
                   borderLeft: `1.5px solid ${hexToRgba(accent, t.dark ? 0.65 : 0.55)}`,
                   borderTop: `3px solid ${accent}`,
                   borderRadius: 14,
-                  padding: "10px 13px",
+                  padding: "11px 14px 12px",
                   boxShadow: t.dark ? "0 4px 14px rgba(0,0,0,0.35)" : "0 4px 14px rgba(15,23,42,0.10)",
                 }}
               >
-                <div style={{ fontSize: 16, fontWeight: 700, color: t.dark ? "#fff" : accent, marginBottom: n.children.length ? 7 : 0, fontFamily: n.role === "root" ? display : undefined }}>
-                  {n.label}
-                </div>
-                {n.children.map((c, ci) => (
-                  <div key={ci} style={{ display: "flex", gap: 7, alignItems: "baseline", margin: "3px 0", fontSize: 15, lineHeight: 1.45, color: t.text }}>
-                    <span style={{ width: 5, height: 5, borderRadius: "50%", flex: "none", background: accent, transform: "translateY(-1px)" }} />
-                    <span>{c}</span>
+                {n.role === "root" ? (
+                  <div style={{ ...displayType(18), color: t.text }}>{readerInline(n.label)}</div>
+                ) : n.role === "branch" ? (
+                  stepTitle(n, accent)
+                ) : (
+                  <div style={{ fontSize: 16, fontWeight: 700, color: t.dark ? "#fff" : accent }}>{n.label}</div>
+                )}
+                {n.gist && <div style={{ fontSize: 14, lineHeight: 1.5, color: t.muted, margin: "5px 0 0" }}>{readerInline(n.gist)}</div>}
+                {n.children.length > 0 && (
+                  <div style={{ borderTop: `1px solid ${hexToRgba(accent, 0.25)}`, marginTop: 9, paddingTop: 9 }}>
+                    <MapPoints t={t} accent={accent} points={n.children} />
                   </div>
-                ))}
+                )}
               </div>
             </div>
           );
         })}
       </div>
-      </div>
+    </>
+  );
+
+  return (
+    <FocusOverlay
+      theme={t}
+      title={title}
+      subtitle={tr("player.mindMapSubtitle")}
+      onClose={onExit}
+      wide
+      actions={
+        <>
+          {!narrow && (
+            <button
+              style={ghostBtn(t)}
+              onClick={() => {
+                arranged.current = false;
+                try {
+                  window.localStorage.removeItem(storeKey);
+                } catch {
+                  // nothing stored, or no storage
+                }
+                setPos(serpentine());
+              }}
+              title={tr("player.resetLayoutTitle")}
+            >
+              {tr("player.resetButton")}
+            </button>
+          )}
+          {actions}
+        </>
+      }
+    >
+      <div ref={viewRef}>{narrow ? phone() : canvas()}</div>
     </FocusOverlay>
   );
 }

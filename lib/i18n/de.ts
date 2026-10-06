@@ -3556,6 +3556,9 @@ export const de: Partial<Messages> = {
   "menu.myAccount": "Mein Konto",
   "player.mapStart": "Start",
   "player.mapEnd": "Ziel",
+  "player.mapSteps": "{n} Etappen",
+  "player.mapExpandAll": "Alle öffnen",
+  "player.mapCollapseAll": "Alle schließen",
   "survey.rayaDevelopmentSuffix": " ein.",
   // ── Maths tools in a Raya reply (components/chat/math-tools.tsx) ──
   "math.graph": "Graph",

@@ -3902,6 +3902,9 @@ export const en = {
   "menu.myAccount": "My account",
   "player.mapStart": "Start",
   "player.mapEnd": "Finish",
+  "player.mapSteps": "{n} steps",
+  "player.mapExpandAll": "Open all",
+  "player.mapCollapseAll": "Fold all",
   "survey.rayaDevelopmentSuffix": "’s development.",
   // ── Maths tools in a Raya reply (components/chat/math-tools.tsx) ──
   "math.graph": "Graph",

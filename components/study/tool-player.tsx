@@ -6,6 +6,7 @@ import { parseDoc } from "@/lib/doc-format";
 import { QuizPlayer, FlashcardsPlayer, ReaderView, MindMapView } from "@/components/study/focus-player";
 import { DocumentActions } from "@/components/ui/doc-actions";
 import { useTranslate } from "@/components/ui/locale";
+import { normalizeMindMap, mindMapToMd, type MindMap } from "@/lib/mind-map";
 
 /**
  * A generated study tool, opened full screen — the one renderer for a quiz, a
@@ -22,8 +23,7 @@ export type QuizQuestion = {
   explanation?: string;
 };
 export type Flashcard = { front: string; back: string };
-export type MindMapBranch = { label: string; children: string[] };
-export type MindMap = { title: string; branches: MindMapBranch[] };
+export type { MindMap, MindMapBranch } from "@/lib/mind-map";
 
 /** What the full-screen focus player is showing. */
 export type ActivePlayer =
@@ -39,7 +39,8 @@ export function playerFor(toolType: string, id: string | undefined, content: unk
   if (toolType === "summary") return { kind: "summary", title, text: (c.text as string) ?? "" };
   if (toolType === "flashcards") return { kind: "flashcards", title, cards: (c.cards as Flashcard[]) ?? [] };
   if (toolType === "mind_map") {
-    return { kind: "mind_map", title, mindMap: { title: (c.title as string) || title, branches: (c.branches as MindMapBranch[]) ?? [] } };
+    // Read through normalizeMindMap: maps stored before 2026-10-06 have bare string points.
+    return { kind: "mind_map", title, mindMap: normalizeMindMap(c, title) };
   }
   return { kind: "quiz", title, questions: (c.questions as QuizQuestion[]) ?? [], outputId: id };
 }
@@ -61,10 +62,7 @@ export function flashcardsToMd(cards: Flashcard[]) {
   return cards.map((c, i) => `## Card ${i + 1}\n**${c.front}**\n- ${c.back}`).join("\n\n");
 }
 
-export function mindMapToMd(m: MindMap) {
-  const branches = m.branches.map((b) => `## ${b.label}\n${b.children.map((c) => `- ${c}`).join("\n")}`).join("\n\n");
-  return `# ${m.title}\n\n${branches}`;
-}
+export { mindMapToMd };
 
 export function ToolPlayer({ player, onExit, studentName }: { player: ActivePlayer; onExit: () => void; studentName?: string }) {
   const tr = useTranslate();

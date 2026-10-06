@@ -14,6 +14,7 @@ import {
 import { captureServer } from "@/lib/analytics/server";
 import { apiT, getServerLocale } from "@/lib/i18n/server";
 import { wikipediaArticle } from "@/lib/raya/wikipedia";
+import { MIND_MAP_PROMPT, normalizeMindMap } from "@/lib/mind-map";
 
 const MAX_SOURCE_CHARS = 8000;
 const SUPPORTED = new Set(["quiz", "summary", "flashcards", "mind_map"]);
@@ -225,26 +226,12 @@ export async function POST(request: Request) {
       if (!cards || cards.length === 0) throw new Error("model did not return valid flashcard JSON");
       output = { cards };
     } else if (toolType === "mind_map") {
-      const raw = await generateJson(
-        "You are a mind-map generator. From the study material, produce a mind map in the SAME language as the material: a central title, and 4-7 main branches, each with 2-5 short child points. Keep every label concise (a few words). Return a JSON object shaped exactly as: " +
-          '{"title":"...","branches":[{"label":"...","children":["...","..."]}]}' + extra,
-        source,
-      );
-      const parsed = safeParseJson(raw);
-      const title = typeof parsed?.title === "string" ? parsed.title : "";
-      const branches = Array.isArray(parsed?.branches)
-        ? (parsed.branches as unknown[])
-            .filter((b): b is { label: string; children?: unknown } =>
-              !!b && typeof (b as { label?: unknown }).label === "string")
-            .map((b) => ({
-              label: b.label,
-              children: Array.isArray(b.children)
-                ? (b.children as unknown[]).filter((c): c is string => typeof c === "string")
-                : [],
-            }))
-        : null;
-      if (!branches || branches.length === 0) throw new Error("model did not return valid mind-map JSON");
-      output = { title, branches };
+      // A map of 6-9 branches with a detail on every point is far past the
+      // default 2048 tokens; cut short, the JSON would not parse at all.
+      const raw = await generateJson(MIND_MAP_PROMPT + extra, source, 8192);
+      const map = normalizeMindMap(safeParseJson(raw));
+      if (map.branches.length === 0) throw new Error("model did not return valid mind-map JSON");
+      output = map as unknown as Json;
     } else {
       // summary
       const { text } = await rayaComplete([

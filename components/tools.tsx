@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { netFetch } from "@/lib/net/client-fetch";
-import { ToolPlayer, playerFor, type ActivePlayer, type Flashcard, type MindMap, type QuizQuestion } from "@/components/study/tool-player";
+import { ToolPlayer, playerFor, type ActivePlayer, type Flashcard, type QuizQuestion } from "@/components/study/tool-player";
+import { normalizeMindMap } from "@/lib/mind-map";
 import { ArtifactMenu } from "@/components/ui/artifact-menu";
 import { ArchivedDisclosure } from "@/components/ui/archived-section";
 import { useAppTheme } from "@/components/ui/theme";
@@ -290,7 +291,7 @@ export function Tools({
       } else if (data.tool_type === "flashcards") {
         setPlayer({ kind: "flashcards", title: `${tr("tools.pretty.flashcards")} — ${baseName}`, cards: (data.output_content?.cards as Flashcard[]) ?? [] });
       } else if (data.tool_type === "mind_map") {
-        setPlayer({ kind: "mind_map", title: `${tr("tools.pretty.mindMap")} — ${baseName}`, mindMap: (data.output_content as MindMap) ?? { title: baseName, branches: [] } });
+        setPlayer({ kind: "mind_map", title: `${tr("tools.pretty.mindMap")} — ${baseName}`, mindMap: normalizeMindMap(data.output_content, baseName) });
       } else {
         setPlayer({ kind: "quiz", title: `${tr("tools.pretty.quiz")} — ${baseName}`, questions: (data.output_content?.questions as QuizQuestion[]) ?? [], outputId: typeof data.id === "string" ? data.id : undefined });
       }
@@ -335,7 +336,7 @@ export function Tools({
     } else if (o.tool_type === "flashcards") {
       setPlayer({ kind: "flashcards", title, cards: (c?.cards as Flashcard[]) ?? [] });
     } else if (o.tool_type === "mind_map") {
-      setPlayer({ kind: "mind_map", title, mindMap: (o.output_content as MindMap) ?? { title, branches: [] } });
+      setPlayer({ kind: "mind_map", title, mindMap: normalizeMindMap(o.output_content, title) });
     }
   }
 
