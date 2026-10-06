@@ -167,6 +167,18 @@ export const IconSummary = (p: IconProps) => (
   </Svg>
 );
 
+/** A centre and its branches — the mind map, which used to borrow the summary's page. */
+export const IconMindMap = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="2.6" />
+    <circle cx="5" cy="5.5" r="1.8" />
+    <circle cx="19" cy="5.5" r="1.8" />
+    <circle cx="5" cy="18.5" r="1.8" />
+    <circle cx="19" cy="18.5" r="1.8" />
+    <path d="M10.1 10.2 6.3 6.8M13.9 10.2l3.8-3.4M10.1 13.8l-3.8 3.4M13.9 13.8l3.8 3.4" />
+  </Svg>
+);
+
 export const IconCheck = (p: IconProps) => (
   <Svg strokeWidth={2.2} {...p}>
     <path d="M5 12.5l4.5 4.5L19 7.5" />

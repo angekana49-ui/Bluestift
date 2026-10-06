@@ -263,6 +263,10 @@ export async function POST(request: Request) {
 
     // Where it came from, kept with it: shown under the result, and on reopening.
     if (reference || topicOnly) output = { ...(output as Record<string, Json>), reference: reference ?? null, topic_only: topicOnly };
+    // What it is about (the file, topic or conversation's name), so the library
+    // can say "Quiz — Les dérivées" rather than a column of bare "Quiz".
+    const label = typeof body.title === "string" ? body.title.trim().slice(0, 80) : "";
+    if (label) output = { ...(output as Record<string, Json>), label };
 
     const { error: updErr } = await supabase
       .schema("learning")

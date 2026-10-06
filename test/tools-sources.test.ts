@@ -113,6 +113,11 @@ describe("from a topic", () => {
     expect(state.wikiCalls).toEqual([]);
     expect(state.llm[0].source).toBe("Mon cours sur les fractions.");
   });
+
+  it("keeps what it is about with the result, for the library to name it", async () => {
+    await generate({ topic: "Les fractions", title: "Les fractions" });
+    expect(state.updates.at(-1)).toMatchObject({ output_content: { label: "Les fractions" } });
+  });
 });
 
 describe("from a conversation", () => {
@@ -172,5 +177,16 @@ describe("the Tools page", () => {
   it("lists only the learner's own, solo, unarchived conversations", () => {
     const page = readFileSync(join(process.cwd(), "app/tools/page.tsx"), "utf8").split("\r\n").join("\n");
     expect(page).toMatch(/from\("conversations"\)\s*\.select\("id, title, updated_at"\)\s*\.eq\("user_id", user\.id\)\s*\.is\("room_id", null\)\s*\.eq\("is_private_room_channel", false\)\s*\.is\("archived_at", null\)/);
+  });
+  it("names each generation by its subject, not a column of bare \"Quiz\"", () => {
+    expect(tools).toContain("return about ? `${name} — ${about}` : name;");
+    expect(tools).toContain("label={label}");
+  });
+  it("offers the calculator and the graph on the page, opening the Maths panel beside it", () => {
+    expect(tools).toContain("onClick={() => dock.open(m.lang)}");
+    expect(tools).toMatch(/lang: "calc"[\s\S]*lang: "graph"/);
+  });
+  it("gives every tool its own icon", () => {
+    expect(tools).toContain("mind_map: IconMindMap,");
   });
 });

@@ -97,6 +97,22 @@ function button(t: AppTheme): CSSProperties {
   };
 }
 
+/** A button laid over the plot: opaque, so the grid does not show through its label. */
+function overlayButton(t: AppTheme): CSSProperties {
+  return {
+    border: `1px solid ${t.controlBorder}`,
+    background: t.cardBg,
+    color: t.text,
+    borderRadius: 8,
+    height: 30,
+    padding: "0 9px",
+    fontSize: 14,
+    fontWeight: 600,
+    fontFamily: "inherit",
+    cursor: "pointer",
+  };
+}
+
 function field(t: AppTheme): CSSProperties {
   return {
     flex: 1,
@@ -206,44 +222,94 @@ function Keypad({ calc, onKey, theme: t }: { calc: boolean; onKey: (text: string
     ],
   };
   const tabs: KeyTab[] = calc ? ["basic", "functions", "analysis"] : ["basic", "functions"];
+  const wide = keys[tab].some((k) => k.wide);
   return (
-    <div style={{ margin: "6px 0 8px" }}>
-      <div role="tablist" style={{ display: "flex", gap: 4, marginBottom: 6 }}>
-        {tabs.map((k) => (
-          <button
-            key={k}
-            type="button"
-            role="tab"
-            aria-selected={tab === k}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => setTab(k)}
-            style={{
-              ...button(t),
-              padding: "3px 10px",
-              fontSize: "0.8em",
-              fontWeight: tab === k ? 700 : 500,
-              background: tab === k ? t.cardBg2 : "transparent",
-              borderColor: tab === k ? t.controlBorder : "transparent",
-            }}
-          >
-            {tr(`math.tab.${k}`)}
-          </button>
-        ))}
-      </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+    <div style={{ margin: "4px 0 10px", padding: 8, borderRadius: 12, background: t.cardBg2, border: `1px solid ${t.cardBorder}` }}>
+      <Switch
+        theme={t}
+        value={tab}
+        options={tabs.map((k) => ({ value: k, label: tr(`math.tab.${k}`) }))}
+        onChange={setTab}
+        // Keep the focus in the input being typed into.
+        keepFocus
+      />
+      {/* An even grid, like a calculator's keys — not a ragged row of chips. */}
+      <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(${wide ? 118 : 44}px, 1fr))`, gap: 5, marginTop: 8 }}>
         {keys[tab].map((k) => (
           <button
             key={k.label}
             type="button"
-            // Keep the focus in the input being typed into.
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => onKey(k.insert)}
-            style={{ ...button(t), minWidth: k.wide ? undefined : 38, fontSize: "0.92em", padding: "5px 8px" }}
+            style={{
+              border: `1px solid ${t.cardBorder}`,
+              background: t.cardBg,
+              color: t.text,
+              borderRadius: 9,
+              height: 36,
+              padding: "0 6px",
+              fontSize: "0.95em",
+              fontFamily: k.wide ? "inherit" : "Georgia, 'Times New Roman', serif",
+              fontWeight: k.wide ? 600 : 500,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
           >
             {k.label}
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+/** A small segmented control: the keypad's tabs, degrees or radians. */
+function Switch<T extends string>({
+  theme: t,
+  value,
+  options,
+  onChange,
+  label,
+  keepFocus,
+}: {
+  theme: AppTheme;
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (v: T) => void;
+  label?: string;
+  /** Leave the focus where it is (the input the keypad types into). */
+  keepFocus?: boolean;
+}) {
+  return (
+    <div role="tablist" aria-label={label} style={{ display: "inline-flex", gap: 2, padding: 3, borderRadius: 99, background: t.pillTrackBg, maxWidth: "100%", flexWrap: "wrap" }}>
+      {options.map((o) => {
+        const on = o.value === value;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            role="tab"
+            aria-selected={on}
+            onMouseDown={keepFocus ? (e) => e.preventDefault() : undefined}
+            onClick={() => onChange(o.value)}
+            style={{
+              border: `1px solid ${on ? t.controlBorder : "transparent"}`,
+              background: on ? t.cardBg : "transparent",
+              color: on ? t.text : t.muted,
+              borderRadius: 99,
+              padding: "3px 12px",
+              fontSize: "0.82em",
+              fontWeight: on ? 700 : 550,
+              fontFamily: "inherit",
+              cursor: "pointer",
+            }}
+          >
+            {o.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -275,27 +341,19 @@ function useDegrees(remember: boolean): [boolean, (v: boolean) => void] {
 
 function AngleSwitch({ degrees, onChange, theme: t }: { degrees: boolean; onChange: (v: boolean) => void; theme: AppTheme }) {
   const tr = useTranslate();
-  const option = (on: boolean, label: string) => (
-    <button
-      type="button"
-      aria-pressed={degrees === on}
-      onClick={() => onChange(on)}
-      style={{
-        ...button(t),
-        padding: "2px 9px",
-        fontSize: "0.78em",
-        fontWeight: degrees === on ? 700 : 500,
-        background: degrees === on ? t.cardBg2 : "transparent",
-      }}
-    >
-      {label}
-    </button>
-  );
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "0.85em", color: t.muted, marginBottom: 6 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.88em", color: t.muted, marginBottom: 10 }}>
       <span>{tr("math.angles")}</span>
-      {option(true, tr("math.deg"))}
-      {option(false, tr("math.rad"))}
+      <Switch
+        theme={t}
+        label={tr("math.angles")}
+        value={degrees ? "deg" : "rad"}
+        options={[
+          { value: "deg", label: tr("math.deg") },
+          { value: "rad", label: tr("math.rad") },
+        ]}
+        onChange={(v) => onChange(v === "deg")}
+      />
     </div>
   );
 }
@@ -343,7 +401,8 @@ function CalcResult({ row, raw, theme: t }: { row: Row; raw: string; theme: AppT
           : row.note === "noLimit"
             ? tr("math.noLimit")
             : null;
-  const answer = row.resultHtml ? <Tex html={row.resultHtml} style={{ fontWeight: 600 }} /> : noteText ? <span>{noteText}</span> : null;
+  // The answer in the link blue: the one thing on the line the learner came for.
+  const answer = row.resultHtml ? <Tex html={row.resultHtml} style={{ fontWeight: 600, color: t.link }} /> : noteText ? <span>{noteText}</span> : null;
   return (
     <span style={{ display: "inline-flex", flexWrap: "wrap", alignItems: "baseline", gap: 8 }}>
       {row.inputHtml ? <Tex html={row.inputHtml} /> : <span>{raw}</span>}
@@ -452,8 +511,19 @@ function CalcTool({
               />
               {lines.length > 1 && <RemoveButton theme={t} onClick={() => onChange(lines.filter((_, j) => j !== i))} />}
             </div>
+            {/* The line typeset, under what was typed: a strip of its own, so a
+                result is told from the next line's input at a glance. */}
             {resultFor[i] && (
-              <div style={{ padding: "4px 2px 0", minHeight: "1.4em" }}>
+              <div
+                style={{
+                  margin: "4px 0 0",
+                  padding: "6px 10px",
+                  borderRadius: 8,
+                  background: resultFor[i]!.error ? (t.dark ? "rgba(214,69,69,0.12)" : "rgba(214,69,69,0.06)") : t.cardBg2,
+                  minHeight: "1.4em",
+                  overflowX: "auto",
+                }}
+              >
                 <CalcResult row={resultFor[i]!} raw={line} theme={t} />
               </div>
             )}
@@ -462,7 +532,7 @@ function CalcTool({
       </div>
       <button
         type="button"
-        style={{ ...button(t), marginTop: 10 }}
+        style={{ ...button(t), marginTop: 10, width: "100%", padding: "7px 10px", borderStyle: "dashed", color: t.muted }}
         onClick={() => {
           onChange([...lines, ""]);
           setFocusNext(lines.length);
@@ -759,8 +829,36 @@ function GraphTool({
   const names = engine.graphNames(spec);
   const curveErrors = sampled.curves.filter((c) => c.error);
 
+  // The zoom sits on the plot it zooms, in its corner, not on a row below it.
+  const zoomControls = (
+    <span style={{ position: "absolute", top: 6, right: 6, display: "flex", gap: 4 }}>
+      {zoom !== 1 && (
+        <button type="button" style={overlayButton(t)} onClick={() => setZoom(1)}>
+          {tr("math.resetView")}
+        </button>
+      )}
+      <button type="button" style={{ ...overlayButton(t), width: 30 }} aria-label={tr("math.zoomIn")} title={tr("math.zoomIn")} onClick={() => setZoom((z) => z / 2)}>
+        +
+      </button>
+      <button type="button" style={{ ...overlayButton(t), width: 30 }} aria-label={tr("math.zoomOut")} title={tr("math.zoomOut")} onClick={() => setZoom((z) => z * 2)}>
+        −
+      </button>
+    </span>
+  );
+
   const plot = (
-    <div ref={box} style={full ? { flex: 1, minHeight: 280, minWidth: 0 } : undefined}>
+    <div
+      ref={box}
+      style={{
+        position: "relative",
+        borderRadius: 12,
+        border: `1px solid ${t.cardBorder}`,
+        background: t.dark ? "rgba(255,255,255,0.02)" : "#fff",
+        overflow: "hidden",
+        ...(full ? { flex: 1, minHeight: 280, minWidth: 0 } : {}),
+      }}
+    >
+      {zoomControls}
       {W > 0 && H > 0 && (
         <svg viewBox={`0 0 ${W} ${H}`} width={full ? W : undefined} height={full ? H : undefined} role="img" aria-label={label} style={full ? { display: "block" } : { width: "100%", height: "auto", display: "block" }}>
           <defs>
@@ -849,19 +947,6 @@ function GraphTool({
               </span>
             );
           })}
-        <span style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
-          <button type="button" style={button(t)} aria-label={tr("math.zoomIn")} title={tr("math.zoomIn")} onClick={() => setZoom((z) => z / 2)}>
-            +
-          </button>
-          <button type="button" style={button(t)} aria-label={tr("math.zoomOut")} title={tr("math.zoomOut")} onClick={() => setZoom((z) => z * 2)}>
-            −
-          </button>
-          {zoom !== 1 && (
-            <button type="button" style={button(t)} onClick={() => setZoom(1)}>
-              {tr("math.resetView")}
-            </button>
-          )}
-        </span>
       </div>
 
       {/* The numbers the shading and the dashed lines stand for. */}
@@ -1094,6 +1179,32 @@ function LoadedTool({
         <div style={{ fontSize: "0.82em", color: t.muted, marginBottom: 6 }}>{tr(lang === "graph" ? "math.graphHint" : "math.writeHint")}</div>
         <div style={lang === "graph" ? { flex: 1, minHeight: 0 } : { flex: 1, minHeight: 0, overflowY: "auto", width: "100%", maxWidth: 820, margin: "0 auto" }}>{body}</div>
         {!changed && <LineErrors errors={sourceErrors} />}
+      </div>
+    );
+  }
+
+  if (mode === "panel") {
+    // The panel is already the frame, and its tabs already name the tool: no
+    // card inside the card, no second "Calculator" heading — the hint, the
+    // actions on its right, then the tool.
+    return (
+      <div style={{ color: t.text }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 8 }}>
+          <div style={{ flex: 1, fontSize: "0.86em", color: t.muted, lineHeight: 1.4 }}>{tr(lang === "graph" ? "math.graphHint" : "math.writeHint")}</div>
+          {changed && (
+            <button type="button" style={{ ...button(t), flex: "none" }} onClick={reset}>
+              {tr("math.reset")}
+            </button>
+          )}
+          {onFullscreen && (
+            <HeaderButton theme={t} label={tr("math.fullscreen")} onClick={onFullscreen}>
+              ⛶
+            </HeaderButton>
+          )}
+        </div>
+        {body}
+        {!changed && <LineErrors errors={sourceErrors} />}
+        {note && <div style={{ fontSize: "0.78em", color: t.muted, marginTop: 12 }}>{note}</div>}
       </div>
     );
   }
