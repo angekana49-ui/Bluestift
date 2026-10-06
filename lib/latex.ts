@@ -11,9 +11,10 @@
  * as plain text (`\underbrace{x+y}` → "x+y") rather than showing the student a
  * backslash. Raw LaTeX source is never displayed.
  *
- * If full LaTeX is ever needed (matrices, aligned environments, integrals with
- * limits), the upgrade is to lazy-load KaTeX for messages containing maths —
- * the node tree below is deliberately the only thing the renderer depends on.
+ * That upgrade happened on 2026-10-06: the chat (components/chat/rich-text.tsx)
+ * lazy-loads KaTeX on the first formula a conversation shows. This subset is
+ * now the stand-in until KaTeX arrives (or if it never does, offline), and
+ * for a formula KaTeX cannot read — typically one still streaming in.
  */
 
 export type MathNode =

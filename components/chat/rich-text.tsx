@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useMemo, type CSSProperties, type ReactNode } from "react";
+import { Fragment, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { parseMarkdown, type Block, type Inline } from "@/lib/markdown";
 import { parseLatex, latexToText, type MathNode } from "@/lib/latex";
 import { type AppTheme } from "@/components/ui/tokens";
@@ -95,7 +95,7 @@ function renderMathNode(n: MathNode): ReactNode {
   }
 }
 
-function Math({ src, block }: { src: string; block?: boolean }) {
+function FallbackMath({ src, block }: { src: string; block?: boolean }) {
   const nodes = useMemo(() => parseLatex(src), [src]);
   const style: CSSProperties = {
     fontFamily: "'Cambria Math', 'Latin Modern Math', Georgia, serif",
@@ -124,6 +124,68 @@ function Math({ src, block }: { src: string; block?: boolean }) {
     <span role="math" aria-label={latexToText(nodes)} style={style}>
       <MathNodes nodes={nodes} />
     </span>
+  );
+}
+
+/*
+ * KaTeX, loaded on the first formula rather than with the chat.
+ *
+ * Owner, 2026-10-06: "Raya a toujours du mal à afficher ces éléments dans un
+ * format compréhensible pour tous". The renderer above is a school-level
+ * subset (fractions, powers, roots) and the prompt had to forbid everything
+ * else — systems, matrices, limits, vectors, aligned steps came out as raw
+ * source or as prose. KaTeX already ships with the app (the maths tools, the
+ * documents), so the chat now typesets with it too. It is imported on the
+ * first formula a conversation shows, so a chat without maths pays nothing;
+ * until it arrives, and for anything KaTeX cannot read (a formula still
+ * streaming in), the subset renderer stands in.
+ */
+type KatexRender = (tex: string, display: boolean) => string;
+let katexRender: KatexRender | null = null;
+let katexLoading: Promise<void> | null = null;
+function loadKatex(): Promise<void> {
+  katexLoading ??= import("@/lib/katex-render").then((m) => {
+    katexRender = m.renderMathHtml;
+  });
+  return katexLoading;
+}
+
+function Math({ src, block }: { src: string; block?: boolean }) {
+  const [ready, setReady] = useState(katexRender != null);
+  useEffect(() => {
+    if (ready) return;
+    let live = true;
+    loadKatex().then(
+      () => live && setReady(true),
+      () => {}, // offline: the subset renderer stays
+    );
+    return () => {
+      live = false;
+    };
+  }, [ready]);
+  const html = useMemo(() => {
+    if (!ready || !katexRender) return null;
+    const out = katexRender(src.trim(), !!block);
+    // KaTeX's own failure output is the source in red: worse than the subset.
+    return out.includes("katex-error") ? null : out;
+  }, [ready, src, block]);
+
+  if (html == null) return <FallbackMath src={src} block={block} />;
+  if (block) {
+    return (
+      <div
+        style={{ margin: "0.6em 0", overflowX: "auto", overflowY: "hidden", maxWidth: "100%", padding: "0.15em 0" }}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    );
+  }
+  return (
+    <span
+      // A long inline formula scrolls on its own rather than pushing the
+      // bubble wider than a phone.
+      style={{ display: "inline-block", maxWidth: "100%", overflowX: "auto", overflowY: "hidden", verticalAlign: "middle", lineHeight: 1.2, padding: "0.1em 0" }}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
   );
 }
 

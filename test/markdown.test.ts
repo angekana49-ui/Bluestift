@@ -115,6 +115,34 @@ describe("block markdown", () => {
     expect(parseMarkdown("$$\na^2\n$$")).toEqual([{ t: "mathBlock", v: "a^2" }]);
   });
 
+  // How models actually write maths (owner, 2026-10-06: Raya's formulas did
+  // not come out readable).
+  it("takes a system whose formula starts on the $$ line and ends on the closing one", () => {
+    const src = "$$\\begin{cases} x + y = 3 \\\\\nx - y = 1 \\end{cases}$$";
+    expect(parseMarkdown(src)).toEqual([{ t: "mathBlock", v: "\\begin{cases} x + y = 3 \\\\\nx - y = 1 \\end{cases}" }]);
+    expect(parseMarkdown("\\[\nx = 2\n\\]")).toEqual([{ t: "mathBlock", v: "x = 2" }]);
+  });
+
+  it("keeps what follows a closing $$, and drops a lone full stop", () => {
+    expect(parseMarkdown("$$x = 2$$.")).toEqual([{ t: "mathBlock", v: "x = 2" }]);
+    expect(parseMarkdown("$$x = 2$$ est la solution")).toEqual([
+      { t: "mathBlock", v: "x = 2" },
+      { t: "p", c: [text("est la solution")] },
+    ]);
+  });
+
+  it("reads a bare environment as display maths", () => {
+    expect(parseMarkdown("\\begin{pmatrix}\n1 & 2 \\\\\n3 & 4\n\\end{pmatrix}")).toEqual([
+      { t: "mathBlock", v: "\\begin{pmatrix}\n1 & 2 \\\\\n3 & 4\n\\end{pmatrix}" },
+    ]);
+  });
+
+  it("reads $ x^2 $ with spaces and $$…$$ inside a sentence, but not money", () => {
+    expect(parseInline("soit $ x^2 + 1 $ ici")).toEqual([text("soit "), { t: "math", v: "x^2 + 1" }, text(" ici")]);
+    expect(parseInline("on a $$a = b$$ donc")).toEqual([text("on a "), { t: "math", v: "a = b" }, text(" donc")]);
+    expect(parseInline("$5 and $12")).toEqual([text("$5 and $12")]);
+  });
+
   it("never emits raw HTML from the model", () => {
     const blocks = parseMarkdown("<script>alert(1)</script>");
     expect(blocks).toEqual([{ t: "p", c: [text("<script>alert(1)</script>")] }]);

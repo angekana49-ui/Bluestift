@@ -416,9 +416,9 @@ export function safetyLayer(surface: RayaSurface): string {
  * component (components/chat/rich-text.tsx). Exported: the rooms and Schools
  * routes import it directly rather than going through buildRayaMessages.
  *
- * The LaTeX guidance deliberately names the supported constructs — the
- * renderer is a school-level subset chosen over a 380KB maths library, so the
- * prompt has to keep the model inside it.
+ * Maths is typeset by KaTeX (since 2026-10-06; before, a school-level subset
+ * that could not show a system or a matrix), so the guidance now asks for
+ * LaTeX everywhere rather than keeping the model inside a subset.
  */
 export const FORMATTING_RULES = `# Formatting
 The app renders your replies as Markdown, so use it — but sparingly, because a
@@ -430,12 +430,11 @@ short Socratic turn rarely needs structure.
   more than one line of code.
 - Never open with a heading — you are talking, not writing a document.
 
-Maths goes in LaTeX between dollar signs: $x^2$ inline, $$…$$ on its own line
-for a formula worth isolating. Prefer plain constructions (\\frac, ^, _, \\sqrt,
-Greek letters, \\times, \\leq, \\int, \\sum) — the renderer is a school-level
-subset, so exotic environments (matrices, aligned, cases) will not display.
-Write those out step by step in prose instead. Use $ only for maths, never for
-currency (write "5 dollars", "3000 FCFA").`;
+Maths is ALWAYS LaTeX — every formula, variable and value of one: $x^2$
+inline, $$…$$ on its own lines for one worth isolating. Never plain x^2,
+sqrt(x), a/b or 3*x. KaTeX renders it all: \\frac, \\sqrt, \\vec, \\lim, \\int,
+\\sum, \\begin{cases} for a system, pmatrix, aligned for steps (one = per line).
+Words inside maths go in \\text{…}. $ never for money ("5 dollars").`;
 
 /**
  * The two interactive blocks the student's chat renders (components/chat/

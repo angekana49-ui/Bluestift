@@ -42,12 +42,14 @@ export type Block =
 
 /**
  * Is `$…$` here really maths, or is it money? "$5 and $12" must stay text.
- * Rule: no space directly inside the delimiters, and either the content has no
- * space at all or it carries LaTeX punctuation.
+ * Rule: the content carries LaTeX punctuation or an equation sign, or it has
+ * no space at all. Models do write "$ x^2 + 1 $" with spaces inside the
+ * delimiters; that is maths all the same.
  */
 function looksLikeMath(body: string): boolean {
-  if (!body || /^\s|\s$/.test(body)) return false;
-  return !/\s/.test(body) || /[\\^_{}]/.test(body);
+  if (!body.trim()) return false;
+  if (/[\\^_{}=<>]/.test(body)) return true;
+  return !/\s/.test(body);
 }
 
 const ESCAPABLE = "\\`*_{}[]()#+-.!$>~|";
@@ -100,6 +102,17 @@ export function parseInline(src: string): Inline[] {
       }
     }
 
+    // $$…$$ in the middle of a sentence: maths, set inline.
+    if (ch === "$" && src[i + 1] === "$") {
+      const end = src.indexOf("$$", i + 2);
+      if (end > i + 2) {
+        flush();
+        out.push({ t: "math", v: src.slice(i + 2, end).trim() });
+        i = end + 2;
+        continue;
+      }
+    }
+
     // Inline maths: $…$ or \(…\).
     if (ch === "$") {
       const end = closer("$", i + 1);
@@ -107,7 +120,7 @@ export function parseInline(src: string): Inline[] {
         const body = src.slice(i + 1, end);
         if (looksLikeMath(body)) {
           flush();
-          out.push({ t: "math", v: body });
+          out.push({ t: "math", v: body.trim() });
           i = end + 1;
           continue;
         }
@@ -223,22 +236,50 @@ export function parseMarkdown(src: string): Block[] {
       continue;
     }
 
-    // Display maths: $$…$$ or \[…\], possibly spanning lines.
-    const openBlockMath = /^\s*(\$\$|\\\[)\s*$/.exec(line);
-    if (openBlockMath) {
+    // Display maths: $$…$$ or \[…\], on one line or spanning several, with
+    // the formula allowed to start on the opener's line and end on the
+    // closer's ("$$\begin{cases} … \end{cases}$$" — how models write a system).
+    // An unclosed one (still streaming) takes the rest.
+    const opener = /^\s*(\$\$|\\\[)(.*)$/.exec(line);
+    if (opener) {
       flushPara();
-      const closeMark = openBlockMath[1] === "$$" ? "$$" : "\\]";
+      const closeMark = opener[1] === "$$" ? "$$" : "\\]";
       const body: string[] = [];
-      let j = i + 1;
-      while (j < lines.length && lines[j].trim() !== closeMark) body.push(lines[j++]);
-      blocks.push({ t: "mathBlock", v: body.join("\n").trim() });
+      let rest = opener[2];
+      let j = i;
+      let after = "";
+      for (;;) {
+        const at = rest.indexOf(closeMark);
+        if (at >= 0) {
+          body.push(rest.slice(0, at));
+          after = rest.slice(at + closeMark.length).trim();
+          break;
+        }
+        body.push(rest);
+        if (++j >= lines.length) break;
+        rest = lines[j];
+      }
+      const v = body.join("\n").trim();
+      if (v) blocks.push({ t: "mathBlock", v });
+      // "$$x = 2$$." — the full stop is not worth a paragraph of its own.
+      if (after && !/^[.,;:!?]+$/.test(after)) blocks.push({ t: "p", c: parseInline(after) });
       i = j;
       continue;
     }
-    const oneLineMath = /^\s*\$\$(.+?)\$\$\s*$/.exec(line) ?? /^\s*\\\[(.+?)\\\]\s*$/.exec(line);
-    if (oneLineMath) {
+    // A bare environment with no dollars around it: \begin{pmatrix} … \end{pmatrix}.
+    const env = /^\s*\\begin\{([a-zA-Z*]+)\}/.exec(line);
+    if (env) {
       flushPara();
-      blocks.push({ t: "mathBlock", v: oneLineMath[1].trim() });
+      const end = `\\end{${env[1]}}`;
+      const body: string[] = [];
+      let j = i;
+      while (j < lines.length) {
+        body.push(lines[j]);
+        if (lines[j].includes(end)) break;
+        j++;
+      }
+      blocks.push({ t: "mathBlock", v: body.join("\n").trim() });
+      i = Math.min(j, lines.length - 1);
       continue;
     }
 
