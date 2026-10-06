@@ -40,6 +40,8 @@ export const EXPENSIVE_LIMITS = {
   hooks: { perMinute: 10, perDay: 150 },
   conversationTitle: { perMinute: 20, perDay: 300 },
   memorize: { perMinute: 10, perDay: 100 },
+  /** Raya explaining a calculation or a graph from the Maths panel. */
+  mathExplain: { perMinute: 10, perDay: 150 },
 } as const;
 
 export type ExpensiveKind = keyof typeof EXPENSIVE_LIMITS;

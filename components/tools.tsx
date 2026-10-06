@@ -189,10 +189,15 @@ export function Tools({
   useEffect(() => {
     const url = new URL(window.location.href);
     const id = url.searchParams.get("open");
-    if (!id) return;
+    // `/tools?maths=graph|calc` — "Open in Tools" on a graph or a calculation
+    // in a conversation: it saved the block for the panel, which opens on it.
+    const maths = url.searchParams.get("maths");
+    if (!id && !maths) return;
     url.searchParams.delete("open");
+    url.searchParams.delete("maths");
     window.history.replaceState(null, "", url.pathname + url.search + url.hash);
-    const o = outputs.find((x) => x.id === id && x.status === "done");
+    if (maths === "graph" || maths === "calc") dock?.open(maths);
+    const o = id ? outputs.find((x) => x.id === id && x.status === "done") : undefined;
     if (o) setPlayer(playerFor(o.tool_type, o.id, o.output_content, tr(PRETTY[o.tool_type] ?? "tools.pretty.quiz")));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

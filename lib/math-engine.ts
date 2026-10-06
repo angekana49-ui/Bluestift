@@ -31,7 +31,19 @@ math.import({ import: off("import"), createUnit: off("createUnit"), reviver: off
 // ── Typesetting ───────────────────────────────────────────────────────────
 
 /** The way a French, Spanish or German textbook names the inverse functions. */
-const SCHOOL_NAMES: Record<string, string> = { asin: "\\arcsin", acos: "\\arccos", atan: "\\arctan" };
+const SCHOOL_NAMES: Record<string, string> = {
+  asin: "\\arcsin",
+  acos: "\\arccos",
+  atan: "\\arctan",
+  // The ISO names (arsinh, not "asinh"), as German and international books print them.
+  asinh: "\\operatorname{arsinh}",
+  acosh: "\\operatorname{arcosh}",
+  atanh: "\\operatorname{artanh}",
+  acoth: "\\operatorname{arcoth}",
+  coth: "\\coth",
+  sech: "\\operatorname{sech}",
+  csch: "\\operatorname{csch}",
+};
 
 type TexOptions = { parenthesis: "auto"; implicit: "hide"; handler: (node: MathNode, options: object) => string | undefined };
 
@@ -48,6 +60,12 @@ const TEX: TexOptions = {
       if (SCHOOL_NAMES[n.fn.name]) return `${SCHOOL_NAMES[n.fn.name]}\\left(${arg}\\right)`;
       // exp(x) is written eˣ at school.
       if (n.fn.name === "exp") return `e^{${arg}}`;
+      if (n.fn.name === "floor") return `\\left\\lfloor ${arg}\\right\\rfloor`;
+      if (n.fn.name === "ceil") return `\\left\\lceil ${arg}\\right\\rceil`;
+    }
+    // C(n, k) as a binomial coefficient.
+    if (n.type === "FunctionNode" && n.fn?.name === "combinations" && n.args?.length === 2) {
+      return `\\binom{${n.args[0].toTex(options)}}{${n.args[1].toTex(options)}}`;
     }
     return undefined;
   },
@@ -57,6 +75,9 @@ function texOfNode(node: MathNode): string {
   return (
     node
       .toTex(TEX)
+      // The handler above sets a letter without the space math.js puts before
+      // it, so x·y came out as `x\cdoty` — a command KaTeX does not know.
+      .replace(/\\cdot(?=[A-Za-z])/g, "\\cdot ")
       // math.js writes an assignment as `:=`; at school it is `=`.
       .replace(/:=/g, "=")
       // …and 3·x² where a textbook writes 3x² (a number or a fraction before a
@@ -369,6 +390,12 @@ function antiderivative(node: MathNode, v: string, scope: Map<string, unknown>):
         return over(s, `-log(abs(cos(${L})))`);
       case "exp":
         return over(s, `exp(${L})`);
+      case "sinh":
+        return over(s, `cosh(${L})`);
+      case "cosh":
+        return over(s, `sinh(${L})`);
+      case "tanh":
+        return over(s, `log(cosh(${L}))`);
       case "sqrt":
         return over(`(${s}) * 3 / 2`, `(${L})^(3/2)`);
       case "cbrt":
@@ -385,7 +412,7 @@ function antiderivative(node: MathNode, v: string, scope: Map<string, unknown>):
  * points. A rule that slipped returns null — "no simple antiderivative" — rather
  * than a wrong answer on a student's screen.
  */
-function checkedAntiderivative(inner: string, v: string, scope: Map<string, unknown>): MathNode | null {
+function checkedAntiderivative(inner: string, v: string, scope: Map<string, unknown>, checkScope: Map<string, unknown> = scope): MathNode | null {
   let raw: MathNode;
   try {
     const text = antiderivative(math.parse(inner), v, scope);
@@ -395,7 +422,8 @@ function checkedAntiderivative(inner: string, v: string, scope: Map<string, unkn
     return null;
   }
   // The tidy form if it still checks out (it always should), else the raw one.
-  return derivativeMatches(tidy(raw), inner, v, scope) ? tidy(raw) : derivativeMatches(raw, inner, v, scope) ? raw : null;
+  // `checkScope` gives letters with no value a stand-in, so ∫ x·y dy can be checked.
+  return derivativeMatches(tidy(raw), inner, v, checkScope) ? tidy(raw) : derivativeMatches(raw, inner, v, checkScope) ? raw : null;
 }
 
 /** Rules on top of math.js's own, so a coefficient reads −cos(2x)/2 and not cos(2x)·−1/2. */
@@ -475,6 +503,140 @@ function integrate(f: (x: number) => number, a: number, b: number): number {
   if (!Number.isFinite(total) || !Number.isFinite(whole)) throw new Error("diverges");
   if (Math.abs(total) > 1e12) throw new Error("diverges");
   return total;
+}
+
+/** Letters in `src` other than `v` that have no value yet (the y of ∫ x·y dx). */
+function otherSymbols(src: string, v: string, scope: Map<string, unknown>): string[] {
+  try {
+    return freeSymbols(math.parse(src), new Set(scope.keys())).filter((n) => n !== v);
+  } catch {
+    return [];
+  }
+}
+
+/** The scope with stand-in values for those letters — enough to CHECK an antiderivative with. */
+function withSamples(scope: Map<string, unknown>, names: string[]): Map<string, unknown> {
+  const s = new Map(scope);
+  names.forEach((n, i) => s.set(n, 0.731 + 0.417 * i));
+  return s;
+}
+
+/**
+ * The order to integrate in: a variable whose bounds use another one goes
+ * inside it. "x·y dx dy, x from 0 to 1, y from 0 to x" is written with x inside,
+ * but y's bound needs x — so y is integrated first, as the student meant (the
+ * triangle). Otherwise the order of the differentials is kept.
+ */
+function innermostFirst(dims: { v: string; a: string; b: string }[]): { v: string; a: string; b: string }[] {
+  const uses = (d: { a: string; b: string }, v: string) => {
+    try {
+      return hasVar(math.parse(`(${d.a}) + (${d.b})`), v);
+    } catch {
+      return false;
+    }
+  };
+  const left = [...dims];
+  const out: typeof dims = [];
+  while (left.length) {
+    // The next innermost: one no other remaining variable's bounds depend on.
+    const i = left.findIndex((d) => !left.some((o) => o !== d && uses(o, d.v)));
+    out.push(...left.splice(i < 0 ? 0 : i, 1));
+  }
+  return out;
+}
+
+/** Gauss–Legendre, 5 points: nodes and weights on [-1, 1]. */
+const GL_X = [0, -0.5384693101056831, 0.5384693101056831, -0.906179845938664, 0.906179845938664];
+const GL_W = [0.5688888888888889, 0.47862867049936647, 0.47862867049936647, 0.23692688505618908, 0.23692688505618908];
+
+/**
+ * A double or triple integral, numerically: composite Gauss–Legendre in each
+ * variable, innermost first, the inner bounds evaluated at the outer values —
+ * so ∫₀¹∫₀ˣ … dy dx (a triangle) works as well as a rectangle. 12 panels × 5
+ * points per variable: 3 600 evaluations for a double, 216 000 for a triple.
+ */
+function integrateMulti(inner: string, dims: { v: string; a: string; b: string }[], scope: Map<string, unknown>): number {
+  const f = math.compile(inner);
+  const bounds = dims.map((d) => ({ v: d.v, a: math.compile(d.a), b: math.compile(d.b) }));
+  const panels = dims.length === 3 ? 8 : 12;
+  const s = new Map(scope);
+  const num = (x: unknown) => {
+    if (typeof x !== "number" || !Number.isFinite(x)) throw new Error("bounds");
+    return x;
+  };
+  // Level i integrates dims[i], with dims[i+1…] already fixed in `s`.
+  const level = (i: number): number => {
+    if (i < 0) {
+      const y = f.evaluate(s);
+      if (typeof y !== "number" || !Number.isFinite(y)) throw new Error("diverges");
+      return y;
+    }
+    const d = bounds[i];
+    const a = num(d.a.evaluate(s));
+    const b = num(d.b.evaluate(s));
+    if (a === b) return 0;
+    const h = (b - a) / panels;
+    let total = 0;
+    for (let p = 0; p < panels; p++) {
+      const mid = a + h * (p + 0.5);
+      for (let k = 0; k < 5; k++) {
+        s.set(d.v, mid + (h / 2) * GL_X[k]);
+        total += GL_W[k] * (h / 2) * level(i - 1);
+      }
+    }
+    return total;
+  };
+  const value = level(dims.length - 1);
+  if (!Number.isFinite(value) || Math.abs(value) > 1e12) throw new Error("diverges");
+  return value;
+}
+
+/**
+ * Σ or Π of a term for v = a … b. Finite: added up exactly (up to a million
+ * terms). Up to +∞ (a sum only): partial sums watched as they grow, and the
+ * value given when they settle — flagged as approximate.
+ */
+function series(op: "sum" | "product", inner: string, v: string, aSrc: string, bSrc: string, scope: Map<string, unknown>): { value: number; approx: boolean } {
+  const a = constValue(aSrc, scope);
+  const bInf = /^\s*\+?\s*Infinity\s*$/.test(bSrc);
+  const b = bInf ? Infinity : constValue(bSrc, scope);
+  if (a == null || b == null || !Number.isInteger(a) || (Number.isFinite(b) && !Number.isInteger(b))) throw new Error("bounds");
+  const term = numericFunction(inner, v, scope);
+  const t = (k: number) => {
+    const y = term(k);
+    if (!Number.isFinite(y)) throw new Error("diverges");
+    return y;
+  };
+  if (Number.isFinite(b)) {
+    if (b - a > 1_000_000) throw new Error("bounds");
+    let acc = op === "sum" ? 0 : 1;
+    for (let k = a; k <= b; k++) acc = op === "sum" ? acc + t(k) : acc * t(k);
+    return { value: acc, approx: false };
+  }
+  if (op === "product") throw new Error("bounds");
+  // Kahan-summed partial sums at 10⁴, 10⁵, 10⁶ terms.
+  let sum = 0;
+  let c = 0;
+  const marks: number[] = [];
+  let k = a;
+  for (const n of [10_000, 100_000, 1_000_000]) {
+    for (; k < a + n; k++) {
+      const y = t(k) - c;
+      const next = sum + y;
+      c = next - sum - y;
+      sum = next;
+    }
+    marks.push(sum);
+  }
+  const [s4, s5, s6] = marks;
+  const d1 = Math.abs(s5 - s4);
+  const d2 = Math.abs(s6 - s5);
+  // Settling: the gaps shrink and are already small (Σ1/k² does; Σ1/k does not).
+  if (d2 <= 1e-4 * Math.max(1, Math.abs(s6)) && d2 < d1 * 0.5) {
+    // The tail goes as 1/n: extrapolate with the last two marks.
+    return { value: s6 + (s6 - s5) / 9, approx: true };
+  }
+  throw new Error("diverges");
 }
 
 /** x ↦ f(x) for an expression in v, with the worksheet's values. NaN where undefined. */
@@ -622,13 +784,37 @@ function rowFor(line: MathLine, scope: Map<string, unknown>, comma: boolean): Ca
   switch (line.kind) {
     case "derivative": {
       const v = line.v ?? variableOf(line.inner, scope);
-      const d = math.derivative(line.inner, v);
-      const tex = texOfNode(d);
-      return {
-        inputHtml: html(`\\left(${texOf(line.inner)}\\right)'`),
-        resultHtml: html(tex),
-        result: d.toString(),
-      };
+      const order = line.order ?? 1;
+      let d = math.derivative(line.inner, v);
+      if (order === 2) d = math.derivative(d, v);
+      const tex = texOfNode(tidy(d));
+      // With other letters about (x²y), say which one it is taken in: ∂/∂y.
+      // (Only another VARIABLE — x, y, z, t — makes it partial; ax² stays (ax²)′.)
+      const others = otherSymbols(line.inner, v, scope).filter((n) => /^[xyzt]$/.test(n));
+      const inputTex =
+        line.partial || others.length > 0
+          ? `\\frac{\\partial${order === 2 ? "^2" : ""}}{\\partial ${v}${order === 2 ? "^2" : ""}}\\left(${texOf(line.inner)}\\right)`
+          : `\\left(${texOf(line.inner)}\\right)${order === 2 ? "''" : "'"}`;
+      return { inputHtml: html(inputTex), resultHtml: html(tex), result: tidy(d).toString() };
+    }
+    case "multiIntegral": {
+      const dims = innermostFirst(line.dims);
+      // ∫_{a_y}^{b_y} ∫_{a_x}^{b_x} f dx dy: the outermost integral sign first.
+      const signs = [...dims].reverse().map((d) => `\\int_{${texOf(d.a)}}^{${texOf(d.b)}}`).join("\\!");
+      const inputHtml = html(`${signs} ${texOf(line.inner)}\\,${dims.map((d) => `d${d.v}`).join("\\,")}`);
+      const value = integrateMulti(line.inner, dims, scope);
+      const vars = dims.map((d) => d.v);
+      const poly = (src: string) => vars.every((v) => isPolynomial(math.parse(src), v));
+      const exact = poly(line.inner) && dims.every((d) => poly(`(${d.a}) + (${d.b})`));
+      const n = numberTex(value, exact ? 1e-8 : 1e-12);
+      return { inputHtml, resultHtml: html(n.tex), result: n.text, ...(exact ? {} : { note: "approx" as const }) };
+    }
+    case "series": {
+      const sign = line.op === "sum" ? "\\sum" : "\\prod";
+      const inputHtml = html(`${sign}_{${line.v}=${texOf(line.a)}}^{${texOf(line.b)}} ${texOf(line.inner)}`);
+      const { value, approx } = series(line.op, line.inner, line.v, line.a, line.b, scope);
+      const n = numberTex(value, approx ? 1e-6 : 1e-9);
+      return { inputHtml, resultHtml: html(n.tex), result: n.text, ...(approx ? { note: "approx" as const } : {}) };
     }
     case "simplify": {
       const s = math.simplify(line.inner);
@@ -664,6 +850,18 @@ function rowFor(line: MathLine, scope: Map<string, unknown>, comma: boolean): Ca
       const a = constValue(line.a, scope);
       const b = constValue(line.b, scope);
       const inputHtml = html(`\\int_{${texOf(line.a)}}^{${texOf(line.b)}} ${texOf(line.inner)}\\,d${v}`);
+      // Other letters with no value (∫₀¹ x·y dy): integrated in v alone, the
+      // rest kept as letters — the answer is an expression (x/2), not a number.
+      const others = otherSymbols(`(${line.inner}) + (${line.a}) + (${line.b})`, v, scope);
+      if (others.length > 0) {
+        const sample = withSamples(scope, others);
+        const F = checkedAntiderivative(line.inner, v, scope, sample);
+        if (!F) return { inputHtml, note: "noPrimitive", result: "none" };
+        const at = (bound: string) => F.transform((node) => ((node as MathNode & { name?: string }).type === "SymbolNode" && (node as { name?: string }).name === v ? math.parse(`(${bound})`) : node));
+        const diff = tidy(math.simplify(new math.OperatorNode("-", "subtract", [at(line.b), at(line.a)])));
+        const steps = `\\left[${texOfNode(F)}\\right]_{${texOf(line.a)}}^{${texOf(line.b)}} = `;
+        return { inputHtml, resultHtml: html(`${steps}${texOfNode(diff)}`), result: diff.toString() };
+      }
       if (a == null || b == null) return { inputHtml, problem: { kind: "other" }, error: "bounds" };
       const value = integrate(numericFunction(line.inner, v, scope), a, b);
       const exact = isPolynomial(math.parse(line.inner), v);
@@ -961,6 +1159,93 @@ export function sampleGraph(
   });
 
   return { curves, points, areas, tangents, errors };
+}
+
+// ── For the tutor ─────────────────────────────────────────────────────────
+
+/** A number for a sentence: 14, 0.75, 1/3 (≈ 0.333333). */
+function plainNumber(v: number): string {
+  const n = numberTex(v);
+  return n.text.includes("/") ? `${n.text} (≈ ${Number(v.toPrecision(6))})` : n.text;
+}
+
+/**
+ * What a worksheet says, line by line, as plain text for Raya to explain:
+ * what was written, how it was read, and the calculator's answer — computed
+ * here, on the server, from the learner's own lines, so the explanation rests
+ * on the real result and never on one the model worked out for itself.
+ */
+export function calcFacts(src: string, degrees = false): string[] {
+  const lines = src
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .slice(0, 40);
+  const rows = runCalc(lines, false, { degrees });
+  return lines.map((raw, i) => {
+    const r = rows[i];
+    if (r.error) return `${raw}  →  (the calculator could not read this: ${r.problem?.kind ?? "other"}${r.problem && "name" in r.problem ? ` "${r.problem.name}"` : ""})`;
+    const note = r.note ? ` [${r.note}]` : "";
+    return `${raw}  →  ${r.result ?? "(no value: an expression kept as written)"}${note}`;
+  });
+}
+
+/**
+ * What a graph shows, for Raya to explain: each function, its derivative, where
+ * it crosses the axes, where it turns, and the areas and tangents drawn — all
+ * computed, for the slider values the learner has on screen.
+ */
+export function graphFacts(spec: GraphSpec, sliders: Record<string, number>): string[] {
+  const opts = graphNames(spec);
+  const norm = (s: string) => normalizeMath(s, opts);
+  const values: Record<string, number> = {};
+  for (const name of [...spec.sliders.map((s) => s.name), ...graphParameters(spec)]) {
+    values[name] = sliders[name] ?? spec.sliders.find((s) => s.name === name)?.value ?? 1;
+  }
+  const out: string[] = [];
+  if (Object.keys(values).length) out.push(`Slider values now: ${Object.entries(values).map(([k, v]) => `${k} = ${plainNumber(v)}`).join(", ")}`);
+  for (const f of spec.functions) {
+    if (!f.expr.trim()) continue;
+    const label = f.name === "y" ? "y" : `${f.name}(x)`;
+    try {
+      const expr = norm(f.expr);
+      const facts = [`${label} = ${f.expr}  (read as ${expr})`];
+      const numeric = tidy(math.simplify(expr, values));
+      if (Object.keys(values).length) facts.push(`with the sliders: ${numeric.toString()}`);
+      try {
+        const d = tidy(math.derivative(numeric, "x"));
+        facts.push(`derivative: ${d.toString()}`);
+        const crit = solveEquation(d.toString(), "0", "x", new Map());
+        if (crit.kind === "roots" && crit.roots.length) {
+          const f0 = numericFunction(numeric.toString(), "x", new Map());
+          facts.push(
+            `derivative is zero at x = ${crit.roots.map((c) => `${plainNumber(c)} (value ${plainNumber(f0(c))})`).join("; ")}${crit.approx ? " (numerical)" : ""}`,
+          );
+        }
+      } catch {
+        // a function defined from another one: no symbolic derivative, still described
+      }
+      const y0 = numericFunction(numeric.toString(), "x", new Map())(0);
+      if (Number.isFinite(y0)) facts.push(`value at x = 0: ${plainNumber(y0)}`);
+      const zeros = solveEquation(numeric.toString(), "0", "x", new Map());
+      if (zeros.kind === "roots") facts.push(zeros.roots.length ? `zeros: x = ${zeros.roots.map(plainNumber).join("; ")}${zeros.approx ? " (numerical)" : ""}` : "no zero found");
+      else if (zeros.kind === "none") facts.push("no zero");
+      out.push(facts.join("; "));
+    } catch {
+      out.push(`${label} = ${f.expr}  (the graph could not read this function)`);
+    }
+  }
+  for (const p of spec.points) out.push(`point ${p.name} = (${p.x} ; ${p.y})`);
+  const sampled = sampleGraph(spec, values, spec.x ?? [-10, 10], 50);
+  for (const ar of sampled.areas) {
+    out.push(
+      `shaded area ${ar.g ? `between ${ar.f} and ${ar.g}` : `under ${ar.f}`} from x = ${plainNumber(ar.a)} to ${plainNumber(ar.b)}: integral = ${plainNumber(ar.integral)}, geometric area = ${plainNumber(ar.area)}`,
+    );
+  }
+  for (const t of sampled.tangents) {
+    out.push(`tangent to ${t.f} at x = ${plainNumber(t.x0)}: y = ${plainNumber(t.slope)}·x + ${plainNumber(t.intercept)} (slope ${plainNumber(t.slope)})`);
+  }
+  return out;
 }
 
 /** The legend line of a shaded area: ∫₀² f(x) dx = 8/3, and the area when they differ. */

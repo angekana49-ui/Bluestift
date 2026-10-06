@@ -2,8 +2,12 @@
 
 import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 import { type AppTheme } from "@/components/ui/tokens";
 import { useMathsDock } from "@/components/raya/maths-dock-context";
+import { saveMathTool } from "@/components/math-studio";
+import { ExplainButton, MathExplain, type ExplainRequest } from "./math-explain";
+import { useToolRequestEnv } from "./tool-request-context";
 import { useAppLocale, useTranslate } from "@/components/ui/locale";
 import {
   autoRange,
@@ -29,9 +33,11 @@ import {
  * letter other than x becomes a slider on its own.
  *
  * Everything is computed in the learner's browser: nothing they type here
- * leaves the device, which matters when many of them are minors, and it keeps
- * working on a connection that has just dropped. math.js and KaTeX arrive
- * through a dynamic import the first time a tool is on screen.
+ * leaves the device — which matters when many of them are minors, and keeps it
+ * working on a connection that has just dropped — until they press "Explain",
+ * which sends that tool's lines for Raya to explain (components/chat/math-explain.tsx).
+ * math.js and KaTeX arrive through a dynamic import the first time a tool is
+ * on screen.
  */
 
 type Engine = typeof import("@/lib/math-engine");
@@ -172,7 +178,7 @@ function useKeypadTarget() {
   return { bind, insert };
 }
 
-type KeyTab = "basic" | "functions" | "analysis";
+type KeyTab = "basic" | "trig" | "functions" | "analysis";
 type Key = { label: string; insert: string; wide?: boolean; title?: string };
 
 /**
@@ -201,28 +207,53 @@ function Keypad({ calc, onKey, theme: t }: { calc: boolean; onKey: (text: string
       { label: "n!", insert: "!" },
       ...(calc ? [{ label: "=", insert: " = " }] : []),
     ],
-    functions: [
+    trig: [
       { label: "sin", insert: "sin(" },
       { label: "cos", insert: "cos(" },
       { label: "tan", insert: "tan(" },
       { label: "arcsin", insert: "arcsin(" },
       { label: "arccos", insert: "arccos(" },
       { label: "arctan", insert: "arctan(" },
+      { label: "cot", insert: "cot(" },
+      { label: "sec", insert: "sec(" },
+      { label: "csc", insert: "csc(" },
+    ],
+    // Exponentials and logarithms, the hyperbolics, and the integer-valued ones.
+    functions: [
       { label: "ln", insert: "ln(" },
       { label: "log", insert: "log(" },
+      { label: "log₂", insert: "log₂(" },
       { label: "eˣ", insert: "e^(" },
+      { label: "sinh", insert: "sinh(" },
+      { label: "cosh", insert: "cosh(" },
+      { label: "tanh", insert: "tanh(" },
+      { label: "arsinh", insert: "arsinh(" },
+      { label: "arcosh", insert: "arcosh(" },
+      { label: "artanh", insert: "artanh(" },
+      { label: "⌊x⌋", insert: "⌊{}⌋" },
+      { label: "⌈x⌉", insert: "⌈{}⌉" },
+      { label: "C(n,k)", insert: "binom({}, )" },
+      { label: "mod", insert: " mod " },
     ],
     analysis: [
       { label: tr("math.key.solve"), insert: `${tr("math.word.solve")} `, wide: true },
       { label: tr("math.key.derivative"), insert: `${tr("math.word.derivative")} `, wide: true },
+      { label: tr("math.key.second"), insert: tr("math.tpl.second"), wide: true },
+      { label: tr("math.key.partial"), insert: tr("math.tpl.partial"), wide: true },
       { label: tr("math.key.primitive"), insert: tr("math.tpl.primitive"), wide: true },
       { label: tr("math.key.integral"), insert: tr("math.tpl.integral"), wide: true },
+      { label: tr("math.key.double"), insert: tr("math.tpl.double"), wide: true },
+      { label: tr("math.key.triple"), insert: tr("math.tpl.triple"), wide: true },
       { label: tr("math.key.limit"), insert: tr("math.tpl.limit"), wide: true },
+      { label: tr("math.key.sum"), insert: tr("math.tpl.sum"), wide: true },
+      { label: tr("math.key.product"), insert: tr("math.tpl.product"), wide: true },
       { label: tr("math.key.simplify"), insert: `${tr("math.word.simplify")} `, wide: true },
     ],
   };
-  const tabs: KeyTab[] = calc ? ["basic", "functions", "analysis"] : ["basic", "functions"];
+  const tabs: KeyTab[] = calc ? ["basic", "trig", "functions", "analysis"] : ["basic", "trig", "functions"];
   const wide = keys[tab].some((k) => k.wide);
+  // arsinh or C(n,k) do not fit a 44px key: that tab gets wider ones.
+  const longest = Math.max(...keys[tab].map((k) => k.label.length));
   return (
     <div style={{ margin: "4px 0 10px", padding: 8, borderRadius: 12, background: t.cardBg2, border: `1px solid ${t.cardBorder}` }}>
       <Switch
@@ -234,7 +265,7 @@ function Keypad({ calc, onKey, theme: t }: { calc: boolean; onKey: (text: string
         keepFocus
       />
       {/* An even grid, like a calculator's keys — not a ragged row of chips. */}
-      <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(${wide ? 118 : 44}px, 1fr))`, gap: 5, marginTop: 8 }}>
+      <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(${wide ? 118 : longest > 4 ? 64 : 44}px, 1fr))`, gap: 5, marginTop: 8 }}>
         {keys[tab].map((k) => (
           <button
             key={k.label}
@@ -459,6 +490,18 @@ function CalcTool({
   // Rows are matched to results by their position among the non-empty lines.
   let k = 0;
   const resultFor = lines.map((l) => (l.trim() ? rows[k++] : null));
+  /**
+   * Raya's explanation: of one line (its row) or of the whole sheet ("all").
+   * The request is taken when the button is pressed — typing on afterwards
+   * does not send a new one on every key.
+   */
+  const [explain, setExplain] = useState<{ at: number | "all"; req: ExplainRequest } | null>(null);
+  const filled = lines.map((l) => l.trim()).filter(Boolean);
+  const toggleExplain = (at: number | "all") => {
+    if (explain?.at === at) return setExplain(null);
+    const focus = at === "all" ? undefined : lines.slice(0, at).filter((l) => l.trim()).length;
+    setExplain({ at, req: { lang: "calc", src: filled.join("\n"), degrees, ...(focus != null ? { focus } : {}) } });
+  };
 
   if (!editing) {
     // A reply's calculator, read like a worked solution.
@@ -509,6 +552,9 @@ function CalcTool({
                 }}
                 style={field(t)}
               />
+              {standalone && line.trim() && (
+                <ExplainButton compact theme={t} label={tr("math.explainLine")} onClick={() => toggleExplain(i)} />
+              )}
               {lines.length > 1 && <RemoveButton theme={t} onClick={() => onChange(lines.filter((_, j) => j !== i))} />}
             </div>
             {/* The line typeset, under what was typed: a strip of its own, so a
@@ -527,19 +573,24 @@ function CalcTool({
                 <CalcResult row={resultFor[i]!} raw={line} theme={t} />
               </div>
             )}
+            {explain?.at === i && <MathExplain theme={t} request={explain.req} onClose={() => setExplain(null)} />}
           </div>
         ))}
       </div>
-      <button
-        type="button"
-        style={{ ...button(t), marginTop: 10, width: "100%", padding: "7px 10px", borderStyle: "dashed", color: t.muted }}
-        onClick={() => {
-          onChange([...lines, ""]);
-          setFocusNext(lines.length);
-        }}
-      >
-        {tr("math.addLine")}
-      </button>
+      <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+        <button
+          type="button"
+          style={{ ...button(t), flex: 1, padding: "7px 10px", borderStyle: "dashed", color: t.muted }}
+          onClick={() => {
+            onChange([...lines, ""]);
+            setFocusNext(lines.length);
+          }}
+        >
+          {tr("math.addLine")}
+        </button>
+        {standalone && filled.length > 0 && <ExplainButton theme={t} label={tr("math.explainCalc")} onClick={() => toggleExplain("all")} />}
+      </div>
+      {explain?.at === "all" && <MathExplain theme={t} request={explain.req} onClose={() => setExplain(null)} />}
     </>
   );
 }
@@ -727,6 +778,7 @@ function GraphTool({
   spec,
   editing,
   full,
+  explainable = false,
   onChange,
   engine,
   theme: t,
@@ -735,6 +787,8 @@ function GraphTool({
   editing: boolean;
   /** The dedicated full-screen view: editor beside the plot, plot as large as the screen allows. */
   full: boolean;
+  /** The learner's own graph (the Maths panel): Raya can be asked to explain it. */
+  explainable?: boolean;
   onChange: (s: GraphSpec) => void;
   engine: Engine;
   theme: AppTheme;
@@ -742,6 +796,8 @@ function GraphTool({
   const tr = useTranslate();
   const comma = useDecimalComma();
   const wideScreen = useWideScreen();
+  /** Taken when pressed: moving a slider afterwards does not send a request per pixel. */
+  const [explaining, setExplaining] = useState<ExplainRequest | null>(null);
   // Several graphs can share a page; each clips to its own area.
   const clipId = `plot-${useId().replace(/[^A-Za-z0-9_-]/g, "")}`;
   const [box, boxW, boxH] = useBox();
@@ -998,6 +1054,21 @@ function GraphTool({
           {c.name === "y" ? "y" : `${c.name}(x)`} : {tr("math.cantRead")}
         </div>
       ))}
+
+      {explainable && spec.functions.some((f) => f.expr.trim()) && (
+        <div style={{ marginTop: 10 }}>
+          <ExplainButton
+            theme={t}
+            label={tr("math.explainGraph")}
+            onClick={() =>
+              setExplaining((open) =>
+                open ? null : { lang: "graph", src: graphToSource(spec), sliders: Object.fromEntries(sliders.map((s) => [s.name, values[s.name] ?? s.value])) },
+              )
+            }
+          />
+          {explaining && <MathExplain theme={t} request={explaining} onClose={() => setExplaining(null)} />}
+        </div>
+      )}
     </>
   );
 
@@ -1077,6 +1148,7 @@ function LoadedTool({
   onChange,
   onFullscreen,
   onOpenInPanel,
+  onOpenInTools,
   engine,
   theme: t,
 }: {
@@ -1092,6 +1164,7 @@ function LoadedTool({
   onChange: (src: string) => void;
   onFullscreen?: () => void;
   onOpenInPanel?: () => void;
+  onOpenInTools?: () => void;
   engine: Engine;
   theme: AppTheme;
 }) {
@@ -1124,6 +1197,7 @@ function LoadedTool({
         spec={spec}
         editing={editing}
         full={full}
+        explainable={standalone}
         engine={engine}
         theme={t}
         onChange={(s) => {
@@ -1163,6 +1237,14 @@ function LoadedTool({
         <HeaderButton theme={t} label={tr("math.openInPanel")} onClick={onOpenInPanel}>
           ⇥
         </HeaderButton>
+      )}
+      {/* From a conversation, where there is no panel: to the Tools page, where
+          the graph or the sheet can be worked on and explained. Labelled — it
+          leaves the conversation. */}
+      {onOpenInTools && (
+        <button type="button" style={{ ...button(t), color: t.link, fontWeight: 600 }} onClick={onOpenInTools}>
+          {tr("math.openInTools")} →
+        </button>
       )}
       {onFullscreen && (
         <HeaderButton theme={t} label={tr("math.fullscreen")} onClick={onFullscreen}>
@@ -1295,6 +1377,9 @@ function WithEngine({ lang, src, bench, mode, theme: t }: { lang: MathBlockLang;
   const tr = useTranslate();
   const engine = useEngine();
   const dock = useMathsDock();
+  const router = useRouter();
+  // Only a Raya conversation knows the Tools page (not a shared page, not Raya for Schools).
+  const chatEnv = useToolRequestEnv();
   const [current, setCurrent] = useState(bench?.start ?? src);
   const [full, setFull] = useState(false);
   // Bumped on the way out of full screen so the inline view re-reads `current`.
@@ -1334,6 +1419,15 @@ function WithEngine({ lang, src, bench, mode, theme: t }: { lang: MathBlockLang;
         onFullscreen={() => setFull(true)}
         // From a reply into the panel, where it can be kept and worked on.
         onOpenInPanel={mode === "inline" && dock ? () => dock.open(lang, current) : undefined}
+        // In a conversation (no panel there): carried to the Tools page, which opens it.
+        onOpenInTools={
+          mode === "inline" && !dock && chatEnv?.enabled
+            ? () => {
+                saveMathTool(lang, current);
+                router.push(`/tools?maths=${lang}`);
+              }
+            : undefined
+        }
         engine={engine}
         theme={t}
       />
