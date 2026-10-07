@@ -16,6 +16,7 @@ import { DegradedBanner } from "@/components/ui/degraded-banner";
 import { ChatComposer } from "./chat-composer";
 import { ChatAvatar } from "./chat-avatar";
 import { RichText } from "./rich-text";
+import { takeChatHandoff } from "@/lib/chat-handoff";
 import { ToolRequestContext } from "./tool-request-context";
 import type { ChatConfig } from "./types";
 import type { ChatEngine } from "./use-chat-engine";
@@ -114,6 +115,15 @@ export function ChatSurface({
   // Once, then stripped from the address so a reload doesn't put it back.
   useEffect(() => {
     if (conversationId) return;
+    // "Go deeper with Raya" under a maths explanation: the learner wrote their
+    // question and pressed a button saying it goes to Raya, so it IS sent.
+    // Handed over in sessionStorage, never in the address — a link anyone can
+    // craft must not be able to send a message in a learner's name.
+    const handoff = takeChatHandoff();
+    if (handoff) {
+      void onSend(handoff);
+      return;
+    }
     const url = new URL(window.location.href);
     const ask = url.searchParams.get("ask");
     if (!ask) return;
