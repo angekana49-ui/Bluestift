@@ -5,6 +5,7 @@ import { getStudentRecommendations } from "@/lib/school-admin";
 import { getPlanLabel } from "@/lib/billing";
 import { softValue } from "@/lib/page-data";
 import { Chat } from "@/components/chat";
+import { GuestChat } from "@/components/raya/guest-chat";
 
 export default async function ChatPage({
   searchParams,
@@ -19,7 +20,9 @@ export default async function ChatPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  // Nobody signed in: Raya for a guest, a few turns before the sign-up card
+  // (lib/raya/guest.ts) — the product first, the account form after.
+  if (!user) return <GuestChat />;
 
   // One wave: nothing here depends on anything else here. The two soft values
   // are chrome (sidebar plan label, teacher recommendations) — they degrade

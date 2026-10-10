@@ -3654,4 +3654,22 @@ export const fr: Partial<Messages> = {
   "math.tangent.label": "Tangente à",
   "math.tangent.at": "en x =",
   "tools.math.saved": "Gardé sur cet appareil jusqu’à la déconnexion.",
+
+  // Raya before an account (components/raya/guest-chat.tsx)
+  "guest.emptyHint": "Demandez ce que vous voulez à Raya — vos {limit} premiers messages sont sans compte.",
+  "guest.signIn": "Se connecter",
+  "guest.createAccount": "Créer un compte",
+  "guest.leftOne": "{n} message gratuit restant.",
+  "guest.leftOther": "{n} messages gratuits restants.",
+  "guest.keepIt": "Créez un compte pour garder cette conversation",
+  "guest.wall.title": "Continuez avec Raya",
+  "guest.wall.body": "Vos messages gratuits sont épuisés. Créez un compte gratuit pour continuer — cette conversation vous suit.",
+  "guest.wall.perkMemory": "Raya retient votre façon d’apprendre et reprend là où vous en étiez",
+  "guest.wall.perkSaved": "Toutes vos conversations, sauvegardées",
+  "guest.wall.perkDocs": "Documents, photos et messages vocaux",
+  "guest.wall.perkTools": "Quiz, fiches et cartes mentales dans Tools",
+  "guest.wall.cta": "Créer un compte gratuit",
+  "guest.wall.signIn": "J’ai déjà un compte",
+  "login.tryGuest": "Essayer Raya d’abord — sans compte",
+  "api.guestLimit": "Vos messages gratuits avec Raya sont épuisés. Créez un compte gratuit pour continuer.",
 };

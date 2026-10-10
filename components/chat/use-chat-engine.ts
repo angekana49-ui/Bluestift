@@ -379,6 +379,15 @@ export function useChatEngine({
             // persona concept (Raya-for-Schools), which the server route
             // would ignore anyway.
             ...(config.aiModeSwitcher ? { mode: currentAiMode() } : {}),
+            // Delivered turns only: not this one (the server appends `content`),
+            // and not one still failed or in flight.
+            ...(config.sendHistory
+              ? {
+                  history: messages
+                    .filter((m) => m.id !== clientMsgId && !m.status && m.content)
+                    .map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: m.content })),
+                }
+              : {}),
           }),
         },
         { timeoutMs: SEND_TIMEOUT_MS },
@@ -394,7 +403,8 @@ export function useChatEngine({
           // upgrade link) instead of a red line, and the typed text goes back
           // into the box — the student did not do anything wrong, and losing
           // what they wrote on top of being stopped would be its own insult.
-          if (data?.code === "quota_reached" && typeof data.limit === "number") {
+          // A guest's trial running out is the same moment, worded by the surface.
+          if ((data?.code === "quota_reached" || data?.code === "guest_limit") && typeof data.limit === "number") {
             setQuota({
               used: typeof data.used === "number" ? data.used : data.limit,
               limit: data.limit,

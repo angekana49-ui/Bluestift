@@ -4002,4 +4002,22 @@ export const en = {
   "math.tangent.label": "Tangent to",
   "math.tangent.at": "at x =",
   "tools.math.saved": "Kept on this device until you sign out.",
+
+  // Raya before an account (components/raya/guest-chat.tsx)
+  "guest.emptyHint": "Ask Raya anything — your first {limit} messages need no account.",
+  "guest.signIn": "Sign in",
+  "guest.createAccount": "Create account",
+  "guest.leftOne": "{n} free message left.",
+  "guest.leftOther": "{n} free messages left.",
+  "guest.keepIt": "Create an account to keep this conversation",
+  "guest.wall.title": "Keep going with Raya",
+  "guest.wall.body": "Your free messages are used up. Create a free account to continue — this conversation comes with you.",
+  "guest.wall.perkMemory": "Raya remembers how you learn and picks up where you left off",
+  "guest.wall.perkSaved": "All your conversations, saved",
+  "guest.wall.perkDocs": "Documents, photos and voice messages",
+  "guest.wall.perkTools": "Quizzes, flashcards and mind maps in Tools",
+  "guest.wall.cta": "Create a free account",
+  "guest.wall.signIn": "I already have an account",
+  "login.tryGuest": "Try Raya first — no account needed",
+  "api.guestLimit": "Your free messages with Raya are used up. Create a free account to keep going.",
 } as const;

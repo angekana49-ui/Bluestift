@@ -48,8 +48,11 @@ type Notice = {
 export function LoginView({
   initialError,
   pendingSetup = false,
+  initialMode = "signin",
 }: {
   initialError?: string;
+  /** `/login?mode=signup` — the guest chat's sign-up card opens on the create tab. */
+  initialMode?: "signin" | "signup";
   /** A signed-in account that never finished onboarding is sitting on this page.
    *  It can resume, or pick a different sign-in method — in which case we drop
    *  that session first so the new flow starts clean. */
@@ -61,7 +64,7 @@ export function LoginView({
   const siteHome = useSiteHomeHref();
   const turnstileRef = useRef<TurnstileHandle>(null);
 
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [recoveryCode, setRecoveryCode] = useState("");
@@ -403,6 +406,15 @@ export function LoginView({
         {tr("login.heading")} <RayaName /> &amp; <SchoolsName />
       </h1>
       <p style={sub}>{tr("login.sub")}</p>
+
+      {/* Raya can be tried before any of this (components/raya/guest-chat.tsx). */}
+      {!pendingSetup && (
+        <p style={{ margin: "-10px 0 20px", fontSize: 16, lineHeight: 1.6, textAlign: "center" }}>
+          <Link href="/chat" style={{ color: "#1b5fc1", fontWeight: 600, textDecoration: "none" }}>
+            {tr("login.tryGuest")} →
+          </Link>
+        </p>
+      )}
 
       {/* Half-finished setup: resume it, or walk away and choose another method. */}
       {pendingSetup && (

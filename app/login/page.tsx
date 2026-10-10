@@ -6,7 +6,7 @@ import { LoginView } from "@/components/login-view";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; mode?: string }>;
 }) {
   const supabase = await createClient();
   const {
@@ -31,11 +31,11 @@ export default async function LoginPage({
     pendingSetup = true;
   }
 
-  const { error } = await searchParams;
+  const { error, mode } = await searchParams;
 
   return (
     <main style={{ minHeight: "100vh", width: "100%" }}>
-      <LoginView initialError={error} pendingSetup={pendingSetup} />
+      <LoginView initialError={error} pendingSetup={pendingSetup} initialMode={mode === "signup" ? "signup" : "signin"} />
     </main>
   );
 }

@@ -20,6 +20,7 @@ import { initialsOf, avatarInitials } from "@/lib/name";
 import { useChatEngine } from "@/components/chat/use-chat-engine";
 import { ChatSurface } from "@/components/chat/chat-surface";
 import { ChatHistoryList } from "@/components/chat/chat-history-list";
+import { readGuestThread, clearGuestThread, guestTurns } from "@/lib/raya/guest";
 import { fetchHooks, type ChatConfig, type Msg, type Conversation, type ConversationFile } from "@/components/chat/types";
 
 export type { ConversationFile } from "@/components/chat/types";
@@ -160,6 +161,37 @@ function ChatBody({
     deepLinked.current = true;
     void engine.selectConversation(openConversationId);
   }, [openConversationId, engine]);
+
+  // A thread had with Raya before signing up (components/raya/guest-chat.tsx)
+  // becomes this account's first conversation, and opens — unless a link asked
+  // for another thread. Forgotten once the account holds it, or once the server
+  // refuses it for good; kept for the next visit when the network failed.
+  const guestImported = useRef(false);
+  useEffect(() => {
+    if (guestImported.current) return;
+    guestImported.current = true;
+    const thread = readGuestThread();
+    if (guestTurns(thread) === 0) return;
+    void (async () => {
+      try {
+        const res = await netFetch(
+          "/api/raya/conversations/import",
+          { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ messages: thread }) },
+          { timeoutMs: 15_000 },
+        );
+        if (res.status >= 500) return;
+        clearGuestThread();
+        if (!res.ok) return;
+        const data = (await res.json().catch(() => null)) as { conversation?: Conversation } | null;
+        const conv = data?.conversation;
+        if (!conv) return;
+        engine.setConversations((list) => [conv, ...list.filter((c) => c.id !== conv.id)]);
+        if (!openConversationId) void engine.selectConversation(conv.id);
+      } catch {
+        // offline — the thread waits in this browser for the next visit
+      }
+    })();
+  }, [engine, openConversationId]);
 
   // Kernel analysis is Raya-specific — it stays here, off the shared engine.
   const [analysis, setAnalysis] = useState<AnalyzeResponse | null>(null);

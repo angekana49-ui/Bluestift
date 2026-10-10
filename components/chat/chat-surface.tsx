@@ -55,6 +55,8 @@ export function ChatSurface({
   extraComposerAction,
   userInitials = "ME",
   userAvatarUrl,
+  composerNotice,
+  composerReplacement,
 }: {
   theme: AppTheme;
   engine: ChatEngine;
@@ -83,6 +85,10 @@ export function ChatSurface({
   /** Avatar shown on the current user's bubbles (Raya's own is always its logo). */
   userInitials?: string;
   userAvatarUrl?: string | null;
+  /** A line of the surface's own above the composer (a guest's turns left). */
+  composerNotice?: ReactNode;
+  /** Shown INSTEAD of the composer — a guest whose trial is over gets the sign-up card. */
+  composerReplacement?: ReactNode;
 }) {
   const {
     conversationId,
@@ -189,6 +195,11 @@ export function ChatSurface({
     <div className="chat-col">
       <DegradedBanner />
     </div>
+    {composerReplacement ? (
+      <div className="chat-col" style={{ paddingBottom: 16 }}>{composerReplacement}</div>
+    ) : (
+    <>
+    {composerNotice && <div className="chat-col">{composerNotice}</div>}
     <ChatComposer
       theme={t}
       centered={centered}
@@ -207,6 +218,8 @@ export function ChatSurface({
       extraAction={extraComposerAction}
       showAiMode={config.aiModeSwitcher === true}
     />
+    </>
+    )}
     </>
   );
 

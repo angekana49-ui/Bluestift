@@ -3656,4 +3656,22 @@ export const de: Partial<Messages> = {
   "math.tangent.label": "Tangente an",
   "math.tangent.at": "bei x =",
   "tools.math.saved": "Bleibt auf diesem Gerät, bis du dich abmeldest.",
+
+  // Raya before an account (components/raya/guest-chat.tsx)
+  "guest.emptyHint": "Frag Raya, was du willst — deine ersten {limit} Nachrichten gehen ohne Konto.",
+  "guest.signIn": "Anmelden",
+  "guest.createAccount": "Konto erstellen",
+  "guest.leftOne": "Noch {n} kostenlose Nachricht.",
+  "guest.leftOther": "Noch {n} kostenlose Nachrichten.",
+  "guest.keepIt": "Erstelle ein Konto, um dieses Gespräch zu behalten",
+  "guest.wall.title": "Weiter mit Raya",
+  "guest.wall.body": "Deine kostenlosen Nachrichten sind aufgebraucht. Erstelle ein kostenloses Konto, um weiterzumachen — dieses Gespräch kommt mit.",
+  "guest.wall.perkMemory": "Raya merkt sich, wie du lernst, und macht da weiter, wo du aufgehört hast",
+  "guest.wall.perkSaved": "Alle deine Gespräche, gespeichert",
+  "guest.wall.perkDocs": "Dokumente, Fotos und Sprachnachrichten",
+  "guest.wall.perkTools": "Quiz, Karteikarten und Mindmaps in Tools",
+  "guest.wall.cta": "Kostenloses Konto erstellen",
+  "guest.wall.signIn": "Ich habe schon ein Konto",
+  "login.tryGuest": "Erst Raya ausprobieren — ohne Konto",
+  "api.guestLimit": "Deine kostenlosen Nachrichten mit Raya sind aufgebraucht. Erstelle ein kostenloses Konto, um weiterzumachen.",
 };

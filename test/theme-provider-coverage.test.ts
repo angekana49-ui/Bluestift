@@ -93,6 +93,9 @@ describe("the shells' theme context", () => {
     const callers = SOURCES.filter((p) => /useDarkMode\(\)/.test(read(p))).sort();
     expect(callers).toEqual([
       "components/chat.tsx",
+      // /chat for a visitor with no account: its own root, no shell, and it
+      // mounts the provider above its body like chat.tsx does.
+      "components/raya/guest-chat.tsx",
       // The design-handoff preview at /preview, which is standalone by design
       // and mounts no shell.
       "components/raya/raya-app.tsx",

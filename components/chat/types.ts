@@ -97,6 +97,12 @@ export type ChatConfig = {
    * when it can, static otherwise — it must NEVER block or break the screen.
    */
   personalizedHooks?: () => Promise<{ greeting?: string; suggestions?: string[] } | null>;
+  /**
+   * The thread rides along with every send as `history`. For an endpoint that
+   * keeps no conversation of its own — Raya for a visitor with no account
+   * (app/api/raya/try), which has nowhere to store one.
+   */
+  sendHistory?: boolean;
 };
 
 /**
