@@ -1,4 +1,5 @@
 import type { Attachment } from "@/components/attachment";
+import type { LockedControl } from "@/components/chat/chat-composer";
 import { netFetch } from "@/lib/net/client-fetch";
 
 /**
@@ -103,6 +104,11 @@ export type ChatConfig = {
    * (app/api/raya/try), which has nowhere to store one.
    */
   sendHistory?: boolean;
+  /**
+   * The account-only composer controls (voice, documents, personas) are drawn
+   * locked, and pressing one calls this — the guest chat opens its sign-up card.
+   */
+  locked?: (control: LockedControl) => void;
 };
 
 /**

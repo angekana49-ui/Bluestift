@@ -26,6 +26,9 @@ const MODE_BLURB_KEY: Record<AiMode, MessageKey> = {
   challenging: "chat.mode.challenging.blurb",
 };
 
+/** A composer control shown to someone who cannot use it yet (a visitor with no account). */
+export type LockedControl = "voice" | "files" | "modes";
+
 /** The minimal voice-recorder shape the composer needs (see useVoiceRecorder). */
 export type ComposerVoice = {
   recording: boolean;
@@ -94,6 +97,7 @@ export function ChatComposer({
   disabled = false,
   showAiMode = false,
   stacked = false,
+  locked,
 }: {
   theme: AppTheme;
   centered: boolean;
@@ -126,6 +130,13 @@ export function ChatComposer({
    * even on a desktop.
    */
   stacked?: boolean;
+  /**
+   * Voice, documents and the persona picker drawn as they are for an account,
+   * each with a lock, and pressing one calls this instead of working. For the
+   * guest chat: what an account adds is in plain sight, under the learner's
+   * thumb, rather than described on a card somewhere else.
+   */
+  locked?: (control: LockedControl) => void;
 }) {
   const tr = useTranslate();
   // The day's plan allowance. `quota` is only ever set when a limit exists AND
@@ -254,7 +265,31 @@ export function ChatComposer({
 
         {/* composer */}
         {(() => {
-          const voiceBtn = voice && (
+          const lockedBtn = (control: LockedControl, title: string, icon: ReactNode) => (
+            <IconButton theme={t} size={38} radius={999} onClick={() => locked?.(control)} title={title} style={{ position: "relative" }}>
+              {icon}
+              <span
+                aria-hidden
+                style={{
+                  position: "absolute",
+                  right: -2,
+                  bottom: -2,
+                  width: 16,
+                  height: 16,
+                  borderRadius: 999,
+                  background: t.cardBg,
+                  border: `1px solid ${t.cardBorder}`,
+                  color: t.muted,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <IconLock size={9} />
+              </span>
+            </IconButton>
+          );
+          const voiceBtn = locked ? lockedBtn("voice", tr("chat.voiceMessage"), <IconMic size={16} />) : voice && (
             <IconButton
               theme={t}
               size={38}
@@ -303,7 +338,7 @@ export function ChatComposer({
             }}
           />
           );
-          const uploadBtn = onUpload && (
+          const uploadBtn = locked ? lockedBtn("files", tr("chat.attachFile"), <IconAttach size={16} />) : onUpload && (
             <FilePicker
               accept={COMPOSER_ACCEPT}
               onPick={(files) => onUpload(files?.[0] ?? null)}
@@ -351,7 +386,11 @@ export function ChatComposer({
               ↑
             </span>
           );
-          const modeBtn = showAiMode ? <AiModePicker theme={t} state={aiMode} /> : null;
+          const modeBtn = locked
+            ? lockedBtn("modes", tr("chat.aiModeTitlePrefix"), <IconAiMode size={16} />)
+            : showAiMode
+              ? <AiModePicker theme={t} state={aiMode} />
+              : null;
 
           /*
            * ONE tree, both shapes.

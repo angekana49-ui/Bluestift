@@ -49,6 +49,8 @@ const NAV = [
 ] as const;
 
 export type RayaNav = (typeof NAV)[number]["key"];
+/** What a visitor with no account can press and not have: every page but the chat, and the account itself. */
+export type RayaLockedArea = Exclude<RayaNav, "chat"> | "account";
 
 /**
  * Shared chrome for the Raya student app: the cloud shell + collapsible sidebar
@@ -70,6 +72,8 @@ export function RayaShell({
   onToggleRight,
   mobileTitle,
   mobileTrailing,
+  locked,
+  sidebarFooter,
   children,
 }: {
   theme: AppTheme;
@@ -97,6 +101,15 @@ export function RayaShell({
   mobileTitle?: string;
   /** A compact badge for that same row — e.g. a room's session countdown. */
   mobileTrailing?: ReactNode;
+  /**
+   * The shell for a visitor with no account (components/raya/guest-chat.tsx).
+   * Every nav item is there, each with a lock, and pressing one calls this
+   * instead of navigating — so is the profile chip, which has no account behind
+   * it and so no Settings to open.
+   */
+  locked?: (area: RayaLockedArea) => void;
+  /** Above the profile chip at the foot of the sidebar — the guest's sign-up call. */
+  sidebarFooter?: ReactNode;
   /** @deprecated the content zone no longer takes a width floor. */
   mainMinWidth?: number;
   children: ReactNode;
@@ -117,6 +130,8 @@ export function RayaShell({
   const isAnon = email == null;
 
   useEffect(() => {
+    // No account, nothing to ask about.
+    if (locked) return;
     let active = true;
     void supabase.auth.getUser().then(({ data }) => {
       if (!active) return;
@@ -126,7 +141,7 @@ export function RayaShell({
     return () => {
       active = false;
     };
-  }, [supabase]);
+  }, [supabase, locked]);
 
   async function signOut() {
     // Shared school machines: queued messages / cached data must not survive
@@ -291,9 +306,18 @@ export function RayaShell({
                 collapsed={effectiveCollapsed}
                 icon={<Icon />}
                 label={tr(labelKey)}
-                onClick={() => go(href)}
+                onClick={() => {
+                  if (locked && !isChat) {
+                    setNavOpen(false);
+                    locked(key as RayaLockedArea);
+                  } else go(href);
+                }}
                 trailing={
-                  isChat && chatHistory != null && !effectiveCollapsed ? (
+                  locked && !isChat && !effectiveCollapsed ? (
+                    <span aria-hidden style={{ display: "flex", flex: "none", opacity: 0.7 }}>
+                      <IconLock size={12} />
+                    </span>
+                  ) : isChat && chatHistory != null && !effectiveCollapsed ? (
                     <span
                       role="button"
                       onClick={(e) => {
@@ -326,6 +350,7 @@ export function RayaShell({
         })}
 
         <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 12 }}>
+          {sidebarFooter && !effectiveCollapsed && <div className="app-rail-hide">{sidebarFooter}</div>}
           <SidebarProfile
             theme={t}
             collapsed={effectiveCollapsed}
@@ -334,7 +359,12 @@ export function RayaShell({
             subtitle={planText}
             avatarBg={profileAvatarBg}
             avatarUrl={profileAvatarUrl}
-            onClick={() => setSettingsOpen(true)}
+            onClick={() => {
+              if (locked) {
+                setNavOpen(false);
+                locked("account");
+              } else setSettingsOpen(true);
+            }}
           />
         </div>
       </Sidebar>

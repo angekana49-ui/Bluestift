@@ -217,6 +217,7 @@ export function ChatSurface({
       quota={quota}
       extraAction={extraComposerAction}
       showAiMode={config.aiModeSwitcher === true}
+      locked={config.locked}
     />
     </>
     )}
