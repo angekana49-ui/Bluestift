@@ -2865,12 +2865,16 @@ function RosterRow({ s, busy, onOpen }: { s: RosterStudent; busy: boolean; onOpe
 }
 
 function LearningGraphView({ graph }: { graph: LearningGraph }) {
-  const { box } = useSchoolStyles();
+  const { t, box } = useSchoolStyles();
   const tr = useTranslate();
-  const W = 660;
-  const layerGap = 92;
-  const topPad = 30;
   const r = 8;
+  const fontSize = 12;
+  const lineH = 14;
+  // A label gets this much width before it wraps; the canvas widens so the
+  // busiest layer never packs labels into each other.
+  const slot = 120;
+  const layerGap = 104;
+  const topPad = 24;
 
   // Group by prerequisite depth and place each layer's nodes evenly across the width.
   const maxDepth = graph.nodes.reduce((m, n) => Math.max(m, n.depth), 0);
@@ -2880,13 +2884,34 @@ function LearningGraphView({ graph }: { graph: LearningGraph }) {
     arr.push(n);
     byDepth.set(n.depth, arr);
   }
+  const widest = Math.max(1, ...[...byDepth.values()].map((l) => l.length));
+  const W = Math.max(660, widest * slot);
   const pos = new Map<string, { x: number; y: number }>();
   for (const [d, nodes] of byDepth) {
     nodes.forEach((n, i) => {
       pos.set(n.id, { x: (W * (i + 1)) / (nodes.length + 1), y: topPad + d * layerGap });
     });
   }
-  const H = topPad * 2 + maxDepth * layerGap;
+  const H = topPad + maxDepth * layerGap + r + 8 + lineH * 2 + 8;
+
+  // At most two lines of ~17 characters, broken on words; the full name is in the tooltip.
+  const wrap = (label: string): string[] => {
+    const max = 17;
+    const lines: string[] = [];
+    let cur = "";
+    for (const word of label.split(/\s+/)) {
+      if (!cur) cur = word;
+      else if ((cur + " " + word).length <= max) cur += " " + word;
+      else {
+        lines.push(cur);
+        cur = word;
+      }
+    }
+    if (cur) lines.push(cur);
+    const out = lines.slice(0, 2).map((l) => (l.length > max ? l.slice(0, max - 1) + "…" : l));
+    if (lines.length > 2 && !out[1].endsWith("…")) out[1] = out[1].slice(0, max - 1) + "…";
+    return out;
+  };
 
   const legend: [string, string][] = [
     ["#22c55e", tr("school.graph.mastered")],
@@ -2912,31 +2937,42 @@ function LearningGraphView({ graph }: { graph: LearningGraph }) {
         ))}
       </div>
       <div style={{ overflowX: "auto" }}>
-        <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ minWidth: 460, display: "block" }}>
+        {/* Never scaled below ~85% of its drawn size, so labels stay legible;
+            a wide graph scrolls sideways instead of shrinking. */}
+        <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ minWidth: Math.round(W * 0.85), display: "block" }}>
           {graph.edges.map((e, i) => {
             const a = pos.get(e.from);
             const b = pos.get(e.to);
             if (!a || !b) return null;
             return (
-              <line key={i} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#2a3550" strokeWidth={1.5} />
+              <line key={i} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={t.controlBorder} strokeWidth={1.5} />
             );
           })}
           {graph.nodes.map((n) => {
             const p = pos.get(n.id);
             if (!p) return null;
-            const short = n.label.length > 18 ? n.label.slice(0, 17) + "…" : n.label;
             return (
               <g key={n.id}>
                 <title>{`${n.label} — ${n.mastery == null ? tr("school.graph.nodeTooltipNotStarted") : Math.round(n.mastery * 100) + "%"}`}</title>
-                <circle cx={p.x} cy={p.y} r={r} fill={masteryColor(n.mastery)} stroke="#0b1020" strokeWidth={1.5} />
+                <circle cx={p.x} cy={p.y} r={r} fill={masteryColor(n.mastery)} stroke={t.cardBg2} strokeWidth={2} />
+                {/* A halo in the card colour keeps the name readable where an edge crosses it. */}
                 <text
                   x={p.x}
-                  y={p.y + r + 11}
+                  y={p.y + r + 6 + fontSize}
                   textAnchor="middle"
-                  fontSize={9}
-                  fill="#c9d3ea"
+                  fontSize={fontSize}
+                  fontWeight={500}
+                  fill={t.text}
+                  stroke={t.cardBg2}
+                  strokeWidth={4}
+                  strokeLinejoin="round"
+                  paintOrder="stroke"
                 >
-                  {short}
+                  {wrap(n.label).map((line, i) => (
+                    <tspan key={i} x={p.x} dy={i === 0 ? 0 : lineH}>
+                      {line}
+                    </tspan>
+                  ))}
                 </text>
               </g>
             );
