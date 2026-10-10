@@ -36,6 +36,7 @@ import { RayaName, SchoolsName } from "@/components/ui/brand";
 import { createClient } from "@/lib/supabase/client";
 import { KpiTile, MasteryGauge } from "@/components/ui/widgets";
 import { DocumentActions } from "@/components/ui/doc-actions";
+import { RichText } from "@/components/chat/rich-text";
 import {
   FilterChips,
   ListNoMatch,
@@ -2689,6 +2690,21 @@ function fmtDate(d: string | null) {
   return d ? new Date(d).toLocaleDateString() : "—";
 }
 
+/**
+ * Needs attention: an open Kernel signal, or — what the school sees for
+ * itself — two homeworks let pass, or an average under half. The second half
+ * is what keeps the flag meaningful while the Kernel has nothing to say.
+ */
+const rosterAlert = (s: RosterStudent) =>
+  s.riskLevel === "high" ||
+  s.riskLevel === "medium" ||
+  s.riskLevel === "med" ||
+  (s.homeworkMissing ?? 0) >= 2 ||
+  (s.homeworkAvg != null && s.homeworkAvg < 0.5);
+/** Something to go on: a Kernel reading, or homework that has fallen due. */
+const rosterHasData = (s: RosterStudent) =>
+  s.riskLevel != null || (s.homeworkDone ?? 0) + (s.homeworkMissing ?? 0) > 0;
+
 function RosterView({
   roster,
   busy,
@@ -2704,9 +2720,7 @@ function RosterView({
 }) {
   const { box, ghost } = useSchoolStyles();
   const tr = useTranslate();
-  const alerts = roster.students.filter(
-    (s) => s.riskLevel === "high" || s.riskLevel === "medium" || s.riskLevel === "med",
-  ).length;
+  const alerts = roster.students.filter(rosterAlert).length;
   const withMastery = roster.students.filter((s) => s.avgMastery != null);
   const avg =
     withMastery.length > 0
@@ -2785,17 +2799,16 @@ function RosterList({
   });
 
   const found = search.visible;
-  const isAlert = (s: RosterStudent) =>
-    s.riskLevel === "high" || s.riskLevel === "medium" || s.riskLevel === "med";
-  const hasData = (s: RosterStudent) => s.riskLevel != null;
+  const isAlert = rosterAlert;
+  const hasData = rosterHasData;
 
   const buckets: Record<string, (s: RosterStudent) => boolean> = {
     all: () => true,
     alert: isAlert,
     ok: (s) => hasData(s) && !isAlert(s),
-    // Kept as its own chip rather than folded into "On track": a student the
-    // Kernel has never seen is not a student who is doing fine, and merging the
-    // two is how a class looks healthier than it is.
+    // Kept as its own chip rather than folded into "On track": a student with
+    // neither a Kernel reading nor any homework due is not a student who is
+    // doing fine, and merging the two is how a class looks healthier than it is.
     none: (s) => !hasData(s),
   };
 
@@ -2843,20 +2856,28 @@ function RosterList({
 function RosterRow({ s, busy, onOpen }: { s: RosterStudent; busy: boolean; onOpen: () => void }) {
   const { box, ghost } = useSchoolStyles();
   const tr = useTranslate();
+  const due = (s.homeworkDone ?? 0) + (s.homeworkMissing ?? 0);
+  // The Kernel's own level when it raised one; a homework-only flag is amber.
+  const kernelAlert = s.riskLevel === "high" || s.riskLevel === "medium" || s.riskLevel === "med";
+  const dot = kernelAlert ? s.riskLevel : rosterAlert(s) ? "medium" : s.riskLevel ?? (due > 0 ? "low" : null);
   return (
     <div style={{ ...box, display: "flex", alignItems: "center", gap: "0.75rem" }}>
       <span
-        style={{ width: 8, height: 8, borderRadius: 999, background: riskColor(s.riskLevel), flexShrink: 0 }}
+        style={{ width: 8, height: 8, borderRadius: 999, background: riskColor(dot), flexShrink: 0 }}
       />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 600 }}>
           {s.firstName} {s.lastName}
         </div>
         <div style={{ opacity: 0.55, fontSize: "0.8rem" }}>
-          {s.statusLabel ?? tr("school.roster.noDataYet")} · {tr("school.roster.lastActive")} {fmtDate(s.lastActiveAt)}
+          {s.statusLabel ??
+            (due > 0
+              ? tr("school.roster.homeworkLine", { done: s.homeworkDone ?? 0, due })
+              : tr("school.roster.noDataYet"))}{" "}
+          · {tr("school.roster.lastActive")} {fmtDate(s.lastActiveAt)}
         </div>
       </div>
-      <span style={{ opacity: 0.7, fontSize: "0.85rem" }}>{pctOrDash(s.avgMastery)}</span>
+      <span style={{ opacity: 0.7, fontSize: "0.85rem" }}>{pctOrDash(s.avgMastery ?? s.homeworkAvg ?? null)}</span>
       <button style={ghost} onClick={onOpen} disabled={busy}>
         {tr("school.roster.view")}
       </button>
@@ -2995,6 +3016,41 @@ function StudentDetailView({
 }) {
   const { t, box, ghost } = useSchoolStyles();
   const tr = useTranslate();
+  // A payload cached before the homework layer existed reads as empty.
+  const homework = detail.homework ?? [];
+  const missed = detail.missed ?? [];
+  const hasKernel = detail.hasKernelProfile ?? detail.kcs.length > 0;
+  const done = homework.filter((h) => h.status === "done");
+  const missing = homework.filter((h) => h.status === "missing");
+  const scored = done.map((h) => h.score).filter((v): v is number => v != null);
+  const hwAvg = scored.length ? scored.reduce((a, b) => a + b, 0) / scored.length : null;
+  // Out of what has fallen due — an open homework is not a gap yet.
+  const due = done.length + missing.length;
+
+  const stats: [string, React.ReactNode][] = [
+    [tr("school.student.homeworkDone"), homework.length ? `${done.length}/${due || homework.length}` : "—"],
+    [tr("school.student.homeworkAvg"), pctOrDash(hwAvg)],
+    [tr("school.student.homeworkMissing"), homework.length ? missing.length : "—"],
+    [tr("school.student.lastActive"), fmtDate(detail.lastActiveAt)],
+  ];
+  // The Kernel's figures only when it holds something — three dashes in a row
+  // were most of what made the report read as empty.
+  if (hasKernel) {
+    stats.push(
+      [tr("school.student.avgMastery"), pctOrDash(detail.avgMastery)],
+      [tr("school.student.confidence"), pctOrDash(detail.mindsetScore)],
+      [tr("school.student.sessions7d"), detail.sessionsLast7d ?? "—"],
+    );
+  }
+  const sectionTitle: React.CSSProperties = {
+    fontSize: "0.75rem",
+    fontWeight: 600,
+    color: t.muted,
+    textTransform: "uppercase",
+    letterSpacing: "0.06em",
+    marginBottom: "0.75rem",
+  };
+
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
@@ -3035,43 +3091,101 @@ function StudentDetailView({
             </span>
           )}
         </div>
-        <div style={{ display: "flex", gap: "1.5rem", marginTop: "0.75rem", fontSize: "0.9rem" }}>
-          {[
-            [tr("school.student.avgMastery"), pctOrDash(detail.avgMastery)],
-            [tr("school.student.confidence"), pctOrDash(detail.mindsetScore)],
-            [tr("school.student.sessions7d"), detail.sessionsLast7d ?? "—"],
-            [tr("school.student.lastActive"), fmtDate(detail.lastActiveAt)],
-          ].map(([label, value]) => (
-            <div key={String(label)}>
-              <div style={{ fontWeight: 700 }}>{value}</div>
-              <div style={{ opacity: 0.55, fontSize: "0.75rem" }}>{label}</div>
+        {detail.joinedAt && (
+          <div style={{ marginTop: "0.25rem", fontSize: "0.85rem", color: t.muted }}>
+            {tr("school.student.joined", { date: fmtDate(detail.joinedAt) })}
+          </div>
+        )}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.9rem 1.75rem", marginTop: "0.9rem" }}>
+          {stats.map(([label, value]) => (
+            <div key={label}>
+              <div style={{ fontWeight: 700, fontSize: "1.1rem" }}>{value}</div>
+              <div style={{ color: t.muted, fontSize: "0.8rem" }}>{label}</div>
             </div>
           ))}
         </div>
         {detail.detectedMindset && (
-          <p style={{ margin: "0.6rem 0 0", opacity: 0.7, fontSize: "0.85rem" }}>
+          <p style={{ margin: "0.6rem 0 0", color: t.muted, fontSize: "0.85rem" }}>
             {tr("school.student.mindsetPrefix")} {detail.detectedMindset}
           </p>
         )}
       </div>
 
-      {detail.insight && (
-        <div style={{ ...box, borderColor: "#8b5cf655", background: t.cardBg }}>
-          <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#a78bfa", marginBottom: "0.35rem" }}>
-            <RayaName />{tr("school.student.rayaAnalysis")}
+      {classId ? (
+        <StudentSummary classId={classId} detail={detail} />
+      ) : (
+        detail.insight && (
+          <div style={{ ...box, borderColor: "#8b5cf655" }}>
+            <p style={{ margin: 0, lineHeight: 1.55 }}>{detail.insight}</p>
           </div>
-          <p style={{ margin: 0, lineHeight: 1.55 }}>{detail.insight}</p>
+        )
+      )}
+
+      <div style={box}>
+        <div style={sectionTitle}>{tr("school.student.homework")}</div>
+        {homework.length === 0 ? (
+          <p style={{ margin: 0, color: t.muted, lineHeight: 1.55 }}>{tr("school.student.noHomework")}</p>
+        ) : (
+          homework.map((h, i) => {
+            const tone =
+              h.status === "missing" || (h.status === "done" && h.score != null && h.score < 0.5)
+                ? "#ef4444"
+                : h.status === "done"
+                  ? "#16a34a"
+                  : t.muted;
+            return (
+              <div
+                key={h.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.75rem",
+                  padding: "0.55rem 0",
+                  borderTop: i ? `1px solid ${t.cardBorder}` : undefined,
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.title}</div>
+                  <div style={{ fontSize: "0.8rem", color: t.muted }}>
+                    {fmtDate(h.assignedAt)}
+                    {h.dueAt ? ` · ${tr("school.student.hwDue", { date: fmtDate(h.dueAt) })}` : ""}
+                  </div>
+                </div>
+                <span style={{ fontWeight: 700, color: tone, whiteSpace: "nowrap", fontSize: "0.9rem" }}>
+                  {h.status === "done"
+                    ? h.score != null
+                      ? pctOrDash(h.score)
+                      : tr("school.student.hwDone")
+                    : h.status === "missing"
+                      ? tr("school.student.hwMissing")
+                      : tr("school.student.hwOpen")}
+                </span>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {missed.length > 0 && (
+        <div style={box}>
+          <div style={sectionTitle}>{tr("school.student.missedTitle")}</div>
+          {missed.map((m, i) => (
+            <div key={i} style={{ padding: "0.45rem 0", borderTop: i ? `1px solid ${t.cardBorder}` : undefined }}>
+              <div style={{ lineHeight: 1.5 }}>{m.question}</div>
+              <div style={{ fontSize: "0.78rem", color: t.muted }}>{m.assignment}</div>
+            </div>
+          ))}
         </div>
       )}
 
       {detail.graph.edges.length > 0 && <LearningGraphView graph={detail.graph} />}
 
       <div style={box}>
-        <div style={{ fontSize: "0.75rem", opacity: 0.5, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "0.75rem" }}>
-          {tr("school.student.masteryByConcept")}
-        </div>
-        {detail.kcs.length === 0 ? (
-          <p style={{ margin: 0, opacity: 0.6 }}>
+        <div style={sectionTitle}>{tr("school.student.masteryByConcept")}</div>
+        {!hasKernel ? (
+          <p style={{ margin: 0, color: t.muted, lineHeight: 1.55 }}>{tr("school.student.noKernelProfile")}</p>
+        ) : detail.kcs.length === 0 ? (
+          <p style={{ margin: 0, color: t.muted }}>
             {tr("school.student.noCognitiveDataA")} <RayaName />{tr("school.student.noCognitiveDataB")}
           </p>
         ) : (
@@ -3089,7 +3203,7 @@ function StudentDetailView({
                   }}
                 />
               </div>
-              <span style={{ width: 40, textAlign: "right", opacity: 0.7, fontSize: "0.85rem" }}>
+              <span style={{ width: 40, textAlign: "right", color: t.muted, fontSize: "0.85rem" }}>
                 {pctOrDash(kc.mastery)}
               </span>
             </div>
@@ -3098,6 +3212,71 @@ function StudentDetailView({
       </div>
 
       {classId && <FollowupsPanel classId={classId} studentUserId={detail.userId} />}
+    </div>
+  );
+}
+
+/**
+ * Raya's reading of the report, written on request (app/api/school/student/summary).
+ *
+ * The Kernel's own note shows until then, when there is one. The button works
+ * either way, and that is the point of it: it is what gives a student the
+ * Kernel has never analysed a report in words instead of a row of figures.
+ */
+function StudentSummary({ classId, detail }: { classId: string; detail: StudentDetail }) {
+  const { t, box, btn } = useSchoolStyles();
+  const tr = useTranslate();
+  const [summary, setSummary] = useState<string | null>(null);
+  const [state, setState] = useState<"idle" | "busy" | "failed">("idle");
+
+  async function write() {
+    setState("busy");
+    try {
+      // A model call over the whole report — more room than a dashboard read.
+      const res = await netFetch(
+        "/api/school/student/summary",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ classId, userId: detail.userId }),
+        },
+        { timeoutMs: 60_000 },
+      );
+      const data = (await res.json().catch(() => null)) as { summary?: string } | null;
+      if (!res.ok || !data?.summary) throw new Error("no summary");
+      setSummary(data.summary);
+      setState("idle");
+    } catch {
+      setState("failed");
+    }
+  }
+
+  return (
+    <div style={{ ...box, borderColor: "#8b5cf655" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.6rem", flexWrap: "wrap" }}>
+        <div style={{ flex: 1, fontSize: "0.8rem", fontWeight: 600, color: t.dark ? "#a78bfa" : "#6d28d9" }}>
+          <RayaName />{tr("school.student.rayaAnalysis")}
+        </div>
+        <button style={{ ...btn, opacity: state === "busy" ? 0.6 : 1 }} disabled={state === "busy"} onClick={() => void write()}>
+          {state === "busy"
+            ? tr("school.student.summaryWriting")
+            : summary
+              ? tr("school.student.summaryRewrite")
+              : tr("school.student.summaryWrite")}
+        </button>
+      </div>
+      {summary ? (
+        <RichText content={summary} theme={t} />
+      ) : detail.insight ? (
+        <p style={{ margin: 0, lineHeight: 1.55 }}>{detail.insight}</p>
+      ) : (
+        <p style={{ margin: 0, color: t.muted, lineHeight: 1.55 }}>
+          {tr("school.student.summaryHint", { name: detail.firstName })}
+        </p>
+      )}
+      {state === "failed" && (
+        <p style={{ margin: "0.5rem 0 0", color: "#ef4444", fontSize: "0.85rem" }}>{tr("school.student.summaryFailed")}</p>
+      )}
     </div>
   );
 }

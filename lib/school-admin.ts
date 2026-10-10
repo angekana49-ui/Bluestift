@@ -823,9 +823,52 @@ export type RosterStudent = {
   lastActiveAt: string | null;
   avgMastery: number | null; // 0..1
   mindsetScore: number | null; // 0..1
+  /** Class homework this student submitted / let pass its deadline, and their average on it. */
+  homeworkDone: number;
+  homeworkMissing: number;
+  homeworkAvg: number | null; // 0..1
 };
 
 export type ClassRoster = { classId: string; className: string; students: RosterStudent[] };
+
+type HomeworkTally = { done: number; missing: number; avg: number | null };
+
+/** Per student: class homework submitted, missed (deadline passed), and the average score. Two queries for the class. */
+async function readClassHomework(classId: string, userIds: string[]): Promise<Map<string, HomeworkTally>> {
+  const out = new Map<string, HomeworkTally>();
+  const { data: asgData } = await createSchoolsAdminClient()
+    .from("resource_assignments")
+    .select("challenge_id, due_at")
+    .eq("class_id", classId)
+    .eq("is_active", true);
+  const rows = (asgData as { challenge_id: string; due_at: string | null }[] | null) ?? [];
+  if (rows.length === 0 || userIds.length === 0) return out;
+  const { data: atData } = await createAdminClient()
+    .schema("learning")
+    .from("challenge_attempts")
+    .select("user_id, challenge_id, score, status")
+    .in("challenge_id", rows.map((r) => r.challenge_id))
+    .in("user_id", userIds);
+  const doneBy = new Map<string, Map<string, number | null>>();
+  for (const a of (atData as { user_id: string; challenge_id: string; score: number | null; status: string }[] | null) ?? []) {
+    if (a.status !== "completed") continue;
+    const m = doneBy.get(a.user_id) ?? new Map<string, number | null>();
+    m.set(a.challenge_id, a.score);
+    doneBy.set(a.user_id, m);
+  }
+  const now = Date.now();
+  const pastDue = rows.filter((r) => r.due_at && new Date(r.due_at).getTime() < now);
+  for (const id of userIds) {
+    const mine = doneBy.get(id) ?? new Map<string, number | null>();
+    const scores = [...mine.values()].filter((v): v is number => v != null);
+    out.set(id, {
+      done: mine.size,
+      missing: pastDue.filter((r) => !mine.has(r.challenge_id)).length,
+      avg: scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null,
+    });
+  }
+  return out;
+}
 
 /** The roster of a class the caller administers, merged with each student's live risk. */
 export async function getClassRoster(userId: string, classId: string): Promise<ClassRoster | null> {
@@ -852,9 +895,23 @@ export async function getClassRoster(userId: string, classId: string): Promise<C
   } catch {
     // Kernel schema unreachable → students show without risk data.
   }
+  // School data beside the Kernel's: without it every student the Kernel has
+  // not analysed was "No data yet", homework on file or not.
+  const [homework, activity] = await Promise.all([
+    readClassHomework(classId, userIds).catch(() => new Map<string, HomeworkTally>()),
+    createAdminClient()
+      .from("users")
+      .select("id, last_activity_at")
+      .in("id", userIds)
+      .then(
+        (r) => new Map(((r.data as { id: string; last_activity_at: string | null }[] | null) ?? []).map((u) => [u.id, u.last_activity_at])),
+        () => new Map<string, string | null>(),
+      ),
+  ]);
 
   const students: RosterStudent[] = identities.map((i) => {
     const r = riskByUser.get(i.user_id);
+    const hw = homework.get(i.user_id);
     return {
       userId: i.user_id,
       firstName: i.first_name,
@@ -862,9 +919,12 @@ export async function getClassRoster(userId: string, classId: string): Promise<C
       riskLevel: r?.riskLevel ?? null,
       statusLabel: r?.statusLabel ?? null,
       sessionsLast7d: r?.sessionsLast7d ?? null,
-      lastActiveAt: r?.lastActiveAt ?? null,
+      lastActiveAt: r?.lastActiveAt ?? activity.get(i.user_id) ?? null,
       avgMastery: r?.avgMastery ?? null,
       mindsetScore: r?.mindsetScore ?? null,
+      homeworkDone: hw?.done ?? 0,
+      homeworkMissing: hw?.missing ?? 0,
+      homeworkAvg: hw?.avg ?? null,
     };
   });
   return { classId: cls.id, className: cls.name, students };
@@ -2167,7 +2227,124 @@ export type StudentDetail = {
   kcs: StudentKc[];
   graph: LearningGraph;
   insight: string | null;
+  /** The class's homework and what this student did with each — school data, no Kernel needed. */
+  homework: StudentHomework[];
+  /** Questions this student got wrong on that homework, newest first. */
+  missed: MissedQuestion[];
+  /** False when the Kernel holds nothing on this student — the report then rests on homework alone. */
+  hasKernelProfile: boolean;
+  /** When the student joined this class. */
+  joinedAt: string | null;
 };
+
+/**
+ * One piece of class homework, as one student stands on it. `open` = not done
+ * and still before its deadline (or no deadline); `missing` = the deadline
+ * passed without a submission.
+ */
+export type StudentHomework = {
+  id: string;
+  title: string;
+  kind: string;
+  assignedAt: string;
+  dueAt: string | null;
+  status: "done" | "missing" | "open";
+  score: number | null;
+  completedAt: string | null;
+};
+export type MissedQuestion = { question: string; assignment: string };
+
+/**
+ * The part of a student's report the school owns outright: the homework set in
+ * this class and how the student did on it, down to the questions they missed.
+ *
+ * It used to be the Kernel or nothing — every figure on the report came from
+ * Kernel tables, so a student the Kernel had never analysed (which, while it is
+ * down, is every real student) got a page of dashes even with five graded
+ * homeworks on file. This reads only `schools` and `learning` rows the school
+ * already sees in Prepare → results.
+ *
+ * Solo self-tests and room challenges are NOT read: those are the student's own
+ * practice, on the private side of the line drawn in lib/compliance/school-record.ts.
+ */
+async function readStudentHomework(
+  studentUserId: string,
+  classId: string,
+): Promise<{ homework: StudentHomework[]; missed: MissedQuestion[] }> {
+  const schools = createSchoolsAdminClient();
+  const { data: asgData } = await schools
+    .from("resource_assignments")
+    .select("id, challenge_id, title, kind, due_at, created_at")
+    .eq("class_id", classId)
+    .eq("is_active", true)
+    .order("created_at", { ascending: false })
+    .limit(40);
+  const rows =
+    (asgData as { id: string; challenge_id: string; title: string; kind: string; due_at: string | null; created_at: string }[] | null) ?? [];
+  if (rows.length === 0) return { homework: [], missed: [] };
+
+  const admin = createAdminClient();
+  const { data: atData } = await admin
+    .schema("learning")
+    .from("challenge_attempts")
+    .select("id, challenge_id, score, status, completed_at")
+    .eq("user_id", studentUserId)
+    .in("challenge_id", rows.map((r) => r.challenge_id));
+  const attempts =
+    (atData as { id: string; challenge_id: string; score: number | null; status: string; completed_at: string | null }[] | null) ?? [];
+  const attemptByChallenge = new Map(attempts.filter((a) => a.status === "completed").map((a) => [a.challenge_id, a]));
+
+  const now = Date.now();
+  const homework: StudentHomework[] = rows.map((r) => {
+    const a = attemptByChallenge.get(r.challenge_id);
+    const status: StudentHomework["status"] = a
+      ? "done"
+      : r.due_at && new Date(r.due_at).getTime() < now
+        ? "missing"
+        : "open";
+    return {
+      id: r.id,
+      title: r.title,
+      kind: r.kind,
+      assignedAt: r.created_at,
+      dueAt: r.due_at,
+      status,
+      score: a?.score ?? null,
+      completedAt: a?.completed_at ?? null,
+    };
+  });
+
+  // The questions behind the scores — "62%" says how much, not what.
+  const done = [...attemptByChallenge.values()];
+  let missed: MissedQuestion[] = [];
+  if (done.length) {
+    const { data: ansData } = await admin
+      .schema("learning")
+      .from("challenge_answers")
+      .select("attempt_id, question_id")
+      .in("attempt_id", done.map((a) => a.id))
+      .eq("is_correct", false);
+    const wrong = (ansData as { attempt_id: string; question_id: string }[] | null) ?? [];
+    if (wrong.length) {
+      const { data: qData } = await admin
+        .schema("learning")
+        .from("challenge_questions")
+        .select("id, content")
+        .in("id", [...new Set(wrong.map((w) => w.question_id))]);
+      const textById = new Map(((qData as { id: string; content: string | null }[] | null) ?? []).map((q) => [q.id, q.content ?? ""]));
+      const titleByAttempt = new Map(
+        done.map((a) => [a.id, rows.find((r) => r.challenge_id === a.challenge_id)?.title ?? ""]),
+      );
+      const orderOf = new Map(rows.map((r, i) => [r.title, i]));
+      missed = wrong
+        .map((w) => ({ question: (textById.get(w.question_id) ?? "").trim().slice(0, 300), assignment: titleByAttempt.get(w.attempt_id) ?? "" }))
+        .filter((m) => m.question)
+        .sort((x, y) => (orderOf.get(x.assignment) ?? 0) - (orderOf.get(y.assignment) ?? 0))
+        .slice(0, 12);
+    }
+  }
+  return { homework, missed };
+}
 
 /** One student's cognitive detail (KCs, mindset, latest Raya insight), admin-gated. */
 export async function getStudentDetail(
@@ -2186,11 +2363,11 @@ export async function getStudentDetail(
 
   const { data: idData } = await schools
     .from("student_identities")
-    .select("first_name, last_name")
+    .select("first_name, last_name, created_at")
     .eq("user_id", studentUserId)
     .eq("class_id", classId)
     .maybeSingle();
-  const identity = idData as { first_name: string; last_name: string } | null;
+  const identity = idData as { first_name: string; last_name: string; created_at: string } | null;
   if (!identity) return null;
 
   const detail: StudentDetail = {
@@ -2207,7 +2384,26 @@ export async function getStudentDetail(
     kcs: [],
     graph: { nodes: [], edges: [] },
     insight: null,
+    homework: [],
+    missed: [],
+    hasKernelProfile: false,
+    joinedAt: identity.created_at ?? null,
   };
+
+  // School-owned first, and on its own: a Kernel failure below must not take
+  // the homework with it, and the reverse.
+  const [hw, account] = await Promise.all([
+    readStudentHomework(studentUserId, classId).catch(() => ({ homework: [], missed: [] })),
+    createAdminClient()
+      .from("users")
+      .select("last_activity_at")
+      .eq("id", studentUserId)
+      .maybeSingle()
+      .then((r) => r.data as { last_activity_at: string | null } | null, () => null),
+  ]);
+  detail.homework = hw.homework;
+  detail.missed = hw.missed;
+  detail.lastActiveAt = account?.last_activity_at ?? null;
 
   try {
     const kernel = createKernelAdminClient();
@@ -2238,7 +2434,7 @@ export async function getStudentDetail(
       detail.riskLevel = r.riskLevel;
       detail.statusLabel = r.statusLabel;
       detail.sessionsLast7d = r.sessionsLast7d;
-      detail.lastActiveAt = r.lastActiveAt;
+      detail.lastActiveAt = r.lastActiveAt ?? detail.lastActiveAt;
       detail.avgMastery = r.avgMastery;
       detail.mindsetScore = r.mindsetScore;
     }
@@ -2248,6 +2444,8 @@ export async function getStudentDetail(
       detail.detectedMindset = m.detected_mindset;
     }
     detail.insight = (insight.data as { insight_text: string | null } | null)?.insight_text ?? null;
+    detail.hasKernelProfile =
+      ((states.data as unknown[] | null) ?? []).length > 0 || m != null || detail.insight != null;
 
     // KC labels: join concept ids -> concept_nodes.
     const stateRows = (states.data as { concept_id: string; mastery_score_effective: number | null }[] | null) ?? [];
