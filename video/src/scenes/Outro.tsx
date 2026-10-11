@@ -7,6 +7,7 @@ import { EASE, envelope, handheld, keys, mix, rand, span, useTime } from "../mot
 import { poseStyle, World } from "../Plate";
 import { TEXTURES } from "../Texture";
 import { DURATION, line, MUSIC, phrase, wordAt } from "../timeline";
+import { TryRayaPill } from "../fresh";
 
 /**
  * "So that was a quick look at Bluestift… how it all fits together."
@@ -78,6 +79,10 @@ export function Outro() {
   const wheelX = roll(t);
   const wheelSpeed = (roll(t + 1 / 60) - wheelX) * 60;
   const wheel = envelope(t, askRaya - 0.25, askRaya, aboard, aboard + 0.6);
+  // "or just ask Raya" — and you can, now, without an account: the landing's
+  // own button under the wheel, pressed once.
+  const tryPill = envelope(t, rayaWord + 0.1, rayaWord + 0.5, aboard, aboard + 0.55);
+  const tryPress = span(t, rayaWord + 0.75, rayaWord + 1.05, EASE.linear);
 
   /* ── the take-off ── */
   const takeOff: Bird[] = Array.from({ length: 11 }, (_, i) => {
@@ -169,6 +174,14 @@ export function Outro() {
       {wheel > 0.001 && (
         <AbsoluteFill style={{ opacity: wheel }}>
           <RayaWheel x={wheelX} x0={rollFrom} groundY={690} size={170} speed={wheelSpeed} />
+        </AbsoluteFill>
+      )}
+
+      {tryPill > 0.001 && (
+        <AbsoluteFill style={{ alignItems: "center" }}>
+          <div style={{ position: "absolute", top: 820, opacity: tryPill, transform: `translateY(${((1 - tryPill) * 22).toFixed(1)}px)` }}>
+            <TryRayaPill pressed={tryPress} />
+          </div>
         </AbsoluteFill>
       )}
 

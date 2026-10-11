@@ -20,10 +20,10 @@ export function nightAt(t: number) {
     [0, 0],
     // Dusk under the dark shots of the Raya tour (My Kernel, Tools), day
     // again for the Study Room — pinned to the words, not to the clock.
-    [wordAt("raya-5", "Kernel") - 0.4, 0],
-    [wordAt("raya-5", "Kernel") + 0.8, 0.62],
-    [line("raya-7").start - 0.6, 0.62],
-    [line("raya-7").start + 0.6, 0],
+    [wordAt("raya-3", "Kernel") - 0.4, 0],
+    [wordAt("raya-3", "Kernel") + 0.8, 0.62],
+    [line("raya-5").start - 0.6, 0.62],
+    [line("raya-5").start + 0.6, 0],
     // Night for the Kernel, dawn for the people in control.
     [line("kernel-0").start - 2.25, 0],
     [line("kernel-0").start + 0.25, 1],

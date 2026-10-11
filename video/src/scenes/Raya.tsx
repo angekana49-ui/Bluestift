@@ -7,7 +7,7 @@ import { EASE, envelope, handheld, keys, keysOf, mix, span, steady, useTime, war
 import { Halo, Plate, spot, textWidth, toFrame, World, type Pose } from "../Plate";
 import { ROOM_PANEL, ROOM_PANEL_AT, ROOM_SHOT, RoomWithPanel } from "../RoomPanel";
 import { line, MUSIC, phrase, wordAt } from "../timeline";
-import { MATHS, MathsScreen, TryRayaPill } from "../fresh";
+import { MATHS, MathsScreen } from "../fresh";
 
 /**
  * "Here's a quick look at Raya, which is more than an AI: it's a platform of
@@ -15,10 +15,10 @@ import { MATHS, MathsScreen, TryRayaPill } from "../fresh";
  *
  * The wheel rolls in on the groove and unrolls its name; the platform's own
  * sections line up under it. Then the tour, the camera always on the thing
- * being said: "try it right now" as the landing's own button, pressed; the
- * composer ("ask Raya anything"), the thread as Raya leads the student to it,
- * a reply that cites Wikipedia beside the Maths panel drawing the graph and
- * working the equation, My Kernel at dusk, the Tools Studio tile by tile on
+ * being said: the composer ("ask Raya anything"), the thread as Raya leads
+ * the student to it — and on "helps you find it", what that help looks like
+ * now: a reply that cites Wikipedia beside the Maths panel drawing the graph
+ * and working the equation, held until My Kernel arrives at dusk; the Tools Studio tile by tile on
  * "quizzes, flashcards and mind maps", and the Study Room in daylight —
  * the room, who's in it, the chat, the shared document, the challenges,
  * Raya in the thread, the button that asks her.
@@ -62,29 +62,30 @@ export function Raya() {
 
   const rayaWord = wordAt("raya-0", "Raya");
   const platform = phrase("raya-0", 2).start;
-  const tryIt = line("raya-1").start;
-  const nowWord = wordAt("raya-1", "now");
-  const ask = line("raya-2").start;
-  const instead = line("raya-3").start;
-  const findIt = phrase("raya-3", 1).start;
-  const facts = line("raya-4").start;
-  const graphs = phrase("raya-4", 1).start;
-  const working = phrase("raya-4", 2).start;
-  const explore = line("raya-5").start;
-  const kernelWord = wordAt("raya-5", "Kernel");
-  const turn = line("raya-6").start;
-  const quizzes = wordAt("raya-6", "quizzes");
-  const flashcards = wordAt("raya-6", "flashcards");
-  const mindMaps = wordAt("raya-6", "mind");
-  const practise = phrase("raya-6", 3).start;
-  const better = line("raya-7").start;
-  const studyRoom = wordAt("raya-7", "Study");
-  const friends = wordAt("raya-7", "friends");
-  const chat = phrase("raya-7", 2).start;
-  const share = phrase("raya-7", 3).start;
-  const challenge = wordAt("raya-7", "challenge");
-  const rightThere = phrase("raya-7", 4).start;
-  const help = phrase("raya-7", 5).start;
+  const ask = line("raya-1").start;
+  const instead = line("raya-2").start;
+  const findIt = phrase("raya-2", 1).start;
+  // The narration does not name them, so the picture says them on its own
+  // beat: the help Raya gives, shown on "helps you find it" — the fact cited,
+  // the graph drawn, the equation worked — until the voice reaches My Kernel.
+  const facts = findIt - 0.15;
+  const graphs = facts + 1.15;
+  const working = facts + 2.3;
+  const explore = line("raya-3").start;
+  const kernelWord = wordAt("raya-3", "Kernel");
+  const turn = line("raya-4").start;
+  const quizzes = wordAt("raya-4", "quizzes");
+  const flashcards = wordAt("raya-4", "flashcards");
+  const mindMaps = wordAt("raya-4", "mind");
+  const practise = phrase("raya-4", 2).start;
+  const better = line("raya-5").start;
+  const studyRoom = wordAt("raya-5", "Study");
+  const friends = wordAt("raya-5", "friends");
+  const chat = phrase("raya-5", 2).start;
+  const share = phrase("raya-5", 3).start;
+  const challenge = wordAt("raya-5", "challenge");
+  const rightThere = phrase("raya-5", 4).start;
+  const help = phrase("raya-5", 5).start;
 
   /* ── the wheel and its name ── */
   const rollFrom = -300;
@@ -95,18 +96,14 @@ export function Raya() {
   const nameReveal = span(t, rayaWord - 0.05, rayaWord + 0.9, EASE.move);
   // The title card folds into the screen it names, and hands over once the
   // real rows have drawn themselves underneath it.
-  const fold = span(t, ask - 0.9, ask - 0.1, EASE.move);
-  const handOver = span(t, ask - 0.1, ask + 0.45, EASE.soft);
-  // "try it right now": the landing's button under the card, pressed on "now",
-  // gone before the card folds into the app it opens.
-  const tryPill = envelope(t, tryIt - 0.2, tryIt + 0.25, ask - 1.05, ask - 0.8);
-  const tryPress = span(t, nowWord - 0.05, nowWord + 0.3, EASE.linear);
+  const fold = span(t, ask - 1.25, ask - 0.2, EASE.move);
+  const handOver = span(t, ask - 0.15, ask + 0.45, EASE.soft);
   const lockupOut = handOver;
 
   /* ── Socratic: the whole app, then the composer, the thread, My Kernel ── */
   const socPose: Pose = keysOf(t, [
-    [ask - 1.0, { x: 0, y: 40, s: 0.96, o: 0, focus: 0.3 }],
-    [ask - 0.15, { x: 0, y: 0, s: 1.1, o: 1, focus: 1 }],
+    [ask - 1.3, { x: 0, y: 40, s: 0.96, o: 0, focus: 0.3 }],
+    [ask - 0.2, { x: 0, y: 0, s: 1.1, o: 1, focus: 1 }],
     // Steps back behind the reply with the Maths panel. The voice reaches
     // "My Kernel" barely a second after the working starts, so the working
     // keeps the screen and My Kernel arrives straight from it.
@@ -116,7 +113,6 @@ export function Raya() {
   const socAt = (px: number, py: number) => spot({ s: 1.1 }, SOC.w, SOC.h, px, py);
   const composer = socAt(671, 628);
   const thread = socAt(674, 330);
-  const found = socAt(995, 551);
   const myKernel = socAt(143, 417);
   // The sidebar draws itself under the cards landing on it, so the rail is
   // finished at the moment they hand over.
@@ -125,7 +121,7 @@ export function Raya() {
     [ask + 0.45, 720],
     [instead + 0.2, 1150],
     [findIt + 0.35, 1720],
-    [facts, 2300],
+    [findIt + 0.6, 2300],
   ]);
 
   /* ── facts, graphs and the working: a reply beside the Maths panel ── */
@@ -143,6 +139,7 @@ export function Raya() {
     wiki: span(t, facts + 0.05, graphs + 0.05, EASE.linear),
     graph: span(t, graphs - 0.05, graphs + 1.2, EASE.move),
     steps: span(t, working - 0.05, kernelWord - 0.6, EASE.linear),
+    glint: span(t, graphs + 0.7, graphs + 1.6, EASE.soft),
   };
 
   /* ── My Kernel, at dusk ── */
@@ -206,11 +203,9 @@ export function Raya() {
     [ask + 0.8, c(0, 0, 1)],
     [ask + 1.9, c(composer.x, composer.y - 60, 1.55)],
     [instead + 0.3, c(thread.x, thread.y, 1.4)],
-    [findIt + 0.1, c(thread.x + 80, thread.y + 60, 1.45)],
-    [findIt + 0.8, c(found.x - 60, found.y - 30, 1.6)],
-    [facts - 0.1, c(found.x - 60, found.y - 30, 1.6)],
+    [facts - 0.1, c(thread.x + 80, thread.y + 60, 1.45)],
     [facts + 0.45, c(0, 0, 1)],
-    [facts + 1.1, c(source.x + 60, source.y - 40, 1.3)],
+    [facts + 0.95, c(source.x + 60, source.y - 40, 1.3)],
     [graphs + 0.35, c(graphAt.x, graphAt.y, 1.35)],
     [working + 0.5, c(workingAt.x, workingAt.y, 1.15)],
     [kernelWord - 0.45, c(workingAt.x, workingAt.y, 1.15)],
@@ -299,14 +294,6 @@ export function Raya() {
 
       {/* The wheel, its name and the platform's sections: a title card, outside
           the camera — until it folds into the screen and becomes its rail. */}
-      {tryPill > 0.001 && (
-        <AbsoluteFill style={{ alignItems: "center" }}>
-          <div style={{ position: "absolute", top: 800, opacity: tryPill, transform: `translateY(${((1 - tryPill) * 18).toFixed(2)}px)` }}>
-            <TryRayaPill pressed={tryPress} />
-          </div>
-        </AbsoluteFill>
-      )}
-
       {lockupOut < 1 && (
         <AbsoluteFill style={{ opacity: 1 - lockupOut }}>
           {(() => {

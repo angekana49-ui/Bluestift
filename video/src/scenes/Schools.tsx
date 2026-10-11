@@ -114,11 +114,14 @@ export function Schools() {
   const tell = line("schools-4").start;
   const focusWord = wordAt("schools-4", "focus");
   const askClass = phrase("schools-4", 1).start;
-  const homework = line("schools-5").start;
-  const report = phrase("schools-5", 1).start;
+  // "For a class, / or for the whole school, / they get a clear summary of
+  // what's really needed." Said in under five seconds, shown as three things
+  // the narration does not name: homework assigned to the class in a press,
+  // the whole school at a glance, and one student's report with Raya's
+  // reading of it laid over the school — the clear summary, for one child.
+  const forClass = line("schools-5").start;
+  const wholeSchool = phrase("schools-5", 1).start;
   const summary = phrase("schools-5", 2).start;
-  // The teacher's own screens give way where homework starts being said.
-  const forClass = homework;
   const matters = line("schools-6").start;
   const counts = phrase("schools-6", 1).start;
 
@@ -184,40 +187,44 @@ export function Schools() {
     [forClass + 0.4, { x: 360, y: 50, s: 0.96, o: 0 }],
   ]);
 
-  /* ── homework in minutes ── */
+  /* ── for a class: homework, assigned in a press ── */
   const prepPose: Pose = keysOf(t, [
-    [homework - 0.3, { x: 80, y: 50, s: 0.86, o: 0, focus: 0.2 }],
-    [homework + 0.35, { x: 0, y: 0, s: 0.95, o: 1, focus: 1 }],
-    [report - 0.25, { x: 0, y: 0, s: 0.96, o: 1, focus: 1 }],
-    [report + 0.3, { x: -120, y: 0, s: 0.92, o: 0, focus: 0.3 }],
+    [forClass - 0.35, { x: 90, y: 50, ry: 0, s: 0.86, o: 0, focus: 0.2 }],
+    [forClass + 0.2, { x: 0, y: 0, ry: 0, s: 0.95, o: 1, focus: 1 }],
+    [wholeSchool + 0.35, { x: 0, y: 0, ry: 0, s: 0.97, o: 1, focus: 1 }],
+    [wholeSchool + 0.8, { x: -160, y: -20, ry: 6, s: 0.9, o: 0, focus: 0.3 }],
   ]);
   const prep = {
-    build: span(t, homework + 0.1, homework + 0.95, EASE.linear),
-    pressed: span(t, report - 0.85, report - 0.55, EASE.linear),
-    assigned: span(t, report - 0.6, report - 0.3, EASE.arrive),
+    build: span(t, forClass - 0.1, forClass + 0.55, EASE.linear),
+    pressed: span(t, forClass + 0.6, forClass + 0.85, EASE.linear),
+    assigned: span(t, forClass + 0.8, forClass + 1.6, EASE.arrive),
+    glint: span(t, forClass + 0.75, forClass + 1.5, EASE.soft),
   };
 
-  /* ── a clear report on every student ── */
-  const reportPose: Pose = keysOf(t, [
-    [report - 0.3, { x: 100, y: 50, s: 0.84, o: 0, focus: 0.2 }],
-    [report + 0.3, { x: 0, y: 0, s: 0.92, o: 1, focus: 1 }],
-    [summary - 0.25, { x: 0, y: 0, s: 0.93, o: 1, focus: 1 }],
-    [summary + 0.3, { x: -120, y: 0, s: 0.9, o: 0, focus: 0.3 }],
-  ]);
-  const reading = spot({ s: 0.92 }, REPORT.w, REPORT.h, REPORT.summary.x, REPORT.summary.y);
-  const studentReport = {
-    summary: span(t, report + 0.15, summary + 0.1, EASE.linear),
-    rows: span(t, report + 0.4, summary - 0.1, EASE.linear),
-  };
-
-  /* ── the summary for the whole school ── */
+  /* ── the whole school, then one student's report laid over it ── */
   const dashB: Pose = keysOf(t, [
-    [summary - 0.3, { x: 0, y: 60, s: 0.92, o: 0, focus: 0.2 }],
-    [summary + 0.35, { x: 0, y: 0, s: 1, o: 1, focus: 1 }],
-    [matters, { x: 0, y: 0, s: 1, o: 1, focus: 1 }],
+    [wholeSchool + 0.25, { x: 0, y: 60, s: 0.92, o: 0, focus: 0.2 }],
+    [wholeSchool + 0.85, { x: 0, y: 0, s: 1, o: 1, focus: 1 }],
+    [summary - 0.1, { x: 0, y: 0, s: 1, o: 1, focus: 1 }],
+    // Behind the report: the school stays there, out of focus, a step back.
+    [summary + 0.45, { x: 0, y: 0, s: 0.95, o: 1, focus: 0.3 }],
+    [matters - 0.2, { x: 0, y: 0, s: 0.95, o: 1, focus: 0.3 }],
+    [matters + 0.45, { x: 0, y: 0, s: 1, o: 1, focus: 1 }],
     [counts, { x: 0, y: 20, s: 0.94, o: 1, focus: 0.75 }],
     [to - 0.6, { x: 0, y: 40, s: 0.9, o: 0, focus: 0.3 }],
   ]);
+  const reportPose: Pose = keysOf(t, [
+    [summary - 0.25, { x: 0, y: 90, z: 120, s: 0.8, o: 0, focus: 0.3 }],
+    [summary + 0.4, { x: 0, y: 0, z: 0, s: 0.86, o: 1, focus: 1 }],
+    [matters - 0.15, { x: 0, y: -6, z: 0, s: 0.87, o: 1, focus: 1 }],
+    [matters + 0.45, { x: 0, y: -70, z: 0, s: 0.9, o: 0, focus: 0.4 }],
+  ]);
+  const reading = spot({ s: 0.86 }, REPORT.w, REPORT.h, REPORT.summary.x, REPORT.summary.y);
+  const studentReport = {
+    summary: span(t, summary + 0.3, matters - 0.15, EASE.linear),
+    rows: span(t, summary + 0.5, matters, EASE.linear),
+    glint: span(t, summary + 0.25, summary + 1.1, EASE.soft),
+  };
   const dashAt = (px: number, py: number) => spot({ s: 1 }, DASH.w, DASH.h, px, py - 43);
   const panel = dashAt(1253, 330);
   const alerts = dashAt(1253, 505);
@@ -237,13 +244,13 @@ export function Schools() {
     [tell + 0.3, c(-80, 0, 1.0)],
     [focusWord + 0.3, c(focusInput.x + 120, focusInput.y - 30, 1.55)],
     [askClass + 0.2, c(80, 20, 1.0)],
-    [homework + 0.1, c(0, 0, 1.0)],
-    [report - 0.1, c(0, 0, 1.0)],
-    [report + 0.7, c(reading.x, reading.y, 1.3)],
-    [summary - 0.05, c(reading.x, reading.y + 20, 1.32)],
-    [summary + 0.4, c(0, 0, 1.0)],
-    [summary + 1.1, c(panel.x - 60, panel.y + 60, 1.45)],
-    [matters, c(panel.x - 60, panel.y + 60, 1.45)],
+    [forClass + 0.1, c(0, 0, 1.0)],
+    [wholeSchool + 0.4, c(-30, 0, 1.03)],
+    [wholeSchool + 1.0, c(0, 0, 1.0)],
+    [summary + 0.1, c(0, 0, 1.0)],
+    [summary + 0.9, c(reading.x, reading.y, 1.22)],
+    [matters - 0.1, c(reading.x, reading.y + 30, 1.26)],
+    [matters + 0.6, c(panel.x - 60, panel.y + 60, 1.35)],
     [counts, c(0, 0, 0.86)],
     [to, c(0, -40, 0.78)],
   ]));
@@ -338,24 +345,23 @@ export function Schools() {
           </div>
         )}
 
-        {t > homework - 0.35 && t < report + 0.35 && (
+        {t > forClass - 0.4 && t < wholeSchool + 0.85 && (
           <Plate width={PREPARE.w} url="schools.thebluestift.com/prepare" pose={prepPose}>
             {() => <PrepareScreen {...prep} />}
           </Plate>
         )}
-        {t > report - 0.35 && t < summary + 0.35 && (
-          <Plate width={REPORT.w} url="schools.thebluestift.com/classes" pose={reportPose}>
-            {() => <ReportScreen {...studentReport} />}
-          </Plate>
-        )}
-
-        {t > summary - 0.4 && (
+        {t > wholeSchool + 0.2 && (
           <>
             <Plate className="vid-dash-s2" width={DASH.w} url="schools.thebluestift.com" pose={dashB}>
               {(th) => <DashboardMockup theme={th} />}
             </Plate>
-            <Halo x={alerts.x} y={alerts.y} w={452} h={96} radius={16} strength={envelope(t, summary + 1.0, summary + 1.4, matters - 0.2, matters + 0.3)} />
+            <Halo x={alerts.x} y={alerts.y} w={452} h={96} radius={16} strength={envelope(t, matters + 0.5, matters + 0.85, counts - 0.1, counts + 0.3)} />
           </>
+        )}
+        {t > summary - 0.3 && t < matters + 0.5 && (
+          <Plate width={REPORT.w} url="schools.thebluestift.com/classes" pose={reportPose}>
+            {() => <ReportScreen {...studentReport} />}
+          </Plate>
         )}
       </World>
 

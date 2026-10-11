@@ -93,7 +93,7 @@ const CURVE = (() => {
   return pts.join(" ");
 })();
 
-export function MathsScreen({ wiki, graph, steps }: { wiki: number; graph: number; steps: number }) {
+export function MathsScreen({ wiki, graph, steps, glint = 0 }: { wiki: number; graph: number; steps: number; glint?: number }) {
   const law = "Newton's second law says the net force on a body equals its mass times its acceleration:";
   const next = "Now your curve. Set y = 0 and factor:";
   const stepLines: [string, string][] = [
@@ -103,7 +103,8 @@ export function MathsScreen({ wiki, graph, steps }: { wiki: number; graph: numbe
   ];
   const lineIn = (k: number) => span01(steps, 0.12 + k * 0.26, 0.34 + k * 0.26);
   return (
-    <div style={{ width: MATHS.w, height: MATHS.h, background: INK.page, display: "flex" }}>
+    <div style={{ position: "relative", width: MATHS.w, height: MATHS.h, background: INK.page, display: "flex" }}>
+      <Glint p={glint} />
       {/* the conversation */}
       <div style={{ width: MATHS.chatW, padding: "34px 44px", boxSizing: "border-box", display: "flex", flexDirection: "column", gap: 22 }}>
         <div style={{ alignSelf: "flex-end", maxWidth: 600, background: INK.blue, color: "#fff", borderRadius: "22px 22px 6px 22px", padding: "14px 22px", ...ui(22, 500, "#fff") }}>
@@ -177,11 +178,21 @@ export function MathsScreen({ wiki, graph, steps }: { wiki: number; graph: numbe
             ))}
             <line x1={0} x2={G.w} y1={gy(0)} y2={gy(0)} stroke="#94a3b8" strokeWidth={1.5} />
             <line x1={gx(0)} x2={gx(0)} y1={0} y2={G.h} stroke="#94a3b8" strokeWidth={1.5} />
+            {/* The line glows as it is drawn: a wide soft stroke under the sharp one. */}
+            <path d={CURVE} fill="none" stroke="rgba(47,127,224,0.28)" strokeWidth={16} strokeLinecap="round" pathLength={1} strokeDasharray={1} strokeDashoffset={1 - clamp01(graph)} style={{ filter: "blur(6px)" }} />
             <path d={CURVE} fill="none" stroke={INK.blue} strokeWidth={4} strokeLinecap="round" pathLength={1} strokeDasharray={1} strokeDashoffset={1 - clamp01(graph)} />
             {/* The roots the working finds, marked where the curve crosses. */}
             {[-1, 3].map((x, k) => {
               const p = lineIn(2) * (k === 0 ? 1 : span01(steps, 0.8, 0.95));
-              return p > 0 ? <circle key={x} cx={gx(x)} cy={gy(0)} r={mix(2, 9, p)} fill="#fff" stroke={INK.red} strokeWidth={4} opacity={p} /> : null;
+              if (p <= 0) return null;
+              // A ring goes out from each root as it is found.
+              const ring = clamp01(p * 1.4);
+              return (
+                <g key={x}>
+                  <circle cx={gx(x)} cy={gy(0)} r={mix(9, 34, ring)} fill="none" stroke={INK.red} strokeWidth={3} opacity={(1 - ring) * 0.7} />
+                  <circle cx={gx(x)} cy={gy(0)} r={mix(2, 9, p)} fill="#fff" stroke={INK.red} strokeWidth={4} opacity={p} />
+                </g>
+              );
             })}
           </svg>
           <div style={{ ...math(22), marginTop: 6, opacity: clamp01(graph * 3) }}>y = x² − 2x − 3</div>
@@ -196,6 +207,26 @@ export function MathsScreen({ wiki, graph, steps }: { wiki: number; graph: numbe
   );
 }
 
+/**
+ * A band of light crossing the screen once, as `p` goes 0 → 1 — the same
+ * sweep the closing mosaic gets, given to each new screen at its high point.
+ */
+function Glint({ p }: { p: number }) {
+  if (p <= 0 || p >= 1) return null;
+  const at = p * 260 - 120;
+  return (
+    <div
+      style={{
+        position: "absolute",
+        inset: 0,
+        pointerEvents: "none",
+        background: `linear-gradient(112deg, transparent ${at.toFixed(1)}%, rgba(255,255,255,0.65) ${(at + 14).toFixed(1)}%, transparent ${(at + 28).toFixed(1)}%)`,
+        mixBlendMode: "screen",
+      }}
+    />
+  );
+}
+
 /** 0 → 1 as `p` goes from a to b. */
 function span01(p: number, a: number, b: number) {
   return clamp01((p - a) / (b - a));
@@ -205,14 +236,55 @@ function span01(p: number, a: number, b: number) {
 
 export const PREPARE = { w: 1200, h: 700 };
 
-export function PrepareScreen({ build, pressed, assigned }: { build: number; pressed: number; assigned: number }) {
+/** Initials for the class the homework flies out to — made up, not anyone's. */
+const CLASS = ["MR", "LD", "AS", "NK", "TB", "JO", "EM", "KA", "SY", "PL", "RB", "IV", "OD", "CF", "HN", "ZW", "BE", "GU", "QT", "FA", "WM", "YE", "UL", "VC"];
+const AVATAR = ["#6366f1", "#2f7fe0", "#16a34a", "#d97706", "#db2777", "#0891b2"];
+
+export function PrepareScreen({ build, pressed, assigned, glint = 0 }: { build: number; pressed: number; assigned: number; glint?: number }) {
   const questions = [
     "A car goes from 0 to 20 m/s in 4 s. What is its acceleration?",
     "Which force makes a cyclist slow down when they stop pedalling?",
     "A 2 kg trolley is pushed with 6 N. How fast does it speed up?",
   ];
   return (
-    <div style={{ width: PREPARE.w, height: PREPARE.h, background: INK.page, padding: "34px 44px", boxSizing: "border-box" }}>
+    <div style={{ position: "relative", width: PREPARE.w, height: PREPARE.h, background: INK.page, padding: "34px 44px", boxSizing: "border-box", overflow: "hidden" }}>
+      <Glint p={glint} />
+      {/* The homework going out: one avatar per student, off the button. */}
+      {assigned > 0 && assigned < 1 &&
+        CLASS.map((who, i) => {
+          const angle = -Math.PI * (0.08 + 0.84 * (i / (CLASS.length - 1)));
+          const reach = 260 + (i % 4) * 70;
+          const k = clamp01(assigned * 1.15 - (i % 6) * 0.03);
+          const x = 1010 + Math.cos(angle) * reach * k;
+          const y = 520 + Math.sin(angle) * reach * k * 0.9;
+          return (
+            <span
+              key={who}
+              style={{
+                position: "absolute",
+                left: x - 20,
+                top: y - 20,
+                width: 40,
+                height: 40,
+                borderRadius: "50%",
+                background: AVATAR[i % AVATAR.length],
+                color: "#fff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontFamily: FONTS.display,
+                fontSize: 14,
+                fontWeight: 700,
+                opacity: Math.min(1, k * 4) * (1 - clamp01((k - 0.7) / 0.3)),
+                transform: `scale(${(0.5 + 0.5 * k).toFixed(3)})`,
+                boxShadow: "0 6px 16px rgba(15,23,42,0.18)",
+                zIndex: 2,
+              }}
+            >
+              {who}
+            </span>
+          );
+        })}
       <div style={{ display: "flex", alignItems: "baseline", gap: 14 }}>
         <span style={ui(32, 700)}>Prepare</span>
         <span style={ui(20, 500, INK.faint)}>Year 10 · Physics</span>
@@ -261,7 +333,7 @@ export function PrepareScreen({ build, pressed, assigned }: { build: number; pre
 
 export const REPORT = { w: 1200, h: 820, summary: { x: 600, y: 330 } };
 
-export function ReportScreen({ summary, rows }: { summary: number; rows: number }) {
+export function ReportScreen({ summary, rows, glint = 0 }: { summary: number; rows: number; glint?: number }) {
   const stats: [string, string, string?][] = [
     ["4/5", "Homework done"],
     ["72%", "Homework average"],
@@ -279,7 +351,8 @@ export function ReportScreen({ summary, rows }: { summary: number; rows: number 
     ["Energy transfers", "Not submitted", INK.red],
   ];
   return (
-    <div style={{ width: REPORT.w, height: REPORT.h, background: INK.page, padding: "30px 44px", boxSizing: "border-box" }}>
+    <div style={{ position: "relative", width: REPORT.w, height: REPORT.h, background: INK.page, padding: "30px 44px", boxSizing: "border-box" }}>
+      <Glint p={glint} />
       <div style={ui(17, 600, INK.faint)}>← Back to class</div>
       <div style={{ marginTop: 12, background: "#fff", border: `1px solid ${INK.border}`, borderRadius: 20, padding: "22px 28px" }}>
         <div style={ui(32, 700)}>Maya Rossi</div>
