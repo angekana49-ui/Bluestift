@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { bundle } from "@remotion/bundler";
@@ -18,17 +18,53 @@ import { makeWebpackOverride } from "../webpack-override.mjs";
  * Silent on purpose: the pieces carry no audio, which is one less thing to go
  * wrong at a seam. scripts/deliver.mjs joins them and lays the soundtrack on.
  *
- *   node scripts/master.mjs [--scale=2] [--chunk=700] [--crf=12]
+ * Interruptions cost at most one piece, never the film:
+ *  - a piece is written as `.part.mp4` and renamed only once it is complete,
+ *    so a piece cut off mid-write (power, sleep, a killed process) is never
+ *    taken for a finished one — it is simply rendered again;
+ *  - finished pieces are listed in `done.json` with their frame ranges, so a
+ *    run with a different --chunk picks up from the last finished frame
+ *    instead of re-cutting the film;
+ *  - a lock file stops two renders (the logon task and a manual run, say)
+ *    from working on the same pieces at once.
+ *
+ *   node scripts/master.mjs [--scale=2] [--chunk=150] [--crf=12]
  */
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, "..");
 const arg = (name, fallback) => Number(process.argv.find((a) => a.startsWith(`--${name}=`))?.split("=")[1] ?? fallback);
 const scale = arg("scale", 2);
-const chunkSize = arg("chunk", 700);
+const chunkSize = arg("chunk", 150);
 const crf = arg("crf", 12);
 
 const out = path.join(root, "out", "chunks");
 mkdirSync(out, { recursive: true });
+
+/* One render at a time: a second one exits quietly while the first is alive. */
+const lock = path.join(out, ".lock");
+if (existsSync(lock)) {
+  const pid = Number(readFileSync(lock, "utf8"));
+  let alive = false;
+  try {
+    process.kill(pid, 0);
+    alive = pid !== process.pid;
+  } catch {}
+  if (alive) {
+    console.log(`another render (pid ${pid}) is already running — leaving it to finish`);
+    process.exit(3);
+  }
+}
+writeFileSync(lock, String(process.pid));
+process.on("exit", () => {
+  try {
+    if (readFileSync(lock, "utf8") === String(process.pid)) rmSync(lock);
+  } catch {}
+});
+
+/* What is already rendered, by frame range. */
+const doneFile = path.join(out, "done.json");
+const done = existsSync(doneFile) ? JSON.parse(readFileSync(doneFile, "utf8")) : [];
+const saveDone = () => writeFileSync(doneFile, JSON.stringify(done, null, 1));
 
 const serveUrl = await bundle({ entryPoint: path.join(root, "src", "index.ts"), webpackOverride: makeWebpackOverride(root) });
 
@@ -64,18 +100,24 @@ const composition = (await getCompositions(serveUrl)).find((c) => c.id === "HowI
 const total = composition.durationInFrames;
 console.log(`HowItWorks: ${total} frames at ${composition.width * scale}×${composition.height * scale}`);
 
+// Walk the film from frame 0: a finished piece that starts here is kept,
+// whatever size it was cut at; otherwise a new piece of --chunk frames.
 const pieces = [];
-for (let start = 0; start < total; start += chunkSize) {
-  const end = Math.min(total - 1, start + chunkSize - 1);
-  const file = path.join(out, `chunk-${String(start).padStart(5, "0")}.mp4`);
-  pieces.push({ start, end, file });
+for (let start = 0; start < total; ) {
+  const have = done.find((d) => d.start === start && existsSync(path.join(out, d.file)));
+  const end = have ? have.end : Math.min(total - 1, start + chunkSize - 1);
+  const name = have ? have.file : `chunk-${String(start).padStart(5, "0")}-${String(end).padStart(5, "0")}.mp4`;
+  pieces.push({ start, end, file: path.join(out, name), have: Boolean(have) });
+  start = end + 1;
 }
 
-for (const { start, end, file } of pieces) {
-  if (existsSync(file)) {
+for (const { start, end, file, have } of pieces) {
+  if (have) {
     console.log(`${path.basename(file)}: already rendered`);
     continue;
   }
+  const part = file.replace(/\.mp4$/, ".part.mp4");
+  if (existsSync(part)) rmSync(part);
   for (let attempt = 1; ; attempt++) {
     const began = Date.now();
     const restored = syncPublic();
@@ -94,18 +136,21 @@ for (const { start, end, file } of pieces) {
         frameRange: [start, end],
         concurrency: 3,
         colorSpace: "bt709",
-        outputLocation: file,
+        outputLocation: part,
         onProgress: ({ renderedFrames }) => {
           if (renderedFrames % 100 === 0) process.stdout.write(`\r  ${path.basename(file)}: ${renderedFrames}/${end - start + 1}   `);
         },
       });
+      renameSync(part, file);
+      done.push({ start, end, file: path.basename(file) });
+      saveDone();
       console.log(`\r${path.basename(file)}: frames ${start}–${end} in ${Math.round((Date.now() - began) / 1000)}s`);
       break;
     } catch (err) {
       // A 404 from the static server, a tab that died: the piece is worth
       // retrying, and only the piece.
       console.error(`\n${path.basename(file)} attempt ${attempt} failed: ${err.message.split("\n")[0]}`);
-      if (existsSync(file)) rmSync(file);
+      if (existsSync(part)) rmSync(part);
       if (attempt >= 3) throw err;
     }
   }

@@ -33,7 +33,7 @@ const final = path.join(root, "out", "how-it-works-en.mp4");
 const wav = path.join(root, "public", "audio", "soundtrack.wav");
 
 /* ── 1. join ── */
-const files = readdirSync(chunks).filter((f) => f.startsWith("chunk-") && f.endsWith(".mp4")).sort();
+const files = readdirSync(chunks).filter((f) => f.startsWith("chunk-") && f.endsWith(".mp4") && !f.endsWith(".part.mp4")).sort();
 if (files.length === 0) throw new Error("no chunks: run scripts/master.mjs first");
 const list = path.join(chunks, "list.txt");
 writeFileSync(list, files.map((f) => `file '${f}'`).join("\n") + "\n");
