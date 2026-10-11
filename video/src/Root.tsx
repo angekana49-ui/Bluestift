@@ -1,6 +1,7 @@
 import { Composition } from "remotion";
 import { Gallery, type GalleryProps } from "./Gallery";
 import { HowItWorks } from "./HowItWorks";
+import { Film } from "./film/Film";
 import { TEXTURES, TextureFrame, textureSize } from "./Texture";
 import { FPS, HEIGHT, TOTAL_FRAMES, WIDTH } from "./timeline";
 
@@ -15,6 +16,8 @@ export function Root() {
         width={WIDTH}
         height={HEIGHT}
       />
+      {/* The drawn cut: same soundtrack, motion design instead of flying screenshots. */}
+      <Composition id="Film" component={Film} durationInFrames={TOTAL_FRAMES} fps={FPS} width={WIDTH} height={HEIGHT} />
       {/* Dev: a contact sheet of the site's shots (scripts/gallery.mjs, scripts/measure.mjs). */}
       <Composition
         id="Gallery"

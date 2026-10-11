@@ -21,8 +21,9 @@ if (times.length === 0) {
 
 const serveUrl = await bundle({ entryPoint: path.join(root, "src", "index.ts"), webpackOverride: makeWebpackOverride(root) });
 const compositions = await getCompositions(serveUrl);
-const composition = compositions.find((c) => c.id === "HowItWorks");
-console.log(`HowItWorks: ${composition.durationInFrames} frames (${(composition.durationInFrames / composition.fps).toFixed(1)}s)`);
+const compId = args.find((a) => a.startsWith("--comp="))?.slice(7) ?? "HowItWorks";
+const composition = compositions.find((c) => c.id === compId);
+console.log(`${compId}: ${composition.durationInFrames} frames (${(composition.durationInFrames / composition.fps).toFixed(1)}s)`);
 
 for (const seconds of times) {
   const frame = Math.min(composition.durationInFrames - 1, Math.round(seconds * composition.fps));

@@ -28,7 +28,7 @@ import { makeWebpackOverride } from "../webpack-override.mjs";
  *  - a lock file stops two renders (the logon task and a manual run, say)
  *    from working on the same pieces at once.
  *
- *   node scripts/master.mjs [--scale=2] [--chunk=150] [--crf=12]
+ *   node scripts/master.mjs [--comp=HowItWorks] [--chunks=chunks] [--scale=2] [--chunk=150] [--crf=12]
  */
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, "..");
@@ -37,7 +37,10 @@ const scale = arg("scale", 2);
 const chunkSize = arg("chunk", 150);
 const crf = arg("crf", 12);
 
-const out = path.join(root, "out", "chunks");
+// Which composition, and where its pieces go: the drawn cut renders beside the first one.
+const opt = (name, fallback) => process.argv.find((a) => a.startsWith(`--${name}=`))?.split("=")[1] ?? fallback;
+const compId = opt("comp", "HowItWorks");
+const out = path.join(root, "out", opt("chunks", "chunks"));
 mkdirSync(out, { recursive: true });
 
 /* One render at a time: a second one exits quietly while the first is alive. */
@@ -96,9 +99,9 @@ function syncPublic(dir = "") {
   }
   return restored;
 }
-const composition = (await getCompositions(serveUrl)).find((c) => c.id === "HowItWorks");
+const composition = (await getCompositions(serveUrl)).find((c) => c.id === compId);
 const total = composition.durationInFrames;
-console.log(`HowItWorks: ${total} frames at ${composition.width * scale}×${composition.height * scale}`);
+console.log(`${compId}: ${total} frames at ${composition.width * scale}×${composition.height * scale}`);
 
 // Walk the film from frame 0: a finished piece that starts here is kept,
 // whatever size it was cut at; otherwise a new piece of --chunk frames.

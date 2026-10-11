@@ -22,7 +22,7 @@ const root = path.join(here, "..");
 // The four roles, and the weights the shots and the film actually set.
 const FACES = [
   { family: "Space Grotesk", axis: "wght@500;600;700" },
-  { family: "Inter", axis: "wght@400;500;600;700" },
+  { family: "Inter", axis: "wght@400;500;600;700;800;900" },
   { family: "Instrument Serif", axis: "ital@1" },
   { family: "Geist Mono", axis: "wght@400;500;700;800" },
 ];

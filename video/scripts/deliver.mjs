@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
  *  4. two passes at a bitrate computed from a target size, because the brief
  *     has a ceiling and "crf and hope" does not respect ceilings.
  *
- *   node scripts/deliver.mjs [--mb=92] [--height=1080] [--audio=160]
+ *   node scripts/deliver.mjs [--chunks=chunks] [--name=how-it-works-en] [--poster-at=17.5] [--mb=92] [--height=1080] [--audio=160]
  */
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, "..");
@@ -27,9 +27,12 @@ const ffmpeg = path.join(root, "node_modules", "@remotion", "compositor-win32-x6
 const ffprobe = path.join(root, "node_modules", "@remotion", "compositor-win32-x64-msvc", "ffprobe.exe");
 const run = (bin, args) => execFileSync(bin, args, { stdio: ["ignore", "pipe", "inherit"] }).toString();
 
-const chunks = path.join(root, "out", "chunks");
+const opt = (name, fallback) => process.argv.find((a) => a.startsWith(`--${name}=`))?.split("=")[1] ?? fallback;
+const chunks = path.join(root, "out", opt("chunks", "chunks"));
+const name = opt("name", "how-it-works-en");
+const posterAt = opt("poster-at", "17.5");
 const master = path.join(root, "out", "master-4k.mp4");
-const final = path.join(root, "out", "how-it-works-en.mp4");
+const final = path.join(root, "out", `${name}.mp4`);
 const wav = path.join(root, "public", "audio", "soundtrack.wav");
 
 /* ── 1. join ── */
@@ -71,8 +74,8 @@ run(ffmpeg, [...common, "-pass", "2", "-passlogfile", passlog, "-c:a", "aac", "-
 for (const f of readdirSync(path.join(root, "out"))) if (f.startsWith("x264")) rmSync(path.join(root, "out", f));
 
 /* ── the poster, from the frame the film ends on ── */
-const poster = path.join(root, "out", "how-it-works-poster.jpg");
-run(ffmpeg, ["-nostdin", "-y", "-loglevel", "error", "-ss", "17.5", "-i", master, "-frames:v", "1", "-vf", `scale=-2:${height}:flags=lanczos`, "-q:v", "3", poster]);
+const poster = path.join(root, "out", `${name}-poster.jpg`);
+run(ffmpeg, ["-nostdin", "-y", "-loglevel", "error", "-ss", posterAt, "-i", master, "-frames:v", "1", "-vf", `scale=-2:${height}:flags=lanczos`, "-q:v", "3", poster]);
 
 console.log(run(ffprobe, ["-v", "error", "-show_entries", "format=size,duration,bit_rate", "-show_entries", "stream=codec_name,width,height,pix_fmt,color_range,r_frame_rate,bit_rate", "-of", "default=noprint_wrappers=1", final]));
 console.log(`${path.relative(root, final)}: ${(statSync(final).size / 1048576).toFixed(1)} MB`);
