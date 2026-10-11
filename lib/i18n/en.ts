@@ -931,7 +931,7 @@ export const en = {
   "login.msg.signedOut": "Signed out. Pick how you'd like to continue.",
   "login.backToSite": "← Back to bluestift.com",
   "login.heading": "Sign in to",
-  "login.sub": "A password, an email link, a recovery key — or no account at all. One account covers everything.",
+  "login.sub": "A password, a recovery key — or no account at all. One account covers everything.",
   "login.pending.note":
     "You have an unfinished setup on this device. Pick up where you left off, or sign out and choose a different way in.",
   "login.pending.continue": "Continue setup",

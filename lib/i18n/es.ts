@@ -707,7 +707,7 @@ export const es: Partial<Messages> = {
   "login.msg.signedOut": "Sesión cerrada. Elige cómo continuar.",
   "login.backToSite": "← Volver a bluestift.com",
   "login.heading": "Inicia sesión en",
-  "login.sub": "Una contraseña, un enlace por correo, una clave de recuperación — o ninguna cuenta. Una sola cuenta lo cubre todo.",
+  "login.sub": "Una contraseña, una clave de recuperación — o ninguna cuenta. Una sola cuenta lo cubre todo.",
   "login.pending.note":
     "Tienes una configuración sin terminar en este dispositivo. Retómala donde la dejaste, o cierra sesión para elegir otro método.",
   "login.pending.continue": "Continuar el registro",

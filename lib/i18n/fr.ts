@@ -704,7 +704,7 @@ export const fr: Partial<Messages> = {
   "login.msg.signedOut": "Déconnecté(e). Choisissez comment continuer.",
   "login.backToSite": "← Retour à bluestift.com",
   "login.heading": "Se connecter à",
-  "login.sub": "Un mot de passe, un lien par e-mail, une clé de récupération — ou pas de compte du tout. Un seul compte couvre tout.",
+  "login.sub": "Un mot de passe, une clé de récupération — ou pas de compte du tout. Un seul compte couvre tout.",
   "login.pending.note":
     "Vous avez une configuration inachevée sur cet appareil. Reprenez où vous en étiez, ou déconnectez-vous pour choisir une autre méthode.",
   "login.pending.continue": "Reprendre l'inscription",

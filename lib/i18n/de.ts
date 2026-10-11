@@ -704,7 +704,7 @@ export const de: Partial<Messages> = {
   "login.msg.signedOut": "Abgemeldet. Wähle, wie du fortfahren möchtest.",
   "login.backToSite": "← Zurück zu bluestift.com",
   "login.heading": "Anmelden bei",
-  "login.sub": "Ein Passwort, ein E-Mail-Link, ein Notfallschlüssel — oder gar kein Konto. Ein Konto deckt alles ab.",
+  "login.sub": "Ein Passwort, ein Notfallschlüssel — oder gar kein Konto. Ein Konto deckt alles ab.",
   "login.pending.note":
     "Du hast eine unvollständige Einrichtung auf diesem Gerät. Mach dort weiter, wo du aufgehört hast, oder melde dich ab und wähle eine andere Methode.",
   "login.pending.continue": "Einrichtung fortsetzen",
