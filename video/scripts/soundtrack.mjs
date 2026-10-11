@@ -120,6 +120,26 @@ function weight(text) {
 
 function align({ samples, wav }) {
   const duration = samples.length / RATE;
+  // A take made by scripts/narrate.mjs says where its lines are: use that. An
+  // MP3 encoder pads the start by a few ms, which is found and allowed for.
+  const known = join(root, config.voice.file.replace(/\.mp3$/, ".cues.json"));
+  if (existsSync(known)) {
+    const byId = new Map(JSON.parse(readFileSync(known, "utf8")).lines.map((c) => [c.id, c]));
+    if (lines.every((l) => byId.has(l.id))) {
+      const first = byId.get(lines[0].id).start / config.speed;
+      let onset = 0;
+      while (onset < samples.length && Math.abs(samples[onset]) < 0.01) onset++;
+      const pad = Math.max(0, onset / RATE - first - 0.03);
+      const cues = lines.map((l, i) => {
+        const c = byId.get(l.id);
+        const next = byId.get(lines[i + 1]?.id);
+        return { start: c.start / config.speed + pad, end: c.end / config.speed + pad, pause: next ? (next.start - c.end) / config.speed : 1, stretch: 1 };
+      });
+      console.log(`  lines placed from ${known.slice(root.length + 1)} (encoder delay ${(pad * 1000).toFixed(0)} ms)`);
+      return { cues, duration };
+    }
+    console.warn(`  ! ${known} does not match the script — aligning on the pauses instead`);
+  }
   const log = ffmpeg(["-i", wav, "-af", "silencedetect=noise=-40dB:d=0.12", "-f", "null", "-"]);
   const starts = [...log.matchAll(/silence_start: ([\d.]+)/g)].map((m) => +m[1]);
   const ends = [...log.matchAll(/silence_end: ([\d.]+)/g)].map((m) => +m[1]);

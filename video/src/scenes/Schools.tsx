@@ -12,6 +12,7 @@ import { dashboardCss } from "../reveal";
 import { RoomWithPanel } from "../RoomPanel";
 import { line, MUSIC, phrase, wordAt } from "../timeline";
 import { ROOM, ROOM_HANDOFF } from "./Raya";
+import { PREPARE, PrepareScreen, REPORT, ReportScreen } from "../fresh";
 
 /**
  * Bluestift Schools, from the student's side of the glass.
@@ -21,9 +22,10 @@ import { ROOM, ROOM_HANDOFF } from "./Raya";
  * and on what; then the line the whole product is built on, "never your
  * conversations", as a conversation going frosted behind a lock. The teacher's
  * own side at night: the focus they give Raya, and a question they ask her
- * about their class. The dashboard for one class and for the whole school,
- * and the camera stepping back as the birds cross — the students who count
- * on them.
+ * about their class. Homework prepared and assigned in a press, one
+ * student's report with Raya's reading of it, the summary for the whole
+ * school, and the camera stepping back as the birds cross — the students who
+ * count on them.
  */
 
 // The dashboard has no `.pub-shot`, so measure.mjs reported it from the top of
@@ -34,7 +36,8 @@ const FOC = { w: 1150, h: 862 };
 
 const LOCK = "M5 7V5a3 3 0 0 1 6 0v2h.5A1.5 1.5 0 0 1 13 8.5v4A1.5 1.5 0 0 1 11.5 14h-7A1.5 1.5 0 0 1 3 12.5v-4A1.5 1.5 0 0 1 4.5 7H5Zm1.5 0h3V5a1.5 1.5 0 0 0-3 0v2Z";
 
-const students = crossing({ from: 90.6, duration: 6.4, count: 8, top: 170, spread: 520, size: 44, rise: -140, salt: 21 });
+// They cross as "the students who count on them" is said — the line's own clock.
+const students = crossing({ from: line("schools-6").start + 0.7, duration: 6.4, count: 8, top: 170, spread: 520, size: 44, rise: -140, salt: 21 });
 
 /** A teacher asking Raya about their class — RAYA for Schools, in its dark theme. */
 function TeacherAsks({ t, askAt, replyAt }: { t: number; askAt: number; replyAt: number }) {
@@ -111,9 +114,11 @@ export function Schools() {
   const tell = line("schools-4").start;
   const focusWord = wordAt("schools-4", "focus");
   const askClass = phrase("schools-4", 1).start;
-  const forClass = line("schools-5").start;
-  const wholeSchool = phrase("schools-5", 1).start;
+  const homework = line("schools-5").start;
+  const report = phrase("schools-5", 1).start;
   const summary = phrase("schools-5", 2).start;
+  // The teacher's own screens give way where homework starts being said.
+  const forClass = homework;
   const matters = line("schools-6").start;
   const counts = phrase("schools-6", 1).start;
 
@@ -179,17 +184,41 @@ export function Schools() {
     [forClass + 0.4, { x: 360, y: 50, s: 0.96, o: 0 }],
   ]);
 
-  /* ── one class, the whole school, the summary ── */
+  /* ── homework in minutes ── */
+  const prepPose: Pose = keysOf(t, [
+    [homework - 0.3, { x: 80, y: 50, s: 0.86, o: 0, focus: 0.2 }],
+    [homework + 0.35, { x: 0, y: 0, s: 0.95, o: 1, focus: 1 }],
+    [report - 0.25, { x: 0, y: 0, s: 0.96, o: 1, focus: 1 }],
+    [report + 0.3, { x: -120, y: 0, s: 0.92, o: 0, focus: 0.3 }],
+  ]);
+  const prep = {
+    build: span(t, homework + 0.1, homework + 0.95, EASE.linear),
+    pressed: span(t, report - 0.85, report - 0.55, EASE.linear),
+    assigned: span(t, report - 0.6, report - 0.3, EASE.arrive),
+  };
+
+  /* ── a clear report on every student ── */
+  const reportPose: Pose = keysOf(t, [
+    [report - 0.3, { x: 100, y: 50, s: 0.84, o: 0, focus: 0.2 }],
+    [report + 0.3, { x: 0, y: 0, s: 0.92, o: 1, focus: 1 }],
+    [summary - 0.25, { x: 0, y: 0, s: 0.93, o: 1, focus: 1 }],
+    [summary + 0.3, { x: -120, y: 0, s: 0.9, o: 0, focus: 0.3 }],
+  ]);
+  const reading = spot({ s: 0.92 }, REPORT.w, REPORT.h, REPORT.summary.x, REPORT.summary.y);
+  const studentReport = {
+    summary: span(t, report + 0.15, summary + 0.1, EASE.linear),
+    rows: span(t, report + 0.4, summary - 0.1, EASE.linear),
+  };
+
+  /* ── the summary for the whole school ── */
   const dashB: Pose = keysOf(t, [
-    [forClass - 0.3, { x: 0, y: 60, s: 0.92, o: 0, focus: 0.2 }],
-    [forClass + 0.4, { x: 0, y: 0, s: 1, o: 1, focus: 1 }],
+    [summary - 0.3, { x: 0, y: 60, s: 0.92, o: 0, focus: 0.2 }],
+    [summary + 0.35, { x: 0, y: 0, s: 1, o: 1, focus: 1 }],
     [matters, { x: 0, y: 0, s: 1, o: 1, focus: 1 }],
     [counts, { x: 0, y: 20, s: 0.94, o: 1, focus: 0.75 }],
     [to - 0.6, { x: 0, y: 40, s: 0.9, o: 0, focus: 0.3 }],
   ]);
   const dashAt = (px: number, py: number) => spot({ s: 1 }, DASH.w, DASH.h, px, py - 43);
-  // The whole "Year 10 · Physics" row, not just its label.
-  const yearTen = dashAt(605, 434);
   const panel = dashAt(1253, 330);
   const alerts = dashAt(1253, 505);
 
@@ -208,10 +237,12 @@ export function Schools() {
     [tell + 0.3, c(-80, 0, 1.0)],
     [focusWord + 0.3, c(focusInput.x + 120, focusInput.y - 30, 1.55)],
     [askClass + 0.2, c(80, 20, 1.0)],
-    [forClass + 0.1, c(80, 20, 1.0)],
-    [forClass + 0.6, c(yearTen.x, yearTen.y, 1.75)],
-    [wholeSchool + 0.9, c(0, 0, 1.0)],
-    [summary + 0.8, c(panel.x - 60, panel.y + 60, 1.45)],
+    [homework + 0.1, c(0, 0, 1.0)],
+    [report - 0.1, c(0, 0, 1.0)],
+    [report + 0.7, c(reading.x, reading.y, 1.3)],
+    [summary - 0.05, c(reading.x, reading.y + 20, 1.32)],
+    [summary + 0.4, c(0, 0, 1.0)],
+    [summary + 1.1, c(panel.x - 60, panel.y + 60, 1.45)],
     [matters, c(panel.x - 60, panel.y + 60, 1.45)],
     [counts, c(0, 0, 0.86)],
     [to, c(0, -40, 0.78)],
@@ -307,13 +338,23 @@ export function Schools() {
           </div>
         )}
 
-        {t > forClass - 0.4 && (
+        {t > homework - 0.35 && t < report + 0.35 && (
+          <Plate width={PREPARE.w} url="schools.thebluestift.com/prepare" pose={prepPose}>
+            {() => <PrepareScreen {...prep} />}
+          </Plate>
+        )}
+        {t > report - 0.35 && t < summary + 0.35 && (
+          <Plate width={REPORT.w} url="schools.thebluestift.com/classes" pose={reportPose}>
+            {() => <ReportScreen {...studentReport} />}
+          </Plate>
+        )}
+
+        {t > summary - 0.4 && (
           <>
             <Plate className="vid-dash-s2" width={DASH.w} url="schools.thebluestift.com" pose={dashB}>
               {(th) => <DashboardMockup theme={th} />}
             </Plate>
-            <Halo x={yearTen.x} y={yearTen.y} w={786} h={60} radius={14} strength={envelope(t, forClass + 0.3, forClass + 0.7, wholeSchool + 0.1, wholeSchool + 0.5)} />
-            <Halo x={alerts.x} y={alerts.y} w={452} h={96} radius={16} strength={envelope(t, summary + 0.7, summary + 1.1, matters - 0.2, matters + 0.3)} />
+            <Halo x={alerts.x} y={alerts.y} w={452} h={96} radius={16} strength={envelope(t, summary + 1.0, summary + 1.4, matters - 0.2, matters + 0.3)} />
           </>
         )}
       </World>

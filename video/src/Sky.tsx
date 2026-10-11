@@ -1,7 +1,7 @@
 import { AbsoluteFill, Img } from "remotion";
 import { MARKS } from "./generated/marks";
 import { keys, useTime } from "./motion";
-import { MUSIC } from "./timeline";
+import { line, MUSIC, wordAt } from "./timeline";
 
 /**
  * The one sky every scene sits in, from the first frame to the last — so a
@@ -18,14 +18,15 @@ import { MUSIC } from "./timeline";
 export function nightAt(t: number) {
   return keys(t, [
     [0, 0],
-    // Dusk under the dark shots of the Raya tour, day again for the Study Room.
-    [49.6, 0],
-    [50.8, 0.62],
-    [56.8, 0.62],
-    [58.0, 0],
+    // Dusk under the dark shots of the Raya tour (My Kernel, Tools), day
+    // again for the Study Room — pinned to the words, not to the clock.
+    [wordAt("raya-5", "Kernel") - 0.4, 0],
+    [wordAt("raya-5", "Kernel") + 0.8, 0.62],
+    [line("raya-7").start - 0.6, 0.62],
+    [line("raya-7").start + 0.6, 0],
     // Night for the Kernel, dawn for the people in control.
-    [93.9, 0],
-    [96.4, 1],
+    [line("kernel-0").start - 2.25, 0],
+    [line("kernel-0").start + 0.25, 1],
     [MUSIC.full - 1.6, 1],
     [MUSIC.full + 0.4, 0],
   ]);
@@ -37,8 +38,8 @@ function cloudsAt(t: number) {
     [0, 1],
     [6.4, 1],
     [9.5, 0],
-    [158.2, 0],
-    [161.5, 1],
+    [line("outro-0").start - 2.25, 0],
+    [line("outro-0").start + 1.05, 1],
   ]);
 }
 

@@ -1,6 +1,6 @@
 # Welcome to Bluestift — the explainer film
 
-A three-minute film of the whole product — Raya, Study Rooms, Tools, Bluestift
+A film of just under three minutes of the whole product — Raya, Study Rooms, Tools, Bluestift
 Schools, the Kernel, and the controls people keep — rendered with
 [Remotion](https://www.remotion.dev) from the landing page's **own product
 shots** (`components/site/ProductShots.tsx`, `KernelDiagrams.tsx`,
@@ -30,7 +30,13 @@ node scripts/stills.mjs 18.3 53.2 116.6   # a few moments as PNG (seconds)
 and `src/generated/soundtrack.json` from two recordings in `narration/`:
 
 - `narration-en.mp3` — the ElevenLabs narration, every line of `src/script.json`
-  in one take;
+  in one take. `node scripts/narrate.mjs` makes it (ELEVENLABS_API_KEY, read
+  from `../.env.local`): one request per line in that line's voice
+  (`voices.*.elevenlabs` in script.json), cached in `out/narration-lines/` so an
+  edited sentence is the only one re-recorded, laid end to end with chosen
+  pauses. It also writes `narration-en.cues.json` (where each line sits — the
+  soundtrack uses it instead of guessing from the pauses) and `script-en.md`,
+  the script to read;
 - `music-en-iphone.mp3` — the instrumental.
 
 It aligns the script to the narration line by line (and phrase by phrase, and

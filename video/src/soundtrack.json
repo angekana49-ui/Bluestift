@@ -1,16 +1,16 @@
 {
-  "speed": 1.1,
+  "speed": 1.12,
   "voice": {
     "file": "narration/narration-en.mp3",
     "minSpeakerGap": 1.0,
     "firstWordAt": {
       "intro": 3.4,
-      "bluestift": 18.5,
-      "raya": 36.68,
-      "schools": 68.5,
-      "kernel": 96.15,
+      "bluestift": 18.17,
+      "raya": 38.26,
+      "schools": 73.97,
+      "kernel": 100.9,
       "control": 127.55,
-      "outro": 160.45
+      "outro": 159.0
     }
   },
   "music": {
@@ -19,13 +19,30 @@
     "beatsPerBar": 4,
     "firstDownbeat": 0.071,
     "edit": [
-      [0, 30],
-      [32, 41],
-      [40, 48],
-      [48, 53],
-      [52, 56],
-      [56, 69],
-      [64, "end"]
+      [
+        0,
+        15
+      ],
+      [
+        14,
+        30
+      ],
+      [
+        30,
+        48
+      ],
+      [
+        48,
+        56
+      ],
+      [
+        56,
+        68
+      ],
+      [
+        64,
+        "end"
+      ]
     ],
     "marks": {
       "theme": 8,

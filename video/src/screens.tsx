@@ -80,7 +80,7 @@ export function LoginScreen({ pressed }: { pressed: number }) {
         <div style={{ ...ui(38, 700), letterSpacing: "-0.02em" }}>
           Sign in to <span style={{ fontFamily: RAYA_FONT }}>Raya</span>
         </div>
-        <div style={{ ...ui(19, 450, INK.muted), marginTop: 8 }}>A password, an email link, a recovery key — or no account at all. One account covers everything.</div>
+        <div style={{ ...ui(19, 450, INK.muted), marginTop: 8 }}>A password, a recovery key — or no account at all. One account covers everything.</div>
         <div style={{ ...ui(17, 600, INK.muted), marginTop: 26 }}>Email</div>
         <div style={{ marginTop: 8, height: 56, borderRadius: 14, background: INK.field, border: `1.5px solid ${INK.border}` }} />
         <Button style={{ width: "100%", marginTop: 14, boxSizing: "border-box", opacity: 0.55 }}>Sign in</Button>
