@@ -27,9 +27,9 @@ import { useTranslate } from "@/components/ui/locale";
  * immutable caching (next.config.ts): a new cut is a new name, never the same
  * URL with new bytes behind it.
  */
-export const HOW_IT_WORKS_VIDEO = "/video/how-it-works-en-v2.mp4";
-export const HOW_IT_WORKS_POSTER = "/video/how-it-works-poster-v2.jpg";
-export const HOW_IT_WORKS_CAPTIONS = "/video/how-it-works-en-v2.vtt";
+export const HOW_IT_WORKS_VIDEO = "/video/how-it-works-en-v3.mp4";
+export const HOW_IT_WORKS_POSTER = "/video/how-it-works-poster-v3.jpg";
+export const HOW_IT_WORKS_CAPTIONS = "/video/how-it-works-en-v3.vtt";
 
 export default function HowItWorksVideo({ open, onClose }: { open: boolean; onClose: () => void }) {
   const tr = useTranslate();

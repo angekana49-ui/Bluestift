@@ -23,7 +23,9 @@ describe("how it works video", () => {
     // The film ships in the repo at full quality, which git keeps for good and
     // GitHub refuses outright over 100 MiB — a push that hits that limit is a
     // history to rewrite, not a file to shrink. The ceiling is here, below it.
-    expect(statSync(join(ROOT, "public/video/how-it-works-en-v2.mp4")).size).toBeLessThan(95 * 1024 * 1024);
+    expect(statSync(join(ROOT, "public/video/how-it-works-en-v3.mp4")).size).toBeLessThan(95 * 1024 * 1024);
+    // The previous cut stays shipped, on purpose: the owner keeps it as a fallback.
+    expect(existsSync(join(ROOT, "public/video/how-it-works-en-v2.mp4"))).toBe(true);
   });
 
   it("caches the film for a year, under a versioned name", () => {
@@ -43,7 +45,7 @@ describe("how it works video", () => {
     expect(component).toContain('<track kind="captions"');
     expect(component).toContain("srcLang=\"en\"");
     expect(component).not.toContain("<track kind=\"captions\" default");
-    const vtt = read("public/video/how-it-works-en-v2.vtt");
+    const vtt = read("public/video/how-it-works-en-v3.vtt");
     expect(vtt.startsWith("WEBVTT")).toBe(true);
     expect(vtt).toContain("-->");
   });
