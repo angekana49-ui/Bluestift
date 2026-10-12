@@ -49,4 +49,3 @@ yarn-error.log*
 /.archive/
 /archive-backup.tar.gz
 /test/test_codes.md
-/video/render*.cmd

@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { AbsoluteFill, Img } from "remotion";
 import { MARKS } from "../generated/marks";
+import { RAYA_FONT } from "@/components/ui/brand";
 import { FONTS } from "../brand";
 import { clamp01, EASE, mix, rand, span } from "../motion";
 import { BAR, line, type Line } from "../timeline";
@@ -310,4 +311,25 @@ export const beat = BAR / 4;
 /** The Raya mark (the flower), turned by `turn` degrees. */
 export function RayaMark({ size, turn = 0, dark = false, style }: { size: number; turn?: number; dark?: boolean; style?: CSSProperties }) {
   return <Img src={MARKS[dark ? "raya-mark-dark.png" : "icon-raya-512.png"]} style={{ width: size, height: size, display: "block", transform: `rotate(${turn.toFixed(2)}deg)`, ...style }} />;
+}
+
+/** The landing's call to try Raya, as a pill — pressed as `pressed` runs 0 → 1. */
+export function TryRayaPill({ pressed }: { pressed: number }) {
+  return (
+    <div
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        borderRadius: 999,
+        padding: "18px 34px",
+        background: PAL.blue,
+        boxShadow: "0 12px 30px rgba(47,127,224,0.32)",
+        whiteSpace: "nowrap",
+        ...TYPE.display(30, 650, "#ffffff"),
+        transform: `scale(${(1 - 0.05 * Math.sin(clamp01(pressed) * Math.PI)).toFixed(4)})`,
+      }}
+    >
+      Try <span style={{ fontFamily: RAYA_FONT, fontWeight: 700, margin: "0 9px" }}>Raya</span> now — no account needed
+    </div>
+  );
 }

@@ -21,7 +21,7 @@ if (times.length === 0) {
 
 const serveUrl = await bundle({ entryPoint: path.join(root, "src", "index.ts"), webpackOverride: makeWebpackOverride(root) });
 const compositions = await getCompositions(serveUrl);
-const compId = args.find((a) => a.startsWith("--comp="))?.slice(7) ?? "HowItWorks";
+const compId = args.find((a) => a.startsWith("--comp="))?.slice(7) ?? "Film";
 const composition = compositions.find((c) => c.id === compId);
 console.log(`${compId}: ${composition.durationInFrames} frames (${(composition.durationInFrames / composition.fps).toFixed(1)}s)`);
 

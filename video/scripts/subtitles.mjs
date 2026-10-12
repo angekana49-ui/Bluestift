@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
  * at least 1.2 s) when the silence after it allows: the narration is quicker
  * than reading, and it pauses often.
  *
- *   node scripts/subtitles.mjs  →  out/how-it-works-en.vtt + .srt
+ *   node scripts/subtitles.mjs  →  out/welcome-to-bluestift.vtt + .srt
  */
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, "..");
@@ -93,7 +93,7 @@ const stamp = (s, sep) => {
 const vtt = ["WEBVTT", "", ...cues.flatMap((c, i) => [String(i + 1), `${stamp(c.start, ".")} --> ${stamp(c.end, ".")}`, ...c.lines, ""])].join("\n");
 const srt = cues.flatMap((c, i) => [String(i + 1), `${stamp(c.start, ",")} --> ${stamp(c.end, ",")}`, ...c.lines, ""]).join("\r\n");
 
-const out = path.join(root, "out", "how-it-works-en");
+const out = path.join(root, "out", "welcome-to-bluestift");
 writeFileSync(`${out}.vtt`, vtt + "\n");
 writeFileSync(`${out}.srt`, srt + "\r\n");
-console.log(`${cues.length} cues → out/how-it-works-en.vtt, out/how-it-works-en.srt`);
+console.log(`${cues.length} cues → out/welcome-to-bluestift.vtt, out/welcome-to-bluestift.srt`);

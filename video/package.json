@@ -1,16 +1,14 @@
 {
   "name": "bluestift-video",
   "private": true,
-  "description": "Welcome to Bluestift — the explainer film, rendered with Remotion from the site's own product shots.",
+  "description": "Welcome to Bluestift — the explainer film, motion design rendered with Remotion over the owner's narration.",
   "scripts": {
-    "sync:css": "node scripts/sync-css.mjs",
-    "soundtrack": "node scripts/soundtrack.mjs",
-    "textures": "node scripts/textures.mjs",
-    "prepare:assets": "npm run sync:css && npm run soundtrack && npm run textures",
-    "studio": "npm run sync:css && remotion studio src/index.ts",
-    "render": "npm run sync:css && remotion render src/index.ts HowItWorks out/how-it-works-en.mp4",
+    "prepare:assets": "node scripts/fonts.mjs && node scripts/marks.mjs && node scripts/soundtrack.mjs",
+    "studio": "remotion studio src/index.ts",
+    "render": "node scripts/master.mjs && node scripts/deliver.mjs",
     "typecheck": "tsc --noEmit"
   },
+
   "dependencies": {
     "@remotion/cli": "4.0.524",
     "@remotion/google-fonts": "4.0.524",

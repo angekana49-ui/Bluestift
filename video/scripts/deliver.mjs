@@ -14,12 +14,12 @@ import { fileURLToPath } from "node:url";
  *  4. two passes at a bitrate computed from a target size, because the brief
  *     has a ceiling and "crf and hope" does not respect ceilings.
  *
- *   node scripts/deliver.mjs [--chunks=chunks] [--name=how-it-works-en] [--poster-at=17.5] [--mb=92] [--height=1080] [--audio=160]
+ *   node scripts/deliver.mjs [--chunks=chunks] [--name=welcome-to-bluestift] [--poster-at=16.2] [--mb=95] [--height=1080] [--audio=160]
  */
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, "..");
 const arg = (name, fallback) => Number(process.argv.find((a) => a.startsWith(`--${name}=`))?.split("=")[1] ?? fallback);
-const targetMB = arg("mb", 92);
+const targetMB = arg("mb", 95);
 const height = arg("height", 1080);
 const audioKbps = arg("audio", 160);
 
@@ -29,8 +29,8 @@ const run = (bin, args) => execFileSync(bin, args, { stdio: ["ignore", "pipe", "
 
 const opt = (name, fallback) => process.argv.find((a) => a.startsWith(`--${name}=`))?.split("=")[1] ?? fallback;
 const chunks = path.join(root, "out", opt("chunks", "chunks"));
-const name = opt("name", "how-it-works-en");
-const posterAt = opt("poster-at", "17.5");
+const name = opt("name", "welcome-to-bluestift");
+const posterAt = opt("poster-at", "16.2");
 const master = path.join(root, "out", "master-4k.mp4");
 const final = path.join(root, "out", `${name}.mp4`);
 const wav = path.join(root, "public", "audio", "soundtrack.wav");

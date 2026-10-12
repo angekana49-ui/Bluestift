@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { continueRender, delayRender } from "remotion";
-import { getTheme } from "@/components/site/theme";
 import { FONT_CSS, FONT_FAMILIES } from "./generated/fonts";
 
 /**
@@ -18,8 +17,7 @@ const { display, body, serif, mono } = FONT_FAMILIES;
 export const FONT_VARS =
   FONT_CSS +
   `:root{--font-space-grotesk:"${display}";--font-inter:"${body}";--font-instrument-serif:"${serif}";--font-plex:"${body}";--font-caveat:"${serif}";}` +
-  // The diagrams ask for `ui-monospace, SFMono-Regular, Menlo, monospace`: a
-  // Mac finds SF Mono, the render's Chrome finds Courier. A real face stands in.
+  // Anything that asks for a generic monospace gets the real face, not Courier.
   `[font-family*="monospace"],[style*="monospace"]{font-family:"${mono}",monospace!important}`;
 
 export const FONTS = { display, body, serif, mono };
@@ -46,15 +44,3 @@ export function useFontsReady() {
     };
   }, [handle]);
 }
-
-/** The light theme: the landing's default, and the clearer one on a video. */
-export const theme = getTheme(false);
-
-export const INK = {
-  navy: "#0b1220",
-  text: "#0f172a",
-  muted: "#475569",
-  blue: "#2f7fe0",
-  indigo: "#4f46e5",
-  sky: "#e8f1fd",
-};

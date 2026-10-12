@@ -2,10 +2,9 @@ import type { ReactNode } from "react";
 import { AbsoluteFill } from "remotion";
 import { Flock, type Bird } from "../Birds";
 import { BluestiftMark, BluestiftWordmark } from "../Marks";
-import { TryRayaPill } from "../fresh";
 import { DURATION, line, MUSIC, phrase, wordAt } from "../timeline";
 import { EASE, mix, rand, span, useTime } from "../motion";
-import { At, Burst, Field, Glow, Motes, PAL, Pulse, RayaMark, Reveal, Spoken, Svg, tilt, TYPE } from "./kit";
+import { At, Burst, Field, Glow, Motes, PAL, Pulse, RayaMark, Reveal, Spoken, Svg, tilt, TryRayaPill, TYPE } from "./kit";
 
 /**
  * "So that was a quick look at Bluestift… how it all fits together."

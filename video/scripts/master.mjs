@@ -28,7 +28,7 @@ import { makeWebpackOverride } from "../webpack-override.mjs";
  *  - a lock file stops two renders (the logon task and a manual run, say)
  *    from working on the same pieces at once.
  *
- *   node scripts/master.mjs [--comp=HowItWorks] [--chunks=chunks] [--scale=2] [--chunk=150] [--crf=12]
+ *   node scripts/master.mjs [--comp=Film] [--chunks=chunks] [--scale=2] [--chunk=150] [--crf=12]
  */
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, "..");
@@ -39,7 +39,7 @@ const crf = arg("crf", 12);
 
 // Which composition, and where its pieces go: the drawn cut renders beside the first one.
 const opt = (name, fallback) => process.argv.find((a) => a.startsWith(`--${name}=`))?.split("=")[1] ?? fallback;
-const compId = opt("comp", "HowItWorks");
+const compId = opt("comp", "Film");
 const out = path.join(root, "out", opt("chunks", "chunks"));
 mkdirSync(out, { recursive: true });
 
