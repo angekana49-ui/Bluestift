@@ -5,6 +5,7 @@ import { RayaText } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
 import { ConceptGraphShot, KernelLoopShot, kernelInk } from "./KernelDiagrams";
+import LearnMore from "./LearnMore";
 import Reveal from "./Reveal";
 import { LEAD, SectionHeader, bandColumn, bandSection, bandTone, serifEm } from "./layout";
 
@@ -132,6 +133,7 @@ export default function KernelSection({ theme: outer }: { theme: Theme }) {
     overflow: "hidden",
     boxShadow: t.cardShadowLg,
   } as const;
+  const plateClass = "pub-figure";
 
   /**
    * A two-sentence heading, each half in the colour of the subject it names.
@@ -164,7 +166,7 @@ export default function KernelSection({ theme: outer }: { theme: Theme }) {
    * band, and a lone exception reads as an oversight rather than as restraint.
    */
   const caption = (titleKey: MessageKey, bodyKey: MessageKey, tint: string | [string, string]) => (
-    <div style={{ maxWidth: LEAD, marginTop: 56 }}>
+    <div className="pub-figure-caption" style={{ maxWidth: LEAD, marginTop: 56 }}>
       <h3
         style={{
           ...serifEm,
@@ -178,9 +180,9 @@ export default function KernelSection({ theme: outer }: { theme: Theme }) {
       >
         {typeof tint === "string" ? tr(titleKey) : twoTone(tr(titleKey), tint[0], tint[1])}
       </h3>
-      <p style={{ fontSize: 15, color: t.muted, lineHeight: 1.7, margin: "10px 0 0" }}>
+      <LearnMore theme={t} style={{ fontSize: 15, color: t.muted, lineHeight: 1.7, marginTop: 10 }}>
         <RayaText>{tr(bodyKey)}</RayaText>
-      </p>
+      </LearnMore>
     </div>
   );
 
@@ -203,7 +205,11 @@ export default function KernelSection({ theme: outer }: { theme: Theme }) {
                 <em style={{ ...serifEm, color: t.orangeText }}>{tr("site.kernel.title.em")}</em>
               </>
             }
-            lead={<RayaText>{tr("site.kernel.sub")}</RayaText>}
+            lead={
+              <LearnMore theme={t}>
+                <RayaText>{tr("site.kernel.sub")}</RayaText>
+              </LearnMore>
+            }
           />
         </Reveal>
 
@@ -213,12 +219,17 @@ export default function KernelSection({ theme: outer }: { theme: Theme }) {
         {/* In the learner's own colour: the sentence is about the person at
             the centre, and the person at the centre is drawn in that purple
             three inches below it. */}
-        <Reveal>{caption("site.kernel.map.title", "site.kernel.map.body", ink.learner)}</Reveal>
-        <Reveal>
-          <div style={plate}>
-            <KernelLoopShot theme={t} />
-          </div>
-        </Reveal>
+        {/* `pub-figure-block` flips to drawing-then-caption on phones so the
+            orbit owns the first look; desktop keeps the caption above as the
+            legend that teaches the colours before they appear. */}
+        <div className="pub-figure-block">
+          <Reveal>{caption("site.kernel.map.title", "site.kernel.map.body", ink.learner)}</Reveal>
+          <Reveal>
+            <div className={plateClass} style={plate}>
+              <KernelLoopShot theme={t} />
+            </div>
+          </Reveal>
+        </div>
 
         {/* 2 — the four fields, each named as the column it really is.
             The ladder's own mechanism (`.pub-stack-card`), with one change: the
@@ -304,9 +315,9 @@ export default function KernelSection({ theme: outer }: { theme: Theme }) {
                 {tr(d.nameKey)}
               </div>
               <div style={{ fontSize: 16, fontWeight: 600, color: t.text, marginTop: 6 }}>{tr(d.titleKey)}</div>
-              <p style={{ fontSize: 14.5, color: t.muted, lineHeight: 1.65, margin: "8px 0 0" }}>
+              <LearnMore theme={t} style={{ fontSize: 14.5, color: t.muted, lineHeight: 1.65, marginTop: 8 }}>
                 <RayaText>{tr(d.bodyKey)}</RayaText>
-              </p>
+              </LearnMore>
             </article>
           ))}
         </div>
@@ -316,12 +327,14 @@ export default function KernelSection({ theme: outer }: { theme: Theme }) {
             between concepts (lib/kernel/profile-cache.ts says exactly that). */}
         {/* Physics then maths, in the two cluster colours, in that order —
             which is also the order the tour walks them. */}
-        <Reveal>{caption("site.kernel.graph.title", "site.kernel.graph.body", [ink.physics, ink.math])}</Reveal>
-        <Reveal>
-          <div style={plate}>
-            <ConceptGraphShot theme={t} />
-          </div>
-        </Reveal>
+        <div className="pub-figure-block">
+          <Reveal>{caption("site.kernel.graph.title", "site.kernel.graph.body", [ink.physics, ink.math])}</Reveal>
+          <Reveal>
+            <div className={plateClass} style={plate}>
+              <ConceptGraphShot theme={t} />
+            </div>
+          </Reveal>
+        </div>
 
         {/* 4 — what the walk raises when it finds something. */}
         <div style={{ marginTop: 56, background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: 20, overflow: "hidden" }}>

@@ -5,6 +5,7 @@ import { RayaText } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
 import { RungShot, SocraticShot } from "./ProductShots";
+import LearnMore from "./LearnMore";
 import Reveal from "./Reveal";
 import { LEAD, SectionBlend, bandColumnShowcase, bandSection, eyebrow, lead, sectionH2, serifEm } from "./layout";
 
@@ -126,17 +127,19 @@ export default function LadderSection({ theme: t }: { theme: Theme }) {
             {tr("site.ladder.title.a")}{" "}
             <em style={serifEm}>{tr("site.ladder.title.em")}</em>
           </h2>
-          <p style={lead(t)}>
+          <LearnMore theme={t} style={{ ...lead(t), marginTop: 12 }}>
             <RayaText>{tr("site.ladder.sub")}</RayaText>
-          </p>
+          </LearnMore>
         </div>
 
         {/* Wide plate above the stack. It sits OUTSIDE the stack container on
             purpose — a sticky card only travels within its own parent, so
             anything sharing that parent would be dragged into the pile. */}
+        {/* Same full-bleed treatment the Kernel diagrams get on phones
+            (`.pub-figure` in globals.css): the wide plate is the argument. */}
         <Reveal>
           <div
-            className="pub-lift"
+            className="pub-lift pub-figure"
             style={{
               marginBottom: 40,
               border: `1px solid ${t.cardBorder}`,
@@ -240,9 +243,12 @@ export default function LadderSection({ theme: t }: { theme: Theme }) {
                   >
                     {tr(r.titleKey)}
                   </h3>
-                  <p style={{ fontSize: "clamp(13.5px,1.25vw,15px)", color: t.muted, lineHeight: 1.65, margin: "10px 0 0" }}>
+                  <LearnMore
+                    theme={t}
+                    style={{ fontSize: "clamp(13.5px,1.25vw,15px)", color: t.muted, lineHeight: 1.65, marginTop: 10 }}
+                  >
                     <RayaText>{tr(r.bodyKey)}</RayaText>
-                  </p>
+                  </LearnMore>
                 </div>
 
                 <div

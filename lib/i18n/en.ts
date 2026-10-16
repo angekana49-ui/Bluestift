@@ -179,6 +179,8 @@ export const en = {
   "site.hero.ctaPrimary": "Try it free",
   "site.hero.ctaSecondary": "See how it works",
   "site.hero.videoClose": "Close video",
+  /** Phone-only disclosure under a drawing — the caption stays, the body waits. */
+  "site.more": "Learn more",
   // "Free to start" was saying what the primary CTA above it already says.
   // What replaced it is the positioning decision itself — no level targeting,
   // no geography, no subject list (kernel `subject` is a free string and the

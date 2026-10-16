@@ -89,6 +89,7 @@ export const de: Partial<Messages> = {
   "site.hero.ctaPrimary": "Gratis testen",
   "site.hero.ctaSecondary": "So funktioniert es",
   "site.hero.videoClose": "Video schließen",
+  "site.more": "Mehr erfahren",
   "site.hero.chip.scope": "Jedes Fach, jedes Niveau",
   "site.hero.chip.noCard": "Keine Karte nötig",
   "site.hero.chip.solo": "Allein oder mit deiner Klasse",

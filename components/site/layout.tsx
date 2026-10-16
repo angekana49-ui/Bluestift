@@ -294,8 +294,10 @@ export function SectionHeader({
       </div>
       {ld ? (
         // Centred, the lead is a fixed 560 island under the title. Split, it owns
-        // its column and the grid decides the measure.
-        <p style={split ? { ...lead(t), maxWidth: "none", margin: 0 } : lead(t)}>{ld}</p>
+        // its column and the grid decides the measure. A `div`, not a `p`: the
+        // lead may wrap a `<details>` ("Learn more" on phones) and a paragraph
+        // cannot legally contain one.
+        <div style={split ? { ...lead(t), maxWidth: "none", margin: 0 } : lead(t)}>{ld}</div>
       ) : null}
     </div>
   );

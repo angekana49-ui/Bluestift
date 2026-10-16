@@ -1110,9 +1110,11 @@ a {
 @media (max-width: 760px) {
   /* The whole composition pushed in, and the second line of every label
      dropped. What survives is the shape and the six names on it, which is the
-     half of this drawing that was ever going to work on a phone. */
+     half of this drawing that was ever going to work on a phone. Scaled a
+     little harder than before now that the plate goes full-bleed — the extra
+     width would otherwise leave the orbit floating in empty margin. */
   .pub-orbit-fit {
-    transform: scale(1.18);
+    transform: scale(1.34);
   }
   .pub-orbit-sub {
     display: none;
@@ -2055,11 +2057,87 @@ a {
   .pub-rung-split,
   .pub-rung-split.is-flipped {
     grid-template-columns: 1fr;
+    /* Shot first, flush with the card — the session is the reason the card
+       exists, and a padded stack of title-then-paragraph-then-drawing was
+       burying it under caption. */
+    padding: 0;
+    gap: 0;
+    min-height: 0;
+    align-items: stretch;
   }
-  .pub-rung-split.is-flipped .pub-rung-shot,
+  .pub-rung-shot,
+  .pub-rung-split.is-flipped .pub-rung-shot {
+    grid-column: 1;
+    grid-row: 1;
+    border-radius: 0 !important;
+    border-width: 0 0 1px !important;
+    box-shadow: none !important;
+  }
+  .pub-rung-text,
   .pub-rung-split.is-flipped .pub-rung-text {
     grid-column: 1;
-    grid-row: auto;
+    grid-row: 2;
+    padding: 14px 16px 16px;
+  }
+}
+
+/* ---- Learn more (phone captions under drawings) ----
+   Above 720px the disclosure disappears and the body always shows, so desktop
+   keeps reading as a normal paragraph. Below it, only the title/name stay in
+   view until someone asks — which is what frees the screen for the drawing. */
+.pub-more {
+  margin: 0;
+}
+.pub-more-sum {
+  list-style: none;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  user-select: none;
+}
+.pub-more-sum::-webkit-details-marker {
+  display: none;
+}
+.pub-more-body {
+  margin-top: 8px;
+}
+@media (min-width: 721px) {
+  .pub-more > summary {
+    display: none !important;
+  }
+  .pub-more > .pub-more-body {
+    display: block !important;
+    margin-top: 0;
+  }
+}
+
+/* Full-bleed plates on phones: the ladder's wide shot and both Kernel
+   diagrams. The band already pays 24px of gutter; eating it back is what lets
+   the drawing use the whole screen instead of sitting in a padded card. */
+@media (max-width: 720px) {
+  .pub-figure {
+    margin-inline: -24px !important;
+    width: calc(100% + 48px);
+    border-radius: 0 !important;
+    border-left-width: 0 !important;
+    border-right-width: 0 !important;
+  }
+  /* Drawing first, then its title — the phone equivalent of the showcase
+     cards. Desktop keeps DOM order (caption above) so the legend still lands
+     before the colours it names. */
+  .pub-figure-block {
+    display: flex;
+    flex-direction: column-reverse;
+  }
+  .pub-figure-block .pub-figure {
+    margin-top: 28px !important;
+  }
+  .pub-figure-caption {
+    margin-top: 14px !important;
+  }
+  .pub-figure-caption h3 {
+    font-size: clamp(1.2rem, 5.2vw, 1.55rem) !important;
   }
 }
 @media (max-width: 900px) {
