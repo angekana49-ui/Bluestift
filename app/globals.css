@@ -2535,6 +2535,23 @@ a {
   .pub-rail > * {
     scroll-snap-align: start;
   }
+  /* Showcase rails (Connection + Features): the drawing is the argument, the
+     paragraph under it is its caption. At 78% the shot is small and the text
+     wraps into a tall block — so the card is mostly caption. Wider columns
+     give the illustration more of the viewport; a shorter measure on the body
+     keeps the caption from competing for height. Pricing stays at 78% so the
+     next tier still peeks. */
+  .pub-rail.pub-showcase {
+    grid-auto-columns: 92%;
+  }
+  .pub-rail.pub-showcase .pub-showcase-body {
+    padding: 14px 16px !important;
+  }
+  .pub-rail.pub-showcase .pub-showcase-body p {
+    font-size: 13px !important;
+    line-height: 1.55 !important;
+    margin-top: 8px !important;
+  }
 }
 
 /* The scrollbar is hidden ONLY where a finger can do the scrolling.
