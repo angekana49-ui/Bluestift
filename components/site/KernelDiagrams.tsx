@@ -1597,7 +1597,12 @@ export function ConceptGraphShot({ theme: t }: { theme: Theme }) {
           className={`pub-graph-canvas${focus === null ? "" : " is-focus"}`}
           onPointerLeave={() => setHover(null)}
         >
-          <svg viewBox={`0 0 ${W} ${H}`} className="pub-graph-svg" aria-hidden>
+          <svg
+            viewBox={`0 0 ${W} ${H}`}
+            preserveAspectRatio="xMidYMid slice"
+            className="pub-graph-svg"
+            aria-hidden
+          >
             {/* One extra group outside the camera: the narrow layout pushes a
                 fixed zoom in here, so every stop of the tour becomes a tighter
                 shot of the same tour rather than a second tour written for

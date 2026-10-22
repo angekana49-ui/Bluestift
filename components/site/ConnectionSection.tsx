@@ -1,11 +1,13 @@
 "use client";
 
+import { useRef } from "react";
 import type { Theme } from "./theme";
 import { RayaText } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
 import Reveal from "./Reveal";
 import { FocusShot, GuidedShot, ReturnShot } from "./ProductShots";
+import { useRailAutoScroll } from "./RailAutoScroll";
 import { SectionBlend, bandColumnShowcase, bandSection, lead, sectionH2, serifEm } from "./layout";
 
 /**
@@ -50,6 +52,8 @@ const STEPS: {
 
 export default function ConnectionSection({ theme: t }: { theme: Theme }) {
   const tr = useTranslate();
+  const railRef = useRef<HTMLDivElement>(null);
+  useRailAutoScroll(railRef);
   return (
     <section id="how-it-works" style={bandSection(t.cardBg)}>
       {/* This band now sits directly under the hero, so it inherits the
@@ -76,7 +80,7 @@ export default function ConnectionSection({ theme: t }: { theme: Theme }) {
             drawing beside its words and mirroring every other one. Below that
             it is the ordinary 3-up grid, and the phone rail below 600px. See
             globals.css. */}
-        <div className="pub-grid-3 pub-rail pub-showcase" style={{ gap: 20, alignItems: "stretch" }}>
+        <div ref={railRef} className="pub-grid-3 pub-rail pub-showcase" style={{ gap: 20, alignItems: "stretch" }}>
           {STEPS.map((s, i) => (
             <Reveal key={s.n} delay={i * 80} style={{ height: "100%" }}>
             <div

@@ -83,7 +83,7 @@ export default function DifferentiatorsSection({ theme: outer }: { theme: Theme 
         </Reveal>
 
         <Reveal>
-          <div style={plate}>
+          <div className="pub-figure" style={plate}>
             <PositionShot theme={t} />
           </div>
         </Reveal>

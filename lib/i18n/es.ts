@@ -318,6 +318,7 @@ export const es: Partial<Messages> = {
   "site.footer.link.subprocessors": "Subencargados",
   "site.footer.link.feedback": "Comentarios",
   "site.footer.rights": "Todos los derechos reservados.",
+  "site.footer.illustrative": "Las pantallas y las cifras de esta página son ilustrativas.",
 
   // ── Resiliencia de red ────────────────────────────────────────────
   "net.offline": "Sin conexión. Raya se reconectará automáticamente.",

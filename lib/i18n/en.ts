@@ -514,6 +514,10 @@ export const en = {
   "site.footer.link.subprocessors": "Sub-processors",
   "site.footer.link.feedback": "Feedback",
   "site.footer.rights": "All rights reserved.",
+  // Sits in the footer of every landing-size viewport. The drawings carry
+  // invented numbers — a gauge reading 0.62, marked dates, graph counts — and
+  // a reader is owed the fact that they are illustrative rather than measured.
+  "site.footer.illustrative": "Screens and figures on this page are illustrative.",
 
   // ── Network resilience (degraded banner, retry affordances) ───────
   "net.offline": "You're offline. Raya will reconnect automatically.",

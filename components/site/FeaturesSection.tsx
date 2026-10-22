@@ -1,10 +1,12 @@
 "use client";
 
+import { useRef } from "react";
 import type { Theme } from "./theme";
 import { RayaText } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
 import { KernelShot, RoomShot, ToolsShot } from "./ProductShots";
+import { useRailAutoScroll } from "./RailAutoScroll";
 import Reveal from "./Reveal";
 import { SectionBlend, bandColumnShowcase, bandSection, lead, sectionH2, serifEm } from "./layout";
 
@@ -61,6 +63,8 @@ const FEATURES: {
 
 export default function FeaturesSection({ theme: t }: { theme: Theme }) {
   const tr = useTranslate();
+  const railRef = useRef<HTMLDivElement>(null);
+  useRailAutoScroll(railRef);
   return (
     <section style={bandSection(t.sectionAltBg)}>
       {/* Blends down from ConnectionSection (t.cardBg), which now sits above. */}
@@ -85,7 +89,7 @@ export default function FeaturesSection({ theme: t }: { theme: Theme }) {
 
         {/* Same showcase layout as ConnectionSection — full-width rows above
             1100px, 3-up card grid below. See globals.css. */}
-        <div className="pub-grid-3 pub-rail pub-showcase" style={{ gap: 20 }}>
+        <div ref={railRef} className="pub-grid-3 pub-rail pub-showcase" style={{ gap: 20 }}>
           {FEATURES.map((f, i) => (
             <Reveal key={f.titleKey} delay={i * 80}>
               <div

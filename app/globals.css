@@ -486,13 +486,21 @@ a {
   }
 }
 
-/* The two cases where .pub-stack-card gives up its sticky positioning and the
-   cards fall back to a plain list. A list of tilted cards is not a fan, it is a
-   crooked list — and on a narrow screen the throw would push a card past the
-   edge and put a horizontal scrollbar on the whole page. */
-@media (max-width: 720px), (prefers-reduced-motion: reduce) {
+/* The two cases where the throw has to shrink or go. On a phone the stack
+   itself stays (see `.pub-stack-card`), but a 34px throw cannot: the card is
+   342px inside a 390px screen, so 34px each way plus the tilt would leave the
+   page with a horizontal scrollbar. 10px and 1.2° stay inside the gutter and
+   still read as a fan rather than as a crooked list. */
+@media (max-width: 720px) {
   .pub-postit {
-    transform: none;
+    transform: translateX(calc(10px * var(--side, 1))) rotate(calc(1.2deg * var(--side, 1)));
+  }
+}
+/* Reduced motion drops the stack entirely, and a fan that is not stacking is
+   just a crooked list. */
+@media (prefers-reduced-motion: reduce) {
+  .pub-postit {
+    transform: none !important;
   }
 }
 
@@ -519,6 +527,45 @@ a {
   }
   .pub-pos-next-when,
   .pub-pos-next-say {
+    font-size: 11px;
+  }
+}
+
+/* ---- The position drawing on a phone: it pans, because it cannot shrink ----
+   The plate is a 1200-unit term laid out on one horizontal axis — a gutter of
+   lane names, the mass between two bought rails, and the gauge at the far
+   right. Three things that all have to be on screen at once, and at 340px they
+   are not: the drawing's own labels land at eight real pixels and the band
+   becomes prose with a decoration over it.
+
+   Enlarging the labels is not available either — they are already as wide as
+   the 200-unit gutter allows — so the honest answer is the one this page
+   already uses for card rails: show the drawing larger than the column and let
+   the cut right edge say it continues. Below 720px the canvas scrolls, at 1.5×
+   so the names come back, inside a plate that has gone full-bleed
+   (`.pub-figure`, set in DifferentiatorsSection) so nothing is spent on
+   gutter. The reading underneath does not scroll with it: it stays put and
+   keeps describing one moment while the picture is read. */
+@media (max-width: 720px) {
+  .pub-pos-canvas {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+  .pub-pos-canvas .pub-pos-svg {
+    width: 150%;
+    max-width: none;
+  }
+  /* The strip and the footnote are real HTML and were already legible; they
+     just no longer have to compete with the drawing for the screen. */
+  .pub-pos-next {
+    padding: 12px 16px 14px;
+  }
+  .pub-pos-next-note {
+    margin-top: 10px;
+    font-size: 11px;
+  }
+  .pub-pos-foot {
+    padding: 10px 16px 12px;
     font-size: 11px;
   }
 }
@@ -1558,14 +1605,76 @@ a {
 }
 
 @media (max-width: 760px) {
-  /* One fixed zoom pushed in under the camera, so every stop of the tour
-     becomes a tighter shot of the same tour instead of a second tour written
-     for phones. The wide stops crop; the close ones become legible. */
+  /* The graph kept its wide box and was magnified inside it, which is what the
+     1.5 zoom was for: the drawing had 208px of height to live in, so cropping
+     it was the only way to read it. Give it a phone-shaped box instead and the
+     same magnification costs nothing — the box is 1200:1000, `slice` (see the
+     svg in KernelDiagrams) scales the viewBox to COVER it, and the camera's own
+     window works out at 768 × 640 graph units at every width below 760. So the
+     framing the tour was built for is unchanged, in a box half again as tall,
+     and the drawing stops being a strip above a page of text.
+     The 1.12 is the last little bit on top of that: a 12% tighter shot of the
+     same stops, which is where the labels cross from legible to read. */
+  .pub-graph-canvas {
+    aspect-ratio: 1200 / 1000;
+  }
+  .pub-graph-svg {
+    height: 100%;
+  }
   .pub-graph-zoom {
-    transform: scale(1.5);
+    transform: scale(1.12);
   }
   .pub-graph-count {
     display: none;
+  }
+}
+
+/* The reading under the graph, on a phone. Measured at 390px it was 575px tall
+   against the drawing's 208 — nearly three times the picture, which is what
+   "the text took over" means in numbers. The drawing is 325 now; this is the
+   other half of the rebalance, and it is a trim rather than a cut: same six
+   steps, same lede, same footnote, tighter leading and a lighter hand on the
+   chips. The step bodies keep 11px, because they are the argument the drawing
+   is pointing at. */
+@media (max-width: 720px) {
+  .pub-graph-strip {
+    padding: 12px 16px 14px;
+  }
+  .pub-graph-lede {
+    gap: 2px 10px;
+    margin-bottom: 8px;
+    font-size: 10.5px;
+  }
+  .pub-graph-lede span:first-child {
+    font-size: 10px;
+  }
+  .pub-graph-cases {
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .pub-graph-case {
+    padding: 4px 10px;
+    font-size: 10.5px;
+  }
+  .pub-graph-rail {
+    margin-bottom: 12px;
+  }
+  .pub-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px 12px;
+  }
+  .pub-step-name {
+    font-size: 11.5px;
+  }
+  .pub-step-body {
+    font-size: 11px;
+    line-height: 1.45;
+  }
+  .pub-graph-foot {
+    margin-top: 12px;
+    padding-top: 10px;
+    font-size: 11px;
+    line-height: 1.5;
   }
 }
 
@@ -1985,26 +2094,39 @@ a {
    scroll position rather than an animation. The per-card `top`/`z-index` are
    inline (they're data, one step per rung); this class only carries the
    positioning mode, so the fallbacks below can switch it off in one place.
-   Short viewports can't show the stack, and a scroll-driven effect is exactly
-   what prefers-reduced-motion asks us to drop, so both fall back to a plain
-   vertical list — `top` and `z-index` are inert once position is static. */
+
+   This used to give up at 720px, on the theory that a narrow window could not
+   hold a card beside its own stacked edges. It was measuring the wrong thing:
+   what a phone lacks is WIDTH, and width is the one resource the stack does
+   not spend — the last card pins at 92 + 3 × 26 and a phone has the height for
+   that twice over. So the stack stays and the lateral throw shrinks instead
+   (`.pub-postit` for the Kernel's fan, the rules below for the ladder), which
+   is the part that would otherwise put a card past the screen edge.
+
+   A scroll-driven effect is still exactly what prefers-reduced-motion asks us
+   to drop, so that fallback stays — `top` and `z-index` go inert once position
+   is static, and the cards become a plain vertical list. */
 .pub-stack-card {
   position: sticky;
 }
-/* 720, not 860. The fallback exists for windows too narrow to hold a card
-   beside its own stacked edges — but at 860 it was switching the stack off on
-   ordinary laptop windows and half-width browsers, i.e. on exactly the readers
-   who were meant to see it. The cards are sized to pile inside a short viewport
-   (see STACK_STEP and the rung shot's ratio), so the stack survives much lower
-   than it used to. */
+/* The ladder's climb, on a phone: the cards alternate sides as they pile,
+   the way the desktop grid mirrors its two cells. 10px and not the post-it's
+   34 — the card is the full column here, so the offset has to stay inside the
+   24px gutter or the page grows a horizontal scrollbar. */
 @media (max-width: 720px) {
-  .pub-stack-card {
-    position: static !important;
+  .pub-stack-card:not(.pub-postit):nth-child(odd) {
+    transform: translateX(-10px);
+  }
+  .pub-stack-card:not(.pub-postit):nth-child(even) {
+    transform: translateX(10px);
   }
 }
 @media (prefers-reduced-motion: reduce) {
   .pub-stack-card {
     position: static !important;
+  }
+  .pub-stack-card:not(.pub-postit) {
+    transform: none !important;
   }
 }
 
@@ -2579,8 +2701,15 @@ a {
    A rail puts them back side by side at their designed proportions. The sizing
    IS the affordance: at 78% the next card is visibly cut by the screen edge,
    which says "the row continues" without a chevron, a dot strip or a hint of
-   copy. Nothing here animates and nothing auto-advances — the visitor's thumb
-   is the only thing that moves it, so there is no carousel to fight.
+   copy.
+
+   It also advances on its own — one card every few seconds, pausing the moment
+   a finger touches it and picking up again a few seconds after the finger
+   leaves, looping back to the first card at the end. That lives in React
+   (RailAutoScroll.tsx), not here, because it is a timer rather than a style;
+   it only ever runs below this breakpoint and never under
+   prefers-reduced-motion. A rail the visitor has to discover before it does
+   anything is a rail most visitors never see move at all.
 
    Opt-in, alongside the grid class, because it is only right for peers. Items
    read in sequence, or of unequal weight, should still stack. Must stay after

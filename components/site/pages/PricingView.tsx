@@ -6,6 +6,7 @@ import SitePage from "@/components/site/SitePage";
 import type { Theme } from "@/components/site/theme";
 import { MEASURE, lead, pageColumn, pageH1, pageSection, serifEm } from "@/components/site/layout";
 import { ANNUAL_DISCOUNT, annualMonthlyRate, termTotal } from "@/lib/billing/terms";
+import { useRailAutoScroll } from "@/components/site/RailAutoScroll";
 import { RayaName } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
@@ -114,6 +115,7 @@ function PlanRail({
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  useRailAutoScroll(ref);
 
   useEffect(() => {
     const rail = ref.current;

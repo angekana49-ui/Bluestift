@@ -142,7 +142,16 @@ export default function Footer({ theme: t, variant = "full" }: { theme: Theme; v
             color: t.footerMuted,
           }}
         >
-          <span>© 2026 <BluestiftName>BlueStift</BluestiftName>. {tr("site.footer.rights")}</span>
+          {/* Copyright and the illustrative-data note share the left cell so
+              the address stays the right-hand end of the line. The note is not
+              small print for the lawyers: every drawing on the landing carries
+              invented numbers, and a reader who is about to trust a gauge has
+              to be told they are not measurements. */}
+          <span style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            <span>© 2026 <BluestiftName>BlueStift</BluestiftName>. {tr("site.footer.rights")}</span>
+            <span aria-hidden>·</span>
+            <span>{tr("site.footer.illustrative")}</span>
+          </span>
           <span>hello@thebluestift.com</span>
         </div>
       </div>

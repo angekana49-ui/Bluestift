@@ -315,6 +315,7 @@ export const de: Partial<Messages> = {
   "site.footer.link.subprocessors": "Subunternehmer",
   "site.footer.link.feedback": "Feedback",
   "site.footer.rights": "Alle Rechte vorbehalten.",
+  "site.footer.illustrative": "Bildschirme und Zahlen auf dieser Seite sind illustrativ.",
 
   // ── Netzwerk-Resilienz ────────────────────────────────────────────
   "net.offline": "Du bist offline. Raya verbindet sich automatisch neu.",

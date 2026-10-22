@@ -346,6 +346,11 @@ export function PositionShot({ theme: t }: { theme: Theme }) {
           motion seen twice, and the day they drift the head stops meaning
           anything. */}
       <div className="pub-pos" style={{ ["--dur-head" as string]: `${T.headMs}ms` }}>
+        {/* The drawing is a 1200-unit horizontal axis — a name gutter, a mass
+            and a gauge — and it has nowhere to fold, so on a phone the plate
+            pans instead of shrinking it into noise. `.pub-pos-next` and
+            `.pub-pos-foot` below are real HTML and stay put. */}
+        <div className="pub-pos-canvas">
         <svg viewBox={`0 0 ${W} ${H}`} className="pub-pos-svg" aria-hidden>
           {/* The term. Quiet — it is the ground the three layers are measured
               against, not a fourth thing to read. */}
@@ -541,6 +546,7 @@ export function PositionShot({ theme: t }: { theme: Theme }) {
             </text>
           </g>
         </svg>
+        </div>
 
         {/* The level progressing, which the curve above states and never shows.
             Same model, same student, same two sessions — read on the Tuesday

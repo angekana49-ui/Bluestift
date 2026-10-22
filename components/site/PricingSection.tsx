@@ -1,9 +1,10 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import type { Theme } from "./theme";
 import { RayaText, SchoolsName } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
+import { useRailAutoScroll } from "./RailAutoScroll";
 import { SectionBlend, bandColumn, bandSection, lead, sectionH2, serifEm } from "./layout";
 
 export type EntryPrice = { amount: string; unit: string; rest: string | null };
@@ -24,6 +25,8 @@ export default function PricingSection({
   schoolPrice?: EntryPrice | null;
 }) {
   const tr = useTranslate();
+  const railRef = useRef<HTMLDivElement>(null);
+  useRailAutoScroll(railRef);
 
   /**
    * The number, at the size a number is worth.
@@ -107,7 +110,7 @@ export default function PricingSection({
         {/* Rail on phones: three plans are peers, and a visitor choosing between
             them has to be able to hold two side by side. Stacked, the choice
             becomes a memory test. */}
-        <div className="pub-grid-3 pub-rail" style={{ gap: 20, alignItems: "stretch" }}>
+        <div ref={railRef} className="pub-grid-3 pub-rail" style={{ gap: 20, alignItems: "stretch" }}>
           {/* 1 — Solo (individual) */}
           {gatewayCard({
             title: tr("site.pricing.solo.title"),
