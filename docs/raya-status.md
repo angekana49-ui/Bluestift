@@ -11,7 +11,7 @@ Supabase DB and the contract `user_id = public.users.id = auth.users.id`.
   Groq) → transcribed text is sent as a normal turn.
 - **Structural guardrail**: RAYA never gives the answer; follows EMT
   (PUMP → HINT → ASSERTION → SUMMARY), requires an attempt before hints, uses
-  Dweck-style process feedback, replies in the student's language.
+  Process-praise feedback, replies in the student's language.
 - Every turn is stored in `learning.conversations` / `learning.messages`
   (student = role `user`, RAYA = role `assistant`, with `model_used`).
 - Works even when the Kernel is offline (degrades to non-personalized tutoring).

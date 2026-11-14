@@ -2885,7 +2885,8 @@ function RosterRow({ s, busy, onOpen }: { s: RosterStudent; busy: boolean; onOpe
   );
 }
 
-function LearningGraphView({ graph }: { graph: LearningGraph }) {
+/** Exported for the demo video, which renders the real graph with demo data. */
+export function LearningGraphView({ graph }: { graph: LearningGraph }) {
   const { t, box } = useSchoolStyles();
   const tr = useTranslate();
   const r = 8;
@@ -3004,7 +3005,8 @@ function LearningGraphView({ graph }: { graph: LearningGraph }) {
   );
 }
 
-function StudentDetailView({
+/** Exported for the demo video, which renders the real profile with demo data. */
+export function StudentDetailView({
   detail,
   onBack,
   classId,

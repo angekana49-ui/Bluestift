@@ -1,0 +1,382 @@
+{
+  "meta": {
+    "fps": 30,
+    "width": 1920,
+    "height": 1080,
+    "audio": "bluestift_demo_audio_mix.mp3",
+    "audioDurationSec": 148.71,
+    "totalFrames": 4461,
+    "voiceEndsAtSec": 145.7,
+    "timingsAreEstimates": true,
+    "howToAlign": "Run Whisper on the narration mp3 (e.g. @remotion/install-whisper-cpp + @remotion/captions), strip ElevenLabs tags like [softly]/[excited] from any text comparison, then for each cue find alignPhrase in the word timestamps and overwrite startSec/startFrame. If the voice is regenerated, redo the alignment."
+  },
+  "globalRules": [
+    "Single <Audio> track: the already-mixed file. Do not add other music.",
+    "Persistent animated background: dark navy knowledge graph (~60 nodes, seeded layout, slow drift) present in every scene; its state changes per cue (see 'background').",
+    "Signature transition 'dive' = zoom + slight blur (~12 frames); reuse it, do not invent new ones except the special ones marked in the cues.",
+    "Screens: ONLY real screen recordings inside a rounded frame (soft shadow, subtle 3D tilt, spring() entry). Never recreate or fake UI, Raya answers, or numbers.",
+    "Captions: word-by-word, generated from the audio, keywords highlighted.",
+    "Show 'Illustrative example · Demo data' at the start and on teacher screens.",
+    "Recording file names are placeholders; map them to the real files."
+  ],
+  "backgroundStates": {
+    "graph_gray": "all nodes gray, very low contrast",
+    "graph_gray_crack": "gray graph, algebra node cracked, fracture line toward physics",
+    "graph_dim": "graph dimmed, logo glow",
+    "graph_soft": "graph at low opacity behind the frame",
+    "graph_path_lit": "glowing path from algebra node to physics node",
+    "graph_physics_green": "physics node green",
+    "graph_class_wide": "zoomed out, dozens of nodes lit (the class)",
+    "graph_same_node_lit": "same red node as the student scene lit",
+    "graph_two_nodes_linked": "two red nodes linked by a glowing line",
+    "graph_regroup": "nodes regroup around the logo"
+  },
+  "cues": [
+    {
+      "id": 1,
+      "startSec": 0.0,
+      "alignPhrase": "Hi everyone, and welcome to Bluestift",
+      "section": "intro",
+      "source": null,
+      "transitionIn": {
+        "type": "orbitOpen",
+        "durationFrames": 20,
+        "notes": "Two crossing orbit rings (blue + orange) around the logo, graph gray behind."
+      },
+      "background": "graph_gray",
+      "overlays": [
+        "label: Illustrative example · Demo data"
+      ],
+      "startFrame": 0
+    },
+    {
+      "id": 2,
+      "startSec": 2.0,
+      "alignPhrase": "Meet a student",
+      "section": "hook",
+      "source": null,
+      "transitionIn": {
+        "type": "dissolveToGraph",
+        "durationFrames": 15,
+        "notes": "Orbits dissolve into the gray graph."
+      },
+      "background": "graph_gray",
+      "overlays": [
+        "nodeFlash: physics node flashes red once on 'She fails physics. Again.'"
+      ],
+      "startFrame": 60
+    },
+    {
+      "id": 3,
+      "startSec": 8.0,
+      "alignPhrase": "she missed one key idea in algebra",
+      "section": "hook",
+      "source": null,
+      "transitionIn": {
+        "type": "nodeCrack",
+        "durationFrames": 30,
+        "notes": "An algebra node cracks; a thin fracture line climbs toward the physics node. Nothing else on screen."
+      },
+      "background": "graph_gray_crack",
+      "overlays": [],
+      "startFrame": 240
+    },
+    {
+      "id": 4,
+      "startSec": 16.0,
+      "alignPhrase": "That's the kind of problem Bluestift is built to catch",
+      "section": "bridge",
+      "source": null,
+      "transitionIn": {
+        "type": "dive",
+        "durationFrames": 12,
+        "notes": "Graph dims, logo breathes, then dive into the graph."
+      },
+      "background": "graph_dim",
+      "overlays": [],
+      "startFrame": 480
+    },
+    {
+      "id": 5,
+      "startSec": 22.0,
+      "alignPhrase": "So she asks Raya for help",
+      "section": "raya",
+      "source": "scene_raya_chat.mp4",
+      "transitionIn": {
+        "type": "springFrameIn",
+        "durationFrames": 18,
+        "notes": "Rounded frame with soft shadow and subtle 3D tilt enters with spring()."
+      },
+      "background": "graph_soft",
+      "overlays": [
+        "optional tags Ask / Hint / Reveal synced to 'asks what she would try first', 'offers a hint', 'reveals the missing piece' (labels only, never fake UI)"
+      ],
+      "startFrame": 660
+    },
+    {
+      "id": 6,
+      "startSec": 38.0,
+      "alignPhrase": "Luckily, she doesn't have to leave",
+      "section": "rooms",
+      "source": "scene_study_room.mp4",
+      "transitionIn": {
+        "type": "frameContentCrossfade",
+        "durationFrames": 15,
+        "notes": "SAME frame stays; content crossfades from chat to Study Room (she does not leave Raya)."
+      },
+      "background": "graph_soft",
+      "overlays": [
+        "soft glow on 'Learning is social'"
+      ],
+      "startFrame": 1140
+    },
+    {
+      "id": 7,
+      "startSec": 54.0,
+      "alignPhrase": "Then a notification pops up",
+      "section": "insights",
+      "source": "scene_insights.mp4",
+      "transitionIn": {
+        "type": "toastExpand",
+        "durationFrames": 20,
+        "notes": "Notification toast pops in top-right, then expands into the analysis page (shared element)."
+      },
+      "background": "graph_soft",
+      "overlays": [],
+      "startFrame": 1620
+    },
+    {
+      "id": 8,
+      "startSec": 65.0,
+      "alignPhrase": "The root cause is a gap in algebra",
+      "section": "insights",
+      "source": "scene_insights.mp4",
+      "transitionIn": {
+        "type": "zoomHighlight",
+        "durationFrames": 20,
+        "notes": "KEY MOMENT: zoom on the red algebra bar/node, dim background, node pulses once, glowing path climbs in the background graph from algebra to physics. Hold the diagnosis sentence ~3 s."
+      },
+      "background": "graph_path_lit",
+      "overlays": [
+        "keyword highlight: root cause, algebra"
+      ],
+      "holdSec": 3.0,
+      "startFrame": 1950
+    },
+    {
+      "id": 9,
+      "startSec": 71.0,
+      "alignPhrase": "this time the physics problem clicks",
+      "section": "studio",
+      "source": "scene_raya_chat_solved.mp4",
+      "transitionIn": {
+        "type": "dive",
+        "durationFrames": 12,
+        "notes": "Back to Raya. Physics node turns green in the background graph."
+      },
+      "background": "graph_physics_green",
+      "overlays": [],
+      "startFrame": 2130
+    },
+    {
+      "id": 10,
+      "startSec": 76.0,
+      "alignPhrase": "in Tools Studio",
+      "section": "studio",
+      "source": "scene_studio.mp4",
+      "transitionIn": {
+        "type": "frameSlideUp",
+        "durationFrames": 18,
+        "notes": "Frame slides up to Tools Studio. On 'a lesson, a PDF, notes, even a voice memo' four small file icons pop in around the frame, word by word."
+      },
+      "background": "graph_soft",
+      "overlays": [
+        "4 file-type icons synced to words"
+      ],
+      "startFrame": 2280
+    },
+    {
+      "id": 11,
+      "startSec": 93.0,
+      "alignPhrase": "Meanwhile, in the classroom",
+      "section": "teacher",
+      "source": "scene_teacher_overview.mp4",
+      "transitionIn": {
+        "type": "sharedElementMorph",
+        "durationFrames": 30,
+        "notes": "SPECIAL: student analysis card scales up, blurs, morphs into the teacher alert card. Background graph zooms OUT and lights dozens of nodes (the class)."
+      },
+      "background": "graph_class_wide",
+      "overlays": [
+        "label: Demo data"
+      ],
+      "startFrame": 2790
+    },
+    {
+      "id": 12,
+      "startSec": 94.0,
+      "alignPhrase": "she doesn't have to guess where to begin",
+      "section": "teacher",
+      "source": "scene_teacher_overview.mp4",
+      "transitionIn": {
+        "type": "springFrameIn",
+        "durationFrames": 18,
+        "notes": "Teacher overview. Alert badges pulse once."
+      },
+      "background": "graph_class_wide",
+      "overlays": [
+        "pulse on alert badges"
+      ],
+      "startFrame": 2820
+    },
+    {
+      "id": 13,
+      "startSec": 103.0,
+      "alignPhrase": "She filters for students who may need support",
+      "section": "teacher",
+      "source": "scene_teacher_class_filter.mp4",
+      "transitionIn": {
+        "type": "zoomHighlight",
+        "durationFrames": 15,
+        "notes": "Zoom on the 'needs watching' filter, then the student profile slides in. Highlight the red 'Leaning on answers' badge on 'relying on answers'."
+      },
+      "background": "graph_class_wide",
+      "overlays": [
+        "highlight badge: Leaning on answers"
+      ],
+      "startFrame": 3090
+    },
+    {
+      "id": 14,
+      "startSec": 113.0,
+      "alignPhrase": "One red node stands out",
+      "section": "teacher",
+      "source": "scene_teacher_graph.mp4",
+      "transitionIn": {
+        "type": "zoomHighlight",
+        "durationFrames": 20,
+        "notes": "Zoom on the red node in the student's graph, halo. The SAME node lights up in the background graph to echo the student scene."
+      },
+      "background": "graph_same_node_lit",
+      "overlays": [
+        "halo on red node"
+      ],
+      "startFrame": 3390
+    },
+    {
+      "id": 15,
+      "startSec": 119.0,
+      "alignPhrase": "join her students in their Study Rooms",
+      "section": "teacher",
+      "source": "scene_teacher_rooms.mp4 then scene_teacher_instructions.mp4 (TODO: instructions-to-Raya screen not yet provided)",
+      "transitionIn": {
+        "type": "frameContentCrossfade",
+        "durationFrames": 12,
+        "notes": "Two quick beats: Study Room (crossfade), then 'guide Raya' instructions screen."
+      },
+      "background": "graph_class_wide",
+      "overlays": [],
+      "startFrame": 3570
+    },
+    {
+      "id": 16,
+      "startSec": 127.0,
+      "alignPhrase": "never the student's private conversations",
+      "section": "teacher",
+      "source": null,
+      "transitionIn": {
+        "type": "iconOverlay",
+        "durationFrames": 12,
+        "notes": "Lock icon + the words 'Mastery only' appear for ~2 s."
+      },
+      "background": "graph_class_wide",
+      "overlays": [
+        "lock icon",
+        "text: Mastery only"
+      ],
+      "holdSec": 2.0,
+      "startFrame": 3810
+    },
+    {
+      "id": 17,
+      "startSec": 130.0,
+      "alignPhrase": "She leaves a note for the class team",
+      "section": "teacher",
+      "source": "scene_teacher_note.mp4",
+      "transitionIn": {
+        "type": "zoomHighlight",
+        "durationFrames": 15,
+        "notes": "Zoom on 'Add a note', the note is added. Hold ~1 s on 'Now she knows where to start.'"
+      },
+      "background": "graph_class_wide",
+      "overlays": [],
+      "holdSec": 1.0,
+      "startFrame": 3900
+    },
+    {
+      "id": 18,
+      "startSec": 135.0,
+      "alignPhrase": "One student. One teacher",
+      "section": "conclusion",
+      "source": "scene_insights.mp4 + scene_teacher_student_profile.mp4",
+      "transitionIn": {
+        "type": "splitScreenLink",
+        "durationFrames": 20,
+        "notes": "Split screen: student view left, teacher view right, a glowing line links the two red nodes."
+      },
+      "background": "graph_two_nodes_linked",
+      "overlays": [],
+      "startFrame": 4050
+    },
+    {
+      "id": 19,
+      "startSec": 138.5,
+      "alignPhrase": "That's Bluestift",
+      "section": "conclusion",
+      "source": null,
+      "transitionIn": {
+        "type": "shrinkIntoLogo",
+        "durationFrames": 24,
+        "notes": "Both frames shrink into the logo; background nodes regroup around it."
+      },
+      "background": "graph_regroup",
+      "overlays": [],
+      "startFrame": 4155
+    },
+    {
+      "id": 20,
+      "startSec": 141.0,
+      "alignPhrase": "We diagnose first",
+      "section": "conclusion",
+      "source": null,
+      "transitionIn": {
+        "type": "textCard",
+        "durationFrames": 12,
+        "notes": "Large, sober text: 'We diagnose first. The learning follows.'"
+      },
+      "background": "graph_regroup",
+      "overlays": [
+        "text card"
+      ],
+      "startFrame": 4230
+    },
+    {
+      "id": 21,
+      "startSec": 143.0,
+      "alignPhrase": "live at thebluestift.com",
+      "section": "conclusion",
+      "source": null,
+      "transitionIn": {
+        "type": "urlHold",
+        "durationFrames": 12,
+        "notes": "URL appears and stays until the end of the voice + 3 s music tail, then fade to black."
+      },
+      "background": "graph_regroup",
+      "overlays": [
+        "URL: thebluestift.com"
+      ],
+      "holdUntil": "audioEnd+3s",
+      "startFrame": 4290
+    }
+  ]
+}

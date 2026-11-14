@@ -1,0 +1,2054 @@
+[
+ {
+  "start": 0.07,
+  "end": 3.26,
+  "text": "Hi everyone, and welcome to Bluestift.",
+  "keyword": "Bluestift",
+  "words": [
+   {
+    "word": "Hi",
+    "at": 0.07
+   },
+   {
+    "word": "everyone,",
+    "at": 0.354
+   },
+   {
+    "word": "and",
+    "at": 0.779
+   },
+   {
+    "word": "welcome",
+    "at": 1.062
+   },
+   {
+    "word": "to",
+    "at": 1.346
+   },
+   {
+    "word": "Bluestift.",
+    "at": 1.63
+   }
+  ]
+ },
+ {
+  "start": 3.31,
+  "end": 4.662,
+  "text": "Meet a student.",
+  "keyword": "student",
+  "words": [
+   {
+    "word": "Meet",
+    "at": 3.31
+   },
+   {
+    "word": "a",
+    "at": 3.508
+   },
+   {
+    "word": "student.",
+    "at": 3.706
+   }
+  ]
+ },
+ {
+  "start": 4.712,
+  "end": 6.19,
+  "text": "She fails physics. Again.",
+  "keyword": "physics",
+  "words": [
+   {
+    "word": "She",
+    "at": 4.712
+   },
+   {
+    "word": "fails",
+    "at": 4.91
+   },
+   {
+    "word": "physics.",
+    "at": 5.108
+   },
+   {
+    "word": "Again.",
+    "at": 5.464
+   }
+  ]
+ },
+ {
+  "start": 6.24,
+  "end": 8.155,
+  "text": "Her teacher sees a bad grade.",
+  "keyword": "grade",
+  "words": [
+   {
+    "word": "Her",
+    "at": 6.24
+   },
+   {
+    "word": "teacher",
+    "at": 7.058
+   },
+   {
+    "word": "sees",
+    "at": 7.255
+   },
+   {
+    "word": "a",
+    "at": 7.453
+   },
+   {
+    "word": "bad",
+    "at": 7.651
+   },
+   {
+    "word": "grade.",
+    "at": 7.849
+   }
+  ]
+ },
+ {
+  "start": 8.205,
+  "end": 10.852,
+  "text": "She sees proof that she's just not good at it...",
+  "keyword": "proof",
+  "words": [
+   {
+    "word": "She",
+    "at": 8.205
+   },
+   {
+    "word": "sees",
+    "at": 8.403
+   },
+   {
+    "word": "proof",
+    "at": 9.161
+   },
+   {
+    "word": "that",
+    "at": 9.359
+   },
+   {
+    "word": "she's",
+    "at": 9.557
+   },
+   {
+    "word": "just",
+    "at": 9.754
+   },
+   {
+    "word": "not",
+    "at": 9.952
+   },
+   {
+    "word": "good",
+    "at": 10.15
+   },
+   {
+    "word": "at",
+    "at": 10.348
+   },
+   {
+    "word": "it...",
+    "at": 10.546
+   }
+  ]
+ },
+ {
+  "start": 10.902,
+  "end": 12.472,
+  "text": "But two years ago,",
+  "keyword": "years",
+  "words": [
+   {
+    "word": "But",
+    "at": 10.902
+   },
+   {
+    "word": "two",
+    "at": 11.1
+   },
+   {
+    "word": "years",
+    "at": 12.028
+   },
+   {
+    "word": "ago,",
+    "at": 12.225
+   }
+  ]
+ },
+ {
+  "start": 12.522,
+  "end": 13.956,
+  "text": "she missed one key idea in algebra,",
+  "keyword": "algebra",
+  "words": [
+   {
+    "word": "she",
+    "at": 12.522
+   },
+   {
+    "word": "missed",
+    "at": 12.72
+   },
+   {
+    "word": "one",
+    "at": 12.918
+   },
+   {
+    "word": "key",
+    "at": 13.116
+   },
+   {
+    "word": "idea",
+    "at": 13.314
+   },
+   {
+    "word": "in",
+    "at": 13.511
+   },
+   {
+    "word": "algebra,",
+    "at": 13.709
+   }
+  ]
+ },
+ {
+  "start": 14.006,
+  "end": 14.708,
+  "text": "and nobody noticed.",
+  "keyword": "nobody",
+  "words": [
+   {
+    "word": "and",
+    "at": 14.006
+   },
+   {
+    "word": "nobody",
+    "at": 14.204
+   },
+   {
+    "word": "noticed.",
+    "at": 14.402
+   }
+  ]
+ },
+ {
+  "start": 14.758,
+  "end": 17.955,
+  "text": "That's the kind of problem Bluestift is built to catch.",
+  "keyword": "Bluestift",
+  "words": [
+   {
+    "word": "That's",
+    "at": 14.758
+   },
+   {
+    "word": "the",
+    "at": 14.956
+   },
+   {
+    "word": "kind",
+    "at": 15.444
+   },
+   {
+    "word": "of",
+    "at": 15.641
+   },
+   {
+    "word": "problem",
+    "at": 15.839
+   },
+   {
+    "word": "Bluestift",
+    "at": 16.037
+   },
+   {
+    "word": "is",
+    "at": 17.055
+   },
+   {
+    "word": "built",
+    "at": 17.253
+   },
+   {
+    "word": "to",
+    "at": 17.451
+   },
+   {
+    "word": "catch.",
+    "at": 17.649
+   }
+  ]
+ },
+ {
+  "start": 18.005,
+  "end": 19.94,
+  "text": "Here's a quick look at how.",
+  "keyword": "look",
+  "words": [
+   {
+    "word": "Here's",
+    "at": 18.005
+   },
+   {
+    "word": "a",
+    "at": 18.202
+   },
+   {
+    "word": "quick",
+    "at": 18.4
+   },
+   {
+    "word": "look",
+    "at": 18.598
+   },
+   {
+    "word": "at",
+    "at": 18.796
+   },
+   {
+    "word": "how.",
+    "at": 18.994
+   }
+  ]
+ },
+ {
+  "start": 19.99,
+  "end": 23.627,
+  "text": "It's late, and the physics problem is still open.",
+  "keyword": "physics",
+  "words": [
+   {
+    "word": "It's",
+    "at": 19.99
+   },
+   {
+    "word": "late,",
+    "at": 20.256
+   },
+   {
+    "word": "and",
+    "at": 20.654
+   },
+   {
+    "word": "the",
+    "at": 21.54
+   },
+   {
+    "word": "physics",
+    "at": 21.806
+   },
+   {
+    "word": "problem",
+    "at": 22.401
+   },
+   {
+    "word": "is",
+    "at": 22.667
+   },
+   {
+    "word": "still",
+    "at": 22.933
+   },
+   {
+    "word": "open.",
+    "at": 23.199
+   }
+  ]
+ },
+ {
+  "start": 23.677,
+  "end": 25.954,
+  "text": "So she asks Raya for help.",
+  "keyword": "Raya",
+  "words": [
+   {
+    "word": "So",
+    "at": 23.677
+   },
+   {
+    "word": "she",
+    "at": 23.943
+   },
+   {
+    "word": "asks",
+    "at": 24.208
+   },
+   {
+    "word": "Raya",
+    "at": 24.994
+   },
+   {
+    "word": "for",
+    "at": 25.26
+   },
+   {
+    "word": "help.",
+    "at": 25.525
+   }
+  ]
+ },
+ {
+  "start": 26.004,
+  "end": 28.48,
+  "text": "Raya doesn't give her the answer.",
+  "keyword": "answer",
+  "words": [
+   {
+    "word": "Raya",
+    "at": 26.004
+   },
+   {
+    "word": "doesn't",
+    "at": 26.269
+   },
+   {
+    "word": "give",
+    "at": 27.255
+   },
+   {
+    "word": "her",
+    "at": 27.521
+   },
+   {
+    "word": "the",
+    "at": 27.786
+   },
+   {
+    "word": "answer.",
+    "at": 28.052
+   }
+  ]
+ },
+ {
+  "start": 28.53,
+  "end": 31.203,
+  "text": "It asks what she would try first,",
+  "keyword": "try",
+  "words": [
+   {
+    "word": "It",
+    "at": 28.53
+   },
+   {
+    "word": "asks",
+    "at": 29.226
+   },
+   {
+    "word": "what",
+    "at": 29.492
+   },
+   {
+    "word": "she",
+    "at": 29.758
+   },
+   {
+    "word": "would",
+    "at": 30.023
+   },
+   {
+    "word": "try",
+    "at": 30.289
+   },
+   {
+    "word": "first,",
+    "at": 30.555
+   }
+  ]
+ },
+ {
+  "start": 31.253,
+  "end": 33.29,
+  "text": "offers a hint when she's close,",
+  "keyword": "hint",
+  "words": [
+   {
+    "word": "offers",
+    "at": 31.253
+   },
+   {
+    "word": "a",
+    "at": 31.519
+   },
+   {
+    "word": "hint",
+    "at": 31.785
+   },
+   {
+    "word": "when",
+    "at": 32.05
+   },
+   {
+    "word": "she's",
+    "at": 32.316
+   },
+   {
+    "word": "close,",
+    "at": 32.582
+   }
+  ]
+ },
+ {
+  "start": 33.34,
+  "end": 36.85,
+  "text": "and reveals the missing piece only when she's truly stuck.",
+  "keyword": "reveals",
+  "words": [
+   {
+    "word": "and",
+    "at": 33.34
+   },
+   {
+    "word": "reveals",
+    "at": 33.606
+   },
+   {
+    "word": "the",
+    "at": 33.872
+   },
+   {
+    "word": "missing",
+    "at": 34.137
+   },
+   {
+    "word": "piece",
+    "at": 34.403
+   },
+   {
+    "word": "only",
+    "at": 34.669
+   },
+   {
+    "word": "when",
+    "at": 34.935
+   },
+   {
+    "word": "she's",
+    "at": 35.2
+   },
+   {
+    "word": "truly",
+    "at": 35.466
+   },
+   {
+    "word": "stuck.",
+    "at": 35.732
+   }
+  ]
+ },
+ {
+  "start": 36.9,
+  "end": 39.84,
+  "text": "Still stuck, she wants to ask her classmates.",
+  "keyword": "classmates",
+  "words": [
+   {
+    "word": "Still",
+    "at": 36.9
+   },
+   {
+    "word": "stuck,",
+    "at": 37.138
+   },
+   {
+    "word": "she",
+    "at": 37.494
+   },
+   {
+    "word": "wants",
+    "at": 38.012
+   },
+   {
+    "word": "to",
+    "at": 38.249
+   },
+   {
+    "word": "ask",
+    "at": 38.487
+   },
+   {
+    "word": "her",
+    "at": 38.725
+   },
+   {
+    "word": "classmates.",
+    "at": 38.962
+   }
+  ]
+ },
+ {
+  "start": 39.89,
+  "end": 42.035,
+  "text": "Luckily, she doesn't have to leave.",
+  "keyword": "leave",
+  "words": [
+   {
+    "word": "Luckily,",
+    "at": 39.89
+   },
+   {
+    "word": "she",
+    "at": 40.247
+   },
+   {
+    "word": "doesn't",
+    "at": 40.484
+   },
+   {
+    "word": "have",
+    "at": 40.722
+   },
+   {
+    "word": "to",
+    "at": 40.96
+   },
+   {
+    "word": "leave.",
+    "at": 41.197
+   }
+  ]
+ },
+ {
+  "start": 42.085,
+  "end": 44.949,
+  "text": "In a Study Room, her friends are there with Raya,",
+  "keyword": "Study",
+  "words": [
+   {
+    "word": "In",
+    "at": 42.085
+   },
+   {
+    "word": "a",
+    "at": 42.323
+   },
+   {
+    "word": "Study",
+    "at": 42.56
+   },
+   {
+    "word": "Room,",
+    "at": 42.798
+   },
+   {
+    "word": "her",
+    "at": 43.154
+   },
+   {
+    "word": "friends",
+    "at": 43.392
+   },
+   {
+    "word": "are",
+    "at": 43.63
+   },
+   {
+    "word": "there",
+    "at": 43.867
+   },
+   {
+    "word": "with",
+    "at": 44.105
+   },
+   {
+    "word": "Raya,",
+    "at": 44.643
+   }
+  ]
+ },
+ {
+  "start": 44.999,
+  "end": 47.278,
+  "text": "working from the same documents against a shared timer.",
+  "keyword": "timer",
+  "words": [
+   {
+    "word": "working",
+    "at": 44.999
+   },
+   {
+    "word": "from",
+    "at": 45.237
+   },
+   {
+    "word": "the",
+    "at": 45.474
+   },
+   {
+    "word": "same",
+    "at": 45.712
+   },
+   {
+    "word": "documents",
+    "at": 45.95
+   },
+   {
+    "word": "against",
+    "at": 46.187
+   },
+   {
+    "word": "a",
+    "at": 46.425
+   },
+   {
+    "word": "shared",
+    "at": 46.663
+   },
+   {
+    "word": "timer.",
+    "at": 46.9
+   }
+  ]
+ },
+ {
+  "start": 47.328,
+  "end": 48.661,
+  "text": "Learning is social.",
+  "keyword": "social",
+  "words": [
+   {
+    "word": "Learning",
+    "at": 47.328
+   },
+   {
+    "word": "is",
+    "at": 48.046
+   },
+   {
+    "word": "social.",
+    "at": 48.283
+   }
+  ]
+ },
+ {
+  "start": 48.711,
+  "end": 51.94,
+  "text": "A tutor shouldn't leave you alone in a corner.",
+  "keyword": "alone",
+  "words": [
+   {
+    "word": "A",
+    "at": 48.711
+   },
+   {
+    "word": "tutor",
+    "at": 48.949
+   },
+   {
+    "word": "shouldn't",
+    "at": 49.576
+   },
+   {
+    "word": "leave",
+    "at": 49.814
+   },
+   {
+    "word": "you",
+    "at": 50.052
+   },
+   {
+    "word": "alone",
+    "at": 50.289
+   },
+   {
+    "word": "in",
+    "at": 50.527
+   },
+   {
+    "word": "a",
+    "at": 50.765
+   },
+   {
+    "word": "corner.",
+    "at": 51.002
+   }
+  ]
+ },
+ {
+  "start": 51.99,
+  "end": 53.477,
+  "text": "Then a notification pops up:",
+  "keyword": "notification",
+  "words": [
+   {
+    "word": "Then",
+    "at": 51.99
+   },
+   {
+    "word": "a",
+    "at": 52.269
+   },
+   {
+    "word": "notification",
+    "at": 52.549
+   },
+   {
+    "word": "pops",
+    "at": 52.828
+   },
+   {
+    "word": "up:",
+    "at": 53.108
+   }
+  ]
+ },
+ {
+  "start": 53.527,
+  "end": 55.958,
+  "text": "her learning insights are ready.",
+  "keyword": "insights",
+  "words": [
+   {
+    "word": "her",
+    "at": 53.527
+   },
+   {
+    "word": "learning",
+    "at": 54.207
+   },
+   {
+    "word": "insights",
+    "at": 54.486
+   },
+   {
+    "word": "are",
+    "at": 54.766
+   },
+   {
+    "word": "ready.",
+    "at": 55.045
+   }
+  ]
+ },
+ {
+  "start": 56.008,
+  "end": 59.312,
+  "text": "For the first time, she sees her progress concept by concept:",
+  "keyword": "concept",
+  "words": [
+   {
+    "word": "For",
+    "at": 56.008
+   },
+   {
+    "word": "the",
+    "at": 56.288
+   },
+   {
+    "word": "first",
+    "at": 56.567
+   },
+   {
+    "word": "time,",
+    "at": 56.847
+   },
+   {
+    "word": "she",
+    "at": 57.266
+   },
+   {
+    "word": "sees",
+    "at": 57.545
+   },
+   {
+    "word": "her",
+    "at": 57.825
+   },
+   {
+    "word": "progress",
+    "at": 58.104
+   },
+   {
+    "word": "concept",
+    "at": 58.384
+   },
+   {
+    "word": "by",
+    "at": 58.663
+   },
+   {
+    "word": "concept:",
+    "at": 58.943
+   }
+  ]
+ },
+ {
+  "start": 59.362,
+  "end": 63.17,
+  "text": "what's mastered, what's still shaky, and what's holding her back.",
+  "keyword": "mastered",
+  "words": [
+   {
+    "word": "what's",
+    "at": 59.362
+   },
+   {
+    "word": "mastered,",
+    "at": 60.202
+   },
+   {
+    "word": "what's",
+    "at": 60.621
+   },
+   {
+    "word": "still",
+    "at": 60.9
+   },
+   {
+    "word": "shaky,",
+    "at": 61.18
+   },
+   {
+    "word": "and",
+    "at": 61.599
+   },
+   {
+    "word": "what's",
+    "at": 61.878
+   },
+   {
+    "word": "holding",
+    "at": 62.158
+   },
+   {
+    "word": "her",
+    "at": 62.437
+   },
+   {
+    "word": "back.",
+    "at": 62.717
+   }
+  ]
+ },
+ {
+  "start": 63.22,
+  "end": 65.98,
+  "text": "It turns out the problem isn't physics.",
+  "keyword": "physics",
+  "words": [
+   {
+    "word": "It",
+    "at": 63.22
+   },
+   {
+    "word": "turns",
+    "at": 64.129
+   },
+   {
+    "word": "out",
+    "at": 64.409
+   },
+   {
+    "word": "the",
+    "at": 64.688
+   },
+   {
+    "word": "problem",
+    "at": 64.968
+   },
+   {
+    "word": "isn't",
+    "at": 65.247
+   },
+   {
+    "word": "physics.",
+    "at": 65.527
+   }
+  ]
+ },
+ {
+  "start": 66.03,
+  "end": 69.409,
+  "text": "The root cause is a gap in algebra.",
+  "keyword": "algebra",
+  "words": [
+   {
+    "word": "The",
+    "at": 66.03
+   },
+   {
+    "word": "root",
+    "at": 66.699
+   },
+   {
+    "word": "cause",
+    "at": 66.979
+   },
+   {
+    "word": "is",
+    "at": 67.258
+   },
+   {
+    "word": "a",
+    "at": 67.538
+   },
+   {
+    "word": "gap",
+    "at": 67.817
+   },
+   {
+    "word": "in",
+    "at": 68.097
+   },
+   {
+    "word": "algebra.",
+    "at": 68.376
+   }
+  ]
+ },
+ {
+  "start": 69.459,
+  "end": 74.057,
+  "text": "She goes back to Raya, and this time the physics problem clicks!",
+  "keyword": "clicks",
+  "words": [
+   {
+    "word": "She",
+    "at": 69.459
+   },
+   {
+    "word": "goes",
+    "at": 69.739
+   },
+   {
+    "word": "back",
+    "at": 70.018
+   },
+   {
+    "word": "to",
+    "at": 70.298
+   },
+   {
+    "word": "Raya,",
+    "at": 70.577
+   },
+   {
+    "word": "and",
+    "at": 70.997
+   },
+   {
+    "word": "this",
+    "at": 71.276
+   },
+   {
+    "word": "time",
+    "at": 71.556
+   },
+   {
+    "word": "the",
+    "at": 71.835
+   },
+   {
+    "word": "physics",
+    "at": 72.115
+   },
+   {
+    "word": "problem",
+    "at": 72.394
+   },
+   {
+    "word": "clicks!",
+    "at": 73.604
+   }
+  ]
+ },
+ {
+  "start": 74.107,
+  "end": 78.643,
+  "text": "Raya suggests she lock it in with a quiz and flashcards in Tools Studio.",
+  "keyword": "Studio",
+  "words": [
+   {
+    "word": "Raya",
+    "at": 74.107
+   },
+   {
+    "word": "suggests",
+    "at": 74.386
+   },
+   {
+    "word": "she",
+    "at": 74.666
+   },
+   {
+    "word": "lock",
+    "at": 74.945
+   },
+   {
+    "word": "it",
+    "at": 75.225
+   },
+   {
+    "word": "in",
+    "at": 75.504
+   },
+   {
+    "word": "with",
+    "at": 75.784
+   },
+   {
+    "word": "a",
+    "at": 76.063
+   },
+   {
+    "word": "quiz",
+    "at": 76.343
+   },
+   {
+    "word": "and",
+    "at": 76.622
+   },
+   {
+    "word": "flashcards",
+    "at": 76.902
+   },
+   {
+    "word": "in",
+    "at": 77.181
+   },
+   {
+    "word": "Tools",
+    "at": 77.911
+   },
+   {
+    "word": "Studio.",
+    "at": 78.19
+   }
+  ]
+ },
+ {
+  "start": 78.693,
+  "end": 81.11,
+  "text": "Or she can make her own:",
+  "keyword": "own",
+  "words": [
+   {
+    "word": "Or",
+    "at": 78.693
+   },
+   {
+    "word": "she",
+    "at": 79.353
+   },
+   {
+    "word": "can",
+    "at": 79.632
+   },
+   {
+    "word": "make",
+    "at": 79.912
+   },
+   {
+    "word": "her",
+    "at": 80.191
+   },
+   {
+    "word": "own:",
+    "at": 80.471
+   }
+  ]
+ },
+ {
+  "start": 81.16,
+  "end": 84.764,
+  "text": "add a lesson, a PDF, notes, even a voice memo,",
+  "keyword": "PDF",
+  "words": [
+   {
+    "word": "add",
+    "at": 81.16
+   },
+   {
+    "word": "a",
+    "at": 81.439
+   },
+   {
+    "word": "lesson,",
+    "at": 81.719
+   },
+   {
+    "word": "a",
+    "at": 82.138
+   },
+   {
+    "word": "PDF,",
+    "at": 82.417
+   },
+   {
+    "word": "notes,",
+    "at": 82.837
+   },
+   {
+    "word": "even",
+    "at": 83.256
+   },
+   {
+    "word": "a",
+    "at": 83.535
+   },
+   {
+    "word": "voice",
+    "at": 83.815
+   },
+   {
+    "word": "memo,",
+    "at": 84.094
+   }
+  ]
+ },
+ {
+  "start": 84.814,
+  "end": 89.031,
+  "text": "and generate a quiz, flashcards, a summary, or a mind map.",
+  "keyword": "generate",
+  "words": [
+   {
+    "word": "and",
+    "at": 84.814
+   },
+   {
+    "word": "generate",
+    "at": 85.093
+   },
+   {
+    "word": "a",
+    "at": 85.373
+   },
+   {
+    "word": "quiz,",
+    "at": 85.652
+   },
+   {
+    "word": "flashcards,",
+    "at": 86.071
+   },
+   {
+    "word": "a",
+    "at": 86.491
+   },
+   {
+    "word": "summary,",
+    "at": 87.32
+   },
+   {
+    "word": "or",
+    "at": 87.739
+   },
+   {
+    "word": "a",
+    "at": 88.019
+   },
+   {
+    "word": "mind",
+    "at": 88.298
+   },
+   {
+    "word": "map.",
+    "at": 88.578
+   }
+  ]
+ },
+ {
+  "start": 89.081,
+  "end": 92.92,
+  "text": "She's learning more effectively, and becoming more independent.",
+  "keyword": "independent",
+  "words": [
+   {
+    "word": "She’s",
+    "at": 89.081
+   },
+   {
+    "word": "learning",
+    "at": 89.36
+   },
+   {
+    "word": "more",
+    "at": 89.64
+   },
+   {
+    "word": "effectively,",
+    "at": 89.919
+   },
+   {
+    "word": "and",
+    "at": 90.998
+   },
+   {
+    "word": "becoming",
+    "at": 91.278
+   },
+   {
+    "word": "more",
+    "at": 91.557
+   },
+   {
+    "word": "independent.",
+    "at": 91.837
+   }
+  ]
+ },
+ {
+  "start": 92.97,
+  "end": 94.139,
+  "text": "Meanwhile, in the classroom...",
+  "keyword": "classroom",
+  "words": [
+   {
+    "word": "Meanwhile,",
+    "at": 92.97
+   },
+   {
+    "word": "in",
+    "at": 93.315
+   },
+   {
+    "word": "the",
+    "at": 93.545
+   },
+   {
+    "word": "classroom…",
+    "at": 93.775
+   }
+  ]
+ },
+ {
+  "start": 94.189,
+  "end": 97.674,
+  "text": "Her teacher has a full class and only an hour a day.",
+  "keyword": "teacher",
+  "words": [
+   {
+    "word": "Her",
+    "at": 94.189
+   },
+   {
+    "word": "teacher",
+    "at": 94.419
+   },
+   {
+    "word": "has",
+    "at": 94.649
+   },
+   {
+    "word": "a",
+    "at": 94.88
+   },
+   {
+    "word": "full",
+    "at": 95.11
+   },
+   {
+    "word": "class",
+    "at": 95.34
+   },
+   {
+    "word": "and",
+    "at": 95.57
+   },
+   {
+    "word": "only",
+    "at": 95.8
+   },
+   {
+    "word": "an",
+    "at": 96.62
+   },
+   {
+    "word": "hour",
+    "at": 96.85
+   },
+   {
+    "word": "a",
+    "at": 97.08
+   },
+   {
+    "word": "day.",
+    "at": 97.31
+   }
+  ]
+ },
+ {
+  "start": 97.724,
+  "end": 101.074,
+  "text": "But this morning, she doesn't have to guess where to begin.",
+  "keyword": "begin",
+  "words": [
+   {
+    "word": "But",
+    "at": 97.724
+   },
+   {
+    "word": "this",
+    "at": 97.954
+   },
+   {
+    "word": "morning,",
+    "at": 98.184
+   },
+   {
+    "word": "she",
+    "at": 98.529
+   },
+   {
+    "word": "doesn't",
+    "at": 98.759
+   },
+   {
+    "word": "have",
+    "at": 98.99
+   },
+   {
+    "word": "to",
+    "at": 99.79
+   },
+   {
+    "word": "guess",
+    "at": 100.02
+   },
+   {
+    "word": "where",
+    "at": 100.25
+   },
+   {
+    "word": "to",
+    "at": 100.48
+   },
+   {
+    "word": "begin.",
+    "at": 100.71
+   }
+  ]
+ },
+ {
+  "start": 101.124,
+  "end": 102.914,
+  "text": "She filters for students who may need support",
+  "keyword": "filters",
+  "words": [
+   {
+    "word": "She",
+    "at": 101.124
+   },
+   {
+    "word": "filters",
+    "at": 101.354
+   },
+   {
+    "word": "for",
+    "at": 101.584
+   },
+   {
+    "word": "students",
+    "at": 101.814
+   },
+   {
+    "word": "who",
+    "at": 102.044
+   },
+   {
+    "word": "may",
+    "at": 102.274
+   },
+   {
+    "word": "need",
+    "at": 102.504
+   },
+   {
+    "word": "support",
+    "at": 102.734
+   }
+  ]
+ },
+ {
+  "start": 102.964,
+  "end": 105.05,
+  "text": "and opens our student's profile:",
+  "keyword": "profile",
+  "words": [
+   {
+    "word": "and",
+    "at": 102.964
+   },
+   {
+    "word": "opens",
+    "at": 103.195
+   },
+   {
+    "word": "our",
+    "at": 103.975
+   },
+   {
+    "word": "student's",
+    "at": 104.205
+   },
+   {
+    "word": "profile:",
+    "at": 104.435
+   }
+  ]
+ },
+ {
+  "start": 105.1,
+  "end": 107.926,
+  "text": "low mastery, and a warning that she may be relying on answers",
+  "keyword": "relying",
+  "words": [
+   {
+    "word": "low",
+    "at": 105.1
+   },
+   {
+    "word": "mastery,",
+    "at": 105.33
+   },
+   {
+    "word": "and",
+    "at": 105.675
+   },
+   {
+    "word": "a",
+    "at": 105.905
+   },
+   {
+    "word": "warning",
+    "at": 106.135
+   },
+   {
+    "word": "that",
+    "at": 106.365
+   },
+   {
+    "word": "she",
+    "at": 106.595
+   },
+   {
+    "word": "may",
+    "at": 106.825
+   },
+   {
+    "word": "be",
+    "at": 107.055
+   },
+   {
+    "word": "relying",
+    "at": 107.285
+   },
+   {
+    "word": "on",
+    "at": 107.515
+   },
+   {
+    "word": "answers",
+    "at": 107.746
+   }
+  ]
+ },
+ {
+  "start": 107.976,
+  "end": 110.05,
+  "text": "instead of working problems herself.",
+  "keyword": "herself",
+  "words": [
+   {
+    "word": "instead",
+    "at": 107.976
+   },
+   {
+    "word": "of",
+    "at": 108.206
+   },
+   {
+    "word": "working",
+    "at": 108.436
+   },
+   {
+    "word": "problems",
+    "at": 108.666
+   },
+   {
+    "word": "herself.",
+    "at": 108.896
+   }
+  ]
+ },
+ {
+  "start": 110.1,
+  "end": 111.244,
+  "text": "One red node stands out:",
+  "keyword": "red",
+  "words": [
+   {
+    "word": "One",
+    "at": 110.1
+   },
+   {
+    "word": "red",
+    "at": 110.317
+   },
+   {
+    "word": "node",
+    "at": 110.534
+   },
+   {
+    "word": "stands",
+    "at": 110.751
+   },
+   {
+    "word": "out:",
+    "at": 110.968
+   }
+  ]
+ },
+ {
+  "start": 111.294,
+  "end": 114.961,
+  "text": "a foundational gap in algebra, connected to the physics she's finding difficult.",
+  "keyword": "algebra",
+  "words": [
+   {
+    "word": "a",
+    "at": 111.294
+   },
+   {
+    "word": "foundational",
+    "at": 111.511
+   },
+   {
+    "word": "gap",
+    "at": 112.198
+   },
+   {
+    "word": "in",
+    "at": 112.415
+   },
+   {
+    "word": "algebra,",
+    "at": 112.632
+   },
+   {
+    "word": "connected",
+    "at": 112.958
+   },
+   {
+    "word": "to",
+    "at": 113.175
+   },
+   {
+    "word": "the",
+    "at": 113.392
+   },
+   {
+    "word": "physics",
+    "at": 113.609
+   },
+   {
+    "word": "she's",
+    "at": 114.186
+   },
+   {
+    "word": "finding",
+    "at": 114.403
+   },
+   {
+    "word": "difficult.",
+    "at": 114.62
+   }
+  ]
+ },
+ {
+  "start": 115.011,
+  "end": 118.186,
+  "text": "From here, she can join her students in their Study Rooms,",
+  "keyword": "Rooms",
+  "words": [
+   {
+    "word": "From",
+    "at": 115.011
+   },
+   {
+    "word": "here,",
+    "at": 115.228
+   },
+   {
+    "word": "she",
+    "at": 115.554
+   },
+   {
+    "word": "can",
+    "at": 115.771
+   },
+   {
+    "word": "join",
+    "at": 115.988
+   },
+   {
+    "word": "her",
+    "at": 116.825
+   },
+   {
+    "word": "students",
+    "at": 117.042
+   },
+   {
+    "word": "in",
+    "at": 117.259
+   },
+   {
+    "word": "their",
+    "at": 117.476
+   },
+   {
+    "word": "Study",
+    "at": 117.693
+   },
+   {
+    "word": "Rooms,",
+    "at": 117.91
+   }
+  ]
+ },
+ {
+  "start": 118.236,
+  "end": 120.743,
+  "text": "or guide Raya on how to support each one.",
+  "keyword": "guide",
+  "words": [
+   {
+    "word": "or",
+    "at": 118.236
+   },
+   {
+    "word": "guide",
+    "at": 118.453
+   },
+   {
+    "word": "Raya",
+    "at": 118.67
+   },
+   {
+    "word": "on",
+    "at": 118.887
+   },
+   {
+    "word": "how",
+    "at": 119.104
+   },
+   {
+    "word": "to",
+    "at": 119.751
+   },
+   {
+    "word": "support",
+    "at": 119.969
+   },
+   {
+    "word": "each",
+    "at": 120.186
+   },
+   {
+    "word": "one.",
+    "at": 120.403
+   }
+  ]
+ },
+ {
+  "start": 120.793,
+  "end": 122.734,
+  "text": "And she sees learning insights only,",
+  "keyword": "insights",
+  "words": [
+   {
+    "word": "And",
+    "at": 120.793
+   },
+   {
+    "word": "she",
+    "at": 121.011
+   },
+   {
+    "word": "sees",
+    "at": 121.228
+   },
+   {
+    "word": "learning",
+    "at": 121.445
+   },
+   {
+    "word": "insights",
+    "at": 121.662
+   },
+   {
+    "word": "only,",
+    "at": 122.459
+   }
+  ]
+ },
+ {
+  "start": 122.784,
+  "end": 123.994,
+  "text": "never the student's private conversations.",
+  "keyword": "never",
+  "words": [
+   {
+    "word": "never",
+    "at": 122.784
+   },
+   {
+    "word": "the",
+    "at": 123.002
+   },
+   {
+    "word": "student's",
+    "at": 123.219
+   },
+   {
+    "word": "private",
+    "at": 123.436
+   },
+   {
+    "word": "conversations.",
+    "at": 123.653
+   }
+  ]
+ },
+ {
+  "start": 124.044,
+  "end": 126.254,
+  "text": "She leaves a note for the class team.",
+  "keyword": "note",
+  "words": [
+   {
+    "word": "She",
+    "at": 124.044
+   },
+   {
+    "word": "leaves",
+    "at": 124.261
+   },
+   {
+    "word": "a",
+    "at": 124.828
+   },
+   {
+    "word": "note",
+    "at": 125.045
+   },
+   {
+    "word": "for",
+    "at": 125.262
+   },
+   {
+    "word": "the",
+    "at": 125.479
+   },
+   {
+    "word": "class",
+    "at": 125.696
+   },
+   {
+    "word": "team.",
+    "at": 125.913
+   }
+  ]
+ },
+ {
+  "start": 126.304,
+  "end": 129.14,
+  "text": "Now she knows where to start.",
+  "keyword": "start",
+  "words": [
+   {
+    "word": "Now",
+    "at": 126.304
+   },
+   {
+    "word": "she",
+    "at": 127.331
+   },
+   {
+    "word": "knows",
+    "at": 127.548
+   },
+   {
+    "word": "where",
+    "at": 127.765
+   },
+   {
+    "word": "to",
+    "at": 127.982
+   },
+   {
+    "word": "start.",
+    "at": 128.199
+   }
+  ]
+ },
+ {
+  "start": 129.19,
+  "end": 130.89,
+  "text": "One student. One teacher.",
+  "keyword": "teacher",
+  "words": [
+   {
+    "word": "One",
+    "at": 129.19
+   },
+   {
+    "word": "student.",
+    "at": 129.397
+   },
+   {
+    "word": "One",
+    "at": 129.77
+   },
+   {
+    "word": "teacher.",
+    "at": 129.977
+   }
+  ]
+ },
+ {
+  "start": 130.94,
+  "end": 134.075,
+  "text": "One shared view of what's really understood.",
+  "keyword": "understood",
+  "words": [
+   {
+    "word": "One",
+    "at": 130.94
+   },
+   {
+    "word": "shared",
+    "at": 131.316
+   },
+   {
+    "word": "view",
+    "at": 131.692
+   },
+   {
+    "word": "of",
+    "at": 132.319
+   },
+   {
+    "word": "what's",
+    "at": 132.695
+   },
+   {
+    "word": "really",
+    "at": 133.071
+   },
+   {
+    "word": "understood.",
+    "at": 133.447
+   }
+  ]
+ },
+ {
+  "start": 134.125,
+  "end": 135.128,
+  "text": "That's Bluestift.",
+  "keyword": "Bluestift",
+  "words": [
+   {
+    "word": "That's",
+    "at": 134.125
+   },
+   {
+    "word": "Bluestift.",
+    "at": 134.501
+   }
+  ]
+ },
+ {
+  "start": 135.178,
+  "end": 138.778,
+  "text": "We diagnose first. The learning follows.",
+  "keyword": "diagnose",
+  "words": [
+   {
+    "word": "We",
+    "at": 135.178
+   },
+   {
+    "word": "diagnose",
+    "at": 136.044
+   },
+   {
+    "word": "first.",
+    "at": 136.421
+   },
+   {
+    "word": "The",
+    "at": 137.638
+   },
+   {
+    "word": "learning",
+    "at": 138.014
+   },
+   {
+    "word": "follows.",
+    "at": 138.39
+   }
+  ]
+ },
+ {
+  "start": 139.428,
+  "end": 142.33,
+  "text": "Bluestift is live at thebluestift.com.",
+  "keyword": "thebluestift.com",
+  "words": [
+   {
+    "word": "Bluestift",
+    "at": 139.428
+   },
+   {
+    "word": "is",
+    "at": 139.804
+   },
+   {
+    "word": "live",
+    "at": 140.95
+   },
+   {
+    "word": "at",
+    "at": 141.326
+   },
+   {
+    "word": "thebluestift.com.",
+    "at": 141.702
+   }
+  ]
+ },
+ {
+  "start": 142.38,
+  "end": 143.33,
+  "text": "So jump aboard, and welcome!",
+  "keyword": "welcome",
+  "words": [
+   {
+    "word": "So",
+    "at": 142.38
+   },
+   {
+    "word": "jump",
+    "at": 142.756
+   },
+   {
+    "word": "aboard,",
+    "at": 143.602
+   },
+   {
+    "word": "and",
+    "at": 144.167
+   },
+   {
+    "word": "welcome!",
+    "at": 144.823
+   }
+  ]
+ }
+]

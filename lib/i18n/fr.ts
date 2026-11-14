@@ -148,7 +148,7 @@ export const fr: Partial<Messages> = {
   "site.ladder.r4.body":
     "Un récapitulatif pour clore la séance, ou pour débloquer un élève vraiment coincé. Ce que l’élève reformule est ce qui est évalué.",
   "site.ladder.note":
-    "Ce n’est pas une option qu’un établissement active. Raya est construite pour ne pas pouvoir livrer une réponse finie — et son retour vise la méthode, jamais la personne, comme le montrent les travaux de Carol Dweck : « beaucoup butent ici », jamais « tu es doué ».",
+    "Ce n’est pas une option qu’un établissement active. Raya est construite pour ne pas pouvoir livrer une réponse finie — et son retour vise la méthode, jamais la personne, comme le montre la recherche sur le feedback : « beaucoup butent ici », jamais « tu es doué ».",
 
   "site.kernel.eyebrow": "Noyau cognitif",
   "site.kernel.title.a": "Quatre dimensions,",

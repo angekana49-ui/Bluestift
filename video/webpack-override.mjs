@@ -24,7 +24,12 @@ export function makeWebpackOverride(videoDir) {
       ...current.resolve,
       alias: {
         ...(current.resolve?.alias ?? {}),
+        // The specific stubs first: "@" would also prefix-match them.
+        "@/app/school/actions": path.join(videoDir, "src", "demo", "stubs", "school-actions.js"),
+        "next/link": path.join(videoDir, "src", "demo", "stubs", "link.js"),
         "@": repoRoot,
+        // No App Router inside a video frame: navigation calls are inert.
+        "next/navigation": path.join(videoDir, "src", "demo", "stubs", "navigation.js"),
         react: path.join(modules, "react"),
         "react-dom": path.join(modules, "react-dom"),
         "react/jsx-runtime": path.join(modules, "react", "jsx-runtime"),

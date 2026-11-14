@@ -151,7 +151,7 @@ export const es: Partial<Messages> = {
   "site.ladder.r4.body":
     "Un resumen para cerrar la sesión, o para desbloquear a quien está realmente atascado. Lo que el alumno reformula es lo que se evalúa.",
   "site.ladder.note":
-    "No es una opción que un centro active. Raya está construida para no poder entregar una respuesta terminada, y su devolución apunta al método, nunca a la persona, siguiendo el trabajo de Carol Dweck: «aquí tropieza mucha gente», nunca «tienes talento».",
+    "No es una opción que un centro active. Raya está construida para no poder entregar una respuesta terminada, y su devolución apunta al método, nunca a la persona, como recomienda la investigación sobre feedback: «aquí tropieza mucha gente», nunca «tienes talento».",
 
   "site.kernel.eyebrow": "Núcleo cognitivo",
   "site.kernel.title.a": "Cuatro dimensiones,",

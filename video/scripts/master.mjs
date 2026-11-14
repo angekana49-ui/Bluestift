@@ -36,6 +36,7 @@ const arg = (name, fallback) => Number(process.argv.find((a) => a.startsWith(`--
 const scale = arg("scale", 2);
 const chunkSize = arg("chunk", 150);
 const crf = arg("crf", 12);
+const jobs = arg("jobs", 3);
 
 // Which composition, and where its pieces go: the drawn cut renders beside the first one.
 const opt = (name, fallback) => process.argv.find((a) => a.startsWith(`--${name}=`))?.split("=")[1] ?? fallback;
@@ -137,7 +138,7 @@ for (const { start, end, file, have } of pieces) {
         scale,
         muted: true,
         frameRange: [start, end],
-        concurrency: 3,
+        concurrency: jobs,
         colorSpace: "bt709",
         outputLocation: part,
         onProgress: ({ renderedFrames }) => {

@@ -148,7 +148,7 @@ export const de: Partial<Messages> = {
   "site.ladder.r4.body":
     "Ein Rückblick zum Abschluss der Sitzung oder zum Lösen einer echten Blockade. Bewertet wird, was der Lernende selbst wiedergibt.",
   "site.ladder.note":
-    "Das ist keine Einstellung, die eine Schule aktiviert. Raya ist so gebaut, dass sie keine fertige Antwort herausgeben kann — und ihr Feedback zielt auf die Methode, nie auf die Person, wie es Carol Dwecks Arbeit nahelegt: „Hier stolpern viele“, nie „du bist begabt“.",
+    "Das ist keine Einstellung, die eine Schule aktiviert. Raya ist so gebaut, dass sie keine fertige Antwort herausgeben kann — und ihr Feedback zielt auf die Methode, nie auf die Person, wie es die Feedback-Forschung nahelegt: „Hier stolpern viele“, nie „du bist begabt“.",
 
   "site.kernel.eyebrow": "Kognitiver Kern",
   "site.kernel.title.a": "Vier Dimensionen,",

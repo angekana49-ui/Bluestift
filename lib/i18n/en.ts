@@ -241,7 +241,7 @@ export const en = {
    * being about a mechanism (see site.hero.sub). They were never really the
    * hero's: they state a pedagogy, and this is the band that implements it —
    * lib/raya/prompt.ts aims every piece of feedback at the method and never at
-   * the person (site.ladder.note, and Dweck), and the ladder's whole escalation
+   * the person (site.ladder.note, and process-praise research), and the ladder's whole escalation
    * policy exists because being stuck is a step, not a deficiency. Read in that
    * order the paragraph earns its "so": premise, then consequence.
    *
@@ -270,7 +270,7 @@ export const en = {
   "site.ladder.r4.body":
     "A recap to end the session, or to unstick a student who is genuinely blocked. What the student restates back is what gets scored.",
   "site.ladder.note":
-    "This isn’t a setting a school switches on. Raya is built so it cannot hand over a finished answer — and its feedback targets the method, never the person, per Carol Dweck’s work: “this one trips a lot of people up”, never “you’re gifted”.",
+    "This isn’t a setting a school switches on. Raya is built so it cannot hand over a finished answer — and its feedback targets the method, never the person, as research on process praise shows: “this one trips a lot of people up”, never “you’re gifted”.",
 
   // ── Public site: the Cognitive Kernel (lib/kernel/types.ts) ───────
   // K/V/P/M are real fields (k_raw, v_score, p_score, m_score) and the seven

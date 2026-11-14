@@ -184,7 +184,7 @@ Next.js app  ──HTTP──▶  Kernel (FastAPI, Railway)
 ### RAYA chat (solo) — `/chat`
 - **Streamed** replies (Gemini SSE → Groq SSE), dual-layer prompt (Markdown rules
   + XML `<learner_state>`), **structural EMT guardrail** (PUMP→HINT→ASSERTION→
-  SUMMARY), Dweck feedback, replies in the student's language.
+  SUMMARY), process-praise feedback, replies in the student's language.
 - **Voice input** (record → Whisper → send). Manual **"Analyze"** button →
   Kernel gap detection (root_gap/summary), downloadable TXT/PDF.
 - Cognitive profile pulled from the Kernel via a **non-blocking cache**; the
@@ -608,10 +608,11 @@ skipped when unset in dev).
   (paper/dataset/slides, 15 MB max) → stored in the private **`contributions`**
   bucket (service-role upload), path kept on `contributions.storage_path`. The
   contribute route takes multipart now (`app/api/content/contribute`).
+- **Review → publish flow**: owner-only console at `/ops/research` lists pending contributions with a 1h signed-URL file preview. Approve copies the file to the public **`research-media`** bucket (extension allowlist in `lib/research/publish.ts`) and publishes the post (type confirmed at approve time); reject drops the file and closes the row. Own papers skip quarantine and go straight to `research-media`.
 - **Footer**: the "Tarifs" link was replaced by **Écoles → `/school`**.
 - Not done: admin authoring UI for posts/newsletter (insert via dashboard),
-  newsletter sending, `survey_post_reactions` per-user dedupe server-side,
-  signed-URL viewer for contribution attachments in an admin UI.
+  newsletter sending and `survey_post_reactions` per-user dedupe server-side.
+
 
 ### Design system & app shell — **the whole signed-in app is now on it**
 Built from `design_handoff_raya_schools_app/` (a prototyping-tool mockup — a *style*
