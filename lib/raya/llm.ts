@@ -16,7 +16,7 @@ export type ChatMsg = {
  * net underneath it, with no deploy. Two identical strings would have made the
  * same shape by coincidence and drifted apart at the first edit.
  */
-const DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite";
+const DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite";
 const GROQ_MODEL = process.env.GROQ_MODEL ?? "openai/gpt-oss-120b";
 
 /**
