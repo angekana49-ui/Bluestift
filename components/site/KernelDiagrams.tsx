@@ -1162,7 +1162,7 @@ const hits = (a: Box, b: Box) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.
  * is actually overlapping. Shrinking the box first keeps a long label near
  * its concept instead of solving the crowding by fleeing it.
  */
-const labelFontSize = (len: number) => (len > 26 ? 10.5 : len > 19 ? 12 : 15);
+const labelFontSize = (len: number) => (len > 26 ? 12 : len > 19 ? 13.5 : 16.5);
 
 function placeLabel(
   i: number,

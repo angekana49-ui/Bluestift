@@ -76,6 +76,21 @@ describe("splitInline: inline math ($...$) vs. plain prose", () => {
     expect(splitInline("A stray $$ pair.").every((s) => !s.math)).toBe(true);
     expect(splitInline("Spaced: $ x $ here.").every((s) => !s.math)).toBe(true);
   });
+
+  it("accepts \\(...\\) and \\[...\\] — models default to these as often as dollars", () => {
+    expect(splitInline("Solve \\(x^2 = 4\\) now.")).toEqual([
+      { text: "Solve ", bold: false },
+      { text: "x^2 = 4", bold: false, math: true },
+      { text: " now.", bold: false },
+    ]);
+    const spans = splitInline("Given \\[a + b\\] find c.");
+    expect(spans.some((s) => s.math && s.text === "a + b")).toBe(true);
+    expect(spans.map((s) => s.text).join("")).toBe("Given a + b find c.");
+  });
+
+  it("leaves an unclosed backslash-paren alone", () => {
+    expect(splitInline("Solve \\(x^2 now.").every((s) => !s.math)).toBe(true);
+  });
 });
 
 describe("mapInlineMath", () => {

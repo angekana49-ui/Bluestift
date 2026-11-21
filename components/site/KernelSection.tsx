@@ -91,7 +91,7 @@ export default function KernelSection({ theme: outer }: { theme: Theme }) {
    * be seen in the palette the visitor chose — which is why every colour in
    * ./KernelDiagrams comes in two.
    *
-   * `base` rather than `tint`, for a boring reason: DifferentiatorsSection sits
+   * `base` rather than `tint`, for a boring reason: SymptomSection sits
    * directly below and is already `tint`, and two adjacent bands on the same
    * shade is the undifferentiated scroll the tone system exists to prevent.
    * Above, LadderSection paints its own four-accent wash over `cardBg`, so it

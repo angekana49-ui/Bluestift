@@ -90,6 +90,16 @@ export type ChatConfig = {
    */
   toolRequests?: boolean;
   /**
+   * Raya for Schools may propose class material in a reply (a ```prepare card
+   * that creates it in Prepare on a press). On for the teacher's Raya tab,
+   * whose dashboard holds the Prepare library; off everywhere else — the solo
+   * surfaces have no Prepare page, and the admin tab has no library to land
+   * in either.
+   */
+  prepareRequests?: boolean;
+  /** The teacher's classes, for the ```prepare card's picker. */
+  prepareClasses?: { id: string; name: string }[];
+  /**
    * HYBRID new-conversation hooks. Resolved client-side once, only when the
    * thread is empty. When it returns personalized greeting/suggestions (the
    * metadata is present AND reachable), the welcome screen shows them; on

@@ -3,68 +3,39 @@
 import type { Theme } from "./theme";
 import { RayaText } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
-import type { MessageKey } from "@/lib/i18n";
-import { PositionShot } from "./PositionShot";
+import { SymptomAttempt, SymptomReturned } from "./SymptomShot";
 import Reveal from "./Reveal";
 import { LEAD, SectionHeader, bandColumn, bandSection, bandTone, serifEm } from "./layout";
 
 /**
- * Where this product sits — stated, not compared.
+ * Why now — the symptom the thesis opens with.
  *
- * This band was a ✕/✓ table scoring four categories of competitor. It was
- * wrong on three counts and only one of them was about taste.
+ * This band used to argue "the layer between the two you already buy", drawn
+ * as three lanes on an axis of time with a live gauge and a counterfactual
+ * branch. That position was written under time pressure and the project no
+ * longer holds it: the line is the dissociation thesis (hero, connection
+ * band), and this section is its entry point rather than a second thesis.
  *
- * It defined the product by negation: four sentences about other people's
- * software, on our own page. It was self-refuting, because this runs on bought
- * frontier models, so marking the model layer wrong invites "he is attacking
- * the API he pays for" — and after that thought the rest of the page is
- * suspect. And every claim of the form "they cannot do X" is closed by
- * someone's next release; that already happened here once, when frontier
- * models shipped long context and killed the old "the difference is the
- * memory" line.
- *
- * The durable answer is not a comparison at all. It is a position: neither a
- * gradebook nor a tutor, and the layer between them that nothing occupies.
- * That answers "how is this different from ChatGPT" without naming anybody,
- * and it answers "what stops an incumbent shipping it" too — a layer is a
- * product shape, and a shape is not closed by a feature.
- *
- * Two lines from the old table survive, as our own arguments rather than as a
- * verdict on someone else: the model is the floor, and the record is narrow on
- * purpose. Both are checkable. The second one is checkable in this repo —
- * lib/school-admin.ts reads concept and mindset state, insights and follow-ups,
- * and no message table at all.
- *
- * See ./PositionShot for the drawing, which makes the argument on time.
+ * The entry is the acute symptom, not the mechanism: homework used to be lossy
+ * telemetry about how a student thinks, and AI answers come back laundered —
+ * perfect and silent. So the illustration is two copies, not a chart
+ * (see ./SymptomShot). The close turns back to the product in one line: the
+ * signal still exists, it lives in the working, and that is where Raya reads
+ * it. Nothing here is quantified — no statistic in this repo could back one.
  */
 
-export default function DifferentiatorsSection({ theme: outer }: { theme: Theme }) {
+const CARDS = [SymptomAttempt, SymptomReturned] as const;
+
+export default function SymptomSection({ theme: outer }: { theme: Theme }) {
   const tr = useTranslate();
 
   /* Tint: KernelSection above and FaqSection below are both the card colour,
      and three bands on one shade is the undifferentiated scroll the tone system
-     exists to prevent. (This used to say it was absorbing a step down from an
-     inverted Kernel band. That band stopped being inverted — the choice
-     outlived its reason, so the reason here is now the one that holds.) */
+     exists to prevent. */
   const { background, theme: t } = bandTone(outer, "tint");
 
-  /** The plate the drawing sits on — same chrome as the Kernel band's. */
-  const plate = {
-    marginTop: 40,
-    border: `1px solid ${t.cardBorder}`,
-    borderRadius: 22,
-    overflow: "hidden",
-    boxShadow: t.cardShadowLg,
-  } as const;
-
-  const note = (key: MessageKey) => (
-    <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.7, color: t.muted }}>
-      <RayaText>{tr(key)}</RayaText>
-    </p>
-  );
-
   return (
-    <section id="position" style={bandSection(background)}>
+    <section id="why-now" style={bandSection(background)}>
       <div style={bandColumn("wide")}>
         <Reveal>
           <SectionHeader
@@ -82,28 +53,28 @@ export default function DifferentiatorsSection({ theme: outer }: { theme: Theme 
           />
         </Reveal>
 
-        <Reveal>
-          <div className="pub-figure" style={plate}>
-            <PositionShot theme={t} />
-          </div>
-        </Reveal>
-
-        {/* The two claims that survived the comparison table, now made about
-            this product rather than against another one. Kept to the reading
-            measure — they are prose, and prose at the drawing's width is a
-            paragraph nobody finishes. */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, 320px), 1fr))`,
-            gap: "18px clamp(24px, 4vw, 56px)",
-            maxWidth: LEAD * 1.6,
-            marginTop: 40,
-          }}
-        >
-          {note("site.pos.note.model")}
-          {note("site.pos.note.privacy")}
+        {/* Two copies side by side — a plain grid, deliberately not a rail.
+            A comparison this short survives stacking: on a phone each card is
+            one screenful at most, and swiping between "wrong" and "right"
+            would stage them as alternatives rather than as the same exercise
+            twice. */}
+        <div className="pub-grid-2" style={{ gap: 20, marginTop: 40 }}>
+          {CARDS.map((Card, i) => (
+            <Reveal key={i} delay={i * 90} style={{ height: "100%" }}>
+              <Card theme={t} />
+            </Reveal>
+          ))}
         </div>
+
+        {/* The turn: the section opens on a loss and must not end on one. Kept
+            to the reading measure with the way back into the product beside
+            it — the loop that restores the signal lives at #how-it-works. */}
+        <p style={{ maxWidth: LEAD, margin: "36px auto 0", textAlign: "center", fontSize: 15.5, lineHeight: 1.7, color: t.muted }}>
+          <RayaText>{tr("site.pos.close")}</RayaText>{" "}
+          <a href="#how-it-works" className="pub-underline" style={{ color: t.link, fontWeight: 600 }}>
+            {tr("site.hero.ctaSecondary")}
+          </a>
+        </p>
       </div>
     </section>
   );

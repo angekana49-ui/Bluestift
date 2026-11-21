@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { initialsOf, avatarInitials } from "@/lib/name";
+import { initialsOf, avatarInitials, firstNameOf } from "@/lib/name";
 
 describe("initialsOf", () => {
   it("is one letter for a single name (never padded)", () => {
@@ -29,5 +29,17 @@ describe("avatarInitials", () => {
     expect(avatarInitials(null)).toBe("?");
     expect(avatarInitials(undefined)).toBe("?");
     expect(avatarInitials("  ")).toBe("?");
+  });
+});
+
+describe("firstNameOf", () => {
+  it("keeps the first word only", () => {
+    expect(firstNameOf("Aïcha Diallo")).toBe("Aïcha");
+    expect(firstNameOf("Emma")).toBe("Emma");
+  });
+  it("is empty when there is no name", () => {
+    expect(firstNameOf(null)).toBe("");
+    expect(firstNameOf(undefined)).toBe("");
+    expect(firstNameOf("   ")).toBe("");
   });
 });

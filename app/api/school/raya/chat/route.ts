@@ -24,6 +24,29 @@ export const maxDuration = 60;
  */
 const CHAT_TURNS_PER_DAY = 600;
 
+const PREPARE_REQUESTS = `# Preparing class material
+The teacher has a Prepare library that builds exams, exercise sets, worksheets
+and quizzes grounded in their classes' real gaps. When THEY ask you for one —
+"prépare-moi un quiz sur les fractions pour mes 5e", "un examen blanc sur ce
+chapitre", "des exercices sur les équations" — or say yes when you offered one,
+do not write it out in your reply. Write this block instead; the app shows it
+as a card with a button that creates it in Prepare and opens it:
+\`\`\`prepare
+kind: quiz
+topic: Les fractions, 5e
+from: topic
+count: 10
+\`\`\`
+kind: exam, exercise, worksheet or quiz.
+from: topic — grounded in the picked class's gaps (the usual case); or
+conversation — the thread plus its attached files, when they hold the material to build from.
+topic: always, a few words naming the subject, with the class level if you
+know it. count: 1-20, default 8.
+Then one short sentence (what it will cover). At most one such block per reply,
+and never one the teacher did not ask for or accept — you may offer, once, at
+the end of a real piece of work ("Je te prépare un quiz là-dessus pour tes 5e
+?"), especially when the data shows a gap worth shoring up.`;
+
 const SYSTEM = `You are Raya for Schools, talking to a teacher or an administrator about their own students.
 
 The one hard rule: every number, name and fact comes from the DATA SNAPSHOT or the attached
@@ -48,7 +71,9 @@ transcripts. If asked for those, say plainly that they stay with the student.
 
 ${appGuideLayerForStaff()}
 
-${FORMATTING_RULES}`;
+${FORMATTING_RULES}
+
+${PREPARE_REQUESTS}`;
 
 /**
  * One Raya-for-Schools turn, STREAMED — the staff-side mirror of /api/raya/chat.

@@ -5,7 +5,8 @@ import { useAppTheme } from "@/components/ui/theme";
 import { panelCard, textInput, ctaButton, ghostButton, formActions } from "@/components/ui/forms";
 import { DocumentView } from "@/components/ui/document";
 import { Modal } from "@/components/ui/modal";
-import { ArtifactMenu } from "@/components/ui/artifact-menu";
+import { ArtifactMenu, type ArtifactAction } from "@/components/ui/artifact-menu";
+import { IconCheck, IconClasses, IconMail } from "@/components/ui/icons";
 import { ArchivedDisclosure } from "@/components/ui/archived-section";
 import { type BrandedDoc } from "@/lib/document";
 import { RayaName } from "@/components/ui/brand";
@@ -74,6 +75,7 @@ export function PrepareView({
   const box = panelCard(t);
   const input = textInput(t);
   const btn = ctaButton(t);
+  const ghost = ghostButton(t);
 
   const [subjects, setSubjects] = useState<SubjectOpt[]>([]);
   const [kind, setKind] = useState<Kind>("exercise");
@@ -86,6 +88,54 @@ export function PrepareView({
   const [current, setCurrent] = useState<Resource | null>(null);
   const [library, setLibrary] = useState<Resource[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [sourceConversationId, setSourceConversationId] = useState("");
+  const [threads, setThreads] = useState<{ id: string; title: string | null }[]>([]);
+  const [sourceReportId, setSourceReportId] = useState("");
+  const [reports, setReports] = useState<{ id: string; title: string }[]>([]);
+  const [sourceResourceId, setSourceResourceId] = useState("");
+  const [briefFiles, setBriefFiles] = useState<{ name: string; text: string }[]>([]);
+  const [reading, setReading] = useState(false);
+  const [gaps, setGaps] = useState<{ label: string; mastery: number }[]>([]);
+  const [sentIds, setSentIds] = useState<Set<string>>(new Set());
+
+  // "Sent" state per resource: what the teacher already put on the shelf.
+  useEffect(() => {
+    (async () => {
+      try {
+        const d = (await (
+          await netFetch("/api/school/library", { method: "GET" }, { timeoutMs: 15_000 })
+        ).json()) as { items?: { sourceType?: string; sourceId?: string | null; archivedAt?: string | null }[] };
+        setSentIds(
+          new Set(
+            (d.items ?? [])
+              .filter((i) => i.sourceType === "prepare" && i.sourceId && !i.archivedAt)
+              .map((i) => i.sourceId as string),
+          ),
+        );
+      } catch {
+        // Best-effort: no sent state just leaves every button active.
+      }
+    })();
+  }, []);
+
+  async function sendResource(id: string) {
+    setError(null);
+    try {
+      const res = await netFetch(
+        "/api/school/library",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ type: "prepare", id }),
+        },
+        { timeoutMs: 15_000 },
+      );
+      if (!res.ok) throw new Error(tr("school.library.sendFailed"));
+      setSentIds((v) => new Set(v).add(id));
+    } catch {
+      throw new Error(tr("school.library.sendFailed"));
+    }
+  }
 
   async function loadAssignments() {
     const { data } = await getJsonCached<{ assignments?: Assignment[] }>(
@@ -134,6 +184,102 @@ export function PrepareView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Source pickers: the school threads and the school reports — the same
+  // cached lists the Raya tab and the Reports tab read, so this costs nothing
+  // when those tabs were already visited. Failures hide pickers, never the form.
+  useEffect(() => {
+    let live = true;
+    getJsonCached<{ conversations?: { id: string; title: string | null }[] }>("/api/school/raya/conversations", {
+      cacheKey: "school:rayaConversations",
+      onUpdate: (fresh) => {
+        if (live && Array.isArray(fresh.conversations)) setThreads(fresh.conversations.filter((c) => c.id));
+      },
+    })
+      .then(({ data }) => {
+        if (live && Array.isArray(data?.conversations)) setThreads(data.conversations.filter((c) => c.id));
+      })
+      .catch(() => {});
+    getJsonCached<{ reports?: { id: string | null; title: string }[] }>("/api/school/reports", {
+      cacheKey: "school:reports",
+      onUpdate: (fresh) => {
+        if (live && Array.isArray(fresh.reports)) {
+          setReports(fresh.reports.filter((r) => r.id).map((r) => ({ id: r.id as string, title: r.title })));
+        }
+      },
+    })
+      .then(({ data }) => {
+        if (live && Array.isArray(data?.reports)) {
+          setReports(data.reports.filter((r) => r.id).map((r) => ({ id: r.id as string, title: r.title })));
+        }
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  // Weakest concepts for the picked scope, as one-click topics. Quiet by
+  // design: a scope without data (or without a Kernel) simply shows no chips.
+  useEffect(() => {
+    let live = true;
+    setGaps([]);
+    const q = new URLSearchParams({ ...(classId ? { classId } : {}), ...(subjectId ? { subjectId } : {}) });
+    netFetch(`/api/school/prepare/gaps?${q.toString()}`, { method: "GET" }, { timeoutMs: 20_000 })
+      .then((r) => r.json())
+      .then((d: { concepts?: { label: string; mastery: number }[] }) => {
+        if (live && Array.isArray(d?.concepts)) {
+          setGaps(d.concepts.filter((c) => c && typeof c.label === "string").slice(0, 6));
+        }
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [classId, subjectId]);
+
+  // `/school?tab=prepare&resource=<id>` — the "In Prepare" link of a card in
+  // the teacher's Raya chat lands on the resource it created, already open.
+  // Once, then the parameter is stripped so a reload doesn't reopen it. Runs
+  // against the loaded library (and again when it arrives) rather than only on
+  // mount: the list itself loads asynchronously.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const id = url.searchParams.get("resource");
+    if (!id) return;
+    const hit = library.find((r) => r.id === id);
+    if (!hit) return;
+    url.searchParams.delete("resource");
+    window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+    setCurrent(hit);
+  }, [library]);
+
+  // Fresh files as material: extracted server-side, sent along as the brief.
+  // No media library on this side — the text travels with the form, three
+  // files max, and the server caps the total either way.
+  async function onPickFiles(files: FileList | null) {
+    if (!files || files.length === 0 || busy || reading) return;
+    setError(null);
+    setReading(true);
+    try {
+      for (const f of Array.from(files).slice(0, 3)) {
+        const fd = new FormData();
+        fd.append("file", f);
+        const res = await netFetch("/api/tools/extract", { method: "POST", body: fd }, { timeoutMs: 65_000 });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data?.text) {
+          setError(data?.error ?? `${tr("tools.couldntReadPrefix")} ${f.name}.`);
+          continue;
+        }
+        const text = String(data.text);
+        setBriefFiles((v) => (v.some((x) => x.name === f.name) ? v : [...v, { name: f.name, text }]));
+      }
+    } catch {
+      setError(tr("school.prepare.generateFailed"));
+    } finally {
+      setReading(false);
+    }
+  }
+
   async function generate() {
     if (busy) return;
     setBusy(true);
@@ -151,6 +297,12 @@ export function PrepareView({
               subjectId: subjectId || undefined,
               topic: topic || undefined,
               count,
+              conversationId: sourceConversationId || undefined,
+              reportIds: sourceReportId ? [sourceReportId] : undefined,
+              resourceIds: sourceResourceId ? [sourceResourceId] : undefined,
+              brief: briefFiles.length
+                ? briefFiles.map((f) => `${f.name}:\n${f.text}`).join("\n\n").slice(0, 6000)
+                : undefined,
             }),
           },
           { timeoutMs: 45_000 }, // a full LLM generation, not a plain query
@@ -233,16 +385,18 @@ export function PrepareView({
               </option>
             ))}
           </select>
-          <input
-            style={{ ...input, width: 90 }}
-            type="number"
-            min={1}
-            max={20}
-            value={count}
-            onChange={(e) => setCount(Number(e.target.value))}
-            title={tr("school.prepare.numberOfQuestionsTitle")}
-            disabled={busy}
-          />
+          <label style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem", fontSize: "0.85rem", opacity: 0.85 }}>
+            {tr("school.prepare.numberOfQuestionsTitle")}
+            <input
+              style={{ ...input, width: 76 }}
+              type="number"
+              min={1}
+              max={20}
+              value={count}
+              onChange={(e) => setCount(Number(e.target.value))}
+              disabled={busy}
+            />
+          </label>
         </div>
         <input
           style={{ ...input, width: "100%", marginTop: "0.6rem" }}
@@ -252,6 +406,103 @@ export function PrepareView({
           maxLength={200}
           disabled={busy}
         />
+        <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", alignItems: "center", marginTop: "0.6rem" }}>
+          {threads.length > 0 && (
+            <label style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem", fontSize: "0.85rem", flex: "1 1 220px", minWidth: 0 }}>
+              <span style={{ opacity: 0.65, flex: "none" }}>{tr("school.prepare.sourceConversation")}</span>
+              <select style={{ ...input, width: "auto", flex: 1, minWidth: 0 }} value={sourceConversationId} onChange={(e) => setSourceConversationId(e.target.value)} disabled={busy}>
+                <option value="">{tr("school.prepare.sourceNone")}</option>
+                {threads.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.title || tr("tools.conversation.untitled")}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {reports.length > 0 && (
+            <label style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem", fontSize: "0.85rem", flex: "1 1 220px", minWidth: 0 }}>
+              <span style={{ opacity: 0.65, flex: "none" }}>{tr("chat.prepare.reportLabel")}</span>
+              <select style={{ ...input, width: "auto", flex: 1, minWidth: 0 }} value={sourceReportId} onChange={(e) => setSourceReportId(e.target.value)} disabled={busy}>
+                <option value="">{tr("chat.prepare.noReport")}</option>
+                {reports.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {library.some((r) => !r.archivedAt) && (
+            <label style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem", fontSize: "0.85rem", flex: "1 1 220px", minWidth: 0 }}>
+              <span style={{ opacity: 0.65, flex: "none" }}>{tr("school.prepare.sourceResource")}</span>
+              <select style={{ ...input, width: "auto", flex: 1, minWidth: 0 }} value={sourceResourceId} onChange={(e) => setSourceResourceId(e.target.value)} disabled={busy}>
+                <option value="">{tr("school.prepare.sourceNone")}</option>
+                {library
+                  .filter((r): r is Resource & { id: string } => !r.archivedAt && !!r.id)
+                  .map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.title}
+                    </option>
+                  ))}
+              </select>
+            </label>
+          )}
+          <label style={{ ...ghost, display: "inline-flex", alignItems: "center", cursor: busy || reading ? "wait" : "pointer", opacity: busy || reading ? 0.6 : 1 }}>
+            {reading ? "…" : tr("school.prepare.sourceFilesAdd")}
+            <input
+              type="file"
+              multiple
+              hidden
+              disabled={busy || reading}
+              onChange={(e) => {
+                void onPickFiles(e.target.files);
+                e.target.value = "";
+              }}
+            />
+          </label>
+          {briefFiles.map((f) => (
+            <span
+              key={f.name}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: "0.8rem", border: `1px solid ${t.controlBorder}`, borderRadius: 99, padding: "2px 6px 2px 10px" }}
+            >
+              {f.name}
+              <button
+                type="button"
+                onClick={() => setBriefFiles((v) => v.filter((x) => x.name !== f.name))}
+                title={tr("attachment.removeTitle")}
+                style={{ border: "none", background: "transparent", color: t.muted, cursor: "pointer", fontSize: "1rem", lineHeight: 1, fontFamily: "inherit" }}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+        {gaps.length > 0 && (
+          <div style={{ marginTop: "0.6rem", fontSize: "0.85rem", lineHeight: 2 }}>
+            <span style={{ opacity: 0.6 }}>{tr("school.prepare.gapsLabel")} </span>
+            {gaps.map((g) => (
+              <button
+                key={g.label}
+                type="button"
+                onClick={() => setTopic(g.label)}
+                title={`${Math.round(g.mastery * 100)}%`}
+                style={{
+                  border: `1px solid ${t.controlBorder}`,
+                  background: "transparent",
+                  color: t.text,
+                  borderRadius: 99,
+                  padding: "2px 10px",
+                  margin: "2px 6px 2px 0",
+                  fontSize: "0.85em", fontFamily: "inherit",
+                  cursor: "pointer",
+                }}
+              >
+                {g.label} · {Math.round(g.mastery * 100)}%
+              </button>
+            ))}
+          </div>
+        )}
         <div style={formActions}>
           <span style={{ opacity: 0.6, fontSize: "0.78rem", marginRight: "auto" }}>
             {tr("school.prepare.downloadAssignHint")}
@@ -289,6 +540,8 @@ export function PrepareView({
                 onAssigned={loadAssignments}
                 onArchive={archiveResource}
                 onDelete={deleteResource}
+                sent={r.id != null && sentIds.has(r.id)}
+                onSend={() => sendResource(r.id as string)}
               />
             ))}
           <ArchivedDisclosure theme={t} count={library.filter((r) => !!r.archivedAt).length}>
@@ -303,6 +556,8 @@ export function PrepareView({
                   onAssigned={loadAssignments}
                   onArchive={archiveResource}
                   onDelete={deleteResource}
+                  sent={r.id != null && sentIds.has(r.id)}
+                  onSend={() => sendResource(r.id as string)}
                 />
               ))}
           </ArchivedDisclosure>
@@ -329,6 +584,8 @@ function LibraryRow({
   onAssigned,
   onArchive,
   onDelete,
+  sent,
+  onSend,
 }: {
   r: Resource;
   classes: ClassOpt[];
@@ -336,6 +593,8 @@ function LibraryRow({
   onAssigned: () => void;
   onArchive: (id: string, archived: boolean) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
+  sent: boolean;
+  onSend: () => Promise<void>;
 }) {
   const { theme: t } = useAppTheme();
   const tr = useTranslate();
@@ -348,11 +607,45 @@ function LibraryRow({
   const [due, setDue] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const assignable = r.id != null && Array.isArray(r.questions) && r.questions.length > 0;
   const archived = !!r.archivedAt;
   const canManage = r.id != null && r.canManage !== false;
+  const rowActions: ArtifactAction[] = [
+    ...(assignable
+      ? [
+          {
+            key: "assign",
+            label: open ? tr("school.class.cancel") : tr("school.team.assignButton"),
+            icon: <IconClasses size={15} />,
+            onSelect: () => setOpen((v) => !v),
+          },
+        ]
+      : []),
+    ...(r.id != null
+      ? [
+          {
+            key: "send",
+            label: sent ? tr("school.library.sent") : tr("school.library.send"),
+            icon: sent ? <IconCheck size={15} /> : <IconMail size={15} />,
+            disabled: sent,
+            onSelect: () => void handleSend(),
+          },
+        ]
+      : []),
+  ];
+
+  async function handleSend() {
+    if (sent) return;
+    setSendError(null);
+    try {
+      await onSend();
+    } catch {
+      setSendError(tr("school.library.sendFailed"));
+    }
+  }
 
   async function assign() {
     if (busy || !classId) return;
@@ -383,8 +676,8 @@ function LibraryRow({
 
   return (
     <div style={{ padding: "0.4rem 0", borderTop: `1px solid ${t.cardBorder}`, opacity: archived ? 0.62 : 1 }}>
-      <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-        <span style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ display: "flex", gap: "0.5rem", rowGap: "0.35rem", alignItems: "center", flexWrap: "wrap" }}>
+        <span style={{ flex: "1 1 170px", minWidth: 0 }}>
           {r.title}
           <span style={{ opacity: 0.5, fontSize: "0.78rem" }}>
             {" "}
@@ -396,28 +689,25 @@ function LibraryRow({
         <button style={ghost} onClick={onView}>
           {tr("school.roster.view")}
         </button>
-        {assignable && (
-          <button style={ghost} onClick={() => setOpen((v) => !v)}>
-            {open ? tr("school.class.cancel") : tr("school.team.assignButton")}
-          </button>
-        )}
         {canManage && (
           <ArtifactMenu
             theme={t}
             itemLabel={r.title}
             archived={archived}
-            // A resource tied to a class is part of the school's year-end
-            // record (getYearArchive reads teacher_resources by class_id) —
-            // archiving is always offered, but deleting only for a
-            // class-less (general) resource. See app/api/school/prepare DELETE.
-            canDelete={!r.classId}
-            deleteCaveatKey="artifact.delete.caveat.teacherResource"
+            // Delete is offered on every row, class-linked or not: the
+            // confirm dialog carries the cost (class-linked resources feed
+            // getYearArchive's year-end record for their class). Assigned
+            // classes keep their own results regardless.
+            canDelete={true}
+            deleteCaveatKey={r.classId ? "artifact.delete.caveat.teacherResourceLinked" : "artifact.delete.caveat.teacherResource"}
+            actions={rowActions}
             onArchive={(next) => onArchive(r.id as string, next)}
             onDelete={() => onDelete(r.id as string)}
           />
         )}
       </div>
       {msg && <p style={{ color: "#22c55e", fontSize: "0.8rem", margin: "0.3rem 0 0" }}>{msg}</p>}
+      {sendError && <p style={{ color: "#f87171", fontSize: "0.8rem", margin: "0.3rem 0 0" }}>{sendError}</p>}
       {open && (
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center", marginTop: "0.5rem" }}>
           <select style={input} value={classId} onChange={(e) => setClassId(e.target.value)} disabled={busy}>
@@ -493,8 +783,8 @@ function AssignmentRow({ a }: { a: Assignment }) {
 
   return (
     <div style={{ padding: "0.4rem 0", borderTop: `1px solid ${t.cardBorder}` }}>
-      <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-        <span style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ display: "flex", gap: "0.5rem", rowGap: "0.35rem", alignItems: "center", flexWrap: "wrap" }}>
+        <span style={{ flex: "1 1 170px", minWidth: 0 }}>
           {a.title}
           <span style={{ opacity: 0.5, fontSize: "0.78rem" }}>
             {" "}

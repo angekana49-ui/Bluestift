@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
 import {
   assertClassAccess,
+  assertSubjectAccess,
   buildClassContext,
   buildSubjectContext,
   getAdminMembership,
@@ -14,6 +15,7 @@ import {
 import { generateJson } from "@/lib/raya/llm";
 import { resolveSchoolEntitlements, gateQuota, startOfMonthIso } from "@/lib/entitlements";
 import { apiT } from "@/lib/i18n/server";
+import { composePrepareMarkdown, normalizePrepareQuestion, type PrepareQuestion } from "@/lib/prepare-doc";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -21,11 +23,12 @@ export const maxDuration = 30;
 const KINDS = ["exam", "exercise", "worksheet", "quiz"] as const;
 type Kind = (typeof KINDS)[number];
 
-type GenQuestion = {
-  prompt: string;
-  choices?: string[];
-  answer?: string;
-  concept?: string;
+/** Per-kind shape guidance: what each generation must look like, beyond the shared JSON schema. */
+const KIND_GUIDE: Record<Kind, string> = {
+  quiz: "Multiple-choice: 3-4 `choices` each with the correct `answer`. ",
+  exam: "A formal exam: mix multiple-choice and open items; give EVERY item integer `points` summing to exactly 20. ",
+  exercise: "Progressive open items, easiest first, no `choices`; each gets a full worked `answer`. ",
+  worksheet: "Teach then drill: `instructions` recap the rule with one worked mini-example, then guided practice items with concise `answer`s, no `choices`. ",
 };
 
 /**
@@ -44,9 +47,9 @@ export async function GET() {
   return NextResponse.json({ resources: resources ?? [] });
 }
 
-/** POST { classId?, subjectId?, kind, topic?, count? } → generate + persist a resource. */
+/** POST { classId?, subjectId?, kind, topic?, count?, conversationId?, reportIds?, brief?, resourceIds? } → generate + persist a resource. */
 export async function POST(request: Request) {
-  const { user, membership, error } = await authStaff();
+  const { user, membership, supabase, error } = await authStaff();
   if (error) return error;
   const limited = await limitExpensive("schoolPrepare", user.id);
   if (limited) return limited;
@@ -69,7 +72,7 @@ export async function POST(request: Request) {
   });
   if (overPrep) return overPrep;
 
-  let body: { classId?: string; subjectId?: string; kind?: string; topic?: string; count?: number };
+  let body: { classId?: string; subjectId?: string; kind?: string; topic?: string; count?: number; conversationId?: string; reportIds?: string[]; brief?: string; resourceIds?: string[] };
   try {
     body = await request.json();
   } catch {
@@ -84,6 +87,10 @@ export async function POST(request: Request) {
 
   if (classId && !(await assertClassAccess(user.id, classId))) {
     return NextResponse.json({ error: await apiT("api.notYourClass") }, { status: 403 });
+  }
+
+  if (subjectId && !(await assertSubjectAccess(user.id, subjectId))) {
+    return NextResponse.json({ error: await apiT("api.notYourSubject") }, { status: 403 });
   }
 
   // Ground on real cognitive data: class snapshot and/or subject mastery.
@@ -107,6 +114,89 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: await apiT("api.subjectNotFoundOrNotYours") }, { status: 404 });
     }
   }
+  // A staff thread as extra material: the teacher's own school conversation,
+  // newest part only. Same owner gate as the Tools route — a thread that is
+  // not theirs (or not a thread at all) answers identically, so ids cannot
+  // be probed.
+  if (typeof body.conversationId === "string" && body.conversationId) {
+    const { data: conv } = await supabase
+      .schema("learning")
+      .from("conversations")
+      .select("id, user_id")
+      .eq("id", body.conversationId)
+      .maybeSingle();
+    if (!conv || conv.user_id !== user.id) {
+      return NextResponse.json({ error: await apiT("api.notFound") }, { status: 404 });
+    }
+    const { data: msgs } = await supabase
+      .schema("learning")
+      .from("messages")
+      .select("role, content")
+      .eq("conversation_id", conv.id)
+      .order("created_at", { ascending: true });
+    const transcript = (msgs ?? [])
+      .filter((m) => (m.content ?? "").trim())
+      .map((m) => `${m.role === "assistant" ? "Raya" : "Teacher"}: ${m.content}`)
+      .join("\n\n");
+    if (transcript) parts.push(`Discussion context (the teacher's own thread) —\n${transcript.slice(-3000)}`);
+    // The thread's attached documents come with it: a "build from this thread"
+    // that ignored the chapter the teacher uploaded would be the worse half of
+    // the promise. Same owner gate — the conversation was just proven theirs.
+    const { data: attachments } = await supabase
+      .schema("learning")
+      .from("conversation_files")
+      .select("file_name, content")
+      .eq("conversation_id", conv.id)
+      .order("created_at", { ascending: false })
+      .limit(4);
+    for (const f of attachments ?? []) {
+      const text = (f.content ?? "").trim();
+      if (text) parts.push(`Attached document "${f.file_name ?? "document"}" —\n${text.slice(0, 3000)}`);
+    }
+  }
+
+  // School reports as extra material, by explicit ids from the card's picker
+  // (a title the teacher chose, never an id the model wrote). Same visibility
+  // rule as the reports list: an admin reads the school's, a prof only their
+  // own — enforced here, not trusted from the client.
+  if (Array.isArray(body.reportIds) && body.reportIds.length > 0) {
+    const ids = body.reportIds.filter((v): v is string => typeof v === "string" && v.length > 0).slice(0, 2);
+    if (ids.length > 0) {
+      const schools = createSchoolsAdminClient();
+      let rq = schools.from("reports").select("parameters").eq("school_id", membership.schoolId).in("id", ids);
+      if (membership.role !== "admin_master") rq = rq.eq("created_by", membership.adminId);
+      const { data: reps } = await rq;
+      for (const r of reps ?? []) {
+        const content = ((r.parameters ?? {}) as { content?: string }).content ?? "";
+        if (content.trim()) parts.push(`School report —\n${content.trim().slice(0, 3000)}`);
+      }
+    }
+  }
+
+  // Pasted or uploaded material from the tab: file extracts and anything else
+  // the teacher typed in. Plain text in, grounded generation out — capped,
+  // because a whole textbook would drown the gaps it should shore up.
+  if (typeof body.brief === "string" && body.brief.trim()) {
+    parts.push(`Teacher-provided material —\n${body.brief.trim().slice(0, 6000)}`);
+  }
+
+  // Past generations as source: "another one like my October worksheet". Own
+  // rows only — the library is the teacher's, and so is this gate.
+  if (Array.isArray(body.resourceIds) && body.resourceIds.length > 0) {
+    const ids = body.resourceIds.filter((v): v is string => typeof v === "string" && v.length > 0).slice(0, 2);
+    if (ids.length > 0) {
+      const schools = createSchoolsAdminClient();
+      const { data: prev } = await schools
+        .from("teacher_resources")
+        .select("title, content")
+        .in("id", ids)
+        .eq("created_by", user.id);
+      for (const r of (prev as { title: string; content: string }[] | null) ?? []) {
+        if (r.content?.trim()) parts.push(`Earlier material "${r.title}" —\n${r.content.trim().slice(0, 3000)}`);
+      }
+    }
+  }
+
   const grounding = parts.join("\n\n") || "No cognitive data available yet — write a solid general set.";
 
   const focusLine =
@@ -117,12 +207,11 @@ export async function POST(request: Request) {
   const label = [subjectName, className].filter(Boolean).join(" · ");
   const system =
     `You are Raya for Schools, helping a teacher build a ${kind}. Return STRICT JSON ` +
-    `{"title":"...","instructions":"...","questions":[{"prompt":"...","choices":["..."]?,"answer":"...","concept":"..."?}]}. ` +
+    `{"title":"...","instructions":"...","questions":[{"prompt":"...","choices":["..."]?,"answer":"...","concept":"..."?,"points":3?}]}. ` +
     `Produce exactly ${count} questions in the teacher's language. ${focusLine}` +
-    (kind === "quiz" || kind === "exam"
-      ? "Prefer multiple-choice where natural: 3-4 `choices` and the correct `answer`. "
-      : "Open-response items: give a concise model `answer`/solution, omit `choices`. ") +
+    KIND_GUIDE[kind] +
     "Set `concept` to the skill each item targets when the data names one. Ground every item in the DATA " +
+    "Write every formula in LaTeX between $...$ (inline) or on its own $$...$$ line (display), never backslash-paren delimiters and never plain-text maths like x^2. " +
     "below — never invent student names or fake statistics. No markdown, JSON only.";
   const userMsg =
     `Build a ${kind}${label ? ` for ${label}` : ""}${topic ? ` on: ${topic}` : ""}.\n\n=== DATA ===\n${grounding}`;
@@ -135,10 +224,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: clientError(e, await apiT("api.generationFailed")) }, { status: 502 });
   }
 
-  const questions: GenQuestion[] = Array.isArray(parsed.questions)
+  const questions: PrepareQuestion[] = Array.isArray(parsed.questions)
     ? (parsed.questions as unknown[])
-        .map((q) => normalizeQuestion(q))
-        .filter((q): q is GenQuestion => q !== null)
+        .map((q) => normalizePrepareQuestion(q))
+        .filter((q): q is PrepareQuestion => q !== null)
     : [];
   if (questions.length === 0) {
     return NextResponse.json({ error: await apiT("api.theModelReturnedNoUsableQuestions") }, { status: 502 });
@@ -148,7 +237,7 @@ export async function POST(request: Request) {
     (typeof parsed.title === "string" && parsed.title.trim()) ||
     `${label || topic || "Class"} — ${kind}`;
   const instructions = typeof parsed.instructions === "string" ? parsed.instructions.trim() : "";
-  const content = composeMarkdown(title, instructions, questions);
+  const content = await composePrepareMarkdown(kind, title, instructions, questions, apiT);
 
   // Persist to the library (best-effort — the resource is still returned on failure).
   let id: string | null = null;
@@ -191,45 +280,6 @@ export async function POST(request: Request) {
   });
 }
 
-/** Coerce one model item into a safe question (drops anything without a prompt). */
-function normalizeQuestion(q: unknown): GenQuestion | null {
-  if (!q || typeof q !== "object") return null;
-  const o = q as Record<string, unknown>;
-  const prompt = typeof o.prompt === "string" ? o.prompt.trim() : "";
-  if (!prompt) return null;
-  const choices = Array.isArray(o.choices)
-    ? o.choices.filter((c): c is string => typeof c === "string" && c.trim().length > 0).map((c) => c.trim())
-    : undefined;
-  const answer = typeof o.answer === "string" ? o.answer.trim() : undefined;
-  const concept = typeof o.concept === "string" ? o.concept.trim() : undefined;
-  return {
-    prompt: prompt.slice(0, 1000),
-    ...(choices && choices.length ? { choices: choices.slice(0, 6) } : {}),
-    ...(answer ? { answer: answer.slice(0, 1000) } : {}),
-    ...(concept ? { concept: concept.slice(0, 120) } : {}),
-  };
-}
-
-/** Deterministic markdown: questions section + a separate answer key. */
-function composeMarkdown(title: string, instructions: string, questions: GenQuestion[]): string {
-  const letters = ["A", "B", "C", "D", "E", "F"];
-  const lines: string[] = [`# ${title}`];
-  if (instructions) lines.push("", instructions);
-  lines.push("", "## Questions");
-  questions.forEach((q, i) => {
-    lines.push("", `${i + 1}. ${q.prompt}`);
-    if (q.choices) q.choices.forEach((c, j) => lines.push(`   - ${letters[j] ?? "?"}. ${c}`));
-  });
-  const withAnswers = questions.filter((q) => q.answer);
-  if (withAnswers.length) {
-    lines.push("", "## Answer key");
-    questions.forEach((q, i) => {
-      if (q.answer) lines.push(`${i + 1}. ${q.answer}`);
-    });
-  }
-  return lines.join("\n");
-}
-
 async function authStaff() {
   const supabase = await createClient();
   const {
@@ -238,13 +288,13 @@ async function authStaff() {
   if (!user) return { error: NextResponse.json({ error: "unauthorized" }, { status: 401 }) } as const;
   const membership = await getAdminMembership(user.id);
   if (!membership) return { error: NextResponse.json({ error: await apiT("api.staffOnly") }, { status: 403 }) } as const;
-  return { user, membership, error: null } as const;
+  return { user, membership, supabase, error: null } as const;
 }
 
 /**
- * Archive / delete for one Prepare resource. Its author, or an admin_master of
- * the same school, may act on it — same tier as the rest of school-admin.ts
- * (an admin_master can already see and reassign every prof's resources).
+ * Archive / delete for one Prepare resource. Archiving is author-or-admin
+ * (the school files things away); deleting is the prof author only — the
+ * school side never hard-deletes.
  *
  * Deleting only removes the template from the library: any class it was
  * already assigned to (schools.resource_assignments -> its own
@@ -313,20 +363,20 @@ export async function DELETE(request: Request) {
   if (row.created_by !== membership.adminId && membership.role !== "admin_master") {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
-  // getYearArchive (lib/school-admin.ts) reads teacher_resources straight by
-  // class_id to build the school's official year-end record — an admin_master
-  // reads that later expecting it to be complete ("what did we do in maths in
-  // 3e B last year"). A class-linked resource is part of that record, so a
-  // hard delete here would silently thin it out from under them. Archiving
-  // gets it out of the Prepare library without touching the row at all, which
-  // is why only class-less (general/ungrouped) resources are deletable.
-  if (row.class_id) {
-    return NextResponse.json(
-      { error: await apiT("api.thisResourceIsTiedToA") },
-      { status: 409 },
-    );
+  // Delete lives in the teacher's library: the gate above already refused
+  // non-author profs, and the school side archives instead of deleting.
+  if (membership.role !== "prof") {
+    return NextResponse.json({ error: await apiT("api.deleteProfOnly") }, { status: 403 });
   }
+  // Class-linked or not, a prof author may delete: the confirm dialog
+  // carries the year-record cost for class-linked rows (getYearArchive
+  // reads teacher_resources by class_id), and assigned classes keep
+  // their own challenge copies either way.
 
+  // Assignment records point back at this template (resource_id) but own
+  // their challenge copies — detach first so no FK action can take them
+  // (or block this delete). Assigned classes keep everything.
+  await schools.from("resource_assignments").update({ resource_id: null }).eq("resource_id", id);
   const { error: delErr } = await schools.from("teacher_resources").delete().eq("id", id);
   if (delErr) return NextResponse.json({ error: clientError(delErr) }, { status: 500 });
 

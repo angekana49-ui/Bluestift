@@ -1081,6 +1081,38 @@ export async function assertClassAccess(userId: string, classId: string): Promis
 }
 
 /**
+ * True when the user may work with a subject: admin_master of its school, or
+ * a prof assigned to it. The mirror of `assertClassAccess` for the subject
+ * axis — every picker a prof sees is filtered to these (getViewerSubjects),
+ * and every route that takes a subjectId re-checks here, because a picker is
+ * not a gate.
+ */
+export async function assertSubjectAccess(userId: string, subjectId: string): Promise<boolean> {
+  const schools = createSchoolsAdminClient();
+  const { data: subjData } = await schools
+    .from("subjects")
+    .select("school_id, is_global")
+    .eq("id", subjectId)
+    .maybeSingle();
+  const subject = subjData as { school_id: string | null; is_global: boolean } | null;
+  if (!subject) return false;
+
+  const m = await getAdminMembership(userId);
+  if (!m) return false;
+  if (subject.school_id !== m.schoolId && !subject.is_global) return false;
+  if (m.role === "admin_master") return true;
+
+  const { data: asg } = await schools
+    .from("assignments")
+    .select("id")
+    .eq("prof_id", m.adminId)
+    .eq("subject_id", subjectId)
+    .limit(1)
+    .maybeSingle();
+  return !!asg;
+}
+
+/**
  * True when this student is enrolled in THIS class.
  *
  * The companion to `assertClassAccess`, and never a substitute for it. Class
@@ -1617,8 +1649,10 @@ export type TeamProf = {
   email: string | null;
   /** False when they haven't entered this year's staff code yet. */
   confirmedForYear: boolean;
+  /** What they authored — counted for the removal confirm dialog. Optional: stale caches predate it. */
+  authored?: { resources: number; reports: number; followups: number };
 };
-export type TeamAssignment = { id: string; profName: string; className: string; subjectName: string };
+export type TeamAssignment = { id: string; profId?: string; profName: string; className: string; subjectName: string };
 export type TeamInvite = { id: string; code: string; autoApprove: boolean };
 export type TeamRequest = { id: string; userId: string; name: string; email: string | null; createdAt: string };
 export type Team = {
@@ -1656,12 +1690,31 @@ export async function getTeam(userId: string): Promise<Team | null> {
       .in("id", profRows.map((p) => p.user_id));
     for (const u of us ?? []) usersById.set(u.id, u);
   }
+  // Authored-data counts per prof, for the removal confirm dialog: what the
+  // school keeps is counted, so the admin sees it instead of assuming.
+  const authoredByAdmin = new Map<string, { resources: number; reports: number; followups: number }>();
+  const bumpAuthored = (id: string | null, k: "resources" | "reports" | "followups") => {
+    if (!id) return;
+    const e = authoredByAdmin.get(id) ?? { resources: 0, reports: 0, followups: 0 };
+    e[k] += 1;
+    authoredByAdmin.set(id, e);
+  };
+  const [{ data: resRows }, { data: repRows }, { data: folRows }] = await Promise.all([
+    schools.from("teacher_resources").select("created_by").eq("school_id", m.schoolId),
+    schools.from("reports").select("created_by").eq("school_id", m.schoolId),
+    schools.from("student_followups").select("author_admin_id").eq("school_id", m.schoolId),
+  ]);
+  for (const r of ((resRows as { created_by: string | null }[] | null) ?? [])) bumpAuthored(r.created_by, "resources");
+  for (const r of ((repRows as { created_by: string | null }[] | null) ?? [])) bumpAuthored(r.created_by, "reports");
+  for (const r of ((folRows as { author_admin_id: string | null }[] | null) ?? [])) bumpAuthored(r.author_admin_id, "followups");
+
   const profs: TeamProf[] = profRows.map((p) => {
     const u = usersById.get(p.user_id);
     return {
       adminId: p.id,
       userId: p.user_id,
       name: u?.display_name || u?.username || "Prof",
+      authored: authoredByAdmin.get(p.id) ?? { resources: 0, reports: 0, followups: 0 },
       email: u?.email ?? null,
       confirmedForYear: !needsYearReconfirmation({
         role: "prof",
@@ -1686,6 +1739,7 @@ export async function getTeam(userId: string): Promise<Team | null> {
     assignments = ((asgData as { id: string; prof_id: string; class_id: string; subject_id: string }[] | null) ?? []).map(
       (a) => ({
         id: a.id,
+        profId: a.prof_id,
         profName: profNameById.get(a.prof_id) ?? "Prof",
         className: classById.get(a.class_id) ?? "Class",
         subjectName: subjById.get(a.subject_id) ?? "Subject",
@@ -1762,6 +1816,26 @@ export async function getSchoolSubjects(userId: string): Promise<SchoolSubject[]
   } catch {
     return [];
   }
+}
+
+/**
+ * The subjects a staff member may pick from: everything for an admin_master,
+ * only their assigned subjects for a prof. Feeds every subject picker both
+ * roles share (subjects list, reports) so a prof never sees — or submits —
+ * a subject they don't teach. Name-resolution callers (insights labels,
+ * simulation baselines) keep getSchoolSubjects: a label is not a picker.
+ */
+export async function getViewerSubjects(userId: string): Promise<SchoolSubject[]> {
+  const all = await getSchoolSubjects(userId);
+  const m = await getAdminMembership(userId);
+  if (!m) return [];
+  if (m.role === "admin_master") return all;
+  const schools = createSchoolsAdminClient();
+  const { data } = await schools.from("assignments").select("subject_id").eq("prof_id", m.adminId);
+  const ids = new Set(
+    ((data as { subject_id: string | null }[] | null) ?? []).map((a) => a.subject_id).filter(Boolean),
+  );
+  return all.filter((s) => ids.has(s.id));
 }
 
 /** Context for one subject across the school (avg mastery + weakest concepts). */

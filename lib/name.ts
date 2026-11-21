@@ -16,3 +16,11 @@ export function avatarInitials(name: string | null | undefined): string {
   if (parts.length === 0) return "?";
   return parts.slice(0, 2).map((p) => p[0]).join("").toUpperCase();
 }
+
+/**
+ * First name only: "Aïcha Diallo" → "Aïcha". Greetings use this — a hello that
+ * says the whole civil name reads as a summons, not a hello.
+ */
+export function firstNameOf(name: string | null | undefined): string {
+  return (name ?? "").trim().split(/\s+/).filter(Boolean)[0] ?? "";
+}

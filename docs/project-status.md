@@ -1,6 +1,6 @@
 ﻿# Bluestift — project status
 
-_Last updated: 2026-09-10 (baseline below is 2026-08-18; see the "Update" section for the delta). Living summary of what's built, how it works, and what's next._
+_Last updated: 2026-11-21 (two dated Update sections below; the §1+ baseline is 2026-08-18 and increasingly stale). Living summary of what's built, how it works, and what's next._
 
 > **This is Version 2 (V2) of RAYA and RAYA for Schools — a clean-slate rebuild.**
 > It is the ONLY version we show, demo, or sell. **V1 is dead product.** The V1 of RAYA
@@ -12,6 +12,36 @@ _Last updated: 2026-09-10 (baseline below is 2026-08-18; see the "Update" sectio
 Bluestift is an AI tutoring platform. **RAYA** is the Socratic tutor; the
 **Cognitive Kernel** (separate Python/FastAPI service) does cognitive tracing.
 One shared Supabase database. This repo is the **Next.js 16 (App Router, TS)** app.
+
+## Update — 2026-11-21
+
+Delta since September, reconstructed from the working tree (mid-November
+sessions) rather than a fresh full audit. Three strands:
+
+**Team tab rebuilt + removal keeps data.** The Team tab now shows one section
+at a time (subjects, teachers, access, assignments) picked from an
+Overview-shaped shell panel; the teacher roster is a multi-select table with
+bulk assign, and removing teachers opens a confirm dialog stating dropped
+assignments vs kept data. Migration `20261119000000` drops five author FKs so
+a removal takes only membership + assignments + prefs; the DELETE route
+resolves and scopes the target before touching anything. Applied on Supabase
+(owner, 2026-11-21) — the code's promise depends on it.
+
+**Kernel honesty notes.** Every surface showing Kernel figures now carries a
+red bottom note with a warning triangle (`components/ui/kernel-note.tsx`);
+graphs say "indicative" explicitly (FR "à titre indicatif"). Covered: solo
+profile, chat analysis (+ export), student detail, overview + panel, roster,
+prof/admin insights (+ exports), prof overview, generated reports, library
+shelf report copies, FERPA record export. Insight strings no longer claim
+"certification" — provenance wording ("from the Kernel") instead. App-owned
+figures (progress curve) deliberately unnoted.
+
+**Around it (pointers, not re-verified here).** Prepare grew a weak-concept
+gaps endpoint feeding one-click topics, plus new doc/request libs and a chat
+request card; new school library shelf (migration `20261118000000`, send-up
+flow, archive-only); student education-record export (TXT/PDF/JSON with a
+FERPA scope note); public site swapped a differentiators section for a
+symptom section. i18n keys added in all four locales throughout.
 
 ---
 
@@ -568,11 +598,11 @@ skipped when unset in dev).
   state back up via the Kernel — plus the **"understanding, not surveillance"**
   guardrail: derived concept state, never transcripts) → `FeaturesSection`
   (Kernel · Study Rooms · Challenges & Tools — the collaborative/playful side is
-  a first-class pillar) → `DifferentiatorsSection` (now drawn on *who else can
-  see the learning*: general assistants are invisible to the teacher, teacher
-  toolkits invisible to the student, fixed platforms rigid) → `LadderSection`
-  (the EMT rungs, as a sticky scroll-stack) → `KernelSection` → `FaqSection` →
-  `PricingSection` → `FinalCtaSection` → footer. The roadmap is no longer on the
+  a first-class pillar) → `LadderSection` (the EMT rungs, as a sticky
+  scroll-stack) → `KernelSection` → `SymptomSection` (`#why-now`: the entry
+  symptom — homework laundered, staged as two copies) → `FaqSection` →
+  `PricingSection` → `FinalCtaSection` → footer.
+  The roadmap is no longer on the
   landing page: it is a changelog, not part of the argument, and now lives at
   `/research?tab=progress` as `RoadmapTimeline`.
   **No geography or level targeting anywhere** — "K-12 · Cameroon & US" is gone

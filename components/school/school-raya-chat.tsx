@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAppTheme } from "@/components/ui/theme";
 import { netFetch, getJsonCached, invalidateCached } from "@/lib/net/client-fetch";
 import { RightPanel, Scrim, IconButton } from "@/components/ui/shell";
@@ -10,10 +10,10 @@ import { useChatEngine } from "@/components/chat/use-chat-engine";
 import { ChatSurface } from "@/components/chat/chat-surface";
 import { ChatHistoryList } from "@/components/chat/chat-history-list";
 import { fetchHooks, type ChatConfig, type Conversation } from "@/components/chat/types";
-import { avatarInitials } from "@/lib/name";
+import { avatarInitials, firstNameOf } from "@/lib/name";
 import { RayaName } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
-import type { MessageKey } from "@/lib/i18n";
+import type { MessageKey, MessageVars } from "@/lib/i18n";
 
 type Role = "admin_master" | "prof";
 
@@ -25,7 +25,7 @@ type Role = "admin_master" | "prof";
  * a derived notifications feed. Rendered in the Raya tab's contentFlush body,
  * so its own header is the single header.
  */
-function getSchoolConfig(tr: (key: MessageKey) => string): ChatConfig {
+function getSchoolConfig(tr: (key: MessageKey, vars?: MessageVars) => string, opts: { prepare: boolean; classes: { id: string; name: string }[]; pick: number }): ChatConfig {
   return {
     endpoints: {
       chat: "/api/school/raya/chat",
@@ -33,7 +33,7 @@ function getSchoolConfig(tr: (key: MessageKey) => string): ChatConfig {
       files: "/api/school/raya/files",
     },
     capabilities: { voice: true, files: true },
-    greeting: (name) => (name ? `${tr("school.rayaChat.greetingWithName")} ${name}?` : tr("school.rayaChat.greetingNoName")),
+    greeting: (name) => tr(`school.rayaChat.greet${opts.pick + 1}` as MessageKey, { name }),
     emptyHint: tr("school.rayaChat.emptyHint"),
     suggestions: [
       tr("school.rayaChat.suggestion1"),
@@ -44,14 +44,18 @@ function getSchoolConfig(tr: (key: MessageKey) => string): ChatConfig {
     placeholder: tr("school.rayaChat.placeholder"),
     // Hybrid: /api/school/raya/hooks personalizes from live insights; offline /
     // no data → the static set above stays.
+    prepareRequests: opts.prepare,
+    prepareClasses: opts.classes,
     personalizedHooks: fetchHooks("/api/school/raya/hooks"),
   };
 }
 
-export function SchoolRayaChat({ role, staffName }: { role: Role; staffName?: string }) {
+export function SchoolRayaChat({ role, staffName, classes, profName }: { role: Role; staffName?: string; classes?: { id: string; name: string }[]; profName?: string | null }) {
   const { theme: t } = useAppTheme();
   const tr = useTranslate();
-  const SCHOOL_CONFIG = getSchoolConfig(tr);
+  // One of the four hellos, picked per visit — the greeting never repeats.
+  const pick = useMemo(() => Math.floor(Math.random() * 4), []);
+  const SCHOOL_CONFIG = getSchoolConfig(tr, { prepare: role === "prof", classes: classes ?? [], pick });
   const engine = useChatEngine({
     config: SCHOOL_CONFIG,
     initialId: null,
@@ -79,10 +83,11 @@ export function SchoolRayaChat({ role, staffName }: { role: Role; staffName?: st
     })();
   }, [setConversations]);
 
-  // Address the staffer by ROLE, never by name — the admin surface passes the
-  // school name as `staffName`, so "…, Lycée François Dumas?" read absurd. A role
-  // word ("Admin"/"Teacher") is always sensible.
-  const greetingName = tr(role === "admin_master" ? "school.role.admin" : "school.role.teacher");
+  // The teacher by FIRST name — "…, Aïcha?", never the whole civil name —
+  // falling back to the casual "prof" word when the account has none. Admins
+  // keep the role word: the admin surface passes the school name as `staffName`,
+  // so "…, Lycée François Dumas?" would read absurd.
+  const greetingName = role === "prof" ? firstNameOf(profName) || tr("school.rayaChat.profWord") : tr("school.role.admin");
 
   const headerActions = (
     <span style={{ position: "relative", display: "inline-flex" }}>

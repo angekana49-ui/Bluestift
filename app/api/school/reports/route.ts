@@ -9,7 +9,7 @@ import {
   buildSchoolContext,
   buildSubjectContext,
   getAdminMembership,
-  getSchoolSubjects,
+  getViewerSubjects,
   getStaffPreferences,
 } from "@/lib/school-admin";
 import { rayaComplete, type ChatMsg } from "@/lib/raya/llm";
@@ -68,7 +68,7 @@ export async function GET() {
         archivedAt: r.archived_at,
       };
     });
-    const subjects = await getSchoolSubjects(user.id);
+    const subjects = await getViewerSubjects(user.id);
     return NextResponse.json({ reports, subjects });
   } catch {
     return NextResponse.json({ reports: [], subjects: [] });
@@ -197,11 +197,11 @@ export async function POST(request: Request) {
 
 /**
  * Archive / restore one report. Author or admin_master only — same tier as
- * Prepare. No DELETE here: every report counts toward getYearArchive's
- * "reports" section purely by created_at falling in the school year's date
- * range (lib/school-admin.ts), with no class-less escape hatch the way
- * teacher_resources has — so the app never offers a hard delete for one,
- * only filing it out of the tab.
+ * Prepare. Deletion has its own handler (DELETE): prof authors may hard-delete
+ * their own reports, with the year-record cost disclosed in the confirm
+ * dialog — every report counts toward getYearArchive's "reports" section
+ * purely by created_at, so deleting one thins the school's year-end record.
+ * The school side never deletes: it archives.
  */
 export async function PATCH(request: Request) {
   const supabase = await createClient();
@@ -246,4 +246,42 @@ export async function PATCH(request: Request) {
   if (updErr) return NextResponse.json({ error: clientError(updErr) }, { status: 500 });
 
   return NextResponse.json({ ok: true, archivedAt: archived_at });
+}
+
+/**
+ * Hard-delete one report. Prof authors only: the school side archives,
+ * never deletes — the year-end record counts every report, and the confirm
+ * dialog says so (artifact.delete.caveat.report).
+ *
+ * DELETE ?id=<id> -> remove the row
+ */
+export async function DELETE(request: Request) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const membership = await getAdminMembership(user.id);
+  if (!membership) return NextResponse.json({ error: await apiT("api.staffOnly") }, { status: 403 });
+  if (membership.role !== "prof") {
+    return NextResponse.json({ error: await apiT("api.deleteProfOnly") }, { status: 403 });
+  }
+  const id = new URL(request.url).searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "missing id" }, { status: 400 });
+  const schools = createSchoolsAdminClient();
+  const { data: report } = await schools
+    .from("reports")
+    .select("id, school_id, created_by")
+    .eq("id", id)
+    .maybeSingle();
+  const row = report as { school_id: string; created_by: string } | null;
+  if (!row || row.school_id !== membership.schoolId) {
+    return NextResponse.json({ error: await apiT("api.notFound") }, { status: 404 });
+  }
+  if (row.created_by !== membership.adminId) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+  const { error: delErr } = await schools.from("reports").delete().eq("id", id);
+  if (delErr) return NextResponse.json({ error: clientError(delErr) }, { status: 500 });
+  return NextResponse.json({ ok: true });
 }

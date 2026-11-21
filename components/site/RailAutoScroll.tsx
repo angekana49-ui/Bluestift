@@ -13,8 +13,11 @@ import { useEffect, type RefObject } from "react";
  *
  * It is never in charge, though. The moment a finger touches it the timer is
  * dropped, and it only takes the wheel back a few seconds AFTER the finger
- * leaves, so a visitor reading card two is not fought for the position. At the
- * last card it rewinds to the first rather than dead-ending.
+ * leaves, so a visitor reading card two is not fought for the position. At
+ * either end it turns around and walks back (ping-pong) rather than jumping to
+ * the other end: a rewind from the last card to the first is one long smooth
+ * scroll across the whole rail, which reads as a glitch, where a turn reads as
+ * the rail still browsing.
  *
  * Phone-only by measurement and not by class: above 600px this is a plain
  * grid with nothing to scroll, and `prefers-reduced-motion` opts out entirely
@@ -28,6 +31,29 @@ const STEP_MS = 3600;
 const RESUME_MS = 4000;
 /** Slack for the end test — snap points rarely land on an exact pixel. */
 const END_SLACK = 4;
+
+/**
+ * One ping-pong step, as a pure function.
+ *
+ * Kept outside the hook so the direction logic is unit-testable without a DOM
+ * (vitest runs in node): `scrollLeft` is where the rail is, `maxScroll` is
+ * `scrollWidth - clientWidth`, `dir` the current walking direction. At either
+ * end the direction flips and the step leaves from where the rail actually is —
+ * never a jump to the opposite end. The browser clamps a target past an edge,
+ * which is what makes the turn exact even when the pitch doesn't divide the
+ * rail evenly.
+ */
+export function railStep(
+  scrollLeft: number,
+  maxScroll: number,
+  dir: 1 | -1,
+  pitch: number,
+): { left: number; dir: 1 | -1 } {
+  let d = dir;
+  if (scrollLeft >= maxScroll - END_SLACK) d = -1;
+  else if (scrollLeft <= END_SLACK) d = 1;
+  return { left: scrollLeft + d * pitch, dir: d };
+}
 
 export function useRailAutoScroll(ref: RefObject<HTMLElement | null>): void {
   useEffect(() => {
@@ -49,11 +75,9 @@ export function useRailAutoScroll(ref: RefObject<HTMLElement | null>): void {
       return Math.max(1, Math.round(rail.clientWidth * 0.8));
     };
 
-    const atEnd = () =>
-      rail.scrollLeft >= rail.scrollWidth - rail.clientWidth - END_SLACK;
-
     let held = false;
     let stopped = false;
+    let dir: 1 | -1 = 1;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let resume: ReturnType<typeof setTimeout> | undefined;
 
@@ -63,7 +87,9 @@ export function useRailAutoScroll(ref: RefObject<HTMLElement | null>): void {
       // release restarts this timer — so this is belt and braces, not the
       // mechanism.
       if (!held) {
-        rail.scrollTo({ left: atEnd() ? 0 : rail.scrollLeft + pitch(), behavior: "smooth" });
+        const next = railStep(rail.scrollLeft, rail.scrollWidth - rail.clientWidth, dir, pitch());
+        dir = next.dir;
+        rail.scrollTo({ left: next.left, behavior: "smooth" });
       }
       timer = setTimeout(step, STEP_MS);
     };

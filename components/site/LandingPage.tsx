@@ -8,7 +8,7 @@ import ConnectionSection from "./ConnectionSection";
 import FeaturesSection from "./FeaturesSection";
 import LadderSection from "./LadderSection";
 import KernelSection from "./KernelSection";
-import DifferentiatorsSection from "./DifferentiatorsSection";
+import SymptomSection from "./SymptomSection";
 import FaqSection from "./FaqSection";
 import PricingSection, { type EntryPrice } from "./PricingSection";
 import FinalCtaSection from "./FinalCtaSection";
@@ -60,9 +60,9 @@ export default function LandingPage({
           comparison, not after it. */}
       <LadderSection theme={t} />
       <KernelSection theme={t} />
-      {/* Was the ✕/✓ comparison; it states the product's position now. Same
-          component, so the order and the tone sequence are unchanged. */}
-      <DifferentiatorsSection theme={t} />
+      {/* Was the ✕/✓ comparison, then "the layer between the two you already
+          buy". It stages the symptom now — same slot, order and tone unchanged. */}
+      <SymptomSection theme={t} />
       {/* Objection handling: the six that come back from every school. The one
           that isn't here — "is any of this real yet?" — used to be answered by
           the roadmap; it now lives at /research?tab=progress, linked from the

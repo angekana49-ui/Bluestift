@@ -24,6 +24,7 @@ export type MenuItem = {
   icon?: ReactNode;
   tone?: "accent" | "danger";
   onSelect: () => void;
+  disabled?: boolean;
 };
 
 export function RowMenu({
@@ -108,6 +109,7 @@ export function RowMenu({
             type="button"
             onClick={(e) => {
               e.stopPropagation();
+              if (item.disabled) return;
               onClose();
               item.onSelect();
             }}
@@ -121,7 +123,8 @@ export function RowMenu({
               border: `1px solid ${accent ? accentBorder : "transparent"}`,
               borderRadius: 9,
               padding: "7px 9px",
-              cursor: "pointer",
+              cursor: item.disabled ? "default" : "pointer",
+              opacity: item.disabled ? 0.55 : 1,
               color: danger ? "#ef4444" : t.text,
               fontFamily: "inherit",
             }}

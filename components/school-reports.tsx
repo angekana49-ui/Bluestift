@@ -7,6 +7,7 @@ import { netFetch, getJsonCached, invalidateCached } from "@/lib/net/client-fetc
 import { DocumentView } from "@/components/ui/document";
 import { Modal } from "@/components/ui/modal";
 import { ArtifactMenu } from "@/components/ui/artifact-menu";
+import { IconCheck, IconMail } from "@/components/ui/icons";
 import { ArchivedDisclosure } from "@/components/ui/archived-section";
 import { panelCard, textInput, ctaButton, ghostButton } from "@/components/ui/forms";
 import { useTranslate } from "@/components/ui/locale";
@@ -36,11 +37,14 @@ export function SchoolReports({
   classes,
   schoolName,
   allowedScopes = SCOPE_ORDER,
+  viewerRole = "admin_master",
 }: {
   classes: ClassOpt[];
   schoolName?: string;
   /** Which report scopes this face may generate. A prof gets class-only. */
   allowedScopes?: Scope[];
+  /** Delete lives in the teacher's library only — the admin face archives. */
+  viewerRole?: "prof" | "admin_master";
 }) {
   const { theme: t } = useAppTheme();
   const tr = useTranslate();
@@ -59,6 +63,28 @@ export function SchoolReports({
   const [error, setError] = useState<string | null>(null);
   const [current, setCurrent] = useState<ReportItem | null>(null);
   const [reports, setReports] = useState<ReportItem[]>([]);
+  const [sentIds, setSentIds] = useState<Set<string>>(new Set());
+
+  // A prof's "Sent" state per report: what they already put on the shelf.
+  useEffect(() => {
+    if (viewerRole !== "prof") return;
+    (async () => {
+      try {
+        const d = (await (
+          await netFetch("/api/school/library", { method: "GET" }, { timeoutMs: 15_000 })
+        ).json()) as { items?: { sourceType?: string; sourceId?: string | null; archivedAt?: string | null }[] };
+        setSentIds(
+          new Set(
+            (d.items ?? [])
+              .filter((i) => i.sourceType === "report" && i.sourceId && !i.archivedAt)
+              .map((i) => i.sourceId as string),
+          ),
+        );
+      } catch {
+        // Best-effort: no sent state just leaves every button active.
+      }
+    })();
+  }, [viewerRole]);
 
   useEffect(() => {
     (async () => {
@@ -138,6 +164,33 @@ export function SchoolReports({
     invalidateCached("school:reports");
   }
 
+  async function deleteReport(id: string) {
+    const res = await netFetch(`/api/school/reports?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d?.error);
+    setReports((v) => v.filter((r) => r.id !== id));
+    invalidateCached("school:reports");
+  }
+
+  async function sendReport(id: string) {
+    setError(null);
+    try {
+      const res = await netFetch(
+        "/api/school/library",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ type: "report", id }),
+        },
+        { timeoutMs: 15_000 },
+      );
+      if (!res.ok) throw new Error();
+      setSentIds((v) => new Set(v).add(id));
+    } catch {
+      setError(tr("school.library.sendFailed"));
+    }
+  }
+
   // Every generated report renders — and downloads — through the shared branded
   // document châssis (Bluestift logo + title + footer attribution). The report
   // body is Markdown, so DocumentView typesets it instead of dumping raw `#`.
@@ -146,7 +199,7 @@ export function SchoolReports({
     title: r.title,
     meta: [tr(SCOPE_LABEL_KEY[r.scope ?? "school"] ?? "school.reports.wholeSchool"), new Date(r.createdAt).toLocaleDateString()].filter(Boolean).join(" · "),
     audience: schoolName,
-    body: r.content,
+    body: `${r.content}\n\n_${tr("kernel.dataNote.figures")}_`, // Kernel-grounded: the caveat travels with the doc.
   });
 
   return (
@@ -206,8 +259,8 @@ export function SchoolReports({
         const liveReports = reports.filter((r) => !r.archivedAt);
         const archivedReports = reports.filter((r) => !!r.archivedAt);
         const row = (r: ReportItem, i: number) => (
-          <div key={r.id ?? i} style={{ display: "flex", gap: "0.5rem", alignItems: "center", padding: "0.35rem 0", opacity: r.archivedAt ? 0.62 : 1 }}>
-            <span style={{ flex: 1 }}>{r.title}</span>
+          <div key={r.id ?? i} style={{ display: "flex", gap: "0.5rem", rowGap: "0.35rem", alignItems: "center", flexWrap: "wrap", padding: "0.35rem 0", opacity: r.archivedAt ? 0.62 : 1 }}>
+            <span style={{ flex: "1 1 170px", minWidth: 0 }}>{r.title}</span>
             <span style={{ opacity: 0.5, fontSize: "0.8rem" }}>{new Date(r.createdAt).toLocaleDateString()}</span>
             <button style={ghost} onClick={() => setCurrent(r)}>
               {tr("school.roster.view")}
@@ -217,12 +270,26 @@ export function SchoolReports({
                 theme={t}
                 itemLabel={r.title}
                 archived={!!r.archivedAt}
-                // No hard delete for a report — see app/api/school/reports
-                // PATCH's doc comment: every report feeds the school's
-                // year-end archive purely by date, regardless of scope.
-                canDelete={false}
+                // Delete is prof-only (the route enforces it) — the year-end
+                // record counts every report, so the confirm dialog carries
+                // the caveat. Admins archive instead of deleting.
+                canDelete={viewerRole === "prof"}
+                deleteCaveatKey="artifact.delete.caveat.report"
+                actions={
+                  viewerRole === "prof" && r.id != null
+                    ? [
+                        {
+                          key: "send",
+                          label: sentIds.has(r.id) ? tr("school.library.sent") : tr("school.library.send"),
+                          icon: sentIds.has(r.id) ? <IconCheck size={15} /> : <IconMail size={15} />,
+                          disabled: sentIds.has(r.id),
+                          onSelect: () => void sendReport(r.id as string),
+                        },
+                      ]
+                    : []
+                }
                 onArchive={(next) => archiveReport(r.id as string, next)}
-                onDelete={() => Promise.reject(new Error("reports cannot be deleted"))}
+                onDelete={() => deleteReport(r.id as string)}
               />
             )}
           </div>

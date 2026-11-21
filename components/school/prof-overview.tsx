@@ -5,6 +5,7 @@ import { useAppTheme } from "@/components/ui/theme";
 import { getJsonCached } from "@/lib/net/client-fetch";
 import { panelCard, ctaButton, ghostButton, textInput } from "@/components/ui/forms";
 import { KpiTile } from "@/components/ui/widgets";
+import { KernelDataNote } from "@/components/ui/kernel-note";
 import { InstructionsPanel } from "@/components/school/class-instructions";
 import { RayaName } from "@/components/ui/brand";
 import { useTranslate } from "@/components/ui/locale";
@@ -166,6 +167,7 @@ export function ProfOverviewView({
           {tr("school.profOverview.generateClassReport")}
         </button>
       </div>
+      {!loading && ov && ov.alerts.length > 0 && <KernelDataNote />}
     </div>
   );
 }

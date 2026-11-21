@@ -169,6 +169,22 @@ function splitInlineMath(text: string): { text: string; math: boolean }[] {
         continue;
       }
     }
+    // \(...\) and \[...\]: models default to these as often as to dollars, so
+    // a generation that ignored the "$...$ only" instruction still renders
+    // instead of showing raw code. Spaces inside are fine here — unlike $,
+    // a backslash-paren has no currency collision to guard against.
+    if (text[i] === "\\" && (text[i + 1] === "(" || text[i + 1] === "[")) {
+      const close = text[i + 1] === "(" ? "\\)" : "\\]";
+      const j = text.indexOf(close, i + 2);
+      const nl = text.indexOf("\n", i + 2);
+      if (j !== -1 && (nl === -1 || j < nl) && text.slice(i + 2, j).trim().length > 0) {
+        if (i > last) out.push({ text: text.slice(last, i), math: false });
+        out.push({ text: text.slice(i + 2, j), math: true });
+        i = j + 2;
+        last = i;
+        continue;
+      }
+    }
     i++;
   }
   if (last < text.length) out.push({ text: text.slice(last), math: false });

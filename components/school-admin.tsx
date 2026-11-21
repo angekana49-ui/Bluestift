@@ -7,16 +7,18 @@ import { setActiveSchool } from "@/app/school/actions";
 import { clearLocalData } from "@/lib/net/local-data";
 import { netFetch, getJsonCached, invalidateCached } from "@/lib/net/client-fetch";
 import { SchoolRayaChat } from "@/components/school/school-raya-chat";
+import { StudentRecordActions } from "@/components/school/student-record-actions";
 import { AuthPanel, type RecoveryKeyInfo } from "@/components/auth-panel";
 import { SettingsThemeCard } from "@/components/raya/settings-theme-card";
 import { SettingsLanguageCard } from "@/components/raya/settings-language-card";
 import { StudentBillingCard } from "@/components/raya/settings-billing-card";
 import { SectionHeader } from "@/components/raya/section-header";
 import { SchoolReports } from "@/components/school-reports";
-import { SchoolTeam } from "@/components/school-team";
+import { SchoolTeam, TeamSectionsPanel, type TeamSection, type TeamSectionCounts } from "@/components/school-team";
 import { SchoolInsights } from "@/components/school-insights";
 import { SchoolLms } from "@/components/school-lms";
 import { SchoolArchive } from "@/components/school-archive";
+import { SchoolLibrary } from "@/components/school-library";
 import { SchoolBilling } from "@/components/school-billing";
 import { InstructionsPanel } from "@/components/school/class-instructions";
 import { FollowupsPanel } from "@/components/school/prof-followups";
@@ -36,6 +38,7 @@ import { RayaName, SchoolsName } from "@/components/ui/brand";
 import { createClient } from "@/lib/supabase/client";
 import { KpiTile, MasteryGauge } from "@/components/ui/widgets";
 import { DocumentActions } from "@/components/ui/doc-actions";
+import { KernelDataNote } from "@/components/ui/kernel-note";
 import { RichText } from "@/components/chat/rich-text";
 import {
   FilterChips,
@@ -284,7 +287,7 @@ export function SchoolAdmin({
       ) : role === "prof" && needsReconfirmation ? (
         <RenewYear schoolName={profSchoolName} yearLabel={currentYearLabel} />
       ) : role === "prof" ? (
-        <ProfView classes={profClasses} teacherName={teacherName} planLabel={planLabel} subjects={profSubjects} schoolName={profSchoolName} schoolLogoUrl={profSchoolLogoUrl} account={account} initialTab={initialTab} />
+        <ProfView classes={profClasses} teacherName={teacherName} userName={userName} planLabel={planLabel} subjects={profSubjects} schoolName={profSchoolName} schoolLogoUrl={profSchoolLogoUrl} account={account} initialTab={initialTab} />
       ) : (
         <Dashboard dash={dash as SchoolDashboard} setDash={setDash} adminName={userName} planLabel={planLabel} initialTab={initialTab} />
       )}
@@ -833,11 +836,12 @@ const PROF_TABS: readonly ProfTab[] = [
 type ProfNav =
   | { mode: "list" }
   | { mode: "class"; roster: ClassRoster }
-  | { mode: "student"; detail: StudentDetail; classId: string; onBack: () => void };
+  | { mode: "student"; detail: StudentDetail; classId: string; className: string; onBack: () => void };
 
 function ProfView({
   classes,
   teacherName,
+  userName = "",
   planLabel = null,
   subjects,
   schoolName,
@@ -848,6 +852,8 @@ function ProfView({
   initialTab?: string | null;
   classes: AdminClass[];
   teacherName: string;
+  /** Raw display name (possibly empty) — the Raya greeting falls back to "prof" without it. */
+  userName?: string;
   planLabel?: string | null;
   subjects: string[];
   schoolName: string | null;
@@ -911,7 +917,7 @@ function ProfView({
         setError(tr("school.prof.studentLoadFailed"));
         return;
       }
-      setNav({ mode: "student", detail, classId, onBack });
+      setNav({ mode: "student", detail, classId, className: classes.find((c) => c.id === classId)?.name ?? "", onBack });
     } catch {
       setError(tr("school.prof.studentLoadFailed"));
     } finally {
@@ -969,7 +975,7 @@ function ProfView({
 
   let body: React.ReactNode;
   if (nav.mode === "student") {
-    body = <StudentDetailView detail={nav.detail} classId={nav.classId} onBack={nav.onBack} />;
+    body = <StudentDetailView detail={nav.detail} classId={nav.classId} className={nav.className} schoolName={resolvedSchool} onBack={nav.onBack} />;
   } else if (nav.mode === "class") {
     const roster = nav.roster;
     body = (
@@ -984,7 +990,7 @@ function ProfView({
       />
     );
   } else if (tab === "raya") {
-    body = <SchoolRayaChat role="prof" staffName={teacherName} />;
+    body = <SchoolRayaChat role="prof" staffName={teacherName} classes={classes.map((c) => ({ id: c.id, name: c.name }))} profName={userName} />;
   } else if (tab === "settings") {
     body = <ProfSettings account={account} classes={classes} />;
   } else if (tab === "overview") {
@@ -1004,6 +1010,7 @@ function ProfView({
         classes={classes.map((c) => ({ id: c.id, name: c.name }))}
         schoolName={resolvedSchool}
         allowedScopes={["class"]}
+        viewerRole="prof"
       />
     );
   } else if (tab === "focus") {
@@ -1471,6 +1478,7 @@ function profInsightsToDoc(data: ProfInsights, schoolName: string | undefined, t
     if (ins.topGaps.length > 0) lines.push(`- ${t("school.insights.topGapsLabel")}: ${ins.topGaps.join(", ")}`);
     if (ins.topRecommendation) lines.push(`- ${t("school.insights.recommendationLabel")}: ${ins.topRecommendation}`);
   }
+  lines.push("", t("kernel.dataNote.figures"));
   return {
     brand: "bluestift",
     title: t("school.insights.classInsightsTitle"),
@@ -1626,6 +1634,7 @@ function ProfInsightsView({ onStudent, schoolName }: { onStudent: (classId: stri
           </div>
         ))
       )}
+      <KernelDataNote />
     </div>
   );
 }
@@ -1831,7 +1840,7 @@ function SchoolSettings({
   );
 }
 
-type DashTab = "overview" | "manage" | "team" | "insights" | "lms" | "raya" | "reports" | "archive" | "billing" | "settings";
+type DashTab = "overview" | "manage" | "team" | "insights" | "lms" | "raya" | "reports" | "library" | "archive" | "billing" | "settings";
 // "lms" (Google Classroom) is intentionally omitted from the reachable set: the
 // integration needs a Google OAuth app that isn't provisioned yet, so it's hidden
 // from the nav until it's wired. The tab branch + component are kept so re-enabling
@@ -1878,6 +1887,8 @@ function Dashboard({
   useTabInUrl(tab);
   const [overview, setOverview] = useState<SchoolOverview | null>(null);
   const [overviewBusy, setOverviewBusy] = useState(false);
+  const [teamSection, setTeamSection] = useState<TeamSection>("teachers");
+  const [teamCounts, setTeamCounts] = useState<TeamSectionCounts>({ subjects: 0, teachers: 0, access: 0, assignments: 0 });
 
   async function fetchOverview() {
     if (overview || overviewBusy) return;
@@ -2071,6 +2082,7 @@ function Dashboard({
     // LMS (Google Classroom) hidden until the OAuth integration is provisioned.
     { key: "raya", label: "Raya", icon: <IconChat /> },
     { key: "reports", label: tr("nav.reports"), icon: <IconSummary /> },
+    { key: "library", label: tr("nav.library"), icon: <IconFile /> },
     { key: "archive", label: tr("nav.archive"), icon: <IconArchive /> },
     { key: "billing", label: tr("nav.billing"), icon: <IconBilling /> },
     { key: "settings", label: tr("nav.settings"), icon: <IconSettings /> },
@@ -2083,15 +2095,21 @@ function Dashboard({
 
   const tabContent =
     tab === "raya" ? (
-      <SchoolRayaChat role="admin_master" staffName={dash.school.name} />
+      <SchoolRayaChat role="admin_master" staffName={dash.school.name} classes={dash.classes.map((c) => ({ id: c.id, name: c.name }))} />
     ) : tab === "settings" ? (
       <SchoolSettings school={dash.school} onUpdated={(school) => setDash({ ...dash, school })} />
     ) : tab === "team" ? (
-      <SchoolTeam classes={dash.classes.map((c) => ({ id: c.id, name: c.name }))} />
+      <SchoolTeam
+        classes={dash.classes.map((c) => ({ id: c.id, name: c.name }))}
+        section={teamSection}
+        onSectionCounts={setTeamCounts}
+      />
     ) : tab === "insights" ? (
       <SchoolInsights schoolName={dash.school.name} />
     ) : tab === "lms" ? (
       <SchoolLms classes={dash.classes.map((c) => ({ id: c.id, name: c.name }))} />
+    ) : tab === "library" ? (
+      <SchoolLibrary schoolName={dash.school.name} />
     ) : tab === "reports" ? (
       <SchoolReports classes={dash.classes.map((c) => ({ id: c.id, name: c.name }))} schoolName={dash.school.name} />
     ) : tab === "archive" ? (
@@ -2161,7 +2179,7 @@ function Dashboard({
 
   let body: React.ReactNode;
   if (nav.mode === "student") {
-    body = <StudentDetailView detail={nav.detail} classId={nav.roster.classId} onBack={() => setNav({ mode: "class", roster: nav.roster })} />;
+    body = <StudentDetailView detail={nav.detail} classId={nav.roster.classId} className={nav.roster.className} schoolName={dash.school.name} onBack={() => setNav({ mode: "class", roster: nav.roster })} />;
   } else if (nav.mode === "class") {
     body = (
       <RosterView
@@ -2195,7 +2213,13 @@ function Dashboard({
       headerSubtitle={contextLabel}
       headerLogoUrl={dash.school.logoUrl}
       contentFlush={rayaFlush}
-      rightPanel={nav.mode === "list" && tab === "overview" && overview ? <OverviewRightPanel overview={overview} /> : undefined}
+      rightPanel={
+        nav.mode === "list" && tab === "overview" && overview ? (
+          <OverviewRightPanel overview={overview} />
+        ) : nav.mode === "list" && tab === "team" ? (
+          <TeamSectionsPanel section={teamSection} counts={teamCounts} onSection={setTeamSection} />
+        ) : undefined
+      }
     >
       {body}
     </SchoolChrome>
@@ -2251,6 +2275,7 @@ function OverviewView({
           <ListNoMatch search={search} />
         </>
       )}
+      <KernelDataNote />
     </div>
   );
 }
@@ -2338,6 +2363,7 @@ function OverviewRightPanel({ overview }: { overview: SchoolOverview }) {
           ))}
         </div>
       )}
+      <KernelDataNote />
     </RightPanel>
   );
 }
@@ -2761,6 +2787,7 @@ function RosterView({
       )}
 
       <InstructionsPanel classId={roster.classId} />
+      <KernelDataNote />
     </div>
   );
 }
@@ -3001,6 +3028,7 @@ export function LearningGraphView({ graph }: { graph: LearningGraph }) {
           })}
         </svg>
       </div>
+      <KernelDataNote graph />
     </div>
   );
 }
@@ -3010,11 +3038,15 @@ export function StudentDetailView({
   detail,
   onBack,
   classId,
+  className,
+  schoolName,
 }: {
   detail: StudentDetail;
   onBack: () => void;
   /** When set, the team-shared follow-up log for this student is shown below. */
   classId?: string;
+  className?: string;
+  schoolName?: string;
 }) {
   const { t, box, ghost } = useSchoolStyles();
   const tr = useTranslate();
@@ -3061,15 +3093,16 @@ export function StudentDetailView({
         </button>
         {/* FERPA inspect-and-review: what a parent asks the school for. Downloads
             the education record — results, inferred understanding and staff
-            notes — but not the student's own conversations with Raya. */}
+            notes — but not the student's own conversations with Raya. TXT and
+            PDF first (branded, readable); the raw JSON stays one click away. */}
         {classId && (
-          <a
-            href={`/api/school/student/record?classId=${classId}&userId=${detail.userId}`}
-            style={{ ...ghost, textDecoration: "none", marginLeft: "auto" }}
-            title={tr("school.student.downloadRecordTitle")}
-          >
-            {tr("school.student.downloadRecord")}
-          </a>
+          <StudentRecordActions
+            classId={classId}
+            userId={detail.userId}
+            studentName={`${detail.firstName} ${detail.lastName}`.trim() || detail.userId}
+            className={className}
+            schoolName={schoolName}
+          />
         )}
       </div>
 
@@ -3214,6 +3247,7 @@ export function StudentDetailView({
       </div>
 
       {classId && <FollowupsPanel classId={classId} studentUserId={detail.userId} />}
+      {hasKernel && <KernelDataNote />}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Modal } from "@/components/ui/modal";
 import { IconArchive, IconDots, IconTrash, IconUnarchive } from "@/components/ui/icons";
 import { RowMenu, type MenuItem } from "@/components/ui/row-menu";
@@ -18,8 +18,19 @@ import type { MessageKey } from "@/lib/i18n";
  * row drops in next to its other actions. What it shares with the
  * conversation list is only the parts that must not diverge: the portal menu
  * (components/ui/row-menu.tsx) and the "say what happens before it happens"
- * confirm dialog, including delete's honest caveat.
+ * confirm dialog, including delete's honest caveat. Rows can prepend their
+ * own items (send, assign) through `actions` — they run directly, without a
+ * confirm, and a disabled one renders dimmed.
  */
+export type ArtifactAction = {
+  key: string;
+  label: string;
+  sublabel?: string;
+  icon?: ReactNode;
+  disabled?: boolean;
+  onSelect: () => void;
+};
+
 export function ArtifactMenu({
   theme: t,
   itemLabel,
@@ -27,6 +38,7 @@ export function ArtifactMenu({
   canArchive = true,
   canDelete = true,
   deleteCaveatKey,
+  actions = [],
   onArchive,
   onDelete,
   menuLabel,
@@ -41,6 +53,8 @@ export function ArtifactMenu({
   canDelete?: boolean;
   /** Which surface-specific "this also…" line to show under delete's body. */
   deleteCaveatKey?: MessageKey;
+  /** Extra row actions rendered above archive/delete; they run without a confirm. */
+  actions?: ArtifactAction[];
   onArchive?: (archived: boolean) => Promise<void> | void;
   onDelete: () => Promise<void> | void;
   menuLabel?: string;
@@ -50,10 +64,12 @@ export function ArtifactMenu({
   const [pending, setPending] = useState<"archive" | "unarchive" | "delete" | null>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hover, setHover] = useState(false);
 
-  if (!canArchive && !canDelete) return null;
+  if (!canArchive && !canDelete && actions.length === 0) return null;
 
   const items: MenuItem[] = [
+    ...actions,
     ...(canArchive
       ? [
           archived
@@ -115,6 +131,8 @@ export function ArtifactMenu({
         type="button"
         aria-label={menuLabel ?? tr("hist.actions")}
         title={menuLabel ?? tr("hist.actions")}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
         onClick={(e) => {
           e.stopPropagation();
           const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -124,12 +142,13 @@ export function ArtifactMenu({
           flex: "none",
           display: "flex",
           alignItems: "center",
-          background: "none",
-          border: "none",
-          padding: "2px 4px",
+          background: hover ? t.cardBg2 : "transparent",
+          border: `1px solid ${t.cardBorder}`,
+          padding: "6px 9px",
           cursor: "pointer",
-          color: t.mutedLight,
+          color: t.muted,
           fontFamily: "inherit",
+          borderRadius: 999,
         }}
       >
         <IconDots size={15} />

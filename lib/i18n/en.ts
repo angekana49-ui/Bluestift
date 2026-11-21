@@ -28,6 +28,12 @@ export const en = {
   "nav.prepare": "Prepare",
   "nav.insights": "Insights",
   "nav.reports": "Reports",
+  "nav.library": "Library",
+  "school.library.send": "Send to school",
+  "school.library.sent": "Sent ✓",
+  "school.library.sendFailed": "Could not send it.",
+  "school.library.title": "School library",
+  "school.library.empty": "Nothing here yet — teachers decide what lands on this shelf.",
   "nav.team": "Team",
   "nav.billing": "Billing",
   "nav.archive": "Archive",
@@ -331,29 +337,28 @@ export const en = {
   "site.kernel.a7.signal": "This student doesn’t behave like the population the parameters were fitted on.",
   "site.kernel.a7.response": "Raya goes by what this turn shows rather than the stored number, and won’t raise difficulty on the strength of it.",
 
-  // ── Public site: differentiators ──────────────────────────────────
-  // This band states a POSITION; it does not run a comparison, and it should
-  // not be turned back into one. A ✕/✓ table scoring four competitors defined
-  // the product by negation, told a teacher who uses one of them daily that
-  // their choice was bad, and — since this runs on bought frontier models —
-  // invited "he is attacking the API he pays for". Claims of the form "they
-  // cannot do X" also expire: that happened here once already, when frontier
-  // models shipped long context and killed the old "the difference is the
-  // memory" line. A layer is a product shape, and a shape does not expire.
-  //
-  // Nothing below names a competitor. The two notes are the only claims, both
-  // checkable — the second one inside this repo, where lib/school-admin.ts
-  // reads concept and mindset state, insights and follow-ups, and no message
-  // table at all.
-  "site.pos.eyebrow": "Where this sits",
-  "site.pos.title.a": "The layer between",
-  "site.pos.title.em": "the two you already buy.",
+  // ── Public site: the symptom ("why now") ───────────────────────────
+  // This band stages the entry to the dissociation thesis, not a second
+  // thesis: homework used to carry signal about how a student thinks, and AI
+  // answers come back laundered. It replaced "the layer between the two you
+  // already buy", a position written under time pressure that the project no
+  // longer holds — and before that a ✕/✓ table scoring four competitors, which
+  // defined the product by negation and should not be turned back into one.
+  // Nothing below names a competitor and nothing is quantified.
+  "site.pos.eyebrow": "Why now",
+  "site.pos.title.a": "Homework used to show",
+  "site.pos.title.em": "how they think.",
   "site.pos.sub":
-    "Your LMS records what was done, on the days work is due. A tutor helps in the moment, and then the moment is over. Neither one keeps what a student actually understood — so on an ordinary Tuesday, with nothing due and no session running, there is nothing to read.",
-  "site.pos.note.model":
-    "Everything in this category runs on bought frontier models. So does this, from the same suppliers. The model is the floor — it is not what anyone is choosing between. The record above it is.",
-  "site.pos.note.privacy":
-    "And that record is narrow on purpose. A teacher sees that derivatives are fragile. A teacher does not see what was said — which is less than the gradebook they already have knows about the same student.",
+    "Every mistake was telemetry — where she got lost, which step slipped. AI answers come back perfect and laundered: right, and silent. In 2026 a teacher sees less than in 2019.",
+  // The exercise both homework copies answer. The equation itself is the shared
+  // control of the comparison — keep "2(x − 3) = 8" verbatim in every locale.
+  "site.pos.exercise": "Solve 2(x − 3) = 8",
+  "site.pos.card.attempt": "Amara's attempt",
+  "site.pos.verdict.attempt": "Wrong — and it shows exactly where.",
+  "site.pos.card.returned": "What came back",
+  "site.pos.verdict.returned": "Right — and it shows nothing.",
+  "site.pos.close":
+    "The signal still exists. It lives in the working, not the answer — and that is where Raya reads it.",
 
   // ── Public site: roadmap ──────────────────────────────────────────
   // Must track docs/project-status.md. Payments stay "in progress" until live
@@ -536,6 +541,17 @@ export const en = {
   "chat.tool.failed": "Couldn't create it.",
   "chat.tool.questions": "{n} questions",
   "chat.tool.cards": "{n} cards",
+  "chat.prepare.create": "Create in Prepare",
+  "chat.prepare.creating": "Creating…",
+  "chat.prepare.fromConversation": "From this conversation",
+  "chat.prepare.fromTopic": "On “{topic}”",
+  "chat.prepare.open": "Open",
+  "chat.prepare.inPrepare": "See in Prepare",
+  "chat.prepare.failed": "Couldn't create it.",
+  "chat.prepare.questions": "{n} questions",
+  "chat.prepare.classLabel": "Class",
+  "chat.prepare.reportLabel": "Also use report",
+  "chat.prepare.noReport": "None",
 
   // ── File picker (components/ui/file-picker.tsx) ──
   "file.choose": "Choose a file",
@@ -623,6 +639,10 @@ export const en = {
     "This also deletes the room's shared attempts and leaderboard scores for this challenge, for everyone.",
   "artifact.delete.caveat.teacherResource":
     "This only removes it from your Prepare library — classes it was already assigned to keep their results.",
+  "artifact.delete.caveat.report":
+    "This permanently removes it — including from the school's year-end record, which counts every report.",
+  "artifact.delete.caveat.teacherResourceLinked":
+    "Classes it was assigned to keep their results — but it also disappears from the school's year-end record for its class.",
 
   // ── Onboarding (post-signup account setup, components/onboarding-form.tsx) ─
   // No interpolation helper exists in this catalogue, so anywhere the English
@@ -1936,30 +1956,6 @@ export const en = {
   "dm.needsAttention": "Needs attention",
   "dm.schoolPlan": "School plan",
 
-  // ── Position diagram (components/site/PositionShot.tsx) — status words
-  // reuse kd.status.developing/secure for the two shared bands; "fragile" is
-  // this plate's own, lower, third band.
-  "ps.rail.lms.name": "Your LMS",
-  "ps.rail.lms.sub": "what was done",
-  "ps.rail.raya.sub": "what was understood",
-  "ps.rail.tutor.name": "A tutor",
-  "ps.rail.tutor.sub": "the moment",
-  "ps.oneTerm": "one term",
-  "ps.gaugeCaption": "derivatives · right now",
-  "ps.status.fragile": "fragile",
-  "ps.tuesdayWeek7": "a Tuesday in week 7",
-  "ps.lastMarkPrefix": "last mark:",
-  "ps.weeksAgo": "weeks ago",
-  "ps.noSessionRunning": "no session running — nothing kept",
-  "ps.tenDaysLate": "ten days late",
-  "ps.ifThatTuesdayRead": "if that Tuesday is read",
-  "ps.thatTuesday": "that Tuesday",
-  "ps.daysOn": "days on",
-  "ps.leftAsItWentA": "Left as it went, the same day reads",
-  "ps.leftAsItWentB": "— and the",
-  "ps.leftAsItWentC": "is the first anyone hears of it.",
-  "ps.footer": "Two of these three layers are already paid for, and neither can answer a question asked on a day with nothing due.",
-
   // ── Research hub (components/site/pages/ResearchView.tsx) — the Progress
   // tab's own strings live under site.roadmap.*; these are the other three
   // tabs plus the newsletter box and propose-a-contribution form. Reuses
@@ -2595,6 +2591,8 @@ export const en = {
   "kernel.bar.knowledge": "Knowledge (K)",
   "kernel.bar.retention": "Retention (V)",
   "kernel.bar.application": "Application (P)",
+  "kernel.dataNote.figures": "Figures from the Kernel are estimates — guidance, not exact measures.",
+  "kernel.dataNote.graph": "Indicative graph built from Kernel data — estimates, not exact measures.",
   "kernel.lastPracticed": "Last practiced on",
   "kernel.loading": "Loading your profile…",
   "kernel.profileErrorA": "Your profile isn't available right now. It's built by",
@@ -2788,7 +2786,7 @@ export const en = {
   "school.insights.kernelUnreachableNote": "_Kernel unreachable when this was exported — the list is unknown, not empty._",
   "school.insights.noneNeedAttention": "No students need attention right now.",
   "school.insights.classInsightsTitle": "Class insights",
-  "school.insights.noCertifiedYet": "No certified insights yet.",
+  "school.insights.noCertifiedYet": "No Kernel insights yet.",
   "school.insights.atRiskFallback": "at risk",
   "school.insights.topGapsLabel": "Top gaps",
   "school.insights.recommendationLabel": "Recommendation",
@@ -2798,7 +2796,7 @@ export const en = {
   "school.insights.signalsWord": "signals",
   "school.insights.markSeenTitle": "Mark as seen — it leaves this list, the student's data is untouched.",
   "school.insights.seenLabel": "Seen",
-  "school.insights.noCertifiedYetLong": "No certified insights yet — they appear once your students have enough activity.",
+  "school.insights.noCertifiedYetLong": "No Kernel insights yet — they appear once your students have enough activity.",
 
   // ── Shared list search primitive (components/ui/list-filter.tsx) — used by
   // every long list in both Raya and Schools. `noun` itself must be a
@@ -2942,6 +2940,16 @@ export const en = {
   "school.student.backToClass": "← Back to class",
   "school.student.downloadRecordTitle": "Download this student's education record (for a parent request)",
   "school.student.downloadRecord": "Download record",
+  "school.record.results": "Assessment results",
+  "school.record.understanding": "Inferred understanding",
+  "school.record.notes": "Staff notes",
+  "school.record.about": "About this record",
+  "school.record.empty": "Nothing recorded yet.",
+  "school.record.average": "Average {avg} across {n} marked attempts",
+  "school.record.more": "{m} mindset snapshots · {r} risk assessments · {t} trajectory points",
+  "school.record.partial": "Incomplete sections: {list}",
+  "school.record.scope": "This record holds what the school already sees: identity, work set, results, inferred understanding, and staff notes.",
+  "school.record.excludes": "Excluded: the student's own conversations with Raya, their uploaded documents, and their private study-room channel. Those belong to the student.",
   "school.student.avgMastery": "Avg mastery",
   "school.student.confidence": "Confidence",
   "school.student.sessions7d": "Sessions (7d)",
@@ -3003,6 +3011,33 @@ export const en = {
   "school.team.notBackOther": "teachers haven't entered this year's staff code yet. Their record is kept — remove the ones who have left.",
   "school.team.notBackYet": "Not back yet",
   "school.team.removeFromSchoolTitle": "Remove from school",
+  "school.team.removeTitle": "Remove {name}?",
+  "school.team.removeLineAssignments": "Teaching assignments dropped ({n}): {list} — those classes lose their teacher.",
+  "school.team.removeLineNoAssignments": "No teaching assignments to drop.",
+  "school.team.removeLineKept": "Kept at the school: Prepare resources ({resources}), reports ({reports}), follow-ups ({followups}), sent shelf copies.",
+  "school.team.removeLineAccount": "Personal accounts and solo work are untouched.",
+  "school.team.removeConfirm": "Remove",
+  "school.team.navSubjects": "Subjects",
+  "school.team.navTeachers": "Teachers",
+  "school.team.navAccess": "Access",
+  "school.team.navAssignments": "Assignments",
+  "school.team.sectionsLabel": "Team sections",
+  "school.team.colTeacher": "Teacher",
+  "school.team.colEmail": "Email",
+  "school.team.colClasses": "Classes",
+  "school.team.colName": "Name",
+  "school.team.colCode": "Code",
+  "school.team.colMode": "Mode",
+  "school.team.colClass": "Class",
+  "school.team.colSubject": "Subject",
+  "school.team.selectedCount": "Selected ({n})",
+  "school.team.clearSelection": "Clear",
+  "school.team.selectAll": "Select all",
+  "school.team.removeTitleOther": "Remove {n} teachers?",
+  "school.team.removeSomeFailed": "Could not remove: {names}.",
+  "school.team.filterAll": "All",
+  "school.team.pickClassSubject": "Pick a class and a subject first.",
+  "school.team.assignSomeFailed": "Could not assign: {names}.",
   "school.team.teacherEmailPlaceholder": "Teacher email",
   "school.team.inviteTeacherButton": "Invite teacher",
   "school.team.inviteTeachersHeading": "Invite teachers",
@@ -3086,10 +3121,10 @@ export const en = {
   "school.insights.kernelInsightsTitle": "Kernel insights",
   "school.insights.whatIfSimsHeading": "What-if simulations",
   "school.insights.subjectFallback": "subject",
-  "school.insights.certifiedReadOnly": "Certified by the Cognitive Kernel · read-only.",
+  "school.insights.certifiedReadOnly": "From the Cognitive Kernel · read-only.",
   "school.insights.noInsightsYetLong": "No insights yet — they appear once the Kernel has processed enough activity in your classes.",
   "school.insights.avgMasteryLower": "avg mastery",
-  "school.insights.simDescription": "Projects a plausible outcome from the certified baseline. An estimate, not a Kernel guarantee.",
+  "school.insights.simDescription": "Projects a plausible outcome from the Kernel baseline. An estimate, not a Kernel guarantee.",
   "school.insights.hoursPerWeekSuffix": "h/week",
   "school.insights.focusPlaceholder": "Focus (optional, e.g. the discriminant)",
   "school.insights.running": "Running…",
@@ -3240,8 +3275,11 @@ export const en = {
   "school.profOverview.generateClassReport": "Generate a class report",
 
   // ── Raya-for-Schools chat + right panel (components/school/school-raya-chat.tsx) ─
-  "school.rayaChat.greetingWithName": "Where do you want eyes today,",
-  "school.rayaChat.greetingNoName": "Where do you want eyes today?",
+  "school.rayaChat.greet1": "Hey {name}! What are we getting into today?",
+  "school.rayaChat.greet2": "Hello {name} — what can I dig up for you?",
+  "school.rayaChat.greet3": "Hi {name}! Which class is on your mind?",
+  "school.rayaChat.greet4": "Hey {name}, ready when you are — what's first?",
+  "school.rayaChat.profWord": "prof",
   "school.rayaChat.emptyHint": "Ask about your classes and students, or attach a document to analyse together.",
   "school.rayaChat.suggestion1": "Who's at risk right now?",
   "school.rayaChat.suggestion2": "Which class needs attention?",
@@ -3273,6 +3311,21 @@ export const en = {
   "school.prepare.noClassGeneral": "No class (general)",
   "school.prepare.anySubject": "Any subject",
   "school.prepare.numberOfQuestionsTitle": "Number of questions",
+  "school.prepare.sourceConversation": "Conversation",
+  "school.prepare.sourceNone": "None",
+  "school.prepare.sourceFilesAdd": "Add files",
+  "school.prepare.sourceResource": "Past generation",
+  "school.prepare.gapsLabel": "Weakest right now:",
+  "school.prepare.doc.exam": "Exam",
+  "school.prepare.doc.markingScheme": "Marking scheme",
+  "school.prepare.doc.points": "{n} pts",
+  "school.prepare.doc.totalPoints": "Total: {n} points",
+  "school.prepare.doc.exercises": "Exercises",
+  "school.prepare.doc.practice": "Practice",
+  "school.prepare.doc.questions": "Questions",
+  "school.prepare.doc.solutions": "Solutions",
+  "school.prepare.doc.answers": "Answers",
+  "school.prepare.doc.answerKey": "Answer key",
   "school.prepare.topicPlaceholder": "Topic or focus (optional) — e.g. fractions, the water cycle…",
   "school.prepare.downloadAssignHint": "Download & print, or assign it to a class from your library below.",
   "school.prepare.yourLibrary": "Your library",
@@ -3723,6 +3776,9 @@ export const en = {
   "api.thisClassBelongsToAnArchived": "This class belongs to an archived year. Past years are a record and can't be changed.",
   "api.thisClassIsStillReferencedElsewhere": "This class is still referenced elsewhere and can't be removed.",
   "api.notYourClass": "Not your class.",
+  "api.notYourSubject": "Not your subject.",
+  "api.deleteProfOnly": "Only teachers can delete this — archive it instead.",
+  "api.teachersOnly": "Teachers only.",
   "api.couldNotAllocateACode": "Could not allocate a code.",
   "api.codeNotFound": "Code not found.",
   "api.thisCodeWasReplacedAndCan": "This code was replaced and can no longer be reactivated.",

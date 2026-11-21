@@ -254,7 +254,16 @@ export async function POST(request: Request) {
   });
 }
 
-/** Remove a prof from the admin_master's school. Never removes an admin_master. */
+/**
+ * Remove a prof from the admin_master's school. Never removes an admin_master.
+ *
+ * What goes: the membership, their teaching assignments (the admin reassigns
+ * those classes), and their personal prefs row. What stays: everything they
+ * authored — Prepare resources, reports, follow-ups, assignment records,
+ * sent shelf copies — now plain orphans under the school (the author FKs
+ * were dropped for exactly this; see migration 20261119000000). Their
+ * personal account and solo work are untouched.
+ */
 export async function DELETE(request: Request) {
   const supabase = await createClient();
   const {
@@ -285,6 +294,9 @@ export async function DELETE(request: Request) {
 
   // Drop the prof's assignments first in case the FK is not ON DELETE CASCADE.
   await schools.from("assignments").delete().eq("prof_id", adminId);
+  // Personal prefs die with the membership (just picker defaults, no loss) —
+  // deleted explicitly so no FK action can block the removal either.
+  await schools.from("staff_preferences").delete().eq("admin_id", adminId);
 
   // Scoped to this school and to role=prof so an admin_master can't be removed.
   const { data, error } = await schools

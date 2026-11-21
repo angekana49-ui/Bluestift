@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { clientError } from "@/lib/observability/client-error";
 import { createClient } from "@/lib/supabase/server";
 import { createSchoolsAdminClient } from "@/lib/supabase/admin";
-import { getAdminMembership, getSchoolSubjects } from "@/lib/school-admin";
+import { getAdminMembership, getViewerSubjects } from "@/lib/school-admin";
 import { apiT } from "@/lib/i18n/server";
 
-/** List the subjects available to the caller's school (any staff). */
+/** List the caller's pickable subjects: all school subjects for an admin, assigned-only for a prof. */
 export async function GET() {
   const supabase = await createClient();
   const {
@@ -16,7 +16,7 @@ export async function GET() {
   const membership = await getAdminMembership(user.id);
   if (!membership) return NextResponse.json({ error: await apiT("api.staffOnly") }, { status: 403 });
 
-  const subjects = await getSchoolSubjects(user.id);
+  const subjects = await getViewerSubjects(user.id);
   return NextResponse.json({ subjects });
 }
 

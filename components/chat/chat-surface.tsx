@@ -18,6 +18,7 @@ import { ChatAvatar } from "./chat-avatar";
 import { RichText } from "./rich-text";
 import { takeChatHandoff } from "@/lib/chat-handoff";
 import { ToolRequestContext } from "./tool-request-context";
+import { PrepareRequestContext } from "./prepare-request-context";
 import type { ChatConfig } from "./types";
 import type { ChatEngine } from "./use-chat-engine";
 
@@ -231,8 +232,20 @@ export function ChatSurface({
     [config.toolRequests, config.extraBody?.roomId, conversationId],
   );
 
+  // What a ```prepare card in a reply needs: the staff thread (this surface's
+  // own conversation — never a room's) plus the teacher's classes to ground on.
+  const prepareEnv = useMemo(
+    () => ({
+      enabled: config.prepareRequests === true,
+      conversationId: config.extraBody?.roomId ? null : (conversationId ?? null),
+      classes: config.prepareClasses ?? [],
+    }),
+    [config.prepareRequests, config.prepareClasses, config.extraBody?.roomId, conversationId],
+  );
+
   return (
     <ToolRequestContext.Provider value={toolEnv}>
+    <PrepareRequestContext.Provider value={prepareEnv}>
       {/* The pale-blue animated wash is the WELCOME screen's backdrop, and only
           that. It used to back the whole chat, which meant every message bubble
           sat on a drifting gradient — the assistant's pale bubble all but
@@ -532,6 +545,7 @@ export function ChatSurface({
       {preview && (
         <FilePreview file={preview} scope="conversation" onClose={() => setPreview(null)} />
       )}
+    </PrepareRequestContext.Provider>
     </ToolRequestContext.Provider>
   );
 }

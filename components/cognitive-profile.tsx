@@ -16,6 +16,7 @@ import { useConceptName } from "@/components/ui/concept-name";
 import { useTranslate } from "@/components/ui/locale";
 import type { MessageKey } from "@/lib/i18n";
 import { WhyStuck } from "@/components/kernel-why-stuck";
+import { KernelDataNote } from "@/components/ui/kernel-note";
 
 const STATUS: Record<KCStatus, { labelKey: MessageKey; color: string }> = {
   mastered: { labelKey: "kernel.status.mastered", color: "#22c55e" },
@@ -160,6 +161,7 @@ export function CognitiveProfile() {
         concepts.map((c) => <ConceptCard key={c.concept_id} theme={t} c={c} />)
       )}
 
+      {concepts.length > 0 && <KernelDataNote />}
       {profile?.last_kernel_update && (
         <p style={{ color: t.mutedLight, fontSize: 14 }}>
           {tr("kernel.updatedOn")} {new Date(profile.last_kernel_update).toLocaleString()}

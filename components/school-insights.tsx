@@ -5,6 +5,7 @@ import type { ClassInsight, SchoolSubject, Simulation } from "@/lib/school-admin
 import { useAppTheme } from "@/components/ui/theme";
 import { netFetch, getJsonCached, invalidateCached } from "@/lib/net/client-fetch";
 import { DocumentActions } from "@/components/ui/doc-actions";
+import { KernelDataNote } from "@/components/ui/kernel-note";
 import { panelCard, textInput, ctaButton } from "@/components/ui/forms";
 import { type BrandedDoc } from "@/lib/document";
 import { useTranslate } from "@/components/ui/locale";
@@ -36,6 +37,7 @@ function insightsToDoc(insights: ClassInsight[], sims: Simulation[], schoolName:
       if (r.summary) lines.push(`- ${r.summary}`);
     }
   }
+  if (insights.length > 0) lines.push("", tr("kernel.dataNote.figures"));
   return {
     brand: "bluestift",
     title: tr("school.insights.kernelInsightsTitle"),
@@ -171,6 +173,7 @@ export function SchoolInsights({ schoolName }: { schoolName?: string }) {
             </div>
           ))
         )}
+        {insights.length > 0 && <KernelDataNote />}
       </div>
 
       {/* Simulation */}

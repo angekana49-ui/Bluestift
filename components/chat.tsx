@@ -6,6 +6,7 @@ import { netFetch } from "@/lib/net/client-fetch";
 import type { AnalyzeResponse } from "@/lib/kernel/types";
 import type { BrandedDoc } from "@/lib/document";
 import { DocumentActions } from "@/components/ui/doc-actions";
+import { KernelDataNote } from "@/components/ui/kernel-note";
 import { useDarkMode, useAppTheme, AppThemeProvider } from "@/components/ui/theme";
 import { useConceptName } from "@/components/ui/concept-name";
 import { LocaleProvider, useTranslate } from "@/components/ui/locale";
@@ -73,6 +74,7 @@ function analysisToText(
     `${tr("chatHome.confidenceLabel")} ${a.confidence}`,
     `${tr("chatHome.knowledgeComponentsLabel")} ${Object.keys(a.mastery_map).length}`,
     `${tr("chatHome.modelLabel")} ${a.llm_used}`,
+    tr("kernel.dataNote.figures"),
   ]
     .filter(Boolean)
     .join("\n");
@@ -405,6 +407,7 @@ function ChatBody({
           <div style={{ fontSize: 14, color: t.muted }}>
             {tr("chatHome.confidenceLabel")} {analysis.confidence} · {tr("chatHome.kcsAbbrev")} {Object.keys(analysis.mastery_map).length} · {tr("chatHome.modelLabel")} {analysis.llm_used}
           </div>
+          <KernelDataNote />
         </div>
       )}
     </RightPanel>
